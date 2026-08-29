@@ -4,6 +4,7 @@ import android.inputmethodservice.InputMethodService
 import android.os.Environment
 import android.view.ContextThemeWrapper
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
@@ -55,7 +56,13 @@ class KeyTabImeService : InputMethodService() {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 val isKb = tab.position == 0
                 kb.visibility = if (isKb) View.VISIBLE else View.GONE
-                fm.visibility = if (isKb) View.GONE else View.VISIBLE
+                if (isKb) {
+                    fm.visibility = View.GONE
+                } else {
+                    fm.visibility = View.VISIBLE
+                    // sicherstellen, dass der FileManager gefüllt ist
+                    setupFileManager(root)
+                }
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
@@ -87,7 +94,26 @@ class KeyTabImeService : InputMethodService() {
                 }
                 btn.id == R.id.key_del -> {
                     btn.setOnClickListener { sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL) }
+                    // Lang-Druck via Touch-Timeout – zuverlässig, weil setOnLongClickListener
+                    // im IME-Fenster nicht immer feuert.
                     btn.isLongClickable = true
+                    var downTime = 0L
+                    btn.setOnTouchListener { _, event ->
+                        when (event.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                downTime = System.currentTimeMillis()
+                                false
+                            }
+                            MotionEvent.ACTION_UP -> {
+                                val held = System.currentTimeMillis() - downTime
+                                if (held >= 500) {
+                                    deleteLastWord()
+                                    true
+                                } else false
+                            }
+                            else -> false
+                        }
+                    }
                     btn.setOnLongClickListener {
                         deleteLastWord()
                         true

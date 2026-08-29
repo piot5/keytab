@@ -1,0 +1,7 @@
+<resources>
+    <color name="primary">#1B6EF3</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="key_bg">#37474F</color>
+    <color name="key_text">#FFFFFF</color>
+    <color name="key_accent">#1B6EF3</color>
+</resources>

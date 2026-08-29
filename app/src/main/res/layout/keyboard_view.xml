@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#263238"
+    android:padding="6dp">
+
+    <!-- Reihe 1: q p a ... plus TAB -->
+    <LinearLayout style="@style/KeyRow">
+        <Button style="@style/KeyDark" android:tag="letter:q" />
+        <Button style="@style/KeyDark" android:tag="letter:w" />
+        <Button style="@style/KeyDark" android:tag="letter:e" />
+        <Button style="@style/KeyDark" android:tag="letter:r" />
+        <Button style="@style/KeyDark" android:tag="letter:t" />
+        <Button style="@style/KeyDark" android:tag="letter:z" />
+        <Button style="@style/KeyDark" android:tag="letter:u" />
+        <Button style="@style/KeyDark" android:tag="letter:i" />
+        <Button style="@style/KeyDark" android:tag="letter:o" />
+        <Button style="@style/KeyDark" android:tag="letter:p" />
+        <Button style="@style/KeyDark" android:id="@+id/key_tab" android:text="@string/key_tab_label" />
+    </LinearLayout>
+
+    <!-- Reihe 2 -->
+    <LinearLayout style="@style/KeyRow">
+        <Button style="@style/KeyDark" android:tag="letter:a" />
+        <Button style="@style/KeyDark" android:tag="letter:s" />
+        <Button style="@style/KeyDark" android:tag="letter:d" />
+        <Button style="@style/KeyDark" android:tag="letter:f" />
+        <Button style="@style/KeyDark" android:tag="letter:g" />
+        <Button style="@style/KeyDark" android:tag="letter:h" />
+        <Button style="@style/KeyDark" android:tag="letter:j" />
+        <Button style="@style/KeyDark" android:tag="letter:k" />
+        <Button style="@style/KeyDark" android:tag="letter:l" />
+    </LinearLayout>
+
+    <!-- Reihe 3: Shift + z..m -->
+    <LinearLayout style="@style/KeyRow">
+        <Button style="@style/KeyDark" android:id="@+id/key_shift" android:text="@string/key_shift_label" />
+        <Button style="@style/KeyDark" android:tag="letter:y" />
+        <Button style="@style/KeyDark" android:tag="letter:x" />
+        <Button style="@style/KeyDark" android:tag="letter:c" />
+        <Button style="@style/KeyDark" android:tag="letter:v" />
+        <Button style="@style/KeyDark" android:tag="letter:b" />
+        <Button style="@style/KeyDark" android:tag="letter:n" />
+        <Button style="@style/KeyDark" android:tag="letter:m" />
+        <Button style="@style/KeyDark" android:id="@+id/key_del" android:text="@string/key_del_label" />
+    </LinearLayout>
+
+    <!-- Reihe 4: Space + Enter -->
+    <LinearLayout style="@style/KeyRow">
+        <Button style="@style/KeyDark" android:id="@+id/key_space" android:text="@string/key_space_label" />
+        <Button style="@style/KeyDark" android:id="@+id/key_enter" android:text="@string/key_enter_label" />
+    </LinearLayout>
+</LinearLayout>

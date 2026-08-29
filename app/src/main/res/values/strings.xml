@@ -1,8 +1,10 @@
 <resources>
     <string name="app_name">KeyTab</string>
     <string name="ime_label">KeyTab Tastatur</string>
-    <string name="tab_files">Dateien</string>
-    <string name="tab_keyboard">Tastatur</string>
+    <string name="tab_files">Files</string>
+    <string name="tab_keyboard">abc</string>
+    <string name="ime_tab_letters">abc</string>
+    <string name="ime_tab_files">Files</string>
     <string name="new_tab">＋</string>
     <string name="up_dir">▲</string>
     <string name="keyboard_not_enabled">KeyTab ist noch nicht als Tastatur aktiviert.</string>

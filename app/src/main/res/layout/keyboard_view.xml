@@ -7,7 +7,7 @@
     android:background="@color/kbd_bg"
     android:padding="6dp">
 
-    <!-- Tab-Leiste über der Tastatur: q = Buchstaben, FM = Dateimanager -->
+    <!-- Tab-Leiste über der Tastatur: abc = Buchstaben, Files = Dateimanager -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/ime_tabs"
         android:layout_width="match_parent"
@@ -22,12 +22,12 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="q" />
+            android:text="@string/ime_tab_letters" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="FM" />
+            android:text="@string/ime_tab_files" />
     </com.google.android.material.tabs.TabLayout>
 
     <FrameLayout

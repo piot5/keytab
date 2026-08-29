@@ -151,7 +151,7 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <!-- Kopfzeile: ".." + Pfad – ein Klick = zurück (wenn möglich) -->
+            <!-- Header-Zeile: "<" (zurück zum letzten Ordner) + Pfad + "▲" (nach oben) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -164,7 +164,16 @@
                     style="@style/KeyDark"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/up_dir" />
+                    android:text="@string/btn_back_label"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/btn_up_dir"
+                    style="@style/KeyDark"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/btn_up_label"
+                    android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/file_dir"

@@ -24,4 +24,6 @@
     <string name="theme_light">☀️ Light</string>
     <string name="storage_denied">Speicherzugriff verweigert – Berechtigung in den Einstellungen erteilen.</string>
     <string name="request_storage_access">Vollzändigen Speicherzugriff erlauben.</string>
+    <string name="btn_back_label">‹</string>
+    <string name="btn_up_label">▲</string>
 </resources>

@@ -5,6 +5,10 @@ import android.inputmethodservice.InputMethodService
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.KeyEvent
@@ -42,6 +46,7 @@ class KeyTabImeService : InputMethodService() {
     private val clipHistory = mutableListOf<String>()
     private var editorActive = false
     private var editorInput: EditText? = null
+    private val baseLetters = mutableMapOf<Button, Char>()
 
     private data class FileEntry(val file: File, val label: String, val info: String)
 
@@ -164,6 +169,7 @@ class KeyTabImeService : InputMethodService() {
     }
 
     private fun setupLetterButton(btn: Button) {
+        baseLetters[btn] = btn.text?.toString()?.firstOrNull() ?: ' '
         var pendingLongPress: Runnable? = null
         var longPressFired = false
         btn.setOnTouchListener { _, event ->
@@ -182,7 +188,7 @@ class KeyTabImeService : InputMethodService() {
                     btn.isPressed = false
                     pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
                     if (!longPressFired) {
-                        commitText(btn.text.toString())
+                        commitText(btn.text.toString().first().toString())
                     }
                     true
                 }
@@ -286,12 +292,24 @@ class KeyTabImeService : InputMethodService() {
 
     private fun applyLetterCase(view: View?) {
         if (view == null) return
+        val secondary = androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary)
         forEachView(view) { v ->
             val btn = v as? Button ?: return@forEachView
-            if (btn.tag == "letter") {
-                val base = btn.text.toString()
-                btn.text = if (shifted) base.uppercase() else base.lowercase()
+            if (btn.tag != "letter") return@forEachView
+            val base = baseLetters[btn]
+                ?: btn.text?.toString()?.firstOrNull()
+                ?: return@forEachView
+            val letter = if (shifted) base.uppercaseChar() else base.lowercaseChar()
+            val extras = (if (shifted) letterExtras[base.uppercaseChar()] else letterExtras[base]).orEmpty()
+            val sb = SpannableStringBuilder(letter.toString())
+            if (extras.isNotEmpty()) {
+                // FlorisBoard-Style: mögliche Long-Press-Zeichen klein + abgedunkelt hinter dem Buchstaben
+                val start = sb.length
+                sb.append(extras.take(3).joinToString(""))
+                sb.setSpan(RelativeSizeSpan(0.4f), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                sb.setSpan(ForegroundColorSpan(secondary), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
+            btn.text = sb
         }
     }
 

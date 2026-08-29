@@ -87,6 +87,7 @@ class KeyTabImeService : InputMethodService() {
                 }
                 btn.id == R.id.key_del -> {
                     btn.setOnClickListener { sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL) }
+                    btn.isLongClickable = true
                     btn.setOnLongClickListener {
                         deleteLastWord()
                         true
@@ -157,8 +158,12 @@ class KeyTabImeService : InputMethodService() {
         val back = root.findViewById<Button>(R.id.btn_back_dir) ?: return
 
         if (currentDir == null) {
+            // Nullsicherer Start: Falls PUBLIC_DIRECTORY null ist (API 30+ / kein Speicher),
+            // fallback auf app-internen externen Pfad oder Root "/".
             val d = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            currentDir = if (d?.isDirectory == true) d else File("/")
+            currentDir = if (d?.isDirectory == true && d.canRead()) d
+            else filesDir?.parentFile?.let { File(it, "Download") }?.takeIf { it.isDirectory }
+            ?: File("/")
         }
 
         var entries: List<FileEntry> = emptyList()

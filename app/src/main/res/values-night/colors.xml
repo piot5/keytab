@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark: Schwarz als Basis, Weiß als Akzent -->
+    <!-- Dark: Schwarze Basis, harte weiße Kontraste -->
     <color name="primary">#FFFFFF</color>
     <color name="on_primary">#000000</color>
     <color name="background">#000000</color>
@@ -8,9 +8,9 @@
     <color name="text_primary">#FFFFFF</color>
     <color name="text_secondary">#BDBDBD</color>
     <color name="kbd_bg">#000000</color>
-    <color name="key_bg">#000000</color>
+    <color name="key_bg">#2A2A2A</color>
     <color name="key_text">#FFFFFF</color>
-    <color name="key_outline">#FFFFFF</color>
+    <color name="key_outline">#B0BEC5</color>
     <color name="tab_bg">#000000</color>
     <color name="tab_text">#FFFFFF</color>
     <color name="tab_text_selected">#FFFFFF</color>

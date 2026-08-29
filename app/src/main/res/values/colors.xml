@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Light: Weiß als Basis, Schwarz als Akzent -->
-    <color name="primary">#000000</color>
+    <!-- Light: Weiß als Basis, harte schwarze Kontraste -->
+    <color name="primary">#212121</color>
     <color name="on_primary">#FFFFFF</color>
     <color name="background">#FFFFFF</color>
     <color name="surface">#FFFFFF</color>
     <color name="text_primary">#000000</color>
     <color name="text_secondary">#424242</color>
     <color name="kbd_bg">#FFFFFF</color>
-    <color name="key_bg">#FFFFFF</color>
+    <color name="key_bg">#E8E8E8</color>
     <color name="key_text">#000000</color>
-    <color name="key_outline">#000000</color>
+    <color name="key_outline">#888888</color>
     <color name="tab_bg">#FFFFFF</color>
     <color name="tab_text">#000000</color>
     <color name="tab_text_selected">#000000</color>
-    <color name="tab_indicator">#000000</color>
+    <color name="tab_indicator">#212121</color>
     <color name="list_bg">#F2F2F2</color>
     <color name="divider">#CCCCCC</color>
 </resources>

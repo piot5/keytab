@@ -1,58 +1,44 @@
 package com.piotv.keytab
 
-import android.content.res.Configuration
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
-import androidx.viewpager2.adapter.FragmentStateAdapter
-import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayoutMediator
-import com.piotv.keytab.file.FileManagerFragment
-import com.piotv.keytab.ime.KeyboardInfoFragment
 
+/**
+ * KeyTab – einfacher Einstellungs-Bildschirm:
+ * Tastatur aktivieren, Tastatur wechseln, Themenwahl (Dark/Light).
+ * Die eigentliche Tastatur mit abc/Files-Tabs lebt im IME (KeyTabImeService).
+ */
 class MainActivity : AppCompatActivity() {
-
-    private class SectionsPagerAdapter(fa: FragmentActivity) : FragmentStateAdapter(fa) {
-        override fun getItemCount(): Int = 2
-        override fun createFragment(position: Int): Fragment = when (position) {
-            0 -> FileManagerFragment()
-            else -> KeyboardInfoFragment()
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val pager = findViewById<ViewPager2>(R.id.pager)
-        val tabs = findViewById<TabLayout>(R.id.main_tabs)
-
-        pager.adapter = SectionsPagerAdapter(this)
-        TabLayoutMediator(tabs, pager) { tab, position ->
-            tab.text = getString(
-                if (position == 0) R.string.tab_files else R.string.tab_keyboard
-            )
-        }.attach()
-
-        val themeBtn = findViewById<Button>(R.id.btn_theme)
-        themeBtn.text = if (isDarkMode()) "🌙" else "☀️"
-        themeBtn.setOnClickListener {
-            if (isDarkMode()) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-                themeBtn.text = "☀️"
-            } else {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-                themeBtn.text = "🌙"
+        findViewById<Button>(R.id.btn_enable_keyboard).setOnClickListener {
+            try {
+                startActivity(Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS))
+            } catch (e: Exception) {
+                Toast.makeText(this, e.message, Toast.LENGTH_SHORT).show()
             }
         }
-    }
 
-    private fun isDarkMode(): Boolean {
-        val mode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        return mode == Configuration.UI_MODE_NIGHT_YES
+        findViewById<Button>(R.id.btn_switch_keyboard).setOnClickListener {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showInputMethodPicker()
+        }
+
+        findViewById<Button>(R.id.btn_theme_dark).setOnClickListener {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        }
+
+        findViewById<Button>(R.id.btn_theme_light).setOnClickListener {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        }
     }
 }

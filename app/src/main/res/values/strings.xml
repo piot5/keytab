@@ -17,5 +17,9 @@
     <string name="key_space_label">␣</string>
     <string name="key_enter_label">↵</string>
     <string name="close_tab">✕</string>
+    <string name="app_subtitle">Tastatur mit TAB &amp; Dateimanager</string>
+    <string name="theme_label">Theme</string>
+    <string name="theme_dark">🌙 Dark</string>
+    <string name="theme_light">☀️ Light</string>
     <string name="storage_denied">Speicherzugriff verweigert – Berechtigung in den Einstellungen erteilen.</string>
 </resources>

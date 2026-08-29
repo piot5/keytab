@@ -15,6 +15,7 @@
     <string name="key_shift_label">⇧</string>
     <string name="key_del_label">⌫</string>
     <string name="key_space_label">␣</string>
+    <string name="key_toggle_letters">abc</string>
     <string name="key_enter_label">↵</string>
     <string name="close_tab">✕</string>
     <string name="app_subtitle">Tastatur mit TAB &amp; Dateimanager</string>

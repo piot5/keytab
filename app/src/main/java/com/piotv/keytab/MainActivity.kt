@@ -1,20 +1,30 @@
 package com.piotv.keytab
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
 
 /**
- * KeyTab – einfacher Einstellungs-Bildschirm:
- * Tastatur aktivieren, Tastatur wechseln, Themenwahl (Dark/Light).
- * Die eigentliche Tastatur mit abc/Files-Tabs lebt im IME (KeyTabImeService).
+ * KeyTab – Einstellungsbildschirm: Tastatur aktivieren/wechseln, Theme.
+ * Fragt beim Start die Speicher-Berechtigungen an, damit der IME-Dateimanager
+ * auch Dateien (nicht nur Ordner) auflisten kann.
  */
 class MainActivity : AppCompatActivity() {
+
+    private val permLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            // Ergebnis ignorieren; IME zeigt Zugriff nur wenn erteilt.
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,5 +50,22 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_theme_light).setOnClickListener {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         }
+
+        requestStoragePermissions()
+    }
+
+    private fun requestStoragePermissions() {
+        val wanted = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= 33) {
+            wanted += Manifest.permission.READ_MEDIA_IMAGES
+            wanted += Manifest.permission.READ_MEDIA_VIDEO
+            wanted += Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            wanted += Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        val needed = wanted.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (needed.isNotEmpty()) permLauncher.launch(needed.toTypedArray())
     }
 }

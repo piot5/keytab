@@ -13,17 +13,20 @@ import android.widget.TextView
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
 import java.io.File
+import java.util.Locale
 
 /**
- * KeyTab IME – Tastatur mit TAB-Taste + Tab-Leiste über der Tastatur:
- * Tab „q“  = Buchstaben-Tastatur
- * Tab „FM“ = Dateimanager (ersetzt die Buchstaben, fügt Pfade ein)
+ * KeyTab IME – Tastatur mit TAB-Taste, Tab-Leiste „abc | Files“,
+ * Sonderzeichen-Ebene (?123) und eingebautem Dateimanager.
  */
 class KeyTabImeService : InputMethodService() {
 
     private var shifted = false
     private var keyboardRoot: View? = null
     private var currentDir: File? = null
+    private var showSymbols = false
+
+    private data class FileEntry(val file: File, val label: String, val info: String)
 
     override fun onCreateInputView(): View {
         val themedContext = ContextThemeWrapper(this, R.style.Theme_KeyTab)
@@ -33,25 +36,26 @@ class KeyTabImeService : InputMethodService() {
         setupTabs(root)
         hookKeyboardButtons(root)
         setupFileManager(root)
-        applyCase(root)
+        applyLetterCase(root)
         return root
     }
 
     override fun onStartInput(attribute: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
         shifted = false
-        applyCase(keyboardRoot)
+        applyLetterCase(keyboardRoot)
     }
 
-    // ---------- Tab-Leiste q | FM ----------
+    // ---------- Tab-Leiste abc | Files ----------
     private fun setupTabs(root: View) {
         val tabs = root.findViewById<TabLayout>(R.id.ime_tabs) ?: return
         val kb = root.findViewById<View>(R.id.kb_panel) ?: return
         val fm = root.findViewById<View>(R.id.file_panel) ?: return
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
-                kb.visibility = if (tab.position == 0) View.VISIBLE else View.GONE
-                fm.visibility = if (tab.position == 1) View.VISIBLE else View.GONE
+                val isKb = tab.position == 0
+                kb.visibility = if (isKb) View.VISIBLE else View.GONE
+                fm.visibility = if (isKb) View.GONE else View.VISIBLE
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
@@ -60,7 +64,7 @@ class KeyTabImeService : InputMethodService() {
         fm.visibility = View.GONE
     }
 
-    // ---------- Buchstaben- und Funktionstasten ----------
+    // ---------- Tasten ----------
     private fun hookKeyboardButtons(root: View) {
         forEachView(root) { v ->
             val btn = v as? Button ?: return@forEachView
@@ -68,10 +72,15 @@ class KeyTabImeService : InputMethodService() {
                 btn.tag == "letter" -> btn.setOnClickListener {
                     commitText(btn.text.toString())
                 }
+                btn.tag == "sym" -> btn.setOnClickListener { commitText(btn.text.toString()) }
+                btn.id == R.id.key_oe -> btn.setOnClickListener {
+                    commitText(if (shifted) "Ö" else "ö")
+                }
+                btn.id == R.id.key_toggle -> btn.setOnClickListener { toggleSymbols(root) }
                 btn.id == R.id.key_shift -> btn.setOnClickListener {
                     shifted = !shifted
                     btn.alpha = if (shifted) 1f else 0.6f
-                    applyCase(root)
+                    applyLetterCase(root)
                 }
                 btn.id == R.id.key_tab -> btn.setOnClickListener {
                     sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
@@ -89,7 +98,17 @@ class KeyTabImeService : InputMethodService() {
         }
     }
 
-    private fun applyCase(view: View?) {
+        private fun toggleSymbols(root: View) {
+        showSymbols = !showSymbols
+        root.findViewById<View>(R.id.kb_panel)?.visibility =
+            if (showSymbols) View.GONE else View.VISIBLE
+        root.findViewById<View>(R.id.sym_panel)?.visibility =
+            if (showSymbols) View.VISIBLE else View.GONE
+        root.findViewById<Button>(R.id.key_toggle)?.text =
+            if (showSymbols) getString(R.string.key_toggle_letters) else "?123"
+    }
+
+    private fun applyLetterCase(view: View?) {
         if (view == null) return
         forEachView(view) { v ->
             val btn = v as? Button ?: return@forEachView
@@ -104,35 +123,43 @@ class KeyTabImeService : InputMethodService() {
         currentInputConnection?.commitText(text, 1)
         if (shifted) {
             shifted = false
-            applyCase(keyboardRoot)
+            applyLetterCase(keyboardRoot)
         }
     }
 
-    // ---------- Dateimanager im IME ----------
+    // ---------- Dateimanager mit Dateien ----------
     private fun setupFileManager(root: View) {
         val list = root.findViewById<ListView>(R.id.file_list) ?: return
         val dirLabel = root.findViewById<TextView>(R.id.file_dir) ?: return
+        val hint = root.findViewById<TextView>(R.id.file_hint) ?: return
         val back = root.findViewById<View>(R.id.btn_back_dir) ?: return
 
         if (currentDir == null) {
-            currentDir = Environment.getExternalStorageDirectory()
-                ?.takeIf { it.canRead() }
-                ?: File("/")
+            val d = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            currentDir = if (d?.isDirectory == true) d else File("/")
         }
 
-        var entries: List<File> = emptyList()
+        var entries: List<FileEntry> = emptyList()
 
         fun refresh() {
             val dir = currentDir ?: return
             dirLabel.text = dir.absolutePath
-            entries = dir.listFiles()
-                ?.sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase() })
-                ?: emptyList()
-            val labels = ArrayList<String>()
-            if (dir.parentFile != null) labels.add("..  " + (dir.parentFile?.name ?: ""))
-            labels += entries.map { f ->
-                if (f.isDirectory) "\uD83D\uDCC1 ${f.name}/" else "\uD83D\uDCC4 ${f.name}"
+            val raw = dir.listFiles()
+            if (raw == null) {
+                hint.text = "Zugriff verweigert – voller Dateizugriff nötig."
+                entries = emptyList()
+            } else {
+                hint.text = "${raw.count { it.isDirectory }} Ordner · ${raw.count { it.isFile }} Dateien"
+                entries = raw
+                    .sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase(Locale.ROOT) })
+                    .map { f ->
+                        if (f.isDirectory) FileEntry(f, "\uD83D\uDCC1 ${f.name}/", "Ordner")
+                        else FileEntry(f, "\uD83D\uDCC4 ${f.name}", formatSize(f.length()))
+                    }
             }
+            val labels = ArrayList<String>()
+            if (dir.parentFile != null) labels.add("..")
+            labels += entries.map { it.label }
             list.adapter = ArrayAdapter(root.context, android.R.layout.simple_list_item_1, labels)
         }
 
@@ -148,15 +175,23 @@ class KeyTabImeService : InputMethodService() {
                 return@setOnItemClickListener
             }
             val offset = if (currentDir?.parentFile != null) 1 else 0
-            val f = entries.getOrNull(position - offset) ?: return@setOnItemClickListener
-            if (f.isDirectory) {
-                navigate(f)
+            val e = entries.getOrNull(position - offset) ?: return@setOnItemClickListener
+            if (e.file.isDirectory) {
+                navigate(e.file)
             } else {
-                commitText(f.absolutePath)
+                commitText(e.file.absolutePath)
                 root.findViewById<TabLayout>(R.id.ime_tabs)?.getTabAt(0)?.select()
             }
         }
         refresh()
+    }
+
+    private fun formatSize(bytes: Long): String {
+        if (bytes < 1024) return "$bytes B"
+        val kb = bytes / 1024.0
+        if (kb < 1024) return String.format(Locale.ROOT, "%.0f KB", kb)
+        val mb = kb / 1024.0
+        return String.format(Locale.ROOT, "%.1f MB", mb)
     }
 
     private fun forEachView(root: View, action: (View) -> Unit) {

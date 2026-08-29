@@ -85,8 +85,12 @@ class KeyTabImeService : InputMethodService() {
                 btn.id == R.id.key_tab -> btn.setOnClickListener {
                     sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
                 }
-                btn.id == R.id.key_del -> btn.setOnClickListener {
-                    sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+                btn.id == R.id.key_del -> {
+                    btn.setOnClickListener { sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL) }
+                    btn.setOnLongClickListener {
+                        deleteLastWord()
+                        true
+                    }
                 }
                 btn.id == R.id.key_enter -> btn.setOnClickListener {
                     sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
@@ -119,6 +123,24 @@ class KeyTabImeService : InputMethodService() {
         }
     }
 
+        /** Langer Druck auf ⌫: löscht ein Wort (bis zum vorigen Leerzeichen) */
+    private fun deleteLastWord() {
+        val ic = currentInputConnection ?: return
+        val text = ic.getTextBeforeCursor(100, 0)?.toString() ?: ""
+        var i = text.length
+        // führende Leerzeichen überspringen
+        while (i > 0 && text[i - 1].isWhitespace()) i--
+        var j = i
+        while (j > 0 && !text[j - 1].isWhitespace()) j--
+        val toDelete = i - j
+        if (toDelete > 0) {
+            ic.deleteSurroundingText(toDelete, 0)
+        } else {
+            // nichts vor der Cursorposition → ein Zeichen löschen
+            ic.deleteSurroundingText(1, 0)
+        }
+    }
+
     private fun commitText(text: String) {
         currentInputConnection?.commitText(text, 1)
         if (shifted) {
@@ -127,12 +149,12 @@ class KeyTabImeService : InputMethodService() {
         }
     }
 
-    // ---------- Dateimanager mit Dateien ----------
+        // ---------- Dateimanager mit Dateien ----------
     private fun setupFileManager(root: View) {
         val list = root.findViewById<ListView>(R.id.file_list) ?: return
         val dirLabel = root.findViewById<TextView>(R.id.file_dir) ?: return
         val hint = root.findViewById<TextView>(R.id.file_hint) ?: return
-        val back = root.findViewById<View>(R.id.btn_back_dir) ?: return
+        val back = root.findViewById<Button>(R.id.btn_back_dir) ?: return
 
         if (currentDir == null) {
             val d = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
@@ -144,6 +166,9 @@ class KeyTabImeService : InputMethodService() {
         fun refresh() {
             val dir = currentDir ?: return
             dirLabel.text = dir.absolutePath
+            // "..."-Button nur sichtbar, wenn wirklich eine Parent-Ebene existiert
+            back.visibility = if (dir.parentFile != null) View.VISIBLE else View.GONE
+            back.text = ".."
             val raw = dir.listFiles()
             if (raw == null) {
                 hint.text = "Zugriff verweigert – voller Dateizugriff nötig."
@@ -151,6 +176,7 @@ class KeyTabImeService : InputMethodService() {
             } else {
                 hint.text = "${raw.count { it.isDirectory }} Ordner · ${raw.count { it.isFile }} Dateien"
                 entries = raw
+                    .filter { !it.isHidden }
                     .sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase(Locale.ROOT) })
                     .map { f ->
                         if (f.isDirectory) FileEntry(f, "\uD83D\uDCC1 ${f.name}/", "Ordner")
@@ -158,7 +184,7 @@ class KeyTabImeService : InputMethodService() {
                     }
             }
             val labels = ArrayList<String>()
-            if (dir.parentFile != null) labels.add("..")
+            // KEIN ".."-Eintrag in der Liste mehr – Navigation ausschließlich über den Header-Button
             labels += entries.map { it.label }
             list.adapter = ArrayAdapter(root.context, android.R.layout.simple_list_item_1, labels)
         }
@@ -170,12 +196,8 @@ class KeyTabImeService : InputMethodService() {
 
         back.setOnClickListener { currentDir?.parentFile?.let { navigate(it) } }
         list.setOnItemClickListener { _, _, position, _ ->
-            if (position == 0 && currentDir?.parentFile != null) {
-                navigate(currentDir!!.parentFile!!)
-                return@setOnItemClickListener
-            }
-            val offset = if (currentDir?.parentFile != null) 1 else 0
-            val e = entries.getOrNull(position - offset) ?: return@setOnItemClickListener
+            // da kein ".."-Eintrag mehr in der Liste ist: Position = direkter Index
+            val e = entries.getOrNull(position) ?: return@setOnItemClickListener
             if (e.file.isDirectory) {
                 navigate(e.file)
             } else {

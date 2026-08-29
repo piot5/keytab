@@ -1,14 +1,19 @@
 package com.piotv.keytab.ime
 
+import android.annotation.SuppressLint
 import android.inputmethodservice.InputMethodService
 import android.os.Environment
 import android.view.ContextThemeWrapper
+import android.view.Gravity
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.ListView
+import android.widget.PopupWindow
 import android.widget.TextView
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
@@ -22,8 +27,31 @@ class KeyTabImeService : InputMethodService() {
     private var currentDir: File? = null
     private val backStack = mutableListOf<File>()
     private var showSymbols = false
+    private var activePopup: PopupWindow? = null
 
     private data class FileEntry(val file: File, val label: String, val info: String)
+
+    // Long-Press Buchstaben → Sonderzeichen / Umlaute
+    private val letterExtras = mapOf(
+        'a' to listOf("ä", "á", "à", "â", "æ", "å"),
+        'A' to listOf("Ä", "Á", "À", "Â", "Æ", "Å"),
+        'e' to listOf("é", "è", "ê", "ë"),
+        'E' to listOf("É", "È", "Ê", "Ë"),
+        'i' to listOf("í", "ì", "î", "ï"),
+        'I' to listOf("Í", "Ì", "Î", "Ï"),
+        'o' to listOf("ö", "ó", "ò", "ô", "ø"),
+        'O' to listOf("Ö", "Ó", "Ò", "Ô", "Ø"),
+        'u' to listOf("ü", "ú", "ù", "û"),
+        'U' to listOf("Ü", "Ú", "Ù", "Û"),
+        's' to listOf("ß", "š"),
+        'S' to listOf("Š"),
+        'n' to listOf("ñ", "ń"),
+        'N' to listOf("Ñ", "Ń"),
+        'c' to listOf("ç", "č"),
+        'C' to listOf("Ç", "Č"),
+        'z' to listOf("ž", "ź"),
+        'Z' to listOf("Ž", "Ź")
+    )
 
     override fun onCreateInputView(): View {
         val themedContext = ContextThemeWrapper(this, R.style.Theme_KeyTab)
@@ -69,24 +97,44 @@ class KeyTabImeService : InputMethodService() {
         forEachView(root) { v ->
             val btn = v as? Button ?: return@forEachView
             when {
-                btn.tag == "letter" -> btn.setOnClickListener {
+                btn.tag == "letter" -> {
+                    btn.setOnClickListener {
+                        activePopup?.dismiss()
+                        commitText(btn.text.toString())
+                    }
+                    btn.isLongClickable = true
+                    btn.setOnLongClickListener {
+                        showLetterExtras(btn)
+                        true
+                    }
+                }
+                btn.tag == "sym" -> btn.setOnClickListener {
+                    activePopup?.dismiss()
                     commitText(btn.text.toString())
                 }
-                btn.tag == "sym" -> btn.setOnClickListener { commitText(btn.text.toString()) }
                 btn.id == R.id.key_oe -> btn.setOnClickListener {
+                    activePopup?.dismiss()
                     commitText(if (shifted) "Ö" else "ö")
                 }
-                btn.id == R.id.key_toggle -> btn.setOnClickListener { toggleSymbols(root) }
+                btn.id == R.id.key_toggle -> btn.setOnClickListener {
+                    activePopup?.dismiss()
+                    toggleSymbols(root)
+                }
                 btn.id == R.id.key_shift -> btn.setOnClickListener {
+                    activePopup?.dismiss()
                     shifted = !shifted
                     btn.alpha = if (shifted) 1f else 0.6f
                     applyLetterCase(root)
                 }
                 btn.id == R.id.key_tab -> btn.setOnClickListener {
+                    activePopup?.dismiss()
                     sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
                 }
                 btn.id == R.id.key_del -> {
-                    btn.setOnClickListener { sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL) }
+                    btn.setOnClickListener {
+                        activePopup?.dismiss()
+                        sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+                    }
                     btn.isLongClickable = true
                     btn.setOnLongClickListener {
                         deleteLastWord()
@@ -94,13 +142,57 @@ class KeyTabImeService : InputMethodService() {
                     }
                 }
                 btn.id == R.id.key_enter -> btn.setOnClickListener {
+                    activePopup?.dismiss()
                     sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
                 }
                 btn.id == R.id.key_space -> btn.setOnClickListener {
+                    activePopup?.dismiss()
                     currentInputConnection?.commitText(" ", 1)
                 }
             }
         }
+    }
+
+    @SuppressLint("InflateParams")
+    private fun showLetterExtras(anchor: Button) {
+        activePopup?.dismiss()
+        val letter = anchor.text?.firstOrNull() ?: return
+        val extras = letterExtras[letter] ?: letterExtras[letter.lowercaseChar()] ?: return
+
+        val ctx = anchor.context
+        val container = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setBackgroundColor(0xFF37474F.toInt())
+            setPadding(8, 8, 8, 8)
+        }
+
+        for (ch in extras) {
+            val tv = TextView(ctx).apply {
+                text = ch
+                textSize = 22f
+                gravity = Gravity.CENTER
+                setTextColor(0xFFFFFFFF.toInt())
+                setPadding(20, 16, 20, 16)
+                setOnClickListener {
+                    commitText(ch)
+                    activePopup?.dismiss()
+                }
+            }
+            container.addView(tv)
+        }
+
+        val popup = PopupWindow(
+            container,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            isOutsideTouchable = true
+            isFocusable = true
+        }
+        val location = IntArray(2)
+        anchor.getLocationOnScreen(location)
+        popup.showAtLocation(anchor, Gravity.NO_GRAVITY, location[0], location[1] - 120)
+        activePopup = popup
     }
 
     private fun toggleSymbols(root: View) {

@@ -14,8 +14,9 @@
         android:layout_height="wrap_content"
         app:tabMode="fixed"
         app:tabGravity="fill"
-        app:tabPaddingStart="12dp"
-        app:tabPaddingEnd="12dp"
+        app:tabPaddingStart="20dp"
+        app:tabPaddingEnd="20dp"
+        app:tabTextAppearance="@style/KeyTabSmallTabText"
         app:tabIndicatorColor="@color/primary"
         app:tabSelectedTextColor="@color/text_primary"
         app:tabTextColor="@color/tab_text"
@@ -85,10 +86,10 @@
         <EditText
             android:id="@+id/editor_input"
             android:layout_width="match_parent"
-            android:layout_height="220dp"
+            android:layout_height="130dp"
             android:gravity="top|start"
             android:inputType="textMultiLine|textNoSuggestions"
-            android:background="@color/list_bg"
+            android:background="@color/editor_bg"
             android:textColor="@color/text_primary"
             android:hint="@string/editor_hint"
             android:padding="8dp" />
@@ -253,7 +254,7 @@
             <ListView
                 android:id="@+id/file_list"
                 android:layout_width="match_parent"
-                android:layout_height="300dp"
+                android:layout_height="250dp"
                 android:background="@color/list_bg" />
 
             <TextView

@@ -40,6 +40,8 @@ class KeyTabImeService : InputMethodService() {
     private var activePopup: PopupWindow? = null
     private val longPressHandler = Handler(Looper.getMainLooper())
     private val clipHistory = mutableListOf<String>()
+    private var editorActive = false
+    private var editorInput: EditText? = null
 
     private data class FileEntry(val file: File, val label: String, val info: String)
 
@@ -96,6 +98,7 @@ class KeyTabImeService : InputMethodService() {
                 val pos = tab.position
                 // Tab 0=abc, 1=Editor (Tastatur bleibt sichtbar), 2=Files, 3=Ablage
                 val keyboardVisible = pos == 0 || pos == 1
+                editorActive = pos == 1
                 kb.visibility = if (keyboardVisible && !showSymbols) View.VISIBLE else View.GONE
                 sym.visibility = if (keyboardVisible && showSymbols) View.VISIBLE else View.GONE
                 ed.visibility = if (pos == 1) View.VISIBLE else View.GONE
@@ -143,16 +146,18 @@ class KeyTabImeService : InputMethodService() {
                 }
                 btn.id == R.id.key_tab -> btn.setOnClickListener {
                     activePopup?.dismiss()
-                    sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
+                    if (editorActive) insertIntoEditor("\t")
+                    else sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
                 }
                 btn.id == R.id.key_del -> setupDelButton(btn)
                 btn.id == R.id.key_enter -> btn.setOnClickListener {
                     activePopup?.dismiss()
-                    sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
+                    if (editorActive) insertIntoEditor("\n")
+                    else sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
                 }
                 btn.id == R.id.key_space -> btn.setOnClickListener {
                     activePopup?.dismiss()
-                    currentInputConnection?.commitText(" ", 1)
+                    commitText(" ")
                 }
             }
         }
@@ -198,7 +203,8 @@ class KeyTabImeService : InputMethodService() {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     btn.isPressed = true
-                    sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+                    if (editorActive) deleteFromEditor(word = false)
+                    else sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
                     pendingLongPress = Runnable {
                         deleteLastWord()
                         repeater = object : Runnable {
@@ -290,6 +296,10 @@ class KeyTabImeService : InputMethodService() {
     }
 
     private fun deleteLastWord() {
+        if (editorActive) {
+            deleteFromEditor(word = true)
+            return
+        }
         val ic = currentInputConnection ?: return
         val text = ic.getTextBeforeCursor(200, 0)?.toString() ?: ""
         var i = text.length
@@ -305,10 +315,48 @@ class KeyTabImeService : InputMethodService() {
     }
 
     private fun commitText(text: String) {
-        currentInputConnection?.commitText(text, 1)
+        if (editorActive) {
+            insertIntoEditor(text)
+        } else {
+            currentInputConnection?.commitText(text, 1)
+        }
         if (shifted) {
             shifted = false
             applyLetterCase(keyboardRoot)
+        }
+    }
+
+    /** Fügt Text intern in den Editor ein (an Cursorposition). */
+    private fun insertIntoEditor(text: String) {
+        val et = editorInput ?: return
+        val editable = et.text ?: return
+        var start = et.selectionStart.coerceIn(0, editable.length)
+        val end = et.selectionEnd.coerceIn(start, editable.length)
+        editable.replace(start, end, text)
+        start += text.length
+        et.setSelection(start)
+    }
+
+    /** Löscht intern im Editor (ein Zeichen oder bis Wortanfang). */
+    private fun deleteFromEditor(word: Boolean) {
+        val et = editorInput ?: return
+        val editable = et.text ?: return
+        val cursor = et.selectionEnd.coerceIn(0, editable.length)
+        if (cursor == 0) return
+        if (word) {
+            var i = cursor
+            while (i > 0 && editable[i - 1].isWhitespace()) i--
+            while (i > 0 && !editable[i - 1].isWhitespace()) i--
+            if (i < cursor) {
+                editable.delete(i, cursor)
+                et.setSelection(i)
+            } else {
+                editable.delete(cursor - 1, cursor)
+                et.setSelection(cursor - 1)
+            }
+        } else {
+            editable.delete(cursor - 1, cursor)
+            et.setSelection(cursor - 1)
         }
     }
 
@@ -392,6 +440,7 @@ class KeyTabImeService : InputMethodService() {
 
     private fun setupEditor(root: View) {
         val input = root.findViewById<EditText>(R.id.editor_input) ?: return
+        editorInput = input
         val fileLabel = root.findViewById<TextView>(R.id.editor_file) ?: return
         fileLabel.text = editorFile().name
         root.findViewById<Button>(R.id.btn_editor_save)?.setOnClickListener {

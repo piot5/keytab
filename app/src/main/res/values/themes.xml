@@ -9,4 +9,10 @@
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
     </style>
+
+    <!-- Kleinere Tab-Beschriftung für die IME-Tab-Leiste -->
+    <style name="KeyTabSmallTabText" parent="TextAppearance.Design.Tab">
+        <item name="android:textSize">11sp</item>
+        <item name="textAllCaps">false</item>
+    </style>
 </resources>

@@ -16,5 +16,6 @@
     <color name="tab_text_selected">#FFFFFF</color>
     <color name="tab_indicator">#FFFFFF</color>
     <color name="list_bg">#151515</color>
+    <color name="editor_bg">#242424</color>
     <color name="divider">#333333</color>
 </resources>

@@ -1,19 +1,22 @@
 # KeyTab
 
-**Tastatur-App (IME) mit TAB-Taste + Dateimanager mit Tabs** – 100 % Kotlin, Ready-to-build Android-Projekt.
+**Tastatur-App (IME) mit integriertem Tab-Dateimanager** – 100 % Kotlin, Ready-to-build Android-Projekt.
 
 ## Features
 
+### 📂 Tab-Dateimanager (Hauptfeature)
+- **Mehrere Browser-Tabs direkt in der Tastatur** – jeder Tab merkt sich sein Verzeichnis
+- Navigation, Ordner wechseln, Dateien öffnen (VIEW-Intent)
+- BackStack + Parent-Navigation, Dateigrößen-Anzeige
+- Material 3 UI (TabLayout + RecyclerView)
+- **Einzigartig**: Dateimanager als IME-Overlay – ohne App-Wechsel Dateien browsen
+
 ### ⌨️ KeyTab Keyboard (IME)
 - Vollwertige Bildschirmtastatur als `InputMethodService`
-- **TAB-Taste** (sendet `KEYCODE_TAB` – ideal für Termux/SSH-Shells)
-- Shift-Umschaltung, Backspace, Enter, Space
+- TAB-Taste (sendet `KEYCODE_TAB` – ideal für Termux/SSH-Shells)
+- Shift-Umschaltung, Backspace (Long-Press = Wort löschen), Enter, Space
+- Long-Press auf Buchstaben zeigt Umlaute/Sonderzeichen-Popup
 - Keine Netzwerkberechtigung, keine Datensammlung
-
-### 📂 Dateimanager mit Tabs
-- Mehrere Browser-Tabs (jeder Tab merkt sich sein Verzeichnis)
-- Navigation, Ordner wechseln, Dateien öffnen (VIEW-Intent)
-- Material 3 UI (TabLayout + RecyclerView + ViewPager2)
 
 ## Build
 
@@ -40,9 +43,9 @@ Voraussetzungen: JDK 17, Android SDK (compileSdk 34). SDK-Pfad in `local.propert
 
 ```
 app/src/main/java/com/piotv/keytab/
-├── MainActivity.kt          # Tabs: Dateien / Tastatur
-├── file/FileManagerFragment.kt  # Tab-Dateimanager
-└── ime/KeyTabImeService.kt  # Tastatur-IME (TAB!)
+├── MainActivity.kt          # Einstellungen: Tastatur aktivieren, Theme
+├── file/FileManagerFragment.kt  # Tab-Dateimanager (Hauptfeature)
+└── ime/KeyTabImeService.kt  # Tastatur-IME mit integriertem Tab-Dateimanager
 ```
 
 ## Lizenz

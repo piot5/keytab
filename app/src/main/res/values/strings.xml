@@ -18,7 +18,8 @@
     <string name="key_toggle_letters">abc</string>
     <string name="key_enter_label">↵</string>
     <string name="close_tab">✕</string>
-    <string name="app_subtitle">Tastatur mit TAB &amp; Dateimanager</string>
+    <string name="app_subtitle">Tastatur mit Tab-Dateimanager</string>
+    <string name="ime_tab_files_desc">Tab-Dateimanager – mehrere Tabs, Navigation, Dateien öffnen</string>
     <string name="theme_label">Theme</string>
     <string name="theme_dark">🌙 Dark</string>
     <string name="theme_light">☀️ Light</string>

@@ -272,7 +272,7 @@ class KeyTabImeService : InputMethodService() {
         val up = root.findViewById<Button>(R.id.btn_up_dir) ?: return
 
         if (currentDir == null) {
-            val pub = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val pub = Environment.getExternalStorageDirectory()
             currentDir = if (pub?.isDirectory == true && pub.canRead()) pub
             else getExternalFilesDir(null)?.parentFile?.let { File(it, "Download") }?.takeIf { it.isDirectory }
             ?: File("/")

@@ -31,7 +31,6 @@ class KeyTabImeService : InputMethodService() {
 
     private data class FileEntry(val file: File, val label: String, val info: String)
 
-    // Long-Press Buchstaben → Sonderzeichen / Umlaute
     private val letterExtras = mapOf(
         'a' to listOf("ä", "á", "à", "â", "æ", "å"),
         'A' to listOf("Ä", "Á", "À", "Â", "Æ", "Å"),
@@ -97,17 +96,7 @@ class KeyTabImeService : InputMethodService() {
         forEachView(root) { v ->
             val btn = v as? Button ?: return@forEachView
             when {
-                btn.tag == "letter" -> {
-                    btn.setOnClickListener {
-                        activePopup?.dismiss()
-                        commitText(btn.text.toString())
-                    }
-                    btn.isLongClickable = true
-                    btn.setOnLongClickListener {
-                        showLetterExtras(btn)
-                        true
-                    }
-                }
+                btn.tag == "letter" -> setupLetterButton(btn)
                 btn.tag == "sym" -> btn.setOnClickListener {
                     activePopup?.dismiss()
                     commitText(btn.text.toString())
@@ -130,17 +119,7 @@ class KeyTabImeService : InputMethodService() {
                     activePopup?.dismiss()
                     sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
                 }
-                btn.id == R.id.key_del -> {
-                    btn.setOnClickListener {
-                        activePopup?.dismiss()
-                        sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
-                    }
-                    btn.isLongClickable = true
-                    btn.setOnLongClickListener {
-                        deleteLastWord()
-                        true
-                    }
-                }
+                btn.id == R.id.key_del -> setupDelButton(btn)
                 btn.id == R.id.key_enter -> btn.setOnClickListener {
                     activePopup?.dismiss()
                     sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
@@ -149,6 +128,52 @@ class KeyTabImeService : InputMethodService() {
                     activePopup?.dismiss()
                     currentInputConnection?.commitText(" ", 1)
                 }
+            }
+        }
+    }
+
+    private fun setupLetterButton(btn: Button) {
+        var downTime = 0L
+        btn.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    downTime = System.currentTimeMillis()
+                    false
+                }
+                MotionEvent.ACTION_UP -> {
+                    val held = System.currentTimeMillis() - downTime
+                    if (held >= 400) {
+                        showLetterExtras(btn)
+                        true
+                    } else {
+                        commitText(btn.text.toString())
+                        true
+                    }
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun setupDelButton(btn: Button) {
+        var downTime = 0L
+        btn.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    downTime = System.currentTimeMillis()
+                    false
+                }
+                MotionEvent.ACTION_UP -> {
+                    val held = System.currentTimeMillis() - downTime
+                    if (held >= 400) {
+                        deleteLastWord()
+                        true
+                    } else {
+                        sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+                        true
+                    }
+                }
+                else -> false
             }
         }
     }

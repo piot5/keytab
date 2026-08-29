@@ -2,6 +2,7 @@ package com.piotv.keytab.ime
 
 import android.inputmethodservice.InputMethodService
 import android.os.Environment
+import android.view.ContextThemeWrapper
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -25,7 +26,9 @@ class KeyTabImeService : InputMethodService() {
     private var currentDir: File? = null
 
     override fun onCreateInputView(): View {
-        val root = layoutInflater.inflate(R.layout.keyboard_view, null)
+        val themedContext = ContextThemeWrapper(this, R.style.Theme_KeyTab)
+        val root = layoutInflater.cloneInContext(themedContext)
+            .inflate(R.layout.keyboard_view, null)
         keyboardRoot = root
         setupTabs(root)
         hookKeyboardButtons(root)

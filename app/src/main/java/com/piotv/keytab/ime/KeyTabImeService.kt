@@ -89,16 +89,20 @@ class KeyTabImeService : InputMethodService() {
         val fm = root.findViewById<View>(R.id.file_panel) ?: return
         val ed = root.findViewById<View>(R.id.editor_panel) ?: return
         val cp = root.findViewById<View>(R.id.clip_panel) ?: return
+        val bottom = root.findViewById<View>(R.id.bottom_row) ?: return
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 activePopup?.dismiss()
                 val pos = tab.position
-                kb.visibility = if (pos == 0 && !showSymbols) View.VISIBLE else View.GONE
-                sym.visibility = if (pos == 0 && showSymbols) View.VISIBLE else View.GONE
-                fm.visibility = if (pos == 1) View.VISIBLE else View.GONE
-                ed.visibility = if (pos == 2) View.VISIBLE else View.GONE
+                // Tab 0=abc, 1=Editor (Tastatur bleibt sichtbar), 2=Files, 3=Ablage
+                val keyboardVisible = pos == 0 || pos == 1
+                kb.visibility = if (keyboardVisible && !showSymbols) View.VISIBLE else View.GONE
+                sym.visibility = if (keyboardVisible && showSymbols) View.VISIBLE else View.GONE
+                ed.visibility = if (pos == 1) View.VISIBLE else View.GONE
+                fm.visibility = if (pos == 2) View.VISIBLE else View.GONE
                 cp.visibility = if (pos == 3) View.VISIBLE else View.GONE
-                if (pos == 1) setupFileManager(root)
+                bottom.visibility = if (keyboardVisible) View.VISIBLE else View.GONE
+                if (pos == 2) setupFileManager(root)
                 if (pos == 3) captureClipboard(auto = true)
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
@@ -106,9 +110,10 @@ class KeyTabImeService : InputMethodService() {
         })
         kb.visibility = View.VISIBLE
         sym.visibility = View.GONE
-        fm.visibility = View.GONE
         ed.visibility = View.GONE
+        fm.visibility = View.GONE
         cp.visibility = View.GONE
+        bottom.visibility = View.VISIBLE
         setupEditor(root)
         setupClipboard(root)
     }

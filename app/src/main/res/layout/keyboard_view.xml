@@ -1,55 +1,130 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="#263238"
+    android:background="@color/kbd_bg"
     android:padding="6dp">
 
-    <!-- Reihe 1: q p a ... plus TAB -->
-    <LinearLayout style="@style/KeyRow">
-        <Button style="@style/KeyDark" android:tag="letter:q" />
-        <Button style="@style/KeyDark" android:tag="letter:w" />
-        <Button style="@style/KeyDark" android:tag="letter:e" />
-        <Button style="@style/KeyDark" android:tag="letter:r" />
-        <Button style="@style/KeyDark" android:tag="letter:t" />
-        <Button style="@style/KeyDark" android:tag="letter:z" />
-        <Button style="@style/KeyDark" android:tag="letter:u" />
-        <Button style="@style/KeyDark" android:tag="letter:i" />
-        <Button style="@style/KeyDark" android:tag="letter:o" />
-        <Button style="@style/KeyDark" android:tag="letter:p" />
-        <Button style="@style/KeyDark" android:id="@+id/key_tab" android:text="@string/key_tab_label" />
-    </LinearLayout>
+    <!-- Tab-Leiste über der Tastatur: q = Buchstaben, FM = Dateimanager -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/ime_tabs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:tabMode="fixed"
+        app:tabGravity="fill"
+        app:tabIndicatorColor="@color/primary"
+        app:tabSelectedTextColor="@color/text_primary"
+        app:tabTextColor="@color/tab_text"
+        app:tabBackground="@drawable/key_bg">
 
-    <!-- Reihe 2 -->
-    <LinearLayout style="@style/KeyRow">
-        <Button style="@style/KeyDark" android:tag="letter:a" />
-        <Button style="@style/KeyDark" android:tag="letter:s" />
-        <Button style="@style/KeyDark" android:tag="letter:d" />
-        <Button style="@style/KeyDark" android:tag="letter:f" />
-        <Button style="@style/KeyDark" android:tag="letter:g" />
-        <Button style="@style/KeyDark" android:tag="letter:h" />
-        <Button style="@style/KeyDark" android:tag="letter:j" />
-        <Button style="@style/KeyDark" android:tag="letter:k" />
-        <Button style="@style/KeyDark" android:tag="letter:l" />
-    </LinearLayout>
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="q" />
 
-    <!-- Reihe 3: Shift + z..m -->
-    <LinearLayout style="@style/KeyRow">
-        <Button style="@style/KeyDark" android:id="@+id/key_shift" android:text="@string/key_shift_label" />
-        <Button style="@style/KeyDark" android:tag="letter:y" />
-        <Button style="@style/KeyDark" android:tag="letter:x" />
-        <Button style="@style/KeyDark" android:tag="letter:c" />
-        <Button style="@style/KeyDark" android:tag="letter:v" />
-        <Button style="@style/KeyDark" android:tag="letter:b" />
-        <Button style="@style/KeyDark" android:tag="letter:n" />
-        <Button style="@style/KeyDark" android:tag="letter:m" />
-        <Button style="@style/KeyDark" android:id="@+id/key_del" android:text="@string/key_del_label" />
-    </LinearLayout>
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="FM" />
+    </com.google.android.material.tabs.TabLayout>
 
-    <!-- Reihe 4: Space + Enter -->
-    <LinearLayout style="@style/KeyRow">
-        <Button style="@style/KeyDark" android:id="@+id/key_space" android:text="@string/key_space_label" />
-        <Button style="@style/KeyDark" android:id="@+id/key_enter" android:text="@string/key_enter_label" />
-    </LinearLayout>
+    <FrameLayout
+        android:id="@+id/kb_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- Buchstaben-Tastatur -->
+        <LinearLayout
+            android:id="@+id/kb_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Zeile 1: q w e r t z u i o p + TAB -->
+            <LinearLayout style="@style/KeyRow">
+                <Button style="@style/KeyDark" android:tag="letter" android:text="q" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="w" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="e" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="r" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="t" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="z" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="u" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="i" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="o" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="p" />
+                <Button style="@style/KeyDark" android:id="@+id/key_tab" android:text="@string/key_tab_label" />
+            </LinearLayout>
+
+            <!-- Zeile 2: a s d f g h j k l -->
+            <LinearLayout style="@style/KeyRow">
+                <Button style="@style/KeyDark" android:tag="letter" android:text="a" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="s" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="d" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="f" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="g" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="h" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="j" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="k" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="l" />
+            </LinearLayout>
+
+            <!-- Zeile 3: Shift + y x c v b n m + Del -->
+            <LinearLayout style="@style/KeyRow">
+                <Button style="@style/KeyDark" android:id="@+id/key_shift" android:text="@string/key_shift_label" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="y" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="x" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="c" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="v" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="b" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="n" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="m" />
+                <Button style="@style/KeyDark" android:id="@+id/key_del" android:text="@string/key_del_label" />
+            </LinearLayout>
+
+            <!-- Zeile 4: Space + Enter -->
+            <LinearLayout style="@style/KeyRow">
+                <Button style="@style/KeyDark" android:id="@+id/key_space" android:text="@string/key_space_label" />
+                <Button style="@style/KeyDark" android:id="@+id/key_enter" android:text="@string/key_enter_label" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Dateimanager (wird statt der Buchstaben angezeigt) -->
+        <LinearLayout
+            android:id="@+id/file_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <Button
+                    android:id="@+id/btn_back_dir"
+                    style="@style/KeyDark"
+                    android:text="@string/up_dir" />
+
+                <TextView
+                    android:id="@+id/file_dir"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:singleLine="true"
+                    android:ellipsize="start"
+                    android:textColor="@color/text_primary"
+                    android:padding="6dp" />
+            </LinearLayout>
+
+            <ListView
+                android:id="@+id/file_list"
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:background="@color/list_bg" />
+        </LinearLayout>
+    </FrameLayout>
 </LinearLayout>

@@ -1,7 +1,10 @@
 package com.piotv.keytab
 
+import android.content.res.Configuration
 import android.os.Bundle
+import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -34,5 +37,22 @@ class MainActivity : AppCompatActivity() {
                 if (position == 0) R.string.tab_files else R.string.tab_keyboard
             )
         }.attach()
+
+        val themeBtn = findViewById<Button>(R.id.btn_theme)
+        themeBtn.text = if (isDarkMode()) "🌙" else "☀️"
+        themeBtn.setOnClickListener {
+            if (isDarkMode()) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                themeBtn.text = "☀️"
+            } else {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                themeBtn.text = "🌙"
+            }
+        }
+    }
+
+    private fun isDarkMode(): Boolean {
+        val mode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return mode == Configuration.UI_MODE_NIGHT_YES
     }
 }

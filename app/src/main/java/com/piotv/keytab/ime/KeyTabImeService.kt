@@ -3,6 +3,8 @@ package com.piotv.keytab.ime
 import android.annotation.SuppressLint
 import android.inputmethodservice.InputMethodService
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.KeyEvent
@@ -11,10 +13,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.PopupWindow
 import android.widget.TextView
+import android.widget.Toast
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
 import java.io.File
@@ -22,12 +26,20 @@ import java.util.Locale
 
 class KeyTabImeService : InputMethodService() {
 
+    private companion object {
+        const val LONG_PRESS_TIMEOUT = 400L
+        const val WORD_DELETE_REPEAT_MS = 250L
+        const val MAX_CLIP_ENTRIES = 50
+    }
+
     private var shifted = false
     private var keyboardRoot: View? = null
     private var currentDir: File? = null
     private val backStack = mutableListOf<File>()
     private var showSymbols = false
     private var activePopup: PopupWindow? = null
+    private val longPressHandler = Handler(Looper.getMainLooper())
+    private val clipHistory = mutableListOf<String>()
 
     private data class FileEntry(val file: File, val label: String, val info: String)
 
@@ -73,23 +85,32 @@ class KeyTabImeService : InputMethodService() {
     private fun setupTabs(root: View) {
         val tabs = root.findViewById<TabLayout>(R.id.ime_tabs) ?: return
         val kb = root.findViewById<View>(R.id.kb_panel) ?: return
+        val sym = root.findViewById<View>(R.id.sym_panel) ?: return
         val fm = root.findViewById<View>(R.id.file_panel) ?: return
+        val ed = root.findViewById<View>(R.id.editor_panel) ?: return
+        val cp = root.findViewById<View>(R.id.clip_panel) ?: return
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
-                val isKb = tab.position == 0
-                kb.visibility = if (isKb) View.VISIBLE else View.GONE
-                if (isKb) {
-                    fm.visibility = View.GONE
-                } else {
-                    fm.visibility = View.VISIBLE
-                    setupFileManager(root)
-                }
+                activePopup?.dismiss()
+                val pos = tab.position
+                kb.visibility = if (pos == 0 && !showSymbols) View.VISIBLE else View.GONE
+                sym.visibility = if (pos == 0 && showSymbols) View.VISIBLE else View.GONE
+                fm.visibility = if (pos == 1) View.VISIBLE else View.GONE
+                ed.visibility = if (pos == 2) View.VISIBLE else View.GONE
+                cp.visibility = if (pos == 3) View.VISIBLE else View.GONE
+                if (pos == 1) setupFileManager(root)
+                if (pos == 3) captureClipboard(auto = true)
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
         })
         kb.visibility = View.VISIBLE
+        sym.visibility = View.GONE
         fm.visibility = View.GONE
+        ed.visibility = View.GONE
+        cp.visibility = View.GONE
+        setupEditor(root)
+        setupClipboard(root)
     }
 
     private fun hookKeyboardButtons(root: View) {
@@ -133,22 +154,32 @@ class KeyTabImeService : InputMethodService() {
     }
 
     private fun setupLetterButton(btn: Button) {
-        var downTime = 0L
+        var pendingLongPress: Runnable? = null
+        var longPressFired = false
         btn.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    downTime = System.currentTimeMillis()
-                    false
+                    longPressFired = false
+                    btn.isPressed = true
+                    pendingLongPress = Runnable {
+                        longPressFired = true
+                        showLetterExtras(btn)
+                    }
+                    longPressHandler.postDelayed(pendingLongPress!!, LONG_PRESS_TIMEOUT)
+                    true
                 }
                 MotionEvent.ACTION_UP -> {
-                    val held = System.currentTimeMillis() - downTime
-                    if (held >= 400) {
-                        showLetterExtras(btn)
-                        true
-                    } else {
+                    btn.isPressed = false
+                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
+                    if (!longPressFired) {
                         commitText(btn.text.toString())
-                        true
                     }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    btn.isPressed = false
+                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
+                    true
                 }
                 else -> false
             }
@@ -156,22 +187,34 @@ class KeyTabImeService : InputMethodService() {
     }
 
     private fun setupDelButton(btn: Button) {
-        var downTime = 0L
+        var pendingLongPress: Runnable? = null
+        var repeater: Runnable? = null
         btn.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    downTime = System.currentTimeMillis()
-                    false
-                }
-                MotionEvent.ACTION_UP -> {
-                    val held = System.currentTimeMillis() - downTime
-                    if (held >= 400) {
+                    btn.isPressed = true
+                    sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+                    pendingLongPress = Runnable {
                         deleteLastWord()
-                        true
-                    } else {
-                        sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
-                        true
+                        repeater = object : Runnable {
+                            override fun run() {
+                                deleteLastWord()
+                                longPressHandler.postDelayed(this, WORD_DELETE_REPEAT_MS)
+                            }
+                        }
+                        longPressHandler.postDelayed(repeater!!, WORD_DELETE_REPEAT_MS)
                     }
+                    longPressHandler.postDelayed(pendingLongPress!!, LONG_PRESS_TIMEOUT)
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    btn.isPressed = false
+                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
+                    repeater?.let { longPressHandler.removeCallbacks(it) }
+                    if (event.action == MotionEvent.ACTION_UP) {
+                        // falls Wort-Löschung schon lief, nichts mehr tun; kurzer Tap = einzelnes DEL (oben schon gesendet)
+                    }
+                    true
                 }
                 else -> false
             }
@@ -340,6 +383,100 @@ class KeyTabImeService : InputMethodService() {
         if (kb < 1024) return String.format(Locale.ROOT, "%.0f KB", kb)
         val mb = kb / 1024.0
         return String.format(Locale.ROOT, "%.1f MB", mb)
+    }
+
+    private fun setupEditor(root: View) {
+        val input = root.findViewById<EditText>(R.id.editor_input) ?: return
+        val fileLabel = root.findViewById<TextView>(R.id.editor_file) ?: return
+        fileLabel.text = editorFile().name
+        root.findViewById<Button>(R.id.btn_editor_save)?.setOnClickListener {
+            try {
+                val f = editorFile()
+                f.writeText(input.text.toString())
+                Toast.makeText(this, "Gespeichert: ${f.name}", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Speichern fehlgeschlagen: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+        root.findViewById<Button>(R.id.btn_editor_load)?.setOnClickListener {
+            try {
+                val f = editorFile()
+                input.setText(if (f.exists()) f.readText() else "")
+                Toast.makeText(this, if (f.exists()) "Geladen: ${f.name}" else "Datei ist leer", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Laden fehlgeschlagen: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun editorFile(): File {
+        val pub = Environment.getExternalStorageDirectory()
+        val dir = if (pub != null && pub.isDirectory && pub.canWrite()) pub
+        else getExternalFilesDir(null) ?: filesDir
+        return File(dir, "keytab_editor.txt")
+    }
+
+    private fun currentClipboardText(): String? {
+        val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return null
+        return cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString()?.takeIf { it.isNotBlank() }
+    }
+
+    private fun captureClipboard(auto: Boolean) {
+        val text = currentClipboardText() ?: return
+        if (clipHistory.firstOrNull() == text) return
+        clipHistory.removeAll { it == text }
+        clipHistory.add(0, text)
+        if (clipHistory.size > MAX_CLIP_ENTRIES) clipHistory.removeAt(clipHistory.lastIndex)
+        saveClipHistory()
+        if (auto) refreshClipList()
+    }
+
+    private fun setupClipboard(root: View) {
+        loadClipHistory()
+        root.findViewById<Button>(R.id.btn_clip_add)?.setOnClickListener {
+            val text = currentClipboardText()
+            if (text == null) {
+                Toast.makeText(this, "Zwischenablage ist leer", Toast.LENGTH_SHORT).show()
+            } else {
+                captureClipboard(auto = false)
+                refreshClipList()
+            }
+        }
+        root.findViewById<Button>(R.id.btn_clip_clear)?.setOnClickListener {
+            clipHistory.clear()
+            saveClipHistory()
+            refreshClipList()
+        }
+        root.findViewById<ListView>(R.id.clip_list)?.setOnItemClickListener { _, _, position, _ ->
+            commitText(clipHistory.getOrNull(position) ?: return@setOnItemClickListener)
+        }
+        refreshClipList()
+    }
+
+    private fun refreshClipList() {
+        val root = keyboardRoot ?: return
+        val list = root.findViewById<ListView>(R.id.clip_list) ?: return
+        val hint = root.findViewById<TextView>(R.id.clip_hint) ?: return
+        hint.text = if (clipHistory.isEmpty()) getString(R.string.clip_hint_empty)
+        else "${clipHistory.size} Einträge · Tippen = einfügen"
+        list.adapter = ArrayAdapter(root.context, android.R.layout.simple_list_item_1,
+            clipHistory.map { s -> if (s.length > 80) s.take(80) + "…" else s.replace("\n", " ") })
+    }
+
+    private fun clipHistoryFile() = File(filesDir, "clipboard_history.txt")
+
+    private fun saveClipHistory() {
+        try { clipHistoryFile().writeText(clipHistory.joinToString("\u0000")) } catch (_: Exception) {}
+    }
+
+    private fun loadClipHistory() {
+        try {
+            val f = clipHistoryFile()
+            if (f.exists()) {
+                clipHistory.clear()
+                clipHistory.addAll(f.readText().split('\u0000').filter { it.isNotEmpty() })
+            }
+        } catch (_: Exception) {}
     }
 
     private fun forEachView(root: View, action: (View) -> Unit) {

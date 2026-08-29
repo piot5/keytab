@@ -7,13 +7,15 @@
     android:background="@color/kbd_bg"
     android:paddingBottom="4dp">
 
-    <!-- Tab-Leiste: abc = Buchstaben, Files = Dateimanager -->
+    <!-- Tab-Leiste: abc = Buchstaben, Files = Dateimanager, Editor = Texteditor -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/ime_tabs"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:tabMode="fixed"
         app:tabGravity="fill"
+        app:tabPaddingStart="12dp"
+        app:tabPaddingEnd="12dp"
         app:tabIndicatorColor="@color/primary"
         app:tabSelectedTextColor="@color/text_primary"
         app:tabTextColor="@color/tab_text"
@@ -28,6 +30,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/ime_tab_files" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ime_tab_editor" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ime_tab_clip" />
     </com.google.android.material.tabs.TabLayout>
 
     <FrameLayout
@@ -201,6 +213,105 @@
                 android:textColor="@color/text_secondary" />
         </LinearLayout>
     </FrameLayout>
+
+    <!-- Zwischenablage-Panel -->
+    <LinearLayout
+        android:id="@+id/clip_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@color/key_bg">
+
+            <Button
+                android:id="@+id/btn_clip_add"
+                style="@style/KeyDark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/clip_add" />
+
+            <Button
+                android:id="@+id/btn_clip_clear"
+                style="@style/KeyDark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/clip_clear" />
+
+            <TextView
+                android:id="@+id/clip_hint"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="@color/text_secondary"
+                android:padding="6dp" />
+        </LinearLayout>
+
+        <ListView
+            android:id="@+id/clip_list"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:background="@color/list_bg" />
+    </LinearLayout>
+
+    <!-- Texteditor-Panel -->
+    <LinearLayout
+        android:id="@+id/editor_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@color/key_bg">
+
+            <Button
+                android:id="@+id/btn_editor_load"
+                style="@style/KeyDark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/editor_load" />
+
+            <Button
+                android:id="@+id/btn_editor_save"
+                style="@style/KeyDark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/editor_save" />
+
+            <TextView
+                android:id="@+id/editor_file"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:singleLine="true"
+                android:ellipsize="start"
+                android:textColor="@color/text_secondary"
+                android:padding="6dp" />
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/editor_input"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:gravity="top|start"
+            android:inputType="textMultiLine|textNoSuggestions"
+            android:background="@color/list_bg"
+            android:textColor="@color/text_primary"
+            android:hint="@string/editor_hint"
+            android:padding="8dp" />
+    </LinearLayout>
 
     <!-- Gemeinsame Funktionsleiste: ?123 / Space / Enter -->
     <LinearLayout style="@style/KeyRow"

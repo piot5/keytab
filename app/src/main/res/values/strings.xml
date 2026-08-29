@@ -5,6 +5,14 @@
     <string name="tab_keyboard">abc</string>
     <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Files</string>
+    <string name="ime_tab_editor">Editor</string>
+    <string name="ime_tab_clip">Ablage</string>
+    <string name="clip_add">＋ Hinzufügen</string>
+    <string name="clip_clear">🗑</string>
+    <string name="clip_hint_empty">Noch keine Einträge – kopiere etwas und tippe „＋ Hinzufügen“.</string>
+    <string name="editor_save">💾 Speichern</string>
+    <string name="editor_load">📂 Laden</string>
+    <string name="editor_hint">Text hier eingeben …</string>
     <string name="new_tab">＋</string>
     <string name="up_dir">▲</string>
     <string name="keyboard_not_enabled">KeyTab ist noch nicht als Tastatur aktiviert.</string>

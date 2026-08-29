@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tab-Hintergrund mit seitlichem Abstand → sichtbare Lücken zwischen den Tabs -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/key_bg"
+    android:insetLeft="4dp"
+    android:insetRight="4dp"
+    android:insetTop="3dp"
+    android:insetBottom="3dp" />

@@ -20,7 +20,7 @@
         app:tabIndicatorColor="@color/primary"
         app:tabSelectedTextColor="@color/text_primary"
         app:tabTextColor="@color/tab_text"
-        app:tabBackground="@drawable/key_bg">
+        app:tabBackground="@drawable/tab_bg_inset">
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"

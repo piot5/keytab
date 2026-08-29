@@ -51,10 +51,16 @@ class KeyTabImeService : InputMethodService() {
     private data class FileEntry(val file: File, val label: String, val info: String)
 
     private val letterExtras = mapOf(
+        // Geläufige Sonderzeichen auf freien Buchstaben (deutsche AltGr-Mnemonik)
+        'q' to listOf("@"), 'Q' to listOf("@"),
+        'r' to listOf("®"), 'R' to listOf("®"),
+        't' to listOf("™"), 'T' to listOf("™"),
+        'x' to listOf("×"), 'X' to listOf("×"),
+        'm' to listOf("µ"), 'M' to listOf("µ"),
         'a' to listOf("ä", "á", "à", "â", "æ", "å"),
         'A' to listOf("Ä", "Á", "À", "Â", "Æ", "Å"),
-        'e' to listOf("é", "è", "ê", "ë"),
-        'E' to listOf("É", "È", "Ê", "Ë"),
+        'e' to listOf("€", "é", "è", "ê", "ë"),
+        'E' to listOf("€", "É", "È", "Ê", "Ë"),
         'i' to listOf("í", "ì", "î", "ï"),
         'I' to listOf("Í", "Ì", "Î", "Ï"),
         'o' to listOf("ö", "ó", "ò", "ô", "ø"),
@@ -274,9 +280,17 @@ class KeyTabImeService : InputMethodService() {
             isOutsideTouchable = true
             isFocusable = true
         }
+        // Popup exakt über der angetippten Taste zentrieren
+        container.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+        val popupW = container.measuredWidth
+        val popupH = container.measuredHeight
         val location = IntArray(2)
         anchor.getLocationOnScreen(location)
-        popup.showAtLocation(anchor, Gravity.NO_GRAVITY, location[0], location[1] - 120)
+        val rootW = anchor.rootView.width
+        val x = (location[0] + anchor.width / 2 - popupW / 2)
+            .coerceIn(0, (rootW - popupW).coerceAtLeast(0))
+        val y = location[1] - popupH - 8
+        popup.showAtLocation(anchor, Gravity.NO_GRAVITY, x, y)
         activePopup = popup
     }
 
@@ -303,9 +317,10 @@ class KeyTabImeService : InputMethodService() {
             val extras = (if (shifted) letterExtras[base.uppercaseChar()] else letterExtras[base]).orEmpty()
             val sb = SpannableStringBuilder(letter.toString())
             if (extras.isNotEmpty()) {
-                // FlorisBoard-Style: mögliche Long-Press-Zeichen klein + abgedunkelt hinter dem Buchstaben
+                // FlorisBoard-Style: ein Hinweis-Zeichen klein + abgedunkelt hinter dem Buchstaben,
+                // alle weiteren nur im Long-Press-Popup
                 val start = sb.length
-                sb.append(extras.take(3).joinToString(""))
+                sb.append(extras.first())
                 sb.setSpan(RelativeSizeSpan(0.4f), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 sb.setSpan(ForegroundColorSpan(secondary), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }

@@ -51,7 +51,34 @@ class MainActivity : AppCompatActivity() {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         }
 
-        requestStoragePermissions()
+        // Speicher-Berechtigung anstoßen, falls IME Zugriff verweigert
+        val missingStorage = if (Build.VERSION.SDK_INT >= 33) {
+            neededPermissions(
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.READ_MEDIA_VIDEO,
+                Manifest.permission.READ_MEDIA_AUDIO
+            )
+        } else {
+            neededPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        if (missingStorage.isNotEmpty()) {
+            permLauncher.launch(missingStorage)
+        }
+
+        // Button: MANAGE_EXTERNAL_STORAGE direkt öffnen (falls nötig)
+        findViewById<Button>(R.id.btn_request_manage_storage).setOnClickListener {
+            if (Build.VERSION.SDK_INT >= 30) {
+                val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                intent.data = android.net.Uri.parse("package:$packageName")
+                startActivity(intent)
+            }
+        }
+    }
+
+    private fun neededPermissions(vararg perms: String): Array<String> {
+        return perms.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }.toTypedArray()
     }
 
     private fun requestStoragePermissions() {

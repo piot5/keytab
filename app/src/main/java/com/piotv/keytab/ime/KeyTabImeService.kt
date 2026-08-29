@@ -4,7 +4,6 @@ import android.inputmethodservice.InputMethodService
 import android.os.Environment
 import android.view.ContextThemeWrapper
 import android.view.KeyEvent
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
@@ -25,6 +24,8 @@ class KeyTabImeService : InputMethodService() {
     private var shifted = false
     private var keyboardRoot: View? = null
     private var currentDir: File? = null
+    private val backStack = mutableListOf<File>()
+
     private var showSymbols = false
 
     private data class FileEntry(val file: File, val label: String, val info: String)
@@ -94,28 +95,20 @@ class KeyTabImeService : InputMethodService() {
                 }
                 btn.id == R.id.key_del -> {
                     btn.setOnClickListener { sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL) }
-                    // Lang-Druck via Touch-Timeout – zuverlässig, weil setOnLongClickListener
-                    // im IME-Fenster nicht immer feuert.
-                    btn.isLongClickable = true
-                    var downTime = 0L
-                    btn.setOnTouchListener { _, event ->
-                        when (event.action) {
-                            MotionEvent.ACTION_DOWN -> {
-                                downTime = System.currentTimeMillis()
-                                false
-                            }
-                            MotionEvent.ACTION_UP -> {
-                                val held = System.currentTimeMillis() - downTime
-                                if (held >= 500) {
-                                    deleteLastWord()
-                                    true
-                                } else false
-                            }
-                            else -> false
-                        }
-                    }
+                    // Lang-Druck: Wort löschen — sendKeyEvent an die Edit-Komponente
                     btn.setOnLongClickListener {
                         deleteLastWord()
+                        val ev = KeyEvent(
+                            System.currentTimeMillis(),
+                            System.currentTimeMillis(),
+                            KeyEvent.ACTION_DOWN,
+                            KeyEvent.KEYCODE_DEL,
+                            0,
+                            0, 0, 0,
+                            1,
+                            KeyEvent.FLAG_LONG_PRESS
+                        )
+                        currentInputConnection?.sendKeyEvent(ev)
                         true
                     }
                 }
@@ -184,11 +177,10 @@ class KeyTabImeService : InputMethodService() {
         val back = root.findViewById<Button>(R.id.btn_back_dir) ?: return
 
         if (currentDir == null) {
-            // Nullsicherer Start: Falls PUBLIC_DIRECTORY null ist (API 30+ / kein Speicher),
-            // fallback auf app-internen externen Pfad oder Root "/".
-            val d = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            currentDir = if (d?.isDirectory == true && d.canRead()) d
-            else filesDir?.parentFile?.let { File(it, "Download") }?.takeIf { it.isDirectory }
+            // Nullsicherer Start: Downloads, sonst externer App-Ordner, sonst Root
+            val pub = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            currentDir = if (pub?.isDirectory == true && pub.canRead()) pub
+            else getExternalFilesDir(null)?.parentFile?.let { File(it, "Download") }?.takeIf { it.isDirectory }
             ?: File("/")
         }
 
@@ -197,13 +189,31 @@ class KeyTabImeService : InputMethodService() {
         fun refresh() {
             val dir = currentDir ?: return
             dirLabel.text = dir.absolutePath
-            // "..."-Button nur sichtbar, wenn wirklich eine Parent-Ebene existiert
-            back.visibility = if (dir.parentFile != null) View.VISIBLE else View.GONE
-            back.text = ".."
+            // ".."-Button nur, wenn backStack nicht leer ist (echter "zurück zum letzten Ordner")
+            if (backStack.isNotEmpty()) {
+                back.visibility = View.VISIBLE
+                back.text = "< " + (backStack.last().name.ifEmpty { "/" })
+            } else {
+                back.visibility = View.GONE
+            }
             val raw = dir.listFiles()
             if (raw == null) {
-                hint.text = "Zugriff verweigert – voller Dateizugriff nötig."
-                entries = emptyList()
+                // Zugriff verweigert → Fallback-Inhalt
+                hint.text = "Speicherzugriff fehlt – öffne KeyTab App für Berechtigung."
+                // Fallback: nur Root-Verzeichnis-Inhalt
+                val rootFiles = try { File("/").listFiles() } catch (e: Exception) { null }
+                if (rootFiles != null && rootFiles.isNotEmpty()) {
+                    entries = rootFiles
+                        .filter { !it.isHidden }
+                        .sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase(Locale.ROOT) })
+                        .map { f ->
+                            if (f.isDirectory) FileEntry(f, "\uD83D\uDCC1 ${f.name}/", "Ordner")
+                            else FileEntry(f, "\uD83D\uDCC4 ${f.name}", formatSize(f.length()))
+                        }
+                } else {
+                    entries = emptyList()
+                }
+                hint.append("\n(Anzeige beschränkt – keine Speicher-Berechtigung)")
             } else {
                 hint.text = "${raw.count { it.isDirectory }} Ordner · ${raw.count { it.isFile }} Dateien"
                 entries = raw
@@ -215,19 +225,25 @@ class KeyTabImeService : InputMethodService() {
                     }
             }
             val labels = ArrayList<String>()
-            // KEIN ".."-Eintrag in der Liste mehr – Navigation ausschließlich über den Header-Button
             labels += entries.map { it.label }
             list.adapter = ArrayAdapter(root.context, android.R.layout.simple_list_item_1, labels)
         }
 
         fun navigate(to: File) {
+            backStack.add(currentDir!!)
             currentDir = to
             refresh()
         }
 
-        back.setOnClickListener { currentDir?.parentFile?.let { navigate(it) } }
+        back.setOnClickListener {
+            if (backStack.isNotEmpty()) {
+                backStack.removeAt(backStack.lastIndex)
+                navigate(currentDir!!)  // pop
+                // backStack wurde in navigate() geändert → manuell pop
+                backStack.removeAt(backStack.lastIndex)
+            }
+        }
         list.setOnItemClickListener { _, _, position, _ ->
-            // da kein ".."-Eintrag mehr in der Liste ist: Position = direkter Index
             val e = entries.getOrNull(position) ?: return@setOnItemClickListener
             if (e.file.isDirectory) {
                 navigate(e.file)

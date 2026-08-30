@@ -329,10 +329,12 @@ class KeyTabImeService : InputMethodService() {
         fun addOption(ch: String, focused: Boolean) {
             val tv = TextView(ctx).apply {
                 text = ch
-                textSize = 22f
-                gravity = Gravity.CENTER
+                // Sonderzeichen leicht größer und rechts-unten versetzt (FlorisBoard-Popup-Style)
+                textSize = if (ch == showBase.toString() && focused) 22f else 24f
+                gravity = if (focused) Gravity.CENTER else (Gravity.END or Gravity.BOTTOM)
                 setTextColor(popupText)
-                setPadding(18, 14, 18, 14)
+                // rechts-unten leicht mehr Abstand
+                setPadding(14, 10, 22, 16)
                 if (focused) background = focusBgDrawable
                 setOnClickListener {
                     commitText(ch)
@@ -410,10 +412,10 @@ class KeyTabImeService : InputMethodService() {
             }
             val sb = SpannableStringBuilder(letter.toString())
             if (extras.isNotEmpty()) {
-                // FlorisBoard-Style: ein Hinweis-Zeichen klein + abgedunkelt hinter dem Buchstaben,
-                // alle weiteren nur im Long-Press-Popup
+                // FlorisBoard-Style: ein Hinweis-Zeichen klein + abgedunkelt leicht
+                // rechts-unten vom Hauptbuchstaben, alle weiteren nur im Long-Press-Popup
                 val start = sb.length
-                sb.append(extras.first())
+                sb.append(" " + extras.first()) // 1 Spalten-Offset nach rechts
                 sb.setSpan(RelativeSizeSpan(0.4f), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 sb.setSpan(ForegroundColorSpan(secondary), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }

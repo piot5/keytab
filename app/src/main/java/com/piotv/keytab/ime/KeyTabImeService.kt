@@ -24,6 +24,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
+import android.widget.GridLayout
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
 import java.util.concurrent.ExecutorService
@@ -319,33 +320,61 @@ class KeyTabImeService : InputMethodService() {
             setPadding(6, 6, 6, 6)
         }
 
-        // Floris-Stil: erst die fokussierte Option (Hauptzeichen des aktuellen Schreibzustands)
+        // Floris-Stil: Hauptzeichen als Header (groß, zentriert), Sonderzeichen darunter in Grid
         val base = baseLetters[anchor] ?: letter.lowercaseChar()
         val upper = shifted || capsLock
         val showBase = if (upper) base.uppercaseChar() else base
         val showExtras = letterExtras[if (upper) base.uppercaseChar() else base]
             ?: letterExtras[base]
             ?: emptyList()
-        fun addOption(ch: String, focused: Boolean) {
+
+        // Header: Hauptzeichen groß + fokussiert
+        val header = TextView(ctx).apply {
+            text = showBase.toString()
+            textSize = 26f
+            gravity = Gravity.CENTER
+            setTextColor(popupText)
+            setPadding(16, 12, 16, 12)
+            background = focusBgDrawable
+        }
+        container.addView(header)
+
+        // Trennlinie (1dp halbtransparent grau)
+        val divider = View(ctx).apply {
+            setBackgroundColor((popupText and 0x00FFFFFF) or 0x33000000)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (1f * resources.displayMetrics.density).toInt()
+            )
+        }
+        container.addView(divider)
+
+        // Grid der Sonderzeichen (3 pro Zeile, klein + rechts-unten)
+        val grid = GridLayout(ctx).apply {
+            columnCount = 3
+            orientation = GridLayout.HORIZONTAL
+            setBackgroundColor(popupBg)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1.0f
+            )
+        }
+        for (ch in showExtras) {
             val tv = TextView(ctx).apply {
                 text = ch
-                // FlorisBoard-Stil: Hauptzeichen 18sp zentriert;
-                // Sonderzeichen deutlich größer (20sp) rechts-unten, nicht verschmolzen
-                textSize = if (focused) 18f else 20f
-                gravity = if (focused) Gravity.CENTER else (Gravity.END or Gravity.BOTTOM)
+                textSize = 20f
+                gravity = Gravity.CENTER
                 setTextColor(popupText)
-                // rechts-unten Abstand, links-oben kompakt
-                setPadding(10, 6, 16, 10)
-                if (focused) background = focusBgDrawable
+                setPadding(8, 6, 8, 6)
                 setOnClickListener {
                     commitText(ch)
                     activePopup?.dismiss()
                 }
             }
-            container.addView(tv)
+            grid.addView(tv)
         }
-        addOption(showBase.toString(), focused = true)
-        for (ch in showExtras) addOption(ch, focused = false)
+        container.addView(grid)
 
         val popup = PopupWindow(
             container,

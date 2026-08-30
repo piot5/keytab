@@ -62,38 +62,27 @@ class KeyTabImeService : InputMethodService() {
     private var clipboardPanel: ClipboardPanel? = null
 
     private val letterExtras = mapOf(
-        // Geläufige Sonderzeichen auf freien Buchstaben (deutsche AltGr-Mnemonik)
-        'q' to listOf("@"), 'Q' to listOf("@"),
-        'r' to listOf("®"), 'R' to listOf("®"),
-        't' to listOf("™"), 'T' to listOf("™"),
-        'x' to listOf("×"), 'X' to listOf("×"),
-        'm' to listOf("µ"), 'M' to listOf("µ"),
-        'a' to listOf("ä", "á", "à", "â", "æ", "å"),
-        'A' to listOf("Ä", "Á", "À", "Â", "Æ", "Å"),
-        'e' to listOf("€", "é", "è", "ê", "ë"),
-        'E' to listOf("€", "É", "È", "Ê", "Ë"),
-        'i' to listOf("í", "ì", "î", "ï"),
-        'I' to listOf("Í", "Ì", "Î", "Ï"),
-        'o' to listOf("ö", "ó", "ò", "ô", "ø"),
-        'O' to listOf("Ö", "Ó", "Ò", "Ô", "Ø"),
-        'u' to listOf("ü", "ú", "ù", "û"),
-        'U' to listOf("Ü", "Ú", "Ù", "Û"),
-        's' to listOf("ß", "š"),
-        'S' to listOf("Š"),
+        // === EXAKT wie FlorisBoard popupMappings/de.json (KeyVariation.ALL) ===
+        // Reihenfolge = akzent-Priorität, Hauptzeichen (main) ist der erste Eintrag.
+        'a' to listOf("ä", "æ", "ã", "å", "ā", "â", "à", "á"),
+        'A' to listOf("Ä", "Æ", "Ã", "Å", "Ā", "Â", "À", "Á"),
+        'c' to listOf("ç"),
+        'C' to listOf("Ç"),
+        'e' to listOf("é", "ē", "ê", "è", "ë"),
+        'E' to listOf("É", "Ē", "Ê", "È", "Ë"),
+        'i' to listOf("í", "ì", "ï", "î", "ī"),
+        'I' to listOf("Í", "Ì", "Ï", "Î", "Ī"),
         'n' to listOf("ñ", "ń"),
         'N' to listOf("Ñ", "Ń"),
-        'c' to listOf("ç", "č"),
-        'C' to listOf("Ç", "Č"),
-        'z' to listOf("ž", "ź"),
-        'Z' to listOf("Ž", "Ź"),
-        // Echte deutsche QWERTZ-Tasten (FlorisBoard-Layout): ü ö ä ß
-        'ü' to listOf("Ü", "ú", "ù", "û"),
-        'Ü' to listOf("ü", "Ú", "Ù", "Û"),
-        'ö' to listOf("Ö", "ó", "ò", "ô", "ø"),
-        'Ö' to listOf("ö", "Ó", "Ò", "Ô", "Ø"),
-        'ä' to listOf("Ä", "á", "à", "â", "æ"),
-        'Ä' to listOf("ä", "Á", "À", "Â", "Æ"),
-        'ß' to listOf("ẞ")
+        'o' to listOf("ö", "ō", "ø", "õ", "œ", "ó", "ò", "ô"),
+        'O' to listOf("Ö", "Ō", "Ø", "Õ", "Œ", "Ó", "Ò", "Ô"),
+        // case_selector: ß<->ẞ (FlorisBoard verwendet case_selector)
+        's' to listOf("ß", "š", "ś"),
+        'S' to listOf("ẞ", "Š", "Ś"),
+        'u' to listOf("ü", "ū", "ù", "û", "ú"),
+        'U' to listOf("Ü", "Ū", "Ù", "Û", "Ú"),
+        // Komma-Taste (rechts unten): FlorisBoard "~right" mit & % + " - : ' @ ; / ( ) # ! ?
+        ',' to listOf("&", "%", "+", "\"", "-", ":", "'", "@", ";", "/", "(", ")", "#", "!", "?")
     )
 
     override fun onCreateInputView(): View {
@@ -330,8 +319,13 @@ class KeyTabImeService : InputMethodService() {
             setPadding(6, 6, 6, 6)
         }
 
-        // Floris-Stil: erst die fokussierte Option (der aktuelle Buchstabe)
+        // Floris-Stil: erst die fokussierte Option (Hauptzeichen des aktuellen Schreibzustands)
         val base = baseLetters[anchor] ?: letter.lowercaseChar()
+        val upper = shifted || capsLock
+        val showBase = if (upper) base.uppercaseChar() else base
+        val showExtras = letterExtras[if (upper) base.uppercaseChar() else base]
+            ?: letterExtras[base]
+            ?: emptyList()
         fun addOption(ch: String, focused: Boolean) {
             val tv = TextView(ctx).apply {
                 text = ch
@@ -347,8 +341,8 @@ class KeyTabImeService : InputMethodService() {
             }
             container.addView(tv)
         }
-        addOption(base.toString(), focused = true)
-        for (ch in extras) addOption(ch, focused = false)
+        addOption(showBase.toString(), focused = true)
+        for (ch in showExtras) addOption(ch, focused = false)
 
         val popup = PopupWindow(
             container,

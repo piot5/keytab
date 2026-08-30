@@ -1,24 +1,24 @@
 <resources>
     <string name="app_name">KeyTab</string>
-    <string name="ime_label">KeyTab Tastatur</string>
+    <string name="ime_label">KeyTab Keyboard</string>
     <string name="tab_files">Files</string>
     <string name="tab_keyboard">abc</string>
     <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Files</string>
     <string name="ime_tab_editor">Editor</string>
-    <string name="ime_tab_clip">Ablage</string>
-    <string name="clip_add">＋ Hinzufügen</string>
+    <string name="ime_tab_clip">Clipboard</string>
+    <string name="clip_add">＋ Add</string>
     <string name="clip_clear">🗑</string>
-    <string name="clip_hint_empty">Noch keine Einträge – kopiere etwas und tippe „＋ Hinzufügen“.</string>
-    <string name="editor_save">💾 Speichern</string>
-    <string name="editor_load">📂 Laden</string>
-    <string name="editor_hint">Text hier eingeben …</string>
+    <string name="clip_hint_empty">No entries yet — copy something and tap „＋ Add“.</string>
+    <string name="editor_save">💾 Save</string>
+    <string name="editor_load">📂 Load</string>
+    <string name="editor_hint">Type here …</string>
     <string name="new_tab">＋</string>
     <string name="up_dir">▲</string>
-    <string name="keyboard_not_enabled">KeyTab ist noch nicht als Tastatur aktiviert.</string>
-    <string name="enable_keyboard">Tastatur aktivieren</string>
-    <string name="switch_keyboard">Tastatur wechseln</string>
-    <string name="hint_tab_key">Die TAB-Taste sendet KEYCODE_TAB – perfekt für Termux &amp; SSH.</string>
+    <string name="keyboard_not_enabled">KeyTab is not enabled as a keyboard yet.</string>
+    <string name="enable_keyboard">Enable keyboard</string>
+    <string name="switch_keyboard">Switch keyboard</string>
+    <string name="hint_tab_key">TAB sends KEYCODE_TAB — perfect for Termux &amp; SSH.</string>
     <string name="key_tab_label">⇥</string>
     <string name="key_shift_label">⇧</string>
     <string name="key_del_label">⌫</string>
@@ -26,44 +26,47 @@
     <string name="key_toggle_letters">abc</string>
     <string name="key_enter_label">↵</string>
     <string name="close_tab">✕</string>
-    <string name="app_subtitle">Tastatur mit Tab-Dateimanager</string>
-    <string name="ime_tab_files_desc">Tab-Dateimanager – mehrere Tabs, Navigation, Dateien öffnen</string>
+    <string name="app_subtitle">Keyboard with tabbed file manager</string>
+    <string name="ime_tab_files_desc">Tabbed file manager — multiple tabs, navigation, open files</string>
     <string name="theme_label">Theme</string>
     <string name="theme_dark">🌙 Dark</string>
     <string name="theme_light">☀️ Light</string>
-    <string name="storage_denied">Speicherzugriff verweigert – Berechtigung in den Einstellungen erteilen.</string>
-    <string name="request_storage_access">Vollzändigen Speicherzugriff erlauben.</string>
+    <string name="storage_denied">Storage access denied — grant permission in settings.</string>
+    <string name="request_storage_access">Allow full storage access</string>
     <string name="btn_back_label">‹</string>
     <string name="btn_up_label">▲</string>
-    <!-- Dateimanager (IME) -->
-    <string name="fm_loading">Lade…</string>
-    <string name="fm_no_storage_access">Speicherzugriff fehlt – öffne KeyTab App für Berechtigung.</string>
-    <string name="fm_entry_dir">Ordner</string>
-    <string name="fm_dir_summary">%1$d Ordner · %2$d Dateien</string>
-    <string name="fm_open_no_app">Keine App zum Öffnen: %1$s</string>
-    <!-- Editor -->
-    <string name="editor_saved">Gespeichert: %1$s</string>
-    <string name="editor_save_failed">Speichern fehlgeschlagen: %1$s</string>
-    <string name="editor_loaded">Geladen: %1$s</string>
-    <string name="editor_file_empty">Datei ist leer</string>
-    <string name="editor_load_failed">Laden fehlgeschlagen: %1$s</string>
-    <!-- Zwischenablage -->
-    <string name="clip_empty">Zwischenablage ist leer</string>
-    <string name="clip_hint_count">%1$d Einträge · Tippen = einfügen</string>
 
-    <!-- Files: Long-Press-Kontextmenü -->
-    <string name="fm_properties">ℹ Eigenschaften</string>
-    <string name="fm_copy_path">📋 Pfad kopieren</string>
-    <string name="fm_copy_file">📁 Datei kopieren</string>
-    <string name="fm_copy_content">📄 Inhalt kopieren</string>
-    <string name="fm_paste">📥 Einfügen</string>
-    <string name="fm_copied">Kopiert: %s</string>
-    <string name="fm_pasted">Eingefügt: %s</string>
-    <string name="fm_paste_failed">Fehlgeschlagen: %s</string>
-    <string name="fm_props_fmt">Pfad: %1$s&#10;Typ: %2$s&#10;Größe: %3$s&#10;Geändert: %4$s</string>
-    <string name="fm_type_dir">Ordner</string>
-    <string name="fm_type_file">Datei</string>
-    <string name="settings_num_row">Zahlenreihe über den Buchstaben</string>
-    <string name="settings_num_row_on">Zahlenreihe aktiviert</string>
-    <string name="settings_num_row_off">Zahlenreihe deaktiviert</string>
+    <!-- File manager (IME) -->
+    <string name="fm_loading">Loading…</string>
+    <string name="fm_no_storage_access">No storage access — open the KeyTab app for permission.</string>
+    <string name="fm_entry_dir">Folder</string>
+    <string name="fm_dir_summary">%1$d folders · %2$d files</string>
+    <string name="fm_open_no_app">No app to open: %1$s</string>
+
+    <!-- Editor -->
+    <string name="editor_saved">Saved: %1$s</string>
+    <string name="editor_save_failed">Save failed: %1$s</string>
+    <string name="editor_loaded">Loaded: %1$s</string>
+    <string name="editor_file_empty">File is empty</string>
+    <string name="editor_load_failed">Load failed: %1$s</string>
+
+    <!-- Clipboard -->
+    <string name="clip_empty">Clipboard is empty</string>
+    <string name="clip_hint_count">%1$d entries · tap = insert</string>
+
+    <!-- Files: long-press context menu -->
+    <string name="fm_properties">ℹ Properties</string>
+    <string name="fm_copy_path">📋 Copy path</string>
+    <string name="fm_copy_file">📁 Copy file</string>
+    <string name="fm_copy_content">📄 Copy content</string>
+    <string name="fm_paste">📥 Paste</string>
+    <string name="fm_copied">Copied: %s</string>
+    <string name="fm_pasted">Pasted: %s</string>
+    <string name="fm_paste_failed">Failed: %s</string>
+    <string name="fm_props_fmt">Path: %1$s&#10;Type: %2$s&#10;Size: %3$s&#10;Modified: %4$s</string>
+    <string name="fm_type_dir">Folder</string>
+    <string name="fm_type_file">File</string>
+    <string name="settings_num_row">Number row above letters</string>
+    <string name="settings_num_row_on">Number row enabled</string>
+    <string name="settings_num_row_off">Number row disabled</string>
 </resources>

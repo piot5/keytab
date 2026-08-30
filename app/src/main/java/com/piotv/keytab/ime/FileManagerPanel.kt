@@ -47,6 +47,10 @@ class FileManagerPanel(
     private var pendingCopy: File? = null
     private val paste = root.findViewById<Button>(R.id.btn_paste_dir)
 
+    private companion object {
+        const val MAX_CLIP_CONTENT_BYTES = 1_000_000
+    }
+
     init {
         if (currentDir == null) {
             val pub = Environment.getExternalStorageDirectory()
@@ -129,7 +133,10 @@ class FileManagerPanel(
 
     private fun copyFileContent(f: File) {
         ioExecutor.execute {
-            val text = try { f.readText() } catch (_: Exception) { null }
+            val text = try {
+                // Bugfix: Größenlimit, sonst OOM bei großen Dateien (Logs, DBs)
+                if (f.length() > MAX_CLIP_CONTENT_BYTES) null else f.readText()
+            } catch (_: Exception) { null }
             mainHandler.post {
                 if (text == null) toast(context.getString(R.string.fm_paste_failed, f.name))
                 else {
@@ -145,9 +152,20 @@ class FileManagerPanel(
         val src = pendingCopy ?: return
         val dir = currentDir ?: return
         val dst = File(dir, src.name)
+        // Bugfix: Eigene Verzeichniskopie würde die Quelle zerstören (copyTo trunciert bei src==dst)
+        if (dst.absolutePath == src.absolutePath) {
+            toast(context.getString(R.string.fm_paste_failed, src.name))
+            return
+        }
         ioExecutor.execute {
             val ok = try {
-                src.copyTo(dst, overwrite = true).isFile
+                if (src.isDirectory) {
+                    // Rekursives Kopieren für Ordner (copyTo kopiert nicht rekursiv)
+                    src.copyRecursively(dst, overwrite = true)
+                } else {
+                    src.copyTo(dst, overwrite = true)
+                }
+                dst.exists()
             } catch (_: Exception) { false }
             mainHandler.post {
                 pendingCopy = if (ok) null else pendingCopy

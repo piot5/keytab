@@ -35,4 +35,19 @@
     <string name="request_storage_access">Vollzändigen Speicherzugriff erlauben.</string>
     <string name="btn_back_label">‹</string>
     <string name="btn_up_label">▲</string>
+    <!-- Dateimanager (IME) -->
+    <string name="fm_loading">Lade…</string>
+    <string name="fm_no_storage_access">Speicherzugriff fehlt – öffne KeyTab App für Berechtigung.</string>
+    <string name="fm_entry_dir">Ordner</string>
+    <string name="fm_dir_summary">%1$d Ordner · %2$d Dateien</string>
+    <string name="fm_open_no_app">Keine App zum Öffnen: %1$s</string>
+    <!-- Editor -->
+    <string name="editor_saved">Gespeichert: %1$s</string>
+    <string name="editor_save_failed">Speichern fehlgeschlagen: %1$s</string>
+    <string name="editor_loaded">Geladen: %1$s</string>
+    <string name="editor_file_empty">Datei ist leer</string>
+    <string name="editor_load_failed">Laden fehlgeschlagen: %1$s</string>
+    <!-- Zwischenablage -->
+    <string name="clip_empty">Zwischenablage ist leer</string>
+    <string name="clip_hint_count">%1$d Einträge · Tippen = einfügen</string>
 </resources>

@@ -118,7 +118,7 @@
                 <Button style="@style/KeyDark" android:tag="letter" android:text="i" />
                 <Button style="@style/KeyDark" android:tag="letter" android:text="o" />
                 <Button style="@style/KeyDark" android:tag="letter" android:text="p" />
-                <Button style="@style/KeyDark" android:id="@+id/key_tab" android:text="@string/key_tab_label" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="ü" />
             </LinearLayout>
 
             <LinearLayout style="@style/KeyRow">
@@ -131,7 +131,8 @@
                 <Button style="@style/KeyDark" android:tag="letter" android:text="j" />
                 <Button style="@style/KeyDark" android:tag="letter" android:text="k" />
                 <Button style="@style/KeyDark" android:tag="letter" android:text="l" />
-                <Button style="@style/KeyDark" android:id="@+id/key_oe" android:text="ö" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="ö" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="ä" />
             </LinearLayout>
 
             <LinearLayout style="@style/KeyRow">
@@ -143,6 +144,7 @@
                 <Button style="@style/KeyDark" android:tag="letter" android:text="b" />
                 <Button style="@style/KeyDark" android:tag="letter" android:text="n" />
                 <Button style="@style/KeyDark" android:tag="letter" android:text="m" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="ß" />
                 <Button style="@style/KeyDark" android:id="@+id/key_del" android:text="@string/key_del_label" />
             </LinearLayout>
         </LinearLayout>

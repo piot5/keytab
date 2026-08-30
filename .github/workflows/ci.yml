@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # GitHub-Runner bringen ein Android-SDK mit (ANDROID_HOME ist gesetzt)
+      - name: Assemble + Unit-Tests
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon --stacktrace
+
+      - name: APK als Artifact hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: keytab-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Test-Report als Artifact hochladen (bei Fehlern)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: app/build/reports/tests/

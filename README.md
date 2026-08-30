@@ -6,17 +6,53 @@
 
 ### 📂 Tab-Dateimanager (Hauptfeature)
 - **Mehrere Browser-Tabs direkt in der Tastatur** – jeder Tab merkt sich sein Verzeichnis
-- Navigation, Ordner wechseln, Dateien öffnen (VIEW-Intent)
-- BackStack + Parent-Navigation, Dateigrößen-Anzeige
-- Material 3 UI (TabLayout + RecyclerView)
+- Navigation, Ordner wechseln, BackStack + Parent-Navigation, Dateigrößen-Anzeige
+- Verzeichnis-Laden **asynchron im Hintergrund** (kein UI-Freeze bei großen Ordnern)
+- Tipp auf Datei = Pfad einfügen; in der App zusätzlich Öffnen per VIEW-Intent
+- Material 3 UI (TabLayout + RecyclerView mit DiffUtil)
 - **Einzigartig**: Dateimanager als IME-Overlay – ohne App-Wechsel Dateien browsen
 
 ### ⌨️ KeyTab Keyboard (IME)
 - Vollwertige Bildschirmtastatur als `InputMethodService`
 - TAB-Taste (sendet `KEYCODE_TAB` – ideal für Termux/SSH-Shells)
 - Shift-Umschaltung, Backspace (Long-Press = Wort löschen), Enter, Space
-- Long-Press auf Buchstaben zeigt Umlaute/Sonderzeichen-Popup
+- Long-Press auf Buchstaben zeigt Umlaute/Sonderzeichen-Popup in Theme-Farben
+
+### 📝 Editor
+- Text direkt in der Tastatur notieren; Speichern/Laden in `keytab_editor.txt` (asynchron)
+
+### 📋 Ablage (Clipboard-Historie)
+- Bis zu 50 Einträge, persistent in `clipboard_history.txt`
+- Auto-Capture beim Tab-Wechsel (wenn die Tastatur fokussiert ist – Android-10+-Beschränkung respektiert)
+- Tipp = einfügen
+
+### 🔒 Datenschutz
 - Keine Netzwerkberechtigung, keine Datensammlung
+
+## Architektur
+
+`KeyTabImeService` ist ein schlanker Keyboard-Core (Tasten, Shift, Symbole, Popups).
+Die Sub-Features leben in eigenen Klassen:
+
+| Klasse | Verantwortung |
+|---|---|
+| `FileManagerPanel` | IME-Dateimanager (Navigation, async Listing) |
+| `EditorPanel` | Interner Editor mit Speichern/Laden |
+| `ClipboardPanel` | Ablage: Capture, Persistenz, Anzeige |
+| `TextEditLogic` | **Reine, Android-freie Logik** (Wortgrenzen, Größenformat, Encoding) |
+
+Allen Panels gemeinsam: Datei-I/O auf einem Hintergrund-Executor, UI-Updates über den
+Main-Handler, veraltete Ergebnisse werden bei Navigation verworfen.
+
+## Tests
+
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+17 Unit-Tests für `TextEditLogic` (Wortgrenzen-Scan inkl. Grenzfälle, `formatSize`,
+Clip-History-Encoding/Display). Die Logik-Klasse ist bewusst Android-frei, um ohne
+Emulator/Gerät lauffähig zu sein.
 
 ## Build
 
@@ -43,10 +79,26 @@ Voraussetzungen: JDK 17, Android SDK (compileSdk 34). SDK-Pfad in `local.propert
 
 ```
 app/src/main/java/com/piotv/keytab/
-├── MainActivity.kt          # Einstellungen: Tastatur aktivieren, Theme
-├── file/FileManagerFragment.kt  # Tab-Dateimanager (Hauptfeature)
-└── ime/KeyTabImeService.kt  # Tastatur-IME mit integriertem Tab-Dateimanager
+├── MainActivity.kt              # Einstellungen: Tastatur aktivieren, Theme
+├── file/FileManagerFragment.kt  # Tab-Dateimanager (in der App, mit DiffUtil)
+└── ime/
+    ├── KeyTabImeService.kt      # Keyboard-Core: Tasten, Shift, Symbole, Popups
+    ├── FileManagerPanel.kt      # IME-Dateimanager
+    ├── EditorPanel.kt           # Interner Editor
+    ├── ClipboardPanel.kt        # Ablage (Clipboard-Historie)
+    └── TextEditLogic.kt         # Reine, testbare Textlogik
+app/src/test/java/com/piotv/keytab/ime/
+└── TextEditLogicTest.kt         # 17 Unit-Tests
 ```
+
+## Changelog (1.0.0 → 1.1.0)
+
+- **Fix:** Long-Press-Backspace löschte ein Zeichen zu viel (Leerzeichen vor dem Wort)
+- **Fix:** Datei-I/O (Dateimanager, Editor, Ablage) läuft asynchron statt auf dem UI-Thread
+- **Fix:** Long-Press-Popup nutzt Theme-Farben statt hardcodierter Colors (Day/Night korrekt)
+- Refactoring: Gott-Klasse in Panel-Klassen + testbare `TextEditLogic` aufgeteilt
+- Alle UI-Strings nach `strings.xml` (i18n-fähig), DiffUtil im App-Dateimanager
+- 17 Unit-Tests + JUnit-Setup
 
 ## Lizenz
 

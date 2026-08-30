@@ -14,11 +14,13 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
 import java.io.File
+import java.util.concurrent.Executors
 
 /** Dateimanager mit mehreren Tabs; jeder Tab merkt sich sein Verzeichnis. */
 class FileManagerFragment : Fragment() {
@@ -28,6 +30,12 @@ class FileManagerFragment : Fragment() {
     private lateinit var adapter: FileAdapter
     private lateinit var tabLayout: TabLayout
     private lateinit var pathView: TextView
+    private val ioExecutor = Executors.newSingleThreadExecutor()
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ioExecutor.shutdown()
+    }
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
@@ -39,7 +47,18 @@ class FileManagerFragment : Fragment() {
         val entries = mutableListOf<File>()
 
         fun set(files: List<File>) {
-            entries.clear(); entries.addAll(files); notifyDataSetChanged()
+            // DiffUtil: nur geänderte Positionen neu binden statt komplettem Rebuild
+            val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+                override fun getOldListSize() = entries.size
+                override fun getNewListSize() = files.size
+                override fun areItemsTheSame(oldPos: Int, newPos: Int) =
+                    entries[oldPos].absolutePath == files[newPos].absolutePath
+                override fun areContentsTheSame(oldPos: Int, newPos: Int) =
+                    entries[oldPos] == files[newPos]
+            })
+            entries.clear()
+            entries.addAll(files)
+            diff.dispatchUpdatesTo(this)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileHolder {
@@ -143,10 +162,17 @@ class FileManagerFragment : Fragment() {
     private fun reload() {
         val dir = tabs.getOrNull(current) ?: return
         pathView.text = dir.absolutePath
-        val files = dir.listFiles()
-            ?.sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase() })
-            ?: emptyList()
-        adapter.set(files)
+        // listFiles() vom Main-Thread fernhalten; Ergebnis nur anwenden,
+        // wenn der Tab/Ordner inzwischen nicht gewechselt wurde
+        ioExecutor.execute {
+            val files = dir.listFiles()
+                ?.sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase() })
+                ?: emptyList()
+            view?.post {
+                if (!isAdded || tabs.getOrNull(current)?.absolutePath != dir.absolutePath) return@post
+                adapter.set(files)
+            }
+        }
     }
 
     private fun openFile(f: File) {
@@ -161,7 +187,7 @@ class FileManagerFragment : Fragment() {
         try {
             startActivity(i)
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Keine App zum \u00D6ffnen: " + f.name, Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.fm_open_no_app, f.name), Toast.LENGTH_SHORT).show()
         }
     }
 }

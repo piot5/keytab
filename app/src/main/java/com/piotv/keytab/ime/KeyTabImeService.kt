@@ -1,54 +1,65 @@
 package com.piotv.keytab.ime
 
 import android.annotation.SuppressLint
+import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.inputmethodservice.InputMethodService
-import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import android.text.InputType
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
+import android.util.TypedValue
 import android.view.ContextThemeWrapper
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ListView
 import android.widget.PopupWindow
 import android.widget.TextView
-import android.widget.Toast
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
-import java.io.File
-import java.util.Locale
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
+/**
+ * KeyTab-IME – schlanker Keyboard-Core (Tasten, Shift, Symbole, Long-Press-Popups).
+ * Die Sub-Features leben in eigenen Klassen:
+ * - [FileManagerPanel]  – Tab-Dateimanager
+ * - [EditorPanel]       – interner Editor mit Speichern/Laden
+ * - [ClipboardPanel]    – Ablage (Clipboard-Historie)
+ * - [TextEditLogic]     – reine, testbare Textlogik
+ */
 class KeyTabImeService : InputMethodService() {
 
     private companion object {
         const val LONG_PRESS_TIMEOUT = 400L
         const val WORD_DELETE_REPEAT_MS = 250L
-        const val MAX_CLIP_ENTRIES = 50
+        const val SHIFT_DOUBLE_TAP_MS = 300L
     }
 
     private var shifted = false
+    private var capsLock = false
+    private var lastShiftTap = 0L
     private var keyboardRoot: View? = null
-    private var currentDir: File? = null
-    private val backStack = mutableListOf<File>()
     private var showSymbols = false
     private var activePopup: PopupWindow? = null
     private val longPressHandler = Handler(Looper.getMainLooper())
-    private val clipHistory = mutableListOf<String>()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val ioExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var editorActive = false
-    private var editorInput: EditText? = null
     private val baseLetters = mutableMapOf<Button, Char>()
 
-    private data class FileEntry(val file: File, val label: String, val info: String)
+    private var fileManagerPanel: FileManagerPanel? = null
+    private var editorPanel: EditorPanel? = null
+    private var clipboardPanel: ClipboardPanel? = null
 
     private val letterExtras = mapOf(
         // Geläufige Sonderzeichen auf freien Buchstaben (deutsche AltGr-Mnemonik)
@@ -74,7 +85,15 @@ class KeyTabImeService : InputMethodService() {
         'c' to listOf("ç", "č"),
         'C' to listOf("Ç", "Č"),
         'z' to listOf("ž", "ź"),
-        'Z' to listOf("Ž", "Ź")
+        'Z' to listOf("Ž", "Ź"),
+        // Echte deutsche QWERTZ-Tasten (FlorisBoard-Layout): ü ö ä ß
+        'ü' to listOf("Ü", "ú", "ù", "û"),
+        'Ü' to listOf("ü", "Ú", "Ù", "Û"),
+        'ö' to listOf("Ö", "ó", "ò", "ô", "ø"),
+        'Ö' to listOf("ö", "Ó", "Ò", "Ô", "Ø"),
+        'ä' to listOf("Ä", "á", "à", "â", "æ"),
+        'Ä' to listOf("ä", "Á", "À", "Â", "Æ"),
+        'ß' to listOf("ẞ")
     )
 
     override fun onCreateInputView(): View {
@@ -82,17 +101,57 @@ class KeyTabImeService : InputMethodService() {
         val root = layoutInflater.cloneInContext(themedContext)
             .inflate(R.layout.keyboard_view, null)
         keyboardRoot = root
+        fileManagerPanel = FileManagerPanel(this, root, ioExecutor, mainHandler) { commitText(it) }
+        editorPanel = EditorPanel(this, root, ioExecutor, mainHandler)
+        clipboardPanel = ClipboardPanel(this, root, ioExecutor, mainHandler,
+            onCommit = { commitText(it) },
+            canAutoCapture = { isInputViewShown })
         setupTabs(root)
         hookKeyboardButtons(root)
-        setupFileManager(root)
         applyLetterCase(root)
         return root
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        activePopup?.dismiss()
+        longPressHandler.removeCallbacksAndMessages(null)
+        ioExecutor.shutdown()
+    }
+
     override fun onStartInput(attribute: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
-        shifted = false
+        capsLock = false
+        shifted = autoCapitalize(attribute)
         applyLetterCase(keyboardRoot)
+        updateShiftVisual(keyboardRoot)
+    }
+
+    /**
+     * Auto-Caps: bei Textfeldern mit CAP_SENTENCES-Flag bzw. initialCapsMode startet
+     * die Tastatur in Shift. Passwort-Felder und Nicht-Text (Zahlen etc.) nie.
+     */
+    private fun autoCapitalize(attribute: android.view.inputmethod.EditorInfo?): Boolean {
+        attribute ?: return false
+        val inputType = attribute.inputType
+        if (inputType and InputType.TYPE_MASK_CLASS != InputType.TYPE_CLASS_TEXT) return false
+        val variation = inputType and InputType.TYPE_MASK_VARIATION
+        if (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+            variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+            variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
+        ) return false
+        return inputType and InputType.TYPE_TEXT_FLAG_CAP_SENTENCES != 0 ||
+            attribute.initialCapsMode != 0
+    }
+
+    private fun haptic() {
+        keyboardRoot?.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+    }
+
+    private fun updateShiftVisual(root: View?) {
+        val shift = root?.findViewById<Button>(R.id.key_shift) ?: return
+        shift.alpha = if (shifted || capsLock) 1f else 0.6f
+        shift.setTypeface(null, if (capsLock) Typeface.BOLD else Typeface.NORMAL)
     }
 
     private fun setupTabs(root: View) {
@@ -116,8 +175,8 @@ class KeyTabImeService : InputMethodService() {
                 fm.visibility = if (pos == 2) View.VISIBLE else View.GONE
                 cp.visibility = if (pos == 3) View.VISIBLE else View.GONE
                 bottom.visibility = if (keyboardVisible) View.VISIBLE else View.GONE
-                if (pos == 2) setupFileManager(root)
-                if (pos == 3) captureClipboard(auto = true)
+                if (pos == 2) fileManagerPanel?.show()
+                if (pos == 3) clipboardPanel?.onSelected()
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
@@ -128,8 +187,6 @@ class KeyTabImeService : InputMethodService() {
         fm.visibility = View.GONE
         cp.visibility = View.GONE
         bottom.visibility = View.VISIBLE
-        setupEditor(root)
-        setupClipboard(root)
     }
 
     private fun hookKeyboardButtons(root: View) {
@@ -141,29 +198,36 @@ class KeyTabImeService : InputMethodService() {
                     activePopup?.dismiss()
                     commitText(btn.text.toString())
                 }
-                btn.id == R.id.key_oe -> btn.setOnClickListener {
-                    activePopup?.dismiss()
-                    commitText(if (shifted) "Ö" else "ö")
-                }
                 btn.id == R.id.key_toggle -> btn.setOnClickListener {
                     activePopup?.dismiss()
                     toggleSymbols(root)
                 }
                 btn.id == R.id.key_shift -> btn.setOnClickListener {
                     activePopup?.dismiss()
-                    shifted = !shifted
-                    btn.alpha = if (shifted) 1f else 0.6f
+                    haptic()
+                    val now = SystemClock.elapsedRealtime()
+                    if (now - lastShiftTap <= SHIFT_DOUBLE_TAP_MS) {
+                        // Doppel-Tipp = Caps Lock
+                        capsLock = true
+                        shifted = true
+                        lastShiftTap = 0L
+                    } else if (capsLock) {
+                        // einzelner Tipp verlässt Caps Lock
+                        capsLock = false
+                        shifted = false
+                        lastShiftTap = now
+                    } else {
+                        shifted = !shifted
+                        lastShiftTap = now
+                    }
+                    updateShiftVisual(root)
                     applyLetterCase(root)
-                }
-                btn.id == R.id.key_tab -> btn.setOnClickListener {
-                    activePopup?.dismiss()
-                    if (editorActive) insertIntoEditor("\t")
-                    else sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
                 }
                 btn.id == R.id.key_del -> setupDelButton(btn)
                 btn.id == R.id.key_enter -> btn.setOnClickListener {
                     activePopup?.dismiss()
-                    if (editorActive) insertIntoEditor("\n")
+                    haptic()
+                    if (editorActive) editorPanel?.insert("\n")
                     else sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
                 }
                 btn.id == R.id.key_space -> btn.setOnClickListener {
@@ -215,7 +279,8 @@ class KeyTabImeService : InputMethodService() {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     btn.isPressed = true
-                    if (editorActive) deleteFromEditor(word = false)
+                    haptic()
+                    if (editorActive) editorPanel?.delete(word = false)
                     else sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
                     pendingLongPress = Runnable {
                         deleteLastWord()
@@ -251,19 +316,30 @@ class KeyTabImeService : InputMethodService() {
         val extras = letterExtras[letter] ?: letterExtras[letter.lowercaseChar()] ?: return
 
         val ctx = anchor.context
+        // FlorisBoard-Farben: Popup-Fläche + hervorgehobener Fokus
+        val popupBg = androidx.core.content.ContextCompat.getColor(this, R.color.popup_bg)
+        val popupText = androidx.core.content.ContextCompat.getColor(this, R.color.popup_text)
+        val focusBg = androidx.core.content.ContextCompat.getColor(this, R.color.popup_focus_bg)
+        val focusBgDrawable = android.graphics.drawable.GradientDrawable().apply {
+            setColor(focusBg)
+            cornerRadius = 8f * resources.displayMetrics.density
+        }
         val container = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
-            setBackgroundColor(0xFF37474F.toInt())
-            setPadding(8, 8, 8, 8)
+            setBackgroundColor(popupBg)
+            setPadding(6, 6, 6, 6)
         }
 
-        for (ch in extras) {
+        // Floris-Stil: erst die fokussierte Option (der aktuelle Buchstabe)
+        val base = baseLetters[anchor] ?: letter.lowercaseChar()
+        fun addOption(ch: String, focused: Boolean) {
             val tv = TextView(ctx).apply {
                 text = ch
                 textSize = 22f
                 gravity = Gravity.CENTER
-                setTextColor(0xFFFFFFFF.toInt())
-                setPadding(20, 16, 20, 16)
+                setTextColor(popupText)
+                setPadding(18, 14, 18, 14)
+                if (focused) background = focusBgDrawable
                 setOnClickListener {
                     commitText(ch)
                     activePopup?.dismiss()
@@ -271,14 +347,19 @@ class KeyTabImeService : InputMethodService() {
             }
             container.addView(tv)
         }
+        addOption(base.toString(), focused = true)
+        for (ch in extras) addOption(ch, focused = false)
 
         val popup = PopupWindow(
             container,
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         ).apply {
+            // nicht fokusierbar: klaut dem Eingabefeld keinen Fokus;
+            // transparenter Background aktiviert Dismiss bei Tap außerhalb
             isOutsideTouchable = true
-            isFocusable = true
+            isFocusable = false
+            setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
         }
         // Popup exakt über der angetippten Taste zentrieren
         container.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
@@ -304,6 +385,14 @@ class KeyTabImeService : InputMethodService() {
             if (showSymbols) getString(R.string.key_toggle_letters) else "?123"
     }
 
+    /** Theme-Attribut-Farbe auflösen (funktioniert über Day/Night hinweg). */
+    private fun themeColor(context: android.content.Context, attr: Int): Int {
+        val tv = TypedValue()
+        context.theme.resolveAttribute(attr, tv, true)
+        return if (tv.resourceId != 0) androidx.core.content.ContextCompat.getColor(context, tv.resourceId)
+        else tv.data
+    }
+
     private fun applyLetterCase(view: View?) {
         if (view == null) return
         val secondary = androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary)
@@ -313,8 +402,18 @@ class KeyTabImeService : InputMethodService() {
             val base = baseLetters[btn]
                 ?: btn.text?.toString()?.firstOrNull()
                 ?: return@forEachView
-            val letter = if (shifted) base.uppercaseChar() else base.lowercaseChar()
-            val extras = (if (shifted) letterExtras[base.uppercaseChar()] else letterExtras[base]).orEmpty()
+            val upper = shifted || capsLock
+            // ß hat kein echtes Großbuchstaben per uppercaseChar → ẞ als Sonderfall
+            val letter = when {
+                upper && base == 'ß' -> 'ẞ'
+                upper -> base.uppercaseChar()
+                else -> base.lowercaseChar()
+            }
+            val extras = when {
+                upper && base == 'ß' -> emptyList()
+                upper -> letterExtras[base.uppercaseChar()].orEmpty()
+                else -> letterExtras[base].orEmpty()
+            }
             val sb = SpannableStringBuilder(letter.toString())
             if (extras.isNotEmpty()) {
                 // FlorisBoard-Style: ein Hinweis-Zeichen klein + abgedunkelt hinter dem Buchstaben,
@@ -329,17 +428,14 @@ class KeyTabImeService : InputMethodService() {
     }
 
     private fun deleteLastWord() {
+        haptic()
         if (editorActive) {
-            deleteFromEditor(word = true)
+            editorPanel?.delete(word = true)
             return
         }
         val ic = currentInputConnection ?: return
         val text = ic.getTextBeforeCursor(200, 0)?.toString() ?: ""
-        var i = text.length
-        while (i > 0 && text[i - 1].isWhitespace()) i--
-        while (i > 0 && !text[i - 1].isWhitespace()) i--
-        if (i > 0) i--
-        val toDelete = text.length - i
+        val toDelete = TextEditLogic.wordDeleteCount(text, text.length)
         if (toDelete > 0) {
             ic.deleteSurroundingText(toDelete, 0)
         } else {
@@ -348,222 +444,17 @@ class KeyTabImeService : InputMethodService() {
     }
 
     private fun commitText(text: String) {
+        haptic()
         if (editorActive) {
-            insertIntoEditor(text)
+            editorPanel?.insert(text)
         } else {
             currentInputConnection?.commitText(text, 1)
         }
-        if (shifted) {
+        if (shifted && !capsLock) {
             shifted = false
+            updateShiftVisual(keyboardRoot)
             applyLetterCase(keyboardRoot)
         }
-    }
-
-    /** Fügt Text intern in den Editor ein (an Cursorposition). */
-    private fun insertIntoEditor(text: String) {
-        val et = editorInput ?: return
-        val editable = et.text ?: return
-        var start = et.selectionStart.coerceIn(0, editable.length)
-        val end = et.selectionEnd.coerceIn(start, editable.length)
-        editable.replace(start, end, text)
-        start += text.length
-        et.setSelection(start)
-    }
-
-    /** Löscht intern im Editor (ein Zeichen oder bis Wortanfang). */
-    private fun deleteFromEditor(word: Boolean) {
-        val et = editorInput ?: return
-        val editable = et.text ?: return
-        val cursor = et.selectionEnd.coerceIn(0, editable.length)
-        if (cursor == 0) return
-        if (word) {
-            var i = cursor
-            while (i > 0 && editable[i - 1].isWhitespace()) i--
-            while (i > 0 && !editable[i - 1].isWhitespace()) i--
-            if (i < cursor) {
-                editable.delete(i, cursor)
-                et.setSelection(i)
-            } else {
-                editable.delete(cursor - 1, cursor)
-                et.setSelection(cursor - 1)
-            }
-        } else {
-            editable.delete(cursor - 1, cursor)
-            et.setSelection(cursor - 1)
-        }
-    }
-
-    private fun setupFileManager(root: View) {
-        val list = root.findViewById<ListView>(R.id.file_list) ?: return
-        val dirLabel = root.findViewById<TextView>(R.id.file_dir) ?: return
-        val hint = root.findViewById<TextView>(R.id.file_hint) ?: return
-        val back = root.findViewById<Button>(R.id.btn_back_dir) ?: return
-        val up = root.findViewById<Button>(R.id.btn_up_dir) ?: return
-
-        if (currentDir == null) {
-            val pub = Environment.getExternalStorageDirectory()
-            currentDir = if (pub?.isDirectory == true && pub.canRead()) pub
-            else getExternalFilesDir(null)?.parentFile?.let { File(it, "Download") }?.takeIf { it.isDirectory }
-            ?: File("/")
-        }
-
-        var entries: List<FileEntry> = emptyList()
-
-        fun refresh() {
-            val dir = currentDir ?: return
-            dirLabel.text = dir.absolutePath
-            back.visibility = if (backStack.isNotEmpty()) View.VISIBLE else View.GONE
-            up.visibility = if (dir.parentFile != null) View.VISIBLE else View.GONE
-            val raw = dir.listFiles()
-            if (raw == null) {
-                hint.text = "Speicherzugriff fehlt – öffne KeyTab App für Berechtigung."
-                entries = emptyList()
-            } else {
-                hint.text = "${raw.count { it.isDirectory }} Ordner · ${raw.count { it.isFile }} Dateien"
-                entries = raw
-                    .filter { !it.isHidden }
-                    .sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase(Locale.ROOT) })
-                    .map { f ->
-                        if (f.isDirectory) FileEntry(f, "\uD83D\uDCC1 ${f.name}/", "Ordner")
-                        else FileEntry(f, "\uD83D\uDCC4 ${f.name}", formatSize(f.length()))
-                    }
-            }
-            list.adapter = ArrayAdapter(root.context, android.R.layout.simple_list_item_1, entries.map { it.label })
-        }
-
-        fun navigate(to: File) {
-            if (to.absolutePath != currentDir?.absolutePath) {
-                backStack.add(currentDir!!)
-            }
-            currentDir = to
-            refresh()
-        }
-
-        back.setOnClickListener {
-            if (backStack.isNotEmpty()) {
-                val previous = backStack.removeAt(backStack.lastIndex)
-                currentDir = previous
-                refresh()
-            }
-        }
-
-        up.setOnClickListener {
-            currentDir?.parentFile?.let { navigate(it) }
-        }
-
-        list.setOnItemClickListener { _, _, position, _ ->
-            val e = entries.getOrNull(position) ?: return@setOnItemClickListener
-            if (e.file.isDirectory) {
-                navigate(e.file)
-            } else {
-                commitText(e.file.absolutePath)
-                root.findViewById<TabLayout>(R.id.ime_tabs)?.getTabAt(0)?.select()
-            }
-        }
-        refresh()
-    }
-
-    private fun formatSize(bytes: Long): String {
-        if (bytes < 1024) return "$bytes B"
-        val kb = bytes / 1024.0
-        if (kb < 1024) return String.format(Locale.ROOT, "%.0f KB", kb)
-        val mb = kb / 1024.0
-        return String.format(Locale.ROOT, "%.1f MB", mb)
-    }
-
-    private fun setupEditor(root: View) {
-        val input = root.findViewById<EditText>(R.id.editor_input) ?: return
-        editorInput = input
-        val fileLabel = root.findViewById<TextView>(R.id.editor_file) ?: return
-        fileLabel.text = editorFile().name
-        root.findViewById<Button>(R.id.btn_editor_save)?.setOnClickListener {
-            try {
-                val f = editorFile()
-                f.writeText(input.text.toString())
-                Toast.makeText(this, "Gespeichert: ${f.name}", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(this, "Speichern fehlgeschlagen: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        }
-        root.findViewById<Button>(R.id.btn_editor_load)?.setOnClickListener {
-            try {
-                val f = editorFile()
-                input.setText(if (f.exists()) f.readText() else "")
-                Toast.makeText(this, if (f.exists()) "Geladen: ${f.name}" else "Datei ist leer", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(this, "Laden fehlgeschlagen: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun editorFile(): File {
-        val pub = Environment.getExternalStorageDirectory()
-        val dir = if (pub != null && pub.isDirectory && pub.canWrite()) pub
-        else getExternalFilesDir(null) ?: filesDir
-        return File(dir, "keytab_editor.txt")
-    }
-
-    private fun currentClipboardText(): String? {
-        val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return null
-        return cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString()?.takeIf { it.isNotBlank() }
-    }
-
-    private fun captureClipboard(auto: Boolean) {
-        val text = currentClipboardText() ?: return
-        if (clipHistory.firstOrNull() == text) return
-        clipHistory.removeAll { it == text }
-        clipHistory.add(0, text)
-        if (clipHistory.size > MAX_CLIP_ENTRIES) clipHistory.removeAt(clipHistory.lastIndex)
-        saveClipHistory()
-        if (auto) refreshClipList()
-    }
-
-    private fun setupClipboard(root: View) {
-        loadClipHistory()
-        root.findViewById<Button>(R.id.btn_clip_add)?.setOnClickListener {
-            val text = currentClipboardText()
-            if (text == null) {
-                Toast.makeText(this, "Zwischenablage ist leer", Toast.LENGTH_SHORT).show()
-            } else {
-                captureClipboard(auto = false)
-                refreshClipList()
-            }
-        }
-        root.findViewById<Button>(R.id.btn_clip_clear)?.setOnClickListener {
-            clipHistory.clear()
-            saveClipHistory()
-            refreshClipList()
-        }
-        root.findViewById<ListView>(R.id.clip_list)?.setOnItemClickListener { _, _, position, _ ->
-            commitText(clipHistory.getOrNull(position) ?: return@setOnItemClickListener)
-        }
-        refreshClipList()
-    }
-
-    private fun refreshClipList() {
-        val root = keyboardRoot ?: return
-        val list = root.findViewById<ListView>(R.id.clip_list) ?: return
-        val hint = root.findViewById<TextView>(R.id.clip_hint) ?: return
-        hint.text = if (clipHistory.isEmpty()) getString(R.string.clip_hint_empty)
-        else "${clipHistory.size} Einträge · Tippen = einfügen"
-        list.adapter = ArrayAdapter(root.context, android.R.layout.simple_list_item_1,
-            clipHistory.map { s -> if (s.length > 80) s.take(80) + "…" else s.replace("\n", " ") })
-    }
-
-    private fun clipHistoryFile() = File(filesDir, "clipboard_history.txt")
-
-    private fun saveClipHistory() {
-        try { clipHistoryFile().writeText(clipHistory.joinToString("\u0000")) } catch (_: Exception) {}
-    }
-
-    private fun loadClipHistory() {
-        try {
-            val f = clipHistoryFile()
-            if (f.exists()) {
-                clipHistory.clear()
-                clipHistory.addAll(f.readText().split('\u0000').filter { it.isNotEmpty() })
-            }
-        } catch (_: Exception) {}
     }
 
     private fun forEachView(root: View, action: (View) -> Unit) {

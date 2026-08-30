@@ -1,0 +1,53 @@
+<resources>
+    <string name="app_name">KeyTab</string>
+    <string name="ime_label">KeyTab Keyboard</string>
+    <string name="tab_files">Files</string>
+    <string name="tab_keyboard">abc</string>
+    <string name="ime_tab_letters">abc</string>
+    <string name="ime_tab_files">Files</string>
+    <string name="ime_tab_editor">Editor</string>
+    <string name="ime_tab_clip">Clipboard</string>
+    <string name="clip_add">＋ Add</string>
+    <string name="clip_clear">🗑</string>
+    <string name="clip_hint_empty">No entries yet – copy something and tap “＋ Add”.</string>
+    <string name="editor_save">💾 Save</string>
+    <string name="editor_load">📂 Load</string>
+    <string name="editor_hint">Type text here …</string>
+    <string name="new_tab">＋</string>
+    <string name="up_dir">▲</string>
+    <string name="keyboard_not_enabled">KeyTab is not enabled as a keyboard yet.</string>
+    <string name="enable_keyboard">Enable keyboard</string>
+    <string name="switch_keyboard">Switch keyboard</string>
+    <string name="hint_tab_key">The TAB key sends KEYCODE_TAB – perfect for Termux &amp; SSH.</string>
+    <string name="key_tab_label">⇥</string>
+    <string name="key_shift_label">⇧</string>
+    <string name="key_del_label">⌫</string>
+    <string name="key_space_label">␣</string>
+    <string name="key_toggle_letters">abc</string>
+    <string name="key_enter_label">↵</string>
+    <string name="close_tab">✕</string>
+    <string name="app_subtitle">Keyboard with tabbed file manager</string>
+    <string name="ime_tab_files_desc">Tabbed file manager – multiple tabs, navigation, open files</string>
+    <string name="theme_label">Theme</string>
+    <string name="theme_dark">🌙 Dark</string>
+    <string name="theme_light">☀️ Light</string>
+    <string name="storage_denied">Storage access denied – grant the permission in Settings.</string>
+    <string name="request_storage_access">Allow full storage access.</string>
+    <string name="btn_back_label">‹</string>
+    <string name="btn_up_label">▲</string>
+    <!-- File manager (IME) -->
+    <string name="fm_loading">Loading…</string>
+    <string name="fm_no_storage_access">No storage access – open the KeyTab app to grant permission.</string>
+    <string name="fm_entry_dir">Folder</string>
+    <string name="fm_dir_summary">%1$d folders · %2$d files</string>
+    <string name="fm_open_no_app">No app to open: %1$s</string>
+    <!-- Editor -->
+    <string name="editor_saved">Saved: %1$s</string>
+    <string name="editor_save_failed">Saving failed: %1$s</string>
+    <string name="editor_loaded">Loaded: %1$s</string>
+    <string name="editor_file_empty">File is empty</string>
+    <string name="editor_load_failed">Loading failed: %1$s</string>
+    <!-- Clipboard -->
+    <string name="clip_empty">Clipboard is empty</string>
+    <string name="clip_hint_count">%1$d entries · tap = insert</string>
+</resources>

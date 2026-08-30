@@ -363,10 +363,11 @@ class KeyTabImeService : InputMethodService() {
         for (ch in showExtras) {
             val tv = TextView(ctx).apply {
                 text = ch
-                textSize = 20f
+                textSize = 16f
                 gravity = Gravity.CENTER
                 setTextColor(popupText)
-                setPadding(8, 6, 8, 6)
+                // kompakt + leicht rechts-unten versetzt (FlorisBoard-Style)
+                setPadding(10, 8, 12, 10)
                 setOnClickListener {
                     commitText(ch)
                     activePopup?.dismiss()

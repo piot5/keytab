@@ -11,7 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import com.piotv.keytab.R
 import java.io.File
-import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executor
 
 /**
  * Ablage-Panel der IME: Clipboard-Historie (max. [MAX_ENTRIES] Einträge),
@@ -24,7 +24,7 @@ import java.util.concurrent.ExecutorService
 class ClipboardPanel(
     private val context: Context,
     root: View,
-    private val ioExecutor: ExecutorService,
+    private val ioExecutor: Executor,
     private val mainHandler: Handler,
     private val onCommit: (String) -> Unit,
     private val canAutoCapture: () -> Boolean
@@ -83,8 +83,7 @@ class ClipboardPanel(
     private fun refresh() {
         hint?.text = if (history.isEmpty()) context.getString(R.string.clip_hint_empty)
         else context.getString(R.string.clip_hint_count, history.size)
-        list?.adapter = ArrayAdapter(context, android.R.layout.simple_list_item_1,
-            history.map { TextEditLogic.clipDisplayText(it) })
+        list?.adapter = themedAdapter(context, history.map { TextEditLogic.clipDisplayText(it) })
     }
 
     private fun historyFile(): File = File(context.filesDir, "clipboard_history.txt")

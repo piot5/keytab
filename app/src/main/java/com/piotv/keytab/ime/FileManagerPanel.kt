@@ -1,5 +1,8 @@
 package com.piotv.keytab.ime
 
+import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.os.Environment
 import android.os.Handler
@@ -8,11 +11,14 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
+import android.widget.Toast
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
-import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executor
 
 /**
  * Tab-Dateimanager des IME-Overlays: Navigation mit BackStack, Dateigrößen,
@@ -21,7 +27,7 @@ import java.util.concurrent.ExecutorService
 class FileManagerPanel(
     private val context: Context,
     private val root: View,
-    private val ioExecutor: ExecutorService,
+    private val ioExecutor: Executor,
     private val mainHandler: Handler,
     private val onCommit: (String) -> Unit
 ) {
@@ -37,6 +43,9 @@ class FileManagerPanel(
     private var currentDir: File? = null
     private val backStack = mutableListOf<File>()
     private var entries: List<FileEntry> = emptyList()
+    // Datei für Kopieren→Einfügen zwischen Verzeichnissen
+    private var pendingCopy: File? = null
+    private val paste = root.findViewById<Button>(R.id.btn_paste_dir)
 
     init {
         if (currentDir == null) {
@@ -67,7 +76,91 @@ class FileManagerPanel(
                 root.findViewById<TabLayout>(R.id.ime_tabs)?.getTabAt(0)?.select()
             }
         }
+        // Long-Press: Kontextmenü (Eigenschaften, Kopieren, Einfügen …)
+        list?.setOnItemLongClickListener { _, _, position, _ ->
+            entries.getOrNull(position)?.let { showFileMenu(it) }
+            true
+        }
+        paste?.setOnClickListener { pasteIntoCurrent() }
+        paste?.visibility = if (pendingCopy != null) View.VISIBLE else View.GONE
         refresh()
+    }
+
+    private fun showFileMenu(e: FileEntry) {
+        val f = e.file
+        val items = mutableListOf(
+            context.getString(R.string.fm_properties),
+            context.getString(R.string.fm_copy_path),
+            context.getString(R.string.fm_copy_file)
+        )
+        if (f.isFile) items.add(context.getString(R.string.fm_copy_content))
+        val actions: List<Pair<String, () -> Unit>> = listOf(
+            context.getString(R.string.fm_properties) to { showProperties(f) },
+            context.getString(R.string.fm_copy_path) to { copyTextToClipboard(f.absolutePath) },
+            context.getString(R.string.fm_copy_file) to {
+                pendingCopy = f
+                paste?.visibility = View.VISIBLE
+                toast(context.getString(R.string.fm_copied, f.name))
+            },
+            context.getString(R.string.fm_copy_content) to { copyFileContent(f) }
+        )
+        AlertDialog.Builder(context)
+            .setTitle(e.label)
+            .setItems(items.toTypedArray()) { _, which -> actions.firstOrNull { it.first == items[which] }?.second?.invoke() }
+            .show()
+    }
+
+    private fun showProperties(f: File) {
+        val type = context.getString(if (f.isDirectory) R.string.fm_type_dir else R.string.fm_type_file)
+        val modified = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(f.lastModified()))
+        AlertDialog.Builder(context)
+            .setTitle(f.name)
+            .setMessage(context.getString(R.string.fm_props_fmt, f.absolutePath, type,
+                TextEditLogic.formatSize(f.length()), modified))
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun copyTextToClipboard(text: String) {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+        cm.setPrimaryClip(ClipData.newPlainText("KeyTab", text))
+        toast(context.getString(R.string.fm_copied, text))
+    }
+
+    private fun copyFileContent(f: File) {
+        ioExecutor.execute {
+            val text = try { f.readText() } catch (_: Exception) { null }
+            mainHandler.post {
+                if (text == null) toast(context.getString(R.string.fm_paste_failed, f.name))
+                else {
+                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                    cm?.setPrimaryClip(ClipData.newPlainText(f.name, text))
+                    toast(context.getString(R.string.fm_copied, f.name))
+                }
+            }
+        }
+    }
+
+    private fun pasteIntoCurrent() {
+        val src = pendingCopy ?: return
+        val dir = currentDir ?: return
+        val dst = File(dir, src.name)
+        ioExecutor.execute {
+            val ok = try {
+                src.copyTo(dst, overwrite = true).isFile
+            } catch (_: Exception) { false }
+            mainHandler.post {
+                pendingCopy = if (ok) null else pendingCopy
+                paste?.visibility = if (ok) View.GONE else View.VISIBLE
+                if (ok) refresh()
+                toast(context.getString(if (ok) R.string.fm_pasted else R.string.fm_paste_failed,
+                    if (ok) dst.name else src.name))
+            }
+        }
+    }
+
+    private fun toast(msg: String) {
+        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
     }
 
     /** Wird beim Wechsel auf den Files-Tab aufgerufen (aktualisiert die Liste). */
@@ -109,7 +202,7 @@ class FileManagerPanel(
                 entries = loaded
                 hint?.text = if (raw == null) context.getString(R.string.fm_no_storage_access)
                 else context.getString(R.string.fm_dir_summary, dirs, files)
-                list?.adapter = ArrayAdapter(context, android.R.layout.simple_list_item_1, entries.map { it.label })
+                list?.adapter = themedAdapter(context, entries.map { it.label })
             }
         }
     }

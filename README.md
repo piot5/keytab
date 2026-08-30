@@ -91,6 +91,20 @@ app/src/test/java/com/piotv/keytab/ime/
 └── TextEditLogicTest.kt         # 17 Unit-Tests
 ```
 
+## Changelog (1.1.0 → 1.2.0)
+
+- **Feature:** Long-Press-Popups mit Interpunktion auf Buchstaben-Tasten (`.` `,` `?` `!` `/` `@` `(` `)` `:` `;` …) – Hinweis-Zeichen rechts unten, Shift-sicher (Umlaute unverändert)
+- **Feature:** Drag-Auswahl im Popup – Finger nach Loslassen-Taste über die Zeichen ziehen, loslassen = einfügen (Gboard-Stil); Header-Buchstabe tippbar
+- **Feature:** Dark/Light-Umschalter (🌙/☀) oben links in der Tab-Zeile, persistiert; ⚙ öffnet die App-Einstellungen
+- **Feature:** Umschaltbare Zahlenreihe über den Buchstaben (Einstellungen-Switch in der App)
+- **Feature:** TAB-Taste (⇥) in der unteren Reihe + direkter `.`-Button
+- **Feature:** Files-Tab: Long-Press-Kontextmenü (Eigenschaften, Pfad/Inhalt/Datei kopieren, Einfügen in anderen Ordner)
+- **Fix:** Popup-Position (fensterrelative Koordinaten + Clipping deaktiviert) – Popup erscheint über der Taste statt am unteren Rand
+- **Fix:** Popup-Grid kollabierte nicht mehr (Trennlinie war MATCH_PARENT breit)
+- **Fix:** ListViews in Files/Ablage respektieren das Theme (text_primary statt Schwarz-auf-Dunkel)
+- **Fix:** Baseline der Tasten-Labels (Hauptbuchstabe oben, Hinweis-Zeichen unten, LiftSpan), KeyRow baselineAligned=false
+- **Refactoring:** Panels nehmen `Executor` statt `ExecutorService` (testbar), `themedAdapter`-Helper, `versionCode 3`
+
 ## Changelog (1.0.0 → 1.1.0)
 
 - **Fix:** Long-Press-Backspace löschte ein Zeichen zu viel (Leerzeichen vor dem Wort)

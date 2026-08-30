@@ -63,4 +63,11 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="@string/request_storage_access" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/sw_num_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/settings_num_row" />
 </LinearLayout>

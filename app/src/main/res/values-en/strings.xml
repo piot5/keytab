@@ -50,4 +50,18 @@
     <!-- Clipboard -->
     <string name="clip_empty">Clipboard is empty</string>
     <string name="clip_hint_count">%1$d entries · tap = insert</string>
+    <string name="fm_properties">ℹ Properties</string>
+    <string name="fm_copy_path">📋 Copy path</string>
+    <string name="fm_copy_file">📁 Copy file</string>
+    <string name="fm_copy_content">📄 Copy content</string>
+    <string name="fm_paste">📥 Paste</string>
+    <string name="fm_copied">Copied: %s</string>
+    <string name="fm_pasted">Pasted: %s</string>
+    <string name="fm_paste_failed">Failed: %s</string>
+    <string name="fm_props_fmt">Path: %1$s&#10;Type: %2$s&#10;Size: %3$s&#10;Modified: %4$s</string>
+    <string name="fm_type_dir">Folder</string>
+    <string name="fm_type_file">File</string>
+    <string name="settings_num_row">Number row above letters</string>
+    <string name="settings_num_row_on">Number row enabled</string>
+    <string name="settings_num_row_off">Number row disabled</string>
 </resources>

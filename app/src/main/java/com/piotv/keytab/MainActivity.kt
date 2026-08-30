@@ -26,9 +26,24 @@ class MainActivity : AppCompatActivity() {
             // Ergebnis ignorieren; IME zeigt Zugriff nur wenn erteilt.
         }
 
+    companion object {
+        const val PREFS = "keytab_prefs"
+        const val KEY_NUM_ROW = "num_row"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Zahlenreihe-Umschalter (wirkt beim nächsten Öffnen der Tastatur)
+        val swNumRow = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_num_row)
+        val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        swNumRow.isChecked = prefs.getBoolean(KEY_NUM_ROW, false)
+        swNumRow.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(KEY_NUM_ROW, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_num_row_on
+            else R.string.settings_num_row_off, Toast.LENGTH_SHORT).show()
+        }
 
         findViewById<Button>(R.id.btn_enable_keyboard).setOnClickListener {
             try {

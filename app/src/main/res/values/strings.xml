@@ -50,4 +50,20 @@
     <!-- Zwischenablage -->
     <string name="clip_empty">Zwischenablage ist leer</string>
     <string name="clip_hint_count">%1$d Einträge · Tippen = einfügen</string>
+
+    <!-- Files: Long-Press-Kontextmenü -->
+    <string name="fm_properties">ℹ Eigenschaften</string>
+    <string name="fm_copy_path">📋 Pfad kopieren</string>
+    <string name="fm_copy_file">📁 Datei kopieren</string>
+    <string name="fm_copy_content">📄 Inhalt kopieren</string>
+    <string name="fm_paste">📥 Einfügen</string>
+    <string name="fm_copied">Kopiert: %s</string>
+    <string name="fm_pasted">Eingefügt: %s</string>
+    <string name="fm_paste_failed">Fehlgeschlagen: %s</string>
+    <string name="fm_props_fmt">Pfad: %1$s&#10;Typ: %2$s&#10;Größe: %3$s&#10;Geändert: %4$s</string>
+    <string name="fm_type_dir">Ordner</string>
+    <string name="fm_type_file">Datei</string>
+    <string name="settings_num_row">Zahlenreihe über den Buchstaben</string>
+    <string name="settings_num_row_on">Zahlenreihe aktiviert</string>
+    <string name="settings_num_row_off">Zahlenreihe deaktiviert</string>
 </resources>

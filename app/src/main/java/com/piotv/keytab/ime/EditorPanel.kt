@@ -10,7 +10,7 @@ import android.widget.TextView
 import android.widget.Toast
 import com.piotv.keytab.R
 import java.io.File
-import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executor
 
 /**
  * Editor-Panel der IME: Eingabefeld + Speichern/Laden in eine feste Datei.
@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutorService
 class EditorPanel(
     private val context: Context,
     root: View,
-    private val ioExecutor: ExecutorService,
+    private val ioExecutor: Executor,
     private val mainHandler: Handler
 ) {
 

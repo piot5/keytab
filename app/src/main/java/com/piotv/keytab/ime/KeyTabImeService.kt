@@ -329,12 +329,13 @@ class KeyTabImeService : InputMethodService() {
         fun addOption(ch: String, focused: Boolean) {
             val tv = TextView(ctx).apply {
                 text = ch
-                // Sonderzeichen leicht größer und rechts-unten versetzt (FlorisBoard-Popup-Style)
-                textSize = if (ch == showBase.toString() && focused) 22f else 24f
+                // FlorisBoard-Stil: Hauptzeichen 18sp zentriert;
+                // Sonderzeichen deutlich größer (20sp) rechts-unten, nicht verschmolzen
+                textSize = if (focused) 18f else 20f
                 gravity = if (focused) Gravity.CENTER else (Gravity.END or Gravity.BOTTOM)
                 setTextColor(popupText)
-                // rechts-unten leicht mehr Abstand
-                setPadding(14, 10, 22, 16)
+                // rechts-unten Abstand, links-oben kompakt
+                setPadding(10, 6, 16, 10)
                 if (focused) background = focusBgDrawable
                 setOnClickListener {
                     commitText(ch)
@@ -412,11 +413,11 @@ class KeyTabImeService : InputMethodService() {
             }
             val sb = SpannableStringBuilder(letter.toString())
             if (extras.isNotEmpty()) {
-                // FlorisBoard-Style: ein Hinweis-Zeichen klein + abgedunkelt leicht
-                // rechts-unten vom Hauptbuchstaben, alle weiteren nur im Long-Press-Popup
+                // FlorisBoard-Style: ein Hinweis-Zeichen klein + abgedunkelt
+                // deutlich rechts-unten (nicht verschmolzen mit Hauptbuchstabe)
                 val start = sb.length
-                sb.append(" " + extras.first()) // 1 Spalten-Offset nach rechts
-                sb.setSpan(RelativeSizeSpan(0.4f), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                sb.append("\u00A0" + extras.first()) // geschützte Leerzeichen: Trennung zum Hauptzeichen
+                sb.setSpan(RelativeSizeSpan(0.5f), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 sb.setSpan(ForegroundColorSpan(secondary), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
             btn.text = sb

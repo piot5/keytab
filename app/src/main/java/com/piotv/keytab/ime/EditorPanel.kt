@@ -29,7 +29,7 @@ class EditorPanel(
     private val mainHandler: Handler
 ) {
 
-    private val input: EditText? = rootView.findViewById(R.id.editor_input)
+                    private val input: EditText? = rootView.findViewById(R.id.editor_input)
     private val fileLabel: TextView? = rootView.findViewById(R.id.editor_file)
     private var editorFile: File = defaultFile()
 
@@ -37,6 +37,22 @@ class EditorPanel(
         fileLabel?.text = editorFile.name
         setupSave(rootView)
         setupLoad(rootView)
+    }
+
+    /** Text + Cursorposition (für die Wortvorhersage), null wenn nicht bereit. */
+    fun cursorContext(): Pair<CharSequence, Int>? {
+        val et = input ?: return null
+        val t = et.text ?: return null
+        return t to et.selectionEnd.coerceIn(0, t.length)
+    }
+
+    /** Löscht [count] Zeichen vor dem Cursor (Vorschlag ersetzt Teilwort). */
+    fun deleteBefore(count: Int) {
+        val et = input ?: return
+        val editable = et.text ?: return
+        val cursor = et.selectionEnd.coerceIn(0, editable.length)
+        val start = (cursor - count.coerceAtLeast(0)).coerceAtLeast(0)
+        if (start < cursor) editable.delete(start, cursor)
     }
 
     /** Fügt Text an der Cursorposition ein (ersetzt eine Selektion). */

@@ -52,7 +52,16 @@ class KeyTabImeService : InputMethodService() {
         // im Kontrast zu den bunten Emojis (🌙/☀)
         const val SUN_SYMBOL = "\u2600\uFE0E"  // ☀ (Text-Präsentation)
         const val MOON_SYMBOL = "\u263E\uFE0E" // ☾ (Text-Präsentation)
+        const val KEY_USER_DICT = "user_dict"
+        const val ASSET_DE_FREQ = "de_freq_top6000.txt"
     }
+
+    // ---------- Wortvorhersage (SuggestionEngine, siehe Klasse) ----------
+    private var suggestionEngine: SuggestionEngine? = null
+    private var engineLoading = false
+    private var currentTypedWord = ""
+    private var prevTypedWord: String? = null
+    private val suggestionViews = arrayOfNulls<TextView>(3)
 
     private var shifted = false
     private var capsLock = false
@@ -150,11 +159,135 @@ class KeyTabImeService : InputMethodService() {
         setupTabs(root)
         hookKeyboardButtons(root)
         applyLetterCase(root)
+        setupSuggestions(root)
         return root
+    }
+
+    // ===================== Wortvorhersage =====================
+
+    /** Suggestion-Bar verkabeln + Engine im Hintergrund laden (einmalig). */
+    private fun setupSuggestions(root: View) {
+        suggestionViews[0] = root.findViewById(R.id.sug_1)
+        suggestionViews[1] = root.findViewById(R.id.sug_2)
+        suggestionViews[2] = root.findViewById(R.id.sug_3)
+        for (i in 0..2) {
+            suggestionViews[i]?.setOnClickListener {
+                val word = it?.tag as? String ?: return@setOnClickListener
+                applySuggestion(word)
+            }
+        }
+        if (suggestionEngine == null && !engineLoading) {
+            engineLoading = true
+            ioExecutor.execute {
+                // Basiswortschatz: FrequencyWords de_50k (CC-BY-SA-4.0), Top 6000
+                val words = mutableListOf<Pair<String, Int>>()
+                try {
+                    assets.open(ASSET_DE_FREQ).bufferedReader().useLines { lines ->
+                        for (line in lines) {
+                            val sp = line.trim().split(' ')
+                            if (sp.size == 2) {
+                                val f = sp[1].toIntOrNull() ?: continue
+                                words.add(sp[0] to f)
+                            }
+                        }
+                    }
+                } catch (_: Exception) { /* Asset fehlt: Engine läuft nur mit gelernten Wörtern */ }
+                val engine = SuggestionEngine(words)
+                // Gelerntes User-Dictionary wiederherstellen
+                val saved = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_USER_DICT, null)
+                if (saved != null) engine.restoreUserDict(saved)
+                suggestionEngine = engine
+                mainHandler.post { updateSuggestions() }
+            }
+        }
+    }
+
+    /** Aktuelles Teilwort + Wort davor aus dem aktiven Eingabekontext ermitteln. */
+    private fun wordContext(): Pair<String, String?> =
+        currentTypedWord to prevTypedWord
+
+    /** Vorschläge berechnen und in der Leiste anzeigen (leer = ausblenden). */
+    private fun updateSuggestions() {
+        val bar = keyboardRoot?.findViewById<View>(R.id.suggestion_bar) ?: return
+        val engine = suggestionEngine ?: run { bar.visibility = View.GONE; return }
+        val (typed, prev) = wordContext()
+        val list = try {
+            engine.suggest(typed, prev)
+        } catch (_: Exception) { emptyList() }
+        if (list.isEmpty()) {
+            bar.visibility = View.GONE
+            return
+        }
+        for (i in 0..2) {
+            val tv = suggestionViews[i] ?: continue
+            val sug = list.getOrNull(i)
+            if (sug == null) {
+                tv.visibility = View.INVISIBLE
+                tv.tag = null
+            } else {
+                tv.visibility = View.VISIBLE
+                tv.text = engine.matchCase(sug.word, typed)
+                tv.tag = sug.word
+            }
+        }
+        bar.visibility = View.VISIBLE
+    }
+
+    /** Wortabschluss (Space/Punkt/Enter): lernen + Vorschläge aktualisieren. */
+    private fun onWordCompleted() {
+        if (currentTypedWord.isNotEmpty()) {
+            suggestionEngine?.learn(prevTypedWord, currentTypedWord)
+            prevTypedWord = currentTypedWord.lowercase()
+            currentTypedWord = ""
+            persistUserDict()
+        }
+    }
+
+    /** User-Dictionary asynchron in Preferences sichern. */
+    private fun persistUserDict() {
+        val engine = suggestionEngine ?: return
+        val raw = engine.serializeUserDict()
+        ioExecutor.execute {
+            getSharedPreferences(PREFS, MODE_PRIVATE)
+                .edit().putString(KEY_USER_DICT, raw).apply()
+        }
+    }
+
+    /**
+     * Vorschlag übernehmen: aktuelles Teilwort löschen, Wort + Space einfügen,
+     * als Bigramm lernen (der getippte Teil zählt als abgeschlossen).
+     */
+    private fun applySuggestion(word: String) {
+        haptic()
+        val typedLen = currentTypedWord.length
+        val fullWord = suggestionEngine?.matchCase(word, currentTypedWord) ?: word
+        val insert = "$fullWord "
+        if (editorActive) {
+            if (typedLen > 0) editorPanel?.deleteBefore(typedLen)
+            editorPanel?.insert(insert)
+        } else if (terminalActive) {
+            if (typedLen > 0) terminalPanel?.deleteBefore(typedLen)
+            terminalPanel?.insert(insert)
+        } else {
+            val ic = currentInputConnection ?: return
+            if (typedLen > 0) ic.deleteSurroundingText(typedLen, 0)
+            ic.commitText(insert, 1)
+        }
+        suggestionEngine?.learn(prevTypedWord, fullWord)
+        prevTypedWord = fullWord.lowercase()
+        currentTypedWord = ""
+        persistUserDict()
+        if (shifted && !capsLock) {
+            shifted = false
+            updateShiftVisual(keyboardRoot)
+            applyLetterCase(keyboardRoot)
+        }
+        updateSuggestions()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        persistUserDict()
         letterPopup.dismiss()
         longPressHandler.removeCallbacksAndMessages(null)
         terminalPanel?.shutdown()
@@ -402,6 +535,8 @@ class KeyTabImeService : InputMethodService() {
                     if (editorActive) editorPanel?.delete(word = false)
                     else if (terminalActive) terminalPanel?.delete(word = false)
                     else sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+                    currentTypedWord = currentTypedWord.dropLast(1).takeIf { it.isNotEmpty() } ?: ""
+                    updateSuggestions()
                     pendingLongPress = Runnable {
                         deleteLastWord()
                         // Beschleunigend: Intervall wird pro Repeat kleiner, bis Minimum
@@ -518,6 +653,8 @@ class KeyTabImeService : InputMethodService() {
         } else {
             ic.deleteSurroundingText(1, 0)
         }
+        currentTypedWord = ""
+        updateSuggestions()
     }
 
     private fun commitText(text: String) {
@@ -529,11 +666,20 @@ class KeyTabImeService : InputMethodService() {
         } else {
             currentInputConnection?.commitText(text, 1)
         }
+        // Wortvorhersage-Buchführung: Buchstaben sammeln, Abschluss lernen
+        if (text.length == 1 && text[0].isLetter()) {
+            currentTypedWord += text[0]
+        } else if (text == " " || text == "." || text == "\n") {
+            onWordCompleted()
+        } else if (currentTypedWord.isNotEmpty() && !text[0].isLetter()) {
+            onWordCompleted()
+        }
         if (shifted && !capsLock) {
             shifted = false
             updateShiftVisual(keyboardRoot)
             applyLetterCase(keyboardRoot)
         }
+        updateSuggestions()
     }
 
     /**

@@ -244,6 +244,41 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- Wortvorhersage: 3 Kandidaten, antippbar (leert = ausgeblendet) -->
+            <LinearLayout
+                android:id="@+id/suggestion_bar"
+                android:layout_width="match_parent"
+                android:layout_height="26dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone"
+                android:background="@color/kbd_bg">
+
+                <TextView
+                    android:id="@+id/sug_1"
+                    android:layout_width="0dp" android:layout_height="match_parent"
+                    android:layout_weight="1" android:gravity="center"
+                    android:singleLine="true" android:textSize="14sp"
+                    android:textColor="@color/text_primary" android:clickable="true"
+                    android:focusable="true" android:background="@color/key_bg" />
+                <TextView
+                    android:id="@+id/sug_2"
+                    android:layout_width="0dp" android:layout_height="match_parent"
+                    android:layout_weight="1" android:gravity="center"
+                    android:singleLine="true" android:textSize="14sp"
+                    android:textColor="@color/text_primary" android:clickable="true"
+                    android:focusable="true" android:background="@color/key_bg"
+                    android:layout_marginStart="2dp" />
+                <TextView
+                    android:id="@+id/sug_3"
+                    android:layout_width="0dp" android:layout_height="match_parent"
+                    android:layout_weight="1" android:gravity="center"
+                    android:singleLine="true" android:textSize="14sp"
+                    android:textColor="@color/text_primary" android:clickable="true"
+                    android:focusable="true" android:background="@color/key_bg"
+                    android:layout_marginStart="2dp" />
+            </LinearLayout>
+
             <!-- Optionale Zahlenreihe (Einstellung in der App) -->
             <LinearLayout
                 android:id="@+id/num_row"

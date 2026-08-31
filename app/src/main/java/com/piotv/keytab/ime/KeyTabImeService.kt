@@ -125,8 +125,8 @@ class KeyTabImeService : InputMethodService() {
         val root = inflater.cloneInContext(themedContext)
             .inflate(R.layout.keyboard_view, null)
         keyboardRoot = root
-        // Theme-Umschalter-Icon passend zum aktiven Modus
-        root.findViewById<Button>(R.id.key_theme)?.text = if (isDarkMode()) "☀" else "🌙"
+        // Theme-Umschalter-Icon passend zum aktiven Modus (🌙 = Dark aktiv, ☀ = Light aktiv)
+        root.findViewById<Button>(R.id.key_theme)?.text = if (isDarkMode()) "🌙" else "☀"
         // Optionale Zahlenreihe aus den Einstellungen
         root.findViewById<View>(R.id.num_row)?.visibility =
             if (baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
@@ -191,7 +191,8 @@ class KeyTabImeService : InputMethodService() {
         prefs.edit().putBoolean(KEY_DARK, !isDarkMode()).apply()
         // Input-View mit neuem Theme neu aufbauen; Icon passend setzen
         val newRoot = onCreateInputView()
-        newRoot.findViewById<Button>(R.id.key_theme)?.text = if (isDarkMode()) "☀" else "🌙"
+        // Icon spiegeln den NEUEN Zustand: Dark aktiv = 🌙, Light aktiv = ☀
+        newRoot.findViewById<Button>(R.id.key_theme)?.text = if (isDarkMode()) "🌙" else "☀"
         setInputView(newRoot)
     }
 

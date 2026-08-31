@@ -69,4 +69,6 @@
     <string name="settings_num_row">Number row above letters</string>
     <string name="settings_num_row_on">Number row enabled</string>
     <string name="settings_num_row_off">Number row disabled</string>
+    <string name="ime_tab_editor_short">Edit</string>
+    <string name="ime_tab_clip_short">Clip</string>
 </resources>

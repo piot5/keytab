@@ -58,14 +58,6 @@ class MainActivity : AppCompatActivity() {
             imm.showInputMethodPicker()
         }
 
-        findViewById<Button>(R.id.btn_theme_dark).setOnClickListener {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        }
-
-        findViewById<Button>(R.id.btn_theme_light).setOnClickListener {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-        }
-
         // Speicher-Berechtigung anstoßen, falls IME Zugriff verweigert
         val missingStorage = if (Build.VERSION.SDK_INT >= 33) {
             neededPermissions(

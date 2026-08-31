@@ -18,6 +18,7 @@ fun themedAdapter(context: Context, items: List<String>): ArrayAdapter<String> =
     object : ArrayAdapter<String>(context, android.R.layout.simple_list_item_1, items) {
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
             (super.getView(position, convertView, parent) as TextView).apply {
-                setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                // parent.context ist der themed Context der Listenzeile (korrektes Day/Night)
+                setTextColor(ContextCompat.getColor(parent.context, R.color.text_primary))
             }
     }

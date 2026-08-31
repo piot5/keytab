@@ -38,25 +38,7 @@
         android:layout_marginBottom="8dp"
         android:text="@string/theme_label"
         android:textSize="15sp" />
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center">
-        <Button
-            android:id="@+id/btn_theme_dark"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/theme_dark" />
-        <Button
-            android:id="@+id/btn_theme_light"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="@string/theme_light" />
-    </LinearLayout>
+
     <Button
         android:id="@+id/btn_request_manage_storage"
         android:layout_width="match_parent"

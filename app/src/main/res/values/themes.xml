@@ -12,7 +12,7 @@
 
     <!-- Kleinere Tab-Beschriftung für die IME-Tab-Leiste -->
     <style name="KeyTabSmallTabText" parent="TextAppearance.Design.Tab">
-        <item name="android:textSize">11sp</item>
+        <item name="android:textSize">9sp</item>
         <item name="textAllCaps">false</item>
     </style>
 </resources>

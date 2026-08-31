@@ -1,10 +1,8 @@
 package com.piotv.keytab.ime
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Typeface
-import android.graphics.drawable.ColorDrawable
 import android.inputmethodservice.InputMethodService
 import android.os.Handler
 import android.os.Looper
@@ -16,7 +14,6 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
 import android.util.TypedValue
 import android.view.ContextThemeWrapper
-import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -24,16 +21,16 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
-import android.widget.PopupWindow
 import android.widget.TextView
-import android.widget.GridLayout
+import androidx.core.content.ContextCompat
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
- * KeyTab-IME – schlanker Keyboard-Core (Tasten, Shift, Symbole, Long-Press-Popups).
+ * KeyTab-IME – schlanker Keyboard-Core (Tasten, Shift, Symbole, Long-Press).
+ * Long-Press-Popup (Header + Drag-Auswahl) leben in [LetterPopup].
  * Die Sub-Features leben in eigenen Klassen:
  * - [FileManagerPanel]  – Tab-Dateimanager
  * - [EditorPanel]       – interner Editor mit Speichern/Laden
@@ -44,10 +41,17 @@ class KeyTabImeService : InputMethodService() {
 
     private companion object {
         const val LONG_PRESS_TIMEOUT = 400L
-        const val WORD_DELETE_REPEAT_MS = 250L
+        // Beschleunigendes Wort-Löschen: Startintervall, Faktor pro Repeat, Minimum
+        const val WORD_DELETE_START_MS = 250L
+        const val WORD_DELETE_ACCEL = 0.85f
+        const val WORD_DELETE_MIN_MS = 30L
         const val SHIFT_DOUBLE_TAP_MS = 300L
         const val PREFS = "keytab_prefs"
         const val KEY_DARK = "dark_mode"
+        // Monochrome (schwarz/weiß) Theme-Symbole – einheitlich farbig via key_text,
+        // im Kontrast zu den bunten Emojis (🌙/☀)
+        const val SUN_SYMBOL = "\u2600\uFE0E"  // ☀ (Text-Präsentation)
+        const val MOON_SYMBOL = "\u263E\uFE0E" // ☾ (Text-Präsentation)
     }
 
     private var shifted = false
@@ -55,19 +59,18 @@ class KeyTabImeService : InputMethodService() {
     private var lastShiftTap = 0L
     private var keyboardRoot: View? = null
     private var showSymbols = false
-    private var activePopup: PopupWindow? = null
-    // Drag-Auswahl im Popup: Zellen + aktuell hervorgehobene Zelle
-    private var popupCells: List<TextView> = emptyList()
-    private var popupHighlighted: TextView? = null
-    private var popupHighlightBg: android.graphics.drawable.Drawable? = null
+    // Long-Press-Popup: Zustand/Fenster liegen in der eigenen Klasse
+    private val letterPopup = LetterPopup(this)
     private val longPressHandler = Handler(Looper.getMainLooper())
     private val mainHandler = Handler(Looper.getMainLooper())
     private val ioExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var editorActive = false
+    private var terminalActive = false
     private val baseLetters = mutableMapOf<Button, Char>()
 
     private var fileManagerPanel: FileManagerPanel? = null
     private var editorPanel: EditorPanel? = null
+    private var terminalPanel: TerminalPanel? = null
     private var clipboardPanel: ClipboardPanel? = null
 
     private val letterExtras = mapOf(
@@ -125,16 +128,24 @@ class KeyTabImeService : InputMethodService() {
         val root = inflater.cloneInContext(themedContext)
             .inflate(R.layout.keyboard_view, null)
         keyboardRoot = root
-        // Theme-Umschalter-Icon passend zum aktiven Modus (🌙 = Dark aktiv, ☀ = Light aktiv)
-        root.findViewById<Button>(R.id.key_theme)?.text = if (isDarkMode()) "🌙" else "☀"
+        // Theme-Umschalter-Icon passend zum aktiven Modus – monochrom (☾ Dark / ☀ Light),
+        // kräftige Schrift in key_text (sw) und kleiner als zuvor
+        val themeBtn = root.findViewById<Button>(R.id.key_theme)
+        themeBtn?.text = if (isDarkMode()) MOON_SYMBOL else SUN_SYMBOL
+        // Farbe über den THEMA-übersteuerten Kontext (cfgCtx) auflösen, NICHT baseContext:
+        // sonst gilt die System-Night-Farbe (weiß) trotz Light-Override → weiß auf weiß
+        themeBtn?.setTextColor(ContextCompat.getColor(cfgCtx, R.color.key_text))
+        themeBtn?.typeface = Typeface.DEFAULT_BOLD
+        themeBtn?.textSize = 14f
         // Optionale Zahlenreihe aus den Einstellungen
         root.findViewById<View>(R.id.num_row)?.visibility =
             if (baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
                     .getBoolean(com.piotv.keytab.MainActivity.KEY_NUM_ROW, false)) View.VISIBLE else View.GONE
         fileManagerPanel = FileManagerPanel(this, root, ioExecutor, mainHandler) { commitText(it) }
         editorPanel = EditorPanel(this, root, ioExecutor, mainHandler)
+        terminalPanel = TerminalPanel(this, root, mainHandler)
         clipboardPanel = ClipboardPanel(this, root, ioExecutor, mainHandler,
-            onCommit = { commitText(it) },
+            onCommit = { commitToApp(it) },
             canAutoCapture = { isInputViewShown })
         setupTabs(root)
         hookKeyboardButtons(root)
@@ -144,8 +155,9 @@ class KeyTabImeService : InputMethodService() {
 
     override fun onDestroy() {
         super.onDestroy()
-        activePopup?.dismiss()
+        letterPopup.dismiss()
         longPressHandler.removeCallbacksAndMessages(null)
+        terminalPanel?.shutdown()
         ioExecutor.shutdown()
     }
 
@@ -191,8 +203,8 @@ class KeyTabImeService : InputMethodService() {
         prefs.edit().putBoolean(KEY_DARK, !isDarkMode()).apply()
         // Input-View mit neuem Theme neu aufbauen; Icon passend setzen
         val newRoot = onCreateInputView()
-        // Icon spiegeln den NEUEN Zustand: Dark aktiv = 🌙, Light aktiv = ☀
-        newRoot.findViewById<Button>(R.id.key_theme)?.text = if (isDarkMode()) "🌙" else "☀"
+        // Icon spiegeln den NEUEN Zustand: Dark aktiv = ☾, Light aktiv = ☀
+        newRoot.findViewById<Button>(R.id.key_theme)?.text = if (isDarkMode()) MOON_SYMBOL else SUN_SYMBOL
         setInputView(newRoot)
     }
 
@@ -206,31 +218,52 @@ class KeyTabImeService : InputMethodService() {
         val tabs = root.findViewById<TabLayout>(R.id.ime_tabs) ?: return
         // Beschriftungen explizit setzen (TabItem-Texte können beim
         // Inflaten mit eigenem LayoutInflater verloren gehen)
+        // Tab 0=abc, 1=Notes (Editor + Ablage), 2=Files, 3=Terminal
         tabs.getTabAt(0)?.text = getString(R.string.ime_tab_letters)
         tabs.getTabAt(1)?.text = getString(R.string.ime_tab_editor)
         tabs.getTabAt(2)?.text = getString(R.string.ime_tab_files)
-        tabs.getTabAt(3)?.text = getString(R.string.ime_tab_clip)
+        tabs.getTabAt(3)?.text = getString(R.string.ime_tab_term_short)
         val kb = root.findViewById<View>(R.id.kb_panel) ?: return
         val sym = root.findViewById<View>(R.id.sym_panel) ?: return
         val fm = root.findViewById<View>(R.id.file_panel) ?: return
         val ed = root.findViewById<View>(R.id.editor_panel) ?: return
-        val cp = root.findViewById<View>(R.id.clip_panel) ?: return
+        val term = root.findViewById<View>(R.id.term_panel) ?: return
         val bottom = root.findViewById<View>(R.id.bottom_row) ?: return
+        // Terminal-Tab ist optional (Einstellungen-App): aus -> Tab entfernen
+        val termEnabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+            .getBoolean(com.piotv.keytab.MainActivity.KEY_TERM_TAB, true)
+        if (!termEnabled) {
+            tabs.getTabAt(3)?.let { tabs.removeTab(it) }
+            term.visibility = View.GONE
+        }
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
-                activePopup?.dismiss()
+                letterPopup.dismiss()
                 val pos = tab.position
-                // Tab 0=abc, 1=Editor (Tastatur bleibt sichtbar), 2=Files, 3=Ablage
-                val keyboardVisible = pos == 0 || pos == 1
+                // Tab 0=abc, 1=Notes, 2=Files, 3=Terminal
+                // Notes/Terminal zeigen die Tastatur + Eingabezeile über der Tastatur
+                val keyboardVisible = pos == 0 || pos == 1 || pos == 3
                 editorActive = pos == 1
+                terminalActive = pos == 3
                 kb.visibility = if (keyboardVisible && !showSymbols) View.VISIBLE else View.GONE
                 sym.visibility = if (keyboardVisible && showSymbols) View.VISIBLE else View.GONE
                 ed.visibility = if (pos == 1) View.VISIBLE else View.GONE
+                term.visibility = if (pos == 3) View.VISIBLE else View.GONE
                 fm.visibility = if (pos == 2) View.VISIBLE else View.GONE
-                cp.visibility = if (pos == 3) View.VISIBLE else View.GONE
-                bottom.visibility = if (keyboardVisible) View.VISIBLE else View.GONE
+                // In ALLEN Tabs die ENTER-Taste erreichbar lassen – mit konstanter Größe und
+                // Position. Dafür werden die übrigen Tasten auf INVISIBLE (Platz bleibt)
+                // statt GONE gesetzt, damit Enter rechtsbündig und identisch bleibt.
+                bottom.visibility = View.VISIBLE
+                root.findViewById<View>(R.id.key_toggle)?.visibility =
+                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
+                root.findViewById<View>(R.id.key_tab)?.visibility =
+                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
+                root.findViewById<View>(R.id.key_space)?.visibility =
+                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
+                root.findViewById<View>(R.id.key_dot)?.visibility =
+                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
                 if (pos == 2) fileManagerPanel?.show()
-                if (pos == 3) clipboardPanel?.onSelected()
+                if (pos == 1) clipboardPanel?.onSelected()
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
@@ -239,7 +272,7 @@ class KeyTabImeService : InputMethodService() {
         sym.visibility = View.GONE
         ed.visibility = View.GONE
         fm.visibility = View.GONE
-        cp.visibility = View.GONE
+        term.visibility = View.GONE
         bottom.visibility = View.VISIBLE
     }
 
@@ -249,15 +282,15 @@ class KeyTabImeService : InputMethodService() {
             when {
                 btn.tag == "letter" -> setupLetterButton(btn)
                 btn.tag == "sym" -> btn.setOnClickListener {
-                    activePopup?.dismiss()
+                    letterPopup.dismiss()
                     commitText(btn.text.toString())
                 }
                 btn.id == R.id.key_toggle -> btn.setOnClickListener {
-                    activePopup?.dismiss()
+                    letterPopup.dismiss()
                     toggleSymbols(root)
                 }
                 btn.id == R.id.key_shift -> btn.setOnClickListener {
-                    activePopup?.dismiss()
+                    letterPopup.dismiss()
                     haptic()
                     val now = SystemClock.elapsedRealtime()
                     if (now - lastShiftTap <= SHIFT_DOUBLE_TAP_MS) {
@@ -279,34 +312,36 @@ class KeyTabImeService : InputMethodService() {
                 }
                 btn.id == R.id.key_del -> setupDelButton(btn)
                 btn.id == R.id.key_tab -> btn.setOnClickListener {
-                    activePopup?.dismiss()
+                    letterPopup.dismiss()
                     haptic()
                     if (editorActive) editorPanel?.insert("\t")
+                    else if (terminalActive) terminalPanel?.insert("\t")
                     else sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
                 }
                 btn.id == R.id.key_dot -> btn.setOnClickListener {
-                    activePopup?.dismiss()
+                    letterPopup.dismiss()
                     commitText(".")
                 }
                 btn.id == R.id.key_theme -> btn.setOnClickListener {
-                    activePopup?.dismiss()
+                    letterPopup.dismiss()
                     haptic()
                     toggleDarkMode()
                 }
                 btn.id == R.id.key_settings -> btn.setOnClickListener {
-                    activePopup?.dismiss()
+                    letterPopup.dismiss()
                     haptic()
                     startActivity(Intent(this, com.piotv.keytab.MainActivity::class.java)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
                 btn.id == R.id.key_enter -> btn.setOnClickListener {
-                    activePopup?.dismiss()
+                    letterPopup.dismiss()
                     haptic()
-                    if (editorActive) editorPanel?.insert("\n")
+                    if (terminalActive) terminalPanel?.send()
+                    else if (editorActive) editorPanel?.insert("\n")
                     else sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
                 }
                 btn.id == R.id.key_space -> btn.setOnClickListener {
-                    activePopup?.dismiss()
+                    letterPopup.dismiss()
                     commitText(" ")
                 }
             }
@@ -330,7 +365,7 @@ class KeyTabImeService : InputMethodService() {
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    if (longPressFired) highlightCellUnder(event)
+                    if (longPressFired) letterPopup.highlightCellUnder(event) { haptic() }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -338,9 +373,9 @@ class KeyTabImeService : InputMethodService() {
                     pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
                     if (longPressFired) {
                         // Drag-Auswahl: markierte Zelle committen, sonst nichts
-                        val picked = popupHighlighted
-                        activePopup?.dismiss()
-                        if (picked != null) commitText(picked.text.toString())
+                        val picked = letterPopup.pickedChar()
+                        letterPopup.dismiss()
+                        if (picked != null) commitText(picked.toString())
                     } else {
                         commitText(btn.text.toString().first().toString())
                     }
@@ -356,28 +391,6 @@ class KeyTabImeService : InputMethodService() {
         }
     }
 
-    /** Hebt die Popup-Zelle unter dem Finger hervor (Drag-Auswahl, Gboard-Stil). */
-    private fun highlightCellUnder(event: MotionEvent) {
-        var found: TextView? = null
-        for (cell in popupCells) {
-            // Popup-Inhalt liegt in einem EIGENEN Fenster → Screen-Koordinaten verwenden
-            // (getLocationInWindow wäre popup-relativ und würde nie matchen)
-            val loc = IntArray(2)
-            cell.getLocationOnScreen(loc)
-            if (event.rawX >= loc[0] && event.rawX < loc[0] + cell.width &&
-                event.rawY >= loc[1] && event.rawY < loc[1] + cell.height) {
-                found = cell
-                break
-            }
-        }
-        if (found != popupHighlighted) {
-            popupHighlighted?.background = null
-            found?.background = popupHighlightBg
-            popupHighlighted = found
-            if (found != null) haptic()
-        }
-    }
-
     private fun setupDelButton(btn: Button) {
         var pendingLongPress: Runnable? = null
         var repeater: Runnable? = null
@@ -387,16 +400,20 @@ class KeyTabImeService : InputMethodService() {
                     btn.isPressed = true
                     haptic()
                     if (editorActive) editorPanel?.delete(word = false)
+                    else if (terminalActive) terminalPanel?.delete(word = false)
                     else sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
                     pendingLongPress = Runnable {
                         deleteLastWord()
+                        // Beschleunigend: Intervall wird pro Repeat kleiner, bis Minimum
+                        var interval = WORD_DELETE_START_MS
                         repeater = object : Runnable {
                             override fun run() {
                                 deleteLastWord()
-                                longPressHandler.postDelayed(this, WORD_DELETE_REPEAT_MS)
+                                interval = (interval * WORD_DELETE_ACCEL).toLong().coerceAtLeast(WORD_DELETE_MIN_MS)
+                                longPressHandler.postDelayed(this, interval)
                             }
                         }
-                        longPressHandler.postDelayed(repeater!!, WORD_DELETE_REPEAT_MS)
+                        longPressHandler.postDelayed(repeater!!, interval)
                     }
                     longPressHandler.postDelayed(pendingLongPress!!, LONG_PRESS_TIMEOUT)
                     true
@@ -415,124 +432,15 @@ class KeyTabImeService : InputMethodService() {
         }
     }
 
-    @SuppressLint("InflateParams")
     private fun showLetterExtras(anchor: Button) {
-        activePopup?.dismiss()
         val letter = anchor.text?.firstOrNull() ?: return
-        val extras = letterExtras[letter] ?: letterExtras[letter.lowercaseChar()] ?: return
-
-        val ctx = anchor.context
-        // FlorisBoard-Farben: Popup-Fläche + hervorgehobener Fokus
-        val popupBg = androidx.core.content.ContextCompat.getColor(this, R.color.popup_bg)
-        val popupText = androidx.core.content.ContextCompat.getColor(this, R.color.popup_text)
-        val focusBg = androidx.core.content.ContextCompat.getColor(this, R.color.popup_focus_bg)
-        val focusBgDrawable = android.graphics.drawable.GradientDrawable().apply {
-            setColor(focusBg)
-            cornerRadius = 8f * resources.displayMetrics.density
-        }
-        val container = LinearLayout(ctx).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setBackgroundColor(popupBg)
-            setPadding(6, 6, 6, 6)
-        }
-
-        // Floris-Stil: Hauptzeichen als Header (groß, zentriert), Sonderzeichen darunter in Grid
         val base = baseLetters[anchor] ?: letter.lowercaseChar()
         val upper = shifted || capsLock
-        val showBase = if (upper) base.uppercaseChar() else base
         val showExtras = letterExtras[if (upper) base.uppercaseChar() else base]
             ?: letterExtras[base]
             ?: emptyList()
-
-        // Header: Hauptzeichen groß + fokussiert; tippbar = Hauptzeichen committen
-        val header = TextView(ctx).apply {
-            text = showBase.toString()
-            textSize = 26f
-            gravity = Gravity.CENTER
-            setTextColor(popupText)
-            setPadding(16, 12, 16, 12)
-            background = focusBgDrawable
-            isClickable = true
-            setOnClickListener {
-                commitText(showBase.toString())
-                activePopup?.dismiss()
-            }
-        }
-        container.addView(header)
-
-        // Trennlinie (1dp breit, vertikal halbtransparent grau) – NICHT match_parent breit,
-        // sonst frisst sie den kompletten Platz und das Grid kollabiert auf 0
-        val divider = View(ctx).apply {
-            setBackgroundColor((popupText and 0x00FFFFFF) or 0x33000000)
-            val dp = (1f * resources.displayMetrics.density).toInt().coerceAtLeast(1)
-            layoutParams = LinearLayout.LayoutParams(dp, ViewGroup.LayoutParams.MATCH_PARENT).apply {
-                setMargins(4, 10, 4, 10)
-            }
-        }
-        container.addView(divider)
-
-        // Grid der Sonderzeichen (3 pro Zeile, klein + rechts-unten)
-        val grid = GridLayout(ctx).apply {
-            columnCount = 3
-            orientation = GridLayout.HORIZONTAL
-            setBackgroundColor(popupBg)
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                1.0f
-            )
-        }
-        for (ch in showExtras) {
-            val tv = TextView(ctx).apply {
-                text = ch
-                textSize = 20f
-                gravity = Gravity.CENTER
-                setTextColor(popupText)
-                // großzügige Zellen: gut drückbar + genug Platz für Drag-Auswahl
-                setPadding(18, 14, 18, 14)
-                setOnClickListener {
-                    commitText(ch)
-                    activePopup?.dismiss()
-                }
-            }
-            grid.addView(tv)
-        }
-        container.addView(grid)
-
-        val popup = PopupWindow(
-            container,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply {
-            // nicht fokusierbar: klaut dem Eingabefeld keinen Fokus;
-            // transparenter Background aktiviert Dismiss bei Tap außerhalb
-            isOutsideTouchable = true
-            isFocusable = false
-            // darf über den Rand des IME-Fensters hinausragen (sonst Abschneiden oben)
-            isClippingEnabled = false
-            setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
-        }
-        // Popup exakt über der angetippten Taste zentrieren.
-        // showAtLocation erwartet FENSTER-Relative Koordinaten → getLocationInWindow
-        // (Screen-Koordinaten würden das Popup unterhalb des IME-Fensters platzieren).
-        container.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
-        val popupW = container.measuredWidth
-        val popupH = container.measuredHeight
-        val location = IntArray(2)
-        anchor.getLocationInWindow(location)
-        val rootW = anchor.rootView.width
-        val x = (location[0] + anchor.width / 2 - popupW / 2)
-            .coerceIn(0, (rootW - popupW).coerceAtLeast(0))
-        val y = (location[1] - popupH - 8).coerceAtLeast(0)
-        popup.showAtLocation(anchor, Gravity.NO_GRAVITY, x, y)
-        activePopup = popup
-        // Drag-Auswahl: alle wählbaren Zellen registrieren (Header + Grid), Highlight zurücksetzen
-        popupHighlightBg = focusBgDrawable
-        popupHighlighted = null
-        popupCells = buildList {
-            add(header)
-            for (i in 0 until grid.childCount) (grid.getChildAt(i) as? TextView)?.let { add(it) }
-        }
+        if (showExtras.isEmpty()) return
+        letterPopup.show(anchor, showExtras) { ch -> commitText(ch.toString()) }
     }
 
     private fun toggleSymbols(root: View) {
@@ -598,6 +506,10 @@ class KeyTabImeService : InputMethodService() {
             editorPanel?.delete(word = true)
             return
         }
+        if (terminalActive) {
+            terminalPanel?.delete(word = true)
+            return
+        }
         val ic = currentInputConnection ?: return
         val text = ic.getTextBeforeCursor(200, 0)?.toString() ?: ""
         val toDelete = TextEditLogic.wordDeleteCount(text, text.length)
@@ -612,9 +524,25 @@ class KeyTabImeService : InputMethodService() {
         haptic()
         if (editorActive) {
             editorPanel?.insert(text)
+        } else if (terminalActive) {
+            terminalPanel?.insert(text)
         } else {
             currentInputConnection?.commitText(text, 1)
         }
+        if (shifted && !capsLock) {
+            shifted = false
+            updateShiftVisual(keyboardRoot)
+            applyLetterCase(keyboardRoot)
+        }
+    }
+
+    /**
+     * Clipboard-Einfügen IMMER direkt ins Zielfeld (InputConnection) – der Editor
+     * (Notes-Tab) fängt die Eingabe nicht ab. Nur der Editor-Load befüllt den Editor.
+     */
+    private fun commitToApp(text: String) {
+        haptic()
+        currentInputConnection?.commitText(text, 1)
         if (shifted && !capsLock) {
             shifted = false
             updateShiftVisual(keyboardRoot)

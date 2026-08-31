@@ -5,8 +5,7 @@
     <string name="tab_keyboard">abc</string>
     <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Files</string>
-    <string name="ime_tab_editor">Editor</string>
-    <string name="ime_tab_clip">Clipboard</string>
+    <string name="ime_tab_editor">Notes</string>
     <string name="clip_add">＋ Add</string>
     <string name="clip_clear">🗑</string>
     <string name="clip_hint_empty">No entries yet — copy something and tap „＋ Add“.</string>
@@ -69,6 +68,18 @@
     <string name="settings_num_row">Number row above letters</string>
     <string name="settings_num_row_on">Number row enabled</string>
     <string name="settings_num_row_off">Number row disabled</string>
-    <string name="ime_tab_editor_short">Edit</string>
+    <string name="settings_term_tab">Terminal tab in keyboard</string>
+    <string name="settings_term_on">Terminal tab enabled</string>
+    <string name="settings_term_off">Terminal tab disabled</string>
+    <string name="terminal_start_failed">Could not start shell.</string>
+    <string name="terminal_shell_dead">Shell is not running.</string>
+    <string name="ime_tab_editor_short">Notes</string>
     <string name="ime_tab_clip_short">Clip</string>
+    <string name="ime_tab_term_short">Terminal</string>
+    <!-- Editor: Ordnerauswahl beim Laden -->
+    <string name="editor_load_title">📂 Load file</string>
+    <string name="editor_pick_parent">▲ …</string>
+    <string name="editor_pick_empty">Empty folder</string>
+    <string name="terminal_send">Send</string>
+    <string name="terminal_hint">command…</string>
 </resources>

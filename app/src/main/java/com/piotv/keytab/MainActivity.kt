@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val PREFS = "keytab_prefs"
         const val KEY_NUM_ROW = "num_row"
+        const val KEY_TERM_TAB = "term_tab_enabled"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,6 +44,15 @@ class MainActivity : AppCompatActivity() {
             prefs.edit().putBoolean(KEY_NUM_ROW, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_num_row_on
             else R.string.settings_num_row_off, Toast.LENGTH_SHORT).show()
+        }
+
+        // Terminal-Tab in der Tastatur ein-/ausblenden (wirkt beim nächsten Öffnen)
+        val swTermTab = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_term_tab)
+        swTermTab.isChecked = prefs.getBoolean(KEY_TERM_TAB, true)
+        swTermTab.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(KEY_TERM_TAB, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_term_on
+            else R.string.settings_term_off, Toast.LENGTH_SHORT).show()
         }
 
         findViewById<Button>(R.id.btn_enable_keyboard).setOnClickListener {
@@ -86,20 +96,5 @@ class MainActivity : AppCompatActivity() {
         return perms.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }.toTypedArray()
-    }
-
-    private fun requestStoragePermissions() {
-        val wanted = mutableListOf<String>()
-        if (Build.VERSION.SDK_INT >= 33) {
-            wanted += Manifest.permission.READ_MEDIA_IMAGES
-            wanted += Manifest.permission.READ_MEDIA_VIDEO
-            wanted += Manifest.permission.READ_MEDIA_AUDIO
-        } else {
-            wanted += Manifest.permission.READ_EXTERNAL_STORAGE
-        }
-        val needed = wanted.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-        if (needed.isNotEmpty()) permLauncher.launch(needed.toTypedArray())
     }
 }

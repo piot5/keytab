@@ -81,6 +81,23 @@ class TextEditLogicTest {
         assertEquals("1.5 MB", TextEditLogic.formatSize((1.5 * 1024 * 1024).toLong()))
     }
 
+    @Test
+    fun `Gigabytes`() {
+        assertEquals("1.0 GB", TextEditLogic.formatSize(1024L * 1024L * 1024L))
+        assertEquals("2.5 GB", TextEditLogic.formatSize((2.5 * 1024 * 1024 * 1024).toLong()))
+    }
+
+    @Test
+    fun `Terabytes mit zwei Nachkommastellen`() {
+        assertEquals("1.00 TB", TextEditLogic.formatSize(1024L * 1024L * 1024L * 1024L))
+    }
+
+    @Test
+    fun `Grosse Werte oberhalb TB bleiben konsistent`() {
+        val huge = 3.5 * 1024 * 1024 * 1024 * 1024
+        assertEquals("3.50 TB", TextEditLogic.formatSize(huge.toLong()))
+    }
+
     // ---------- Clip-History Encoding ----------
 
     @Test

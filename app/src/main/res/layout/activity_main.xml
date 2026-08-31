@@ -38,18 +38,23 @@
         android:layout_marginBottom="8dp"
         android:text="@string/theme_label"
         android:textSize="15sp" />
-
     <Button
         android:id="@+id/btn_request_manage_storage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="@string/request_storage_access" />
-
     <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/sw_num_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="@string/settings_num_row" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/sw_term_tab"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/settings_term_tab" />
 </LinearLayout>

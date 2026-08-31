@@ -22,13 +22,17 @@ object TextEditLogic {
     fun wordDeleteCount(text: CharSequence, cursor: Int): Int =
         cursor - wordStartIndex(text, cursor)
 
-    /** Menschlich lesbare Dateigröße. */
+    /** Menschlich lesbare Dateigröße (B → KB → MB → GB → TB). */
     fun formatSize(bytes: Long): String {
         if (bytes < 1024) return "$bytes B"
         val kb = bytes / 1024.0
         if (kb < 1024) return String.format(java.util.Locale.ROOT, "%.0f KB", kb)
         val mb = kb / 1024.0
-        return String.format(java.util.Locale.ROOT, "%.1f MB", mb)
+        if (mb < 1024) return String.format(java.util.Locale.ROOT, "%.1f MB", mb)
+        val gb = mb / 1024.0
+        if (gb < 1024) return String.format(java.util.Locale.ROOT, "%.1f GB", gb)
+        val tb = gb / 1024.0
+        return String.format(java.util.Locale.ROOT, "%.2f TB", tb)
     }
 
     /** Clipboard-Historie serialisieren (NUL-getrennt). */

@@ -57,6 +57,27 @@ All panels share a background executor for file I/O and a main handler for UI up
 
 Requires JDK 17 and Android SDK (compileSdk 34). Set the SDK path in `local.properties` (`sdk.dir=...`) or via `ANDROID_HOME`.
 
+### Release signing
+
+The release keystore lives at **`keystore/keytab-release.jks`** (local only, git-ignored — **back it up**, it is required to sign updates with the same signature).
+
+```bash
+# Defaults: keystore/keytab-release.jks, store/key password "keytab-release", alias "keytab"
+./gradlew :app:assembleRelease
+# APK: app/build/outputs/apk/release/app-release.apk
+```
+
+Override via environment variables:
+
+| Variable | Purpose |
+|---|---|
+| `KEYTAB_KEYSTORE` | Path to the `.jks` keystore |
+| `KEYTAB_KEYSTORE_PASSWORD` | Keystore password |
+| `KEYTAB_KEY_ALIAS` | Key alias (`keytab`) |
+| `KEYTAB_KEY_PASSWORD` | Key password |
+
+> CI note: lintVital is disabled (`lint { checkReleaseBuilds = false }`) because `lint-gradle` downloads break behind restrictive TLS environments.
+
 ### On a device (ARM64 / Proot / Termux)
 
 Google's `aapt2` is x86_64-only. Use the ARM build tools from <https://github.com/lzhiyong/android-sdk-tools> and set in `~/.gradle/gradle.properties`:

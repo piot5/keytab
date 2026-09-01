@@ -18,7 +18,7 @@ Keyboard app (IME) with a tabbed file manager and word prediction. 100% Kotlin, 
 
 **File manager in the keyboard** -- browse folders, switch tabs, navigate with back-stack and parent-navigation. Tapping a file inserts its path; in the app it opens via VIEW-Intent. Each tab remembers its own directory. Listing runs asynchronously so large folders don't freeze the UI.
 
-**Word prediction** -- offline n-gram model (FrequencyWords de_50k, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings. **LLM-ready**: Export/Import für lokale KI-Optimierung (v0.7.0).
+**Word prediction** -- offline n-gram model (FrequencyWords de_50k, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings.
 
 **Dynamic key sizing** -- likely-next keys scale up to 1.15x, unlikely ones down to 0.85x, driven by the current suggestion scores. Toggleable in settings.
 
@@ -28,7 +28,7 @@ Keyboard app (IME) with a tabbed file manager and word prediction. 100% Kotlin, 
 
 **Keyboard** -- full InputMethodService with TAB key (sends KEYCODE_TAB, useful for Termux/SSH), shift/caps-lock, long-press popups for umlauts/special characters, accelerating backspace on long-press (250ms down to 30ms).
 
-**Privacy** -- no network permission, no data collection. **LLM-Optimierung lokal** -- alle Daten bleiben auf dem Gerät, kein Cloud-Upload.
+**Privacy** -- no network permission, no data collection. All data stays on the device.
 
 ## Architecture
 
@@ -39,7 +39,7 @@ Keyboard app (IME) with a tabbed file manager and word prediction. 100% Kotlin, 
 | `FileManagerPanel` | File manager (navigation, async listing) |
 | `EditorPanel` | Notes editor with save/load and folder browser |
 | `ClipboardPanel` | Clipboard history |
-| `SuggestionEngine` | Word prediction (offline, testable) + LLM Export/Import |
+| `SuggestionEngine` | Word prediction (offline, testable) |
 | `TerminalPanel` | Interactive shell |
 | `TextEditLogic` | Pure, Android-free text logic |
 
@@ -52,11 +52,6 @@ All panels share a background executor for file I/O and a main handler for UI up
 ```
 
 20 unit tests for `TextEditLogic`, 11 Robolectric panel tests, 19 tests for `SuggestionEngine`. The logic class is intentionally Android-free so it runs without an emulator.
-
-**Geplante Tests (v0.7.0)**:
-- `SuggestionEngineLLMExportImportTest` -- Roundtrip-Test für Export/Import
-- `SuggestionEngineLLMFormatTest` -- Validierung des Dateiformats
-- `SuggestionEngineLLMCorruptionTest` -- Fehlertoleranz bei korrupten Dateien
 
 ## Build
 
@@ -129,103 +124,6 @@ sh ~/bin/rsh 'rm -f /data/local/tmp/keytab.apk; dumpsys package com.piotv.keytab
 
 Or copy the APK, open it in a file manager, and confirm the package installer dialog. Then enable the keyboard in *Settings -> System -> Languages & input -> On-screen keyboard* and switch to it in any text field.
 
-## LLM-Wörterbuch-Optimierung (v0.7.0)
-
-Exportiere dein User-Dictionary, optimiere es mit einem lokalen LLM und importiere es zurück:
-
-### Export
-```bash
-# KeyTab schreibt automatisch nach:
-# /data/data/com.piotv.keytab/files/keytab_dict_export.txt
-
-# Kopiere die Datei auf das SD-Kard (mit rish):
-sh ~/bin/rsh 'cp /data/data/com.piotv.keytab/files/keytab_dict_export.txt /sdcard/Download/'
-```
-
-### Mit Ollama optimieren
-```bash
-# Ollama installieren (auf dem Gerät oder PC)
-# https://ollama.ai
-
-# Dictionary optimieren
-ollama run llama3.2 "
-Analysiere dieses deutsche Wörterbuch aus einer Tastatur-App.
-1. Korrigiere Rechtschreibfehler in den Benutzereinträgen
-2. Entferne Duplikate und Tippfehler
-3. Ergänze fehlende Bigramme basierend auf häufigen Kombinationen
-4. Entferne Einträge mit Frequenz < 2 (vermutlich Tippfehler)
-5. Gib das Ergebnis im selben Format zurück (WORD\tFREQUENCY)
-
-Eingabe:
-$(cat /sdcard/Download/keytab_dict_export.txt)
-" > /sdcard/Download/keytab_dict_optimized.txt
-```
-
-### Import
-```bash
-# Kopiere die optimierte Datei zurück:
-sh ~/bin/rsh 'cp /sdcard/Download/keytab_dict_optimized.txt /data/data/com.piotv.keytab/files/keytab_dict_optimized.txt'
-
-# KeyTab liest die Datei beim nächsten Start automatisch ein
-# ODER: In den Einstellungen "Wörterbuch aus Datei importieren" antipfen
-```
-
-### Automatisierungsskript
-```bash
-#!/bin/bash
-# optimize_dict.sh -- Automatische LLM-Optimierung
-
-EXPORT_PATH="/data/data/com.piotv.keytab/files/keytab_dict_export.txt"
-OPTIMIZED_PATH="/data/data/com.piotv.keytab/files/keytab_dict_optimized.txt"
-
-# Exportiere (muss in KeyTab ausgelöst werden oder via Intent)
-sh ~/bin/rsh "cp $EXPORT_PATH /sdcard/Download/keytab_dict_export.txt"
-
-# Optimiere mit Ollama
-ollama run llama3.2 "Optimiere dieses Wörterbuch: $(cat /sdcard/Download/keytab_dict_export.txt)" \
-  > /sdcard/Download/keytab_dict_optimized.txt
-
-# Importiere zurück
-sh ~/bin/rsh "cp /sdcard/Download/keytab_dict_optimized.txt $OPTIMIZED_PATH"
-
-echo "✅ Wörterbuch optimiert!"
-```
-
-### Export-Format
-
-```
-# KeyTab User Dictionary Export
-# Generated: 2026-09-01T12:34:56
-# Format: WORD<TAB>FREQUENCY
-# Bigrams: PREV_WORD NEXT_WORD<TAB>FREQUENCY
-
-# Base Corpus (schreibgeschützt)
-der	0.85
-die	0.82
-und	0.78
-
-# User Words (gelernt, editierbar)
-hallo	42
-welt	38
-mein	25
-
-# Bigramme (Kontext, editierbar)
-hallo welt	12
-das ist	8
-ich bin	5
-```
-
-### Vorteile der LLM-Optimierung
-
-| Vorteil | Beschreibung |
-|---------|--------------|
-| **Rechtschreibkorrektur** | Erkennt und korrigiert Tippfehler im User-Dictionary |
-| **Deduplikation** | Entfernt doppelte Einträge |
-| **Bigramm-Ergänzung** | Fügt fehlende Kontext-Paare hinzu |
-| **Bereinigung** | Entfernt selten genutzte/fehlerhafte Einträge |
-| **100% Lokal** | Alle Daten bleiben auf dem Gerät |
-| **Offline** | Keine Internetverbindung nötig |
-
 ## Project structure
 
 ```
@@ -237,7 +135,7 @@ app/src/main/java/com/piotv/keytab/
     ├── FileManagerPanel.kt      # IME file manager
     ├── EditorPanel.kt           # Notes editor with folder browser
     ├── ClipboardPanel.kt        # Clipboard history
-    ├── SuggestionEngine.kt      # Word prediction + LLM Export/Import
+    ├── SuggestionEngine.kt      # Word prediction
     ├── TerminalPanel.kt         # Interactive shell
     ├── LetterPopup.kt           # Long-press characters + drag selection
     └── TextEditLogic.kt         # Pure, testable text logic
@@ -249,66 +147,14 @@ app/src/main/assets/
 └── de_freq_top6000.txt          # Frequency corpus (CC-BY-SA-4.0)
 ```
 
-### LLM-Optimierungs-Workflow (v0.7.0)
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    KeyTab LLM Pipeline                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
-│  │   KeyTab     │    │  Temporäre   │    │   Ollama     │      │
-│  │   Export     │───▶│  Dateien     │───▶│   /llama.cpp │      │
-│  │              │    │              │    │              │      │
-│  └──────────────┘    └──────────────┘    └──────────────┘      │
-│        │                                        │               │
-│        │         ┌──────────────┐               │               │
-│        │         │   LLM        │               │               │
-│        │         │   Prompt     │               │               │
-│        │         │              │               │               │
-│        │         └──────────────┘               │               │
-│        │                                        │               │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
-│  │   KeyTab     │    │  Optimierte  │    │   LLM        │      │
-│  │   Import     │◀───│  Dateien     │◀───│   Output     │      │
-│  │              │    │              │    │              │      │
-│  └──────────────┘    └──────────────┘    └──────────────┘      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Export-Format** (`keytab_dict_export.txt`):
-```
-# KeyTab User Dictionary Export
-# Format: WORD\tFREQUENCY
-# Bigrams: PREV NEXT\tFREQUENCY
-
-# User Words (gelernt)
-hallo	42
-welt	38
-test	15
-
-# Bigramme (Kontext)
-hallo welt	12
-das ist	8
-```
-
 ## Changelog
 
-### 0.7.0 (Geplant)
+### 0.7.0
 
-**LLM-basierte Wörterbuch-Optimierung** -- KeyTab exportiert User-Dictionary + Bigramme in temporäre Dateien für die Analyse durch ein lokales LLM (Ollama/llama.cpp):
-- **Export**: `SuggestionEngine.exportToLLMFormat()` schreibt gelernte Wörter und Kontexte in `keytab_dict_export.txt`
-- **Import**: `SuggestionEngine.importFromLLMFormat()` liest optimierte Daten zurück aus `keytab_dict_optimized.txt`
-- **Korrektur**: LLM kann Rechtschreibfehler im User-Dictionary erheben und korrigieren
-- **Ergänzung**: LLM kann verwandte Wörter und Synonyme basierend auf Tippmuster vorschlagen
-- **Bereinigung**: Entfernung selten genutzter oder falsch gelerner Einträge
-- **Workflow**: Datei exportieren → mit Ollama/Prompt bearbeiten → reimportieren
-
-Beispiel-Prompt für Ollama:
-```bash
-ollama run llama3.2 "Analysiere dieses deutsche Wörterbuch. Korrigiere Rechtschreibfehler, entferne Duplikate, ergänze fehlende Bigramme. Gib das optimierte Wörterbuch im selben Format zurück." < keytab_dict_export.txt > keytab_dict_optimized.txt
-```
+- Maintenance release: word-delete logic fixed (single separator space kept, multi-space gap deleted with the word)
+- Case matching: suggestions capitalize on empty input
+- CI: unit tests green, actions upgraded to v5
+- Release automation: tag `v*` builds a signed APK and publishes a GitHub release
 
 ### 0.6.1
 

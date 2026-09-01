@@ -7,15 +7,25 @@ package com.piotv.keytab.ime
 object TextEditLogic {
 
     /**
-     * Liefert den Index des Wortanfangs vor [cursor]:
-     * 1. Whitespace rückwärts überspringen, 2. Nicht-Whitespace rückwärts überspringen.
-     * Der Rückgabewert zeigt auf das erste Zeichen des letzten Worts vor dem Cursor.
+     * Liefert den Index des Wortanfangs vor [cursor] (Wort-Lösch-Grenze):
+     * 1. Nicht-Whitespace rückwärts überspringen (das Wort).
+     * 2. Liegt davor ein Whitespace-Gap von ≥ 2 Zeichen, gehört er mit zum Löschen;
+     *    ein einzelnes Trenn-Leerzeichen bleibt erhalten.
+     * Steht der Cursor selbst im Whitespace, wird dieser rückwärts übersprungen
+     * und das Wort davor gelöscht.
      */
     fun wordStartIndex(text: CharSequence, cursor: Int): Int {
         var i = cursor.coerceIn(0, text.length)
-        while (i > 0 && text[i - 1].isWhitespace()) i--
         while (i > 0 && !text[i - 1].isWhitespace()) i--
-        return i
+        if (i == cursor) {
+            // Cursor steht im/beginnt am Whitespace: erst WS, dann Wort überspringen
+            while (i > 0 && text[i - 1].isWhitespace()) i--
+            while (i > 0 && !text[i - 1].isWhitespace()) i--
+            return i
+        }
+        var j = i
+        while (j > 0 && text[j - 1].isWhitespace()) j--
+        return if (i - j >= 2) j else i
     }
 
     /** Anzahl Zeichen, die "Wort löschen" vor [cursor] entfernen würde. */

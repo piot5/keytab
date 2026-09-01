@@ -187,7 +187,7 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
 
     /** Groß-/Kleinschreibung des Getippten auf den Vorschlag übertragen. */
     fun matchCase(suggestion: String, typed: String): String =
-        if (typed.isNotEmpty() && typed[0].isUpperCase()) {
+        if (typed.isEmpty() || typed[0].isUpperCase()) {
             suggestion.replaceFirstChar { it.uppercase() }
         } else suggestion
 

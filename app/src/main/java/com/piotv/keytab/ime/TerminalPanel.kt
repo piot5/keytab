@@ -8,6 +8,7 @@ import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.TextView
 import com.piotv.keytab.R
+import java.io.File
 import java.io.InputStreamReader
 import java.io.OutputStream
 

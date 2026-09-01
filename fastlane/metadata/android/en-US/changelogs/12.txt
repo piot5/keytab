@@ -1,0 +1,5 @@
+• Word prediction: LLM Export/Import for local optimization
+• Offline n-gram model with bigrams, self-learning user dictionary
+• Dynamic key sizing based on suggestion scores
+• Merged Notes & Clipboard into one tab
+• Optional terminal tab in the keyboard

@@ -1,5 +1,7 @@
 package com.piotv.keytab.ime
 
+import java.util.concurrent.ConcurrentHashMap
+
 /**
  * Wortvorhersage/Autovervollständigung für KeyTab (offline, Android-frei, JUnit-testbar).
  *

@@ -1,5 +1,10 @@
 # KeyTab
 
+[![CI](https://github.com/piot5/keytab/actions/workflows/ci.yml/badge.svg)](https://github.com/piot5/keytab/actions/workflows/ci.yml)
+[![Release](https://github.com/piot5/keytab/actions/workflows/release.yml/badge.svg)](https://github.com/piot5/keytab/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/piot5/keytab?include_prereleases&label=release)](https://github.com/piot5/keytab/releases/latest)
+[![License](https://img.shields.io/github/license/piot5/keytab)](LICENSE)
+
 Keyboard app (IME) with a tabbed file manager and word prediction. 100% Kotlin, builds with Gradle.
 
 ## What it does

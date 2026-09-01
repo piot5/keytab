@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Keystore aus Secrets wiederherstellen
+        run: |
+          echo "${{ secrets.KEYTAB_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/keytab-release.jks"
+
+      - name: Signierte Release-APK bauen
+        env:
+          KEYTAB_KEYSTORE: ${{ runner.temp }}/keytab-release.jks
+          KEYTAB_KEYSTORE_PASSWORD: ${{ secrets.KEYTAB_KEYSTORE_PASSWORD }}
+          KEYTAB_KEY_ALIAS: ${{ secrets.KEYTAB_KEY_ALIAS }}
+          KEYTAB_KEY_PASSWORD: ${{ secrets.KEYTAB_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Release Notes aus Fastlane-Changelog lesen
+        id: notes
+        run: |
+          VC=$(sed -n 's/.*"versionCode": \([0-9]*\).*/\1/p' app/build/outputs/apk/release/output-metadata.json | head -1)
+          CL="app/fastlane/metadata/android/en-US/changelogs/${VC}.txt"
+          if [ -f "$CL" ]; then
+            { echo "body<<EOF"; cat "$CL"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          else
+            { echo "body<<EOF"; echo "Release ${GITHUB_REF_NAME}"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: GitHub Release mit APK erstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "KeyTab ${GITHUB_REF_NAME}" \
+            --notes "${{ steps.notes.outputs.body }}" \
+            app/build/outputs/apk/release/app-release.apk#KeyTab-${GITHUB_REF_NAME#v}.apk

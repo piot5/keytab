@@ -127,7 +127,26 @@ class KeyTabImeService : InputMethodService() {
         'd' to listOf("_")
     )
 
+    /**
+     * Alte Panel-Instanzen freigeben, bevor der Input-View neu aufgebaut wird.
+     * Ohne dieses Release behalten die Panels eine Referenz auf den alten
+     * Root-View → jeder Rebuild (Theme-Wechsel, Konfigurationswechsel)
+     * akkumuliert einen kompletten View-Baum (Memory-Leak).
+     */
+    private fun releasePanels() {
+        terminalPanel?.shutdown()
+        fileManagerPanel = null
+        editorPanel = null
+        terminalPanel = null
+        clipboardPanel = null
+        keyboardRoot = null
+        suggestionViews.fill(null)
+    }
+
     override fun onCreateInputView(): View {
+        // Vorherige Panels/Views freigeben (Leak-Fix): Rebuilds entstehen bei
+        // Theme-Wechsel (toggleDarkMode) und Konfigurationsänderungen.
+        releasePanels()
         // Dark/Light-Override (Persistiert in SharedPreferences, Default = System)
         val conf = Configuration(baseContext.resources.configuration)
         conf.uiMode = (conf.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
@@ -761,11 +780,6 @@ class KeyTabImeService : InputMethodService() {
         longPressHandler.removeCallbacksAndMessages(null)
         super.onDestroy()
         ioExecutor.shutdownNow()
-        terminalPanel?.shutdown()
-        fileManagerPanel = null
-        editorPanel = null
-        terminalPanel = null
-        clipboardPanel = null
-        keyboardRoot = null
+        releasePanels()
     }
 }

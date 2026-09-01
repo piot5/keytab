@@ -1,0 +1,3 @@
+• Memory-leak fix: panels are released before the input view is rebuilt (theme/config changes) — no more view-tree accumulation
+• Version scheme: 0.7.1 (versionCode 13)
+• Stability and build fixes

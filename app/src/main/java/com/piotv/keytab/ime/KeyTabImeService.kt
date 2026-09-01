@@ -756,6 +756,17 @@ class KeyTabImeService : InputMethodService() {
      * Baseline-Versatz für Tasten-Label: positiver shift hebt an, negativer senkt ab
      * (Faktor relativ zur Schriftgröße). Wirkung über MetricAffectingSpan + DrawState.
      */
+    override fun onDestroy() {
+        super.onDestroy()
+        ioExecutor.shutdownNow()
+        terminalPanel?.shutdown()
+        fileManagerPanel = null
+        editorPanel = null
+        terminalPanel = null
+        clipboardPanel = null
+        keyboardRoot = null
+    }
+
     private class LiftSpan(private val shift: Float) : android.text.style.MetricAffectingSpan() {
         private fun apply(tp: android.text.TextPaint) {
             tp.baselineShift += (tp.textSize * shift).toInt()

@@ -217,8 +217,9 @@ class FileManagerPanel(
     }
 
     private fun navigate(to: File) {
-        if (to.absolutePath != currentDir?.absolutePath) {
-            backStack.add(currentDir!!)
+        val dir = currentDir ?: return
+        if (to.absolutePath != dir.absolutePath) {
+            backStack.add(dir)
         }
         currentDir = to
         refresh()

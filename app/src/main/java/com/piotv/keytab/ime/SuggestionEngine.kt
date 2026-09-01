@@ -55,14 +55,15 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
     }
 
     /** Basiswortschatz: word → normalisierte Log-Frequenz (0..1). */
-    private val baseFreq: MutableMap<String, Double> = HashMap()
+    private val baseFreq: MutableMap<String, Double> = ConcurrentHashMap()
     /** Gelernte Wörter: word → Gewicht. */
-    private val userFreq = HashMap<String, Double>()
+    private val userFreq = ConcurrentHashMap<String, Double>()
     /** Gelernte Bigramme: "prev next" → Gewicht. */
-    private val bigrams = HashMap<String, Double>()
+    private val bigrams = ConcurrentHashMap<String, Double>()
     /** Basiswörter nach Frequenz absteigend (für Next-Word-Fallback). */
-    private val topBaseOrder: List<String> = baseFreq.entries
-        .sortedByDescending { it.value }.map { it.key }
+    private val topBaseOrder: List<String> by lazy {
+        baseFreq.entries.sortedByDescending { it.value }.map { it.key }
+    }
 
     init {
         // Log-Skalierung glättet die Extreme der Subtitle-Korpus-Frequenzen

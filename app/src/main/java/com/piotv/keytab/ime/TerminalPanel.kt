@@ -113,10 +113,16 @@ class TerminalPanel(
         (output?.parent as? ScrollView)?.fullScroll(View.FOCUS_DOWN)
     }
 
+    /** Findet eine verfügbare Shell (Fallback-Chain). */
+    private fun findShell(): String {
+        val shells = listOf("/system/bin/sh", "/bin/sh", "/system/bin/ksh", "/vendor/bin/sh")
+        return shells.firstOrNull { runCatching { File(it).canExecute() }.getOrDefault(false) } ?: "/system/bin/sh"
+    }
+
     /** Startet die Hintergrund-Shell und den Ausgabe-Lesethread. */
     private fun startShell() {
         try {
-            val p = ProcessBuilder("/system/bin/sh").redirectErrorStream(true)
+            val p = ProcessBuilder(findShell()).redirectErrorStream(true)
             p.directory(context.filesDir)
             shell = p.start()
             stdin = shell?.outputStream

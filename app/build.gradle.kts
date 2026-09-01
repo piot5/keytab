@@ -11,8 +11,8 @@ android {
         applicationId = "com.piotv.keytab"
         minSdk = 24
         targetSdk = 34
-        versionCode = 6
-        versionName = "0.6.0"
+        versionCode = 11
+        versionName = "0.6.1"
     }
 
     buildTypes {
@@ -23,6 +23,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        debug {
+            isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
         }
     }
 

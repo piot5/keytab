@@ -4,7 +4,7 @@ KeyTab is a privacy-first keyboard (IME) for Android, 100% Kotlin and free softw
 Browse folders in tabs, navigate with back-stack and parent-navigation. Tapping a file inserts its path or opens it via a VIEW intent. Each tab remembers its own directory. Listing runs asynchronously, so large folders never freeze the UI.
 
 <b>Offline word prediction</b>
-An n-gram model (FrequencyWords de_50k, CC-BY-SA-4.0) with bigrams for next-word prediction, a self-learning user dictionary, prefix autocomplete, fuzzy correction (Damerau-Levenshtein) and case matching — all on-device. Export/Import lets you optimize suggestions with a local LLM. Your data never leaves the device.
+An n-gram model (FrequencyWords de_50k, CC-BY-SA-4.0) with bigrams for next-word prediction, a self-learning user dictionary, prefix autocomplete, fuzzy correction (Damerau-Levenshtein) and case matching — all on-device. Your data never leaves the device.
 
 <b>Dynamic key sizing</b>
 Likely-next keys scale up to 1.15x, unlikely ones down to 0.85x, driven by the current suggestion scores. Toggleable in settings.

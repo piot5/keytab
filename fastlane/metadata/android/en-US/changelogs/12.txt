@@ -1,5 +1,3 @@
-• Word prediction: LLM Export/Import for local optimization
-• Offline n-gram model with bigrams, self-learning user dictionary
-• Dynamic key sizing based on suggestion scores
-• Merged Notes & Clipboard into one tab
-• Optional terminal tab in the keyboard
+• Word delete: keeps a single separator space, removes multi-space gaps with the word
+• Case matching improved for suggestions
+• Stability and build fixes

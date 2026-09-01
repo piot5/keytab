@@ -333,15 +333,6 @@ class KeyTabImeService : InputMethodService() {
         updateSuggestions()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        persistUserDict()
-        letterPopup.dismiss()
-        longPressHandler.removeCallbacksAndMessages(null)
-        terminalPanel?.shutdown()
-        ioExecutor.shutdown()
-    }
-
     override fun onStartInput(attribute: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
         capsLock = false
@@ -756,7 +747,18 @@ class KeyTabImeService : InputMethodService() {
      * Baseline-Versatz für Tasten-Label: positiver shift hebt an, negativer senkt ab
      * (Faktor relativ zur Schriftgröße). Wirkung über MetricAffectingSpan + DrawState.
      */
+    private class LiftSpan(private val shift: Float) : android.text.style.MetricAffectingSpan() {
+        private fun apply(tp: android.text.TextPaint) {
+            tp.baselineShift += (tp.textSize * shift).toInt()
+        }
+        override fun updateMeasureState(tp: android.text.TextPaint) = apply(tp)
+        override fun updateDrawState(tp: android.text.TextPaint) = apply(tp)
+    }
+
     override fun onDestroy() {
+        persistUserDict()
+        letterPopup.dismiss()
+        longPressHandler.removeCallbacksAndMessages(null)
         super.onDestroy()
         ioExecutor.shutdownNow()
         terminalPanel?.shutdown()
@@ -765,13 +767,5 @@ class KeyTabImeService : InputMethodService() {
         terminalPanel = null
         clipboardPanel = null
         keyboardRoot = null
-    }
-
-    private class LiftSpan(private val shift: Float) : android.text.style.MetricAffectingSpan() {
-        private fun apply(tp: android.text.TextPaint) {
-            tp.baselineShift += (tp.textSize * shift).toInt()
-        }
-        override fun updateMeasureState(tp: android.text.TextPaint) = apply(tp)
-        override fun updateDrawState(tp: android.text.TextPaint) = apply(tp)
     }
 }

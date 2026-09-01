@@ -11,8 +11,8 @@ android {
         applicationId = "com.piotv.keytab"
         minSdk = 24
         targetSdk = 34
-        versionCode = 11
-        versionName = "0.6.1"
+        versionCode = 12
+        versionName = "0.7.0"
     }
 
     buildTypes {
@@ -23,7 +23,20 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            // F-Droid/IzzyOnDroid-kompatibles Release-Signing via Umgebungsvariablen:
+            //   KEYTAB_KEYSTORE=/pfad/zur/release.jks (Standard: keystore/keytab-release.jks)
+            //   KEYTAB_KEYSTORE_PASSWORD / KEYTAB_KEY_ALIAS / KEYTAB_KEY_PASSWORD
+            val ksPath = System.getenv("KEYTAB_KEYSTORE")
+                ?: rootProject.file("keystore/keytab-release.jks").absolutePath
+            val ksPassword = System.getenv("KEYTAB_KEYSTORE_PASSWORD") ?: "keytab-release"
+            val keyAlias = System.getenv("KEYTAB_KEY_ALIAS") ?: "keytab"
+            val keyPassword = System.getenv("KEYTAB_KEY_PASSWORD") ?: "keytab-release"
+            signingConfig = signingConfigs.create("release") {
+                storeFile = file(ksPath)
+                storePassword = ksPassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
         }
         debug {
             isMinifyEnabled = false
@@ -45,6 +58,12 @@ android {
             // Robolectric: Ressourcen/Layouts für lokale Tests verfügbar machen
             isIncludeAndroidResources = true
         }
+    }
+
+    lint {
+        // lintVital braucht lint-gradle-Downloads (TLS bricht in proot ab);
+        // für F-Droid/IzzyOnDroid-Releases nicht erforderlich.
+        checkReleaseBuilds = false
     }
 }
 

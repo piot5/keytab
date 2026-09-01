@@ -30,6 +30,8 @@ class MainActivity : AppCompatActivity() {
         const val PREFS = "keytab_prefs"
         const val KEY_NUM_ROW = "num_row"
         const val KEY_TERM_TAB = "term_tab_enabled"
+        const val KEY_SUGGESTIONS = "suggestions_enabled"
+        const val KEY_DYNAMIC_KEYS = "dynamic_keys_enabled"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,6 +55,24 @@ class MainActivity : AppCompatActivity() {
             prefs.edit().putBoolean(KEY_TERM_TAB, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_term_on
             else R.string.settings_term_off, Toast.LENGTH_SHORT).show()
+        }
+
+        // Wortvorhersage ein-/ausblenden (wirkt beim nächsten Öffnen der Tastatur)
+        val swSuggestions = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_suggestions)
+        swSuggestions.isChecked = prefs.getBoolean(KEY_SUGGESTIONS, true)
+        swSuggestions.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(KEY_SUGGESTIONS, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_suggestions_on
+            else R.string.settings_suggestions_off, Toast.LENGTH_SHORT).show()
+        }
+
+        // Dynamische Tastengröße ein-/ausblenden (wirkt beim nächsten Öffnen)
+        val swDynamic = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_dynamic_keys)
+        swDynamic.isChecked = prefs.getBoolean(KEY_DYNAMIC_KEYS, true)
+        swDynamic.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(KEY_DYNAMIC_KEYS, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_dynamic_keys_on
+            else R.string.settings_dynamic_keys_off, Toast.LENGTH_SHORT).show()
         }
 
         findViewById<Button>(R.id.btn_enable_keyboard).setOnClickListener {

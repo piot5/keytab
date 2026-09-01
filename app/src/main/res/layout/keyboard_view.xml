@@ -244,7 +244,8 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Wortvorhersage: 3 Kandidaten, antippbar (leert = ausgeblendet) -->
+            <!-- Wortvorhersage: 3 Kandidaten, antippbar (leert = ausgeblendet).
+                 sug_1 (höchste Wahrscheinlichkeit) = 2x breiter + bold + hervorgehoben. -->
             <LinearLayout
                 android:id="@+id/suggestion_bar"
                 android:layout_width="match_parent"
@@ -257,15 +258,16 @@
                 <TextView
                     android:id="@+id/sug_1"
                     android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:gravity="center"
-                    android:singleLine="true" android:textSize="14sp"
+                    android:layout_weight="2" android:gravity="center"
+                    android:singleLine="true" android:textSize="15sp"
+                    android:textStyle="bold"
                     android:textColor="@color/text_primary" android:clickable="true"
-                    android:focusable="true" android:background="@color/key_bg" />
+                    android:focusable="true" android:background="@drawable/sug_top_bg" />
                 <TextView
                     android:id="@+id/sug_2"
                     android:layout_width="0dp" android:layout_height="match_parent"
                     android:layout_weight="1" android:gravity="center"
-                    android:singleLine="true" android:textSize="14sp"
+                    android:singleLine="true" android:textSize="13sp"
                     android:textColor="@color/text_primary" android:clickable="true"
                     android:focusable="true" android:background="@color/key_bg"
                     android:layout_marginStart="2dp" />
@@ -273,7 +275,7 @@
                     android:id="@+id/sug_3"
                     android:layout_width="0dp" android:layout_height="match_parent"
                     android:layout_weight="1" android:gravity="center"
-                    android:singleLine="true" android:textSize="14sp"
+                    android:singleLine="true" android:textSize="13sp"
                     android:textColor="@color/text_primary" android:clickable="true"
                     android:focusable="true" android:background="@color/key_bg"
                     android:layout_marginStart="2dp" />

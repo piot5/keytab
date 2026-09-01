@@ -1,6 +1,6 @@
 # KeyTab
 
-**Tastatur-App (IME) mit integriertem Tab-Dateimanager** – 100 % Kotlin, Ready-to-build Android-Projekt.
+**Tastatur-App (IME) mit integriertem Tab-Dateimanager + Wortvorhersage** – 100 % Kotlin, Ready-to-build Android-Projekt.
 
 ## Features
 
@@ -139,7 +139,12 @@ app/src/test/java/com/piotv/keytab/ime/
 └── TextEditLogicTest.kt         # 20 Unit-Tests
 ```
 
-## Changelog (1.4.0 → 1.4.1)
+## Changelog (0.5.0 → 0.6.0)
+
+- **Feature:** **Wortvorhersage/Autovervollständigung** (`SuggestionEngine`, offline, Android-frei): Unigram-Frequenzmodell (FrequencyWords de_50k, Top 6000), Bigramme, User-Dictionary mit Decay, Prefix-Autocomplete + Damerau-Levenshtein-Fuzzy-Korrektur, Case-Matching, Persistenz. 19 Unit-Tests
+- **Feature:** **Dynamische Tastengröße** (optional): wahrscheinlichere Buchstaben werden größer (1,15×), unwahrscheinlichere kleiner (0,85×) – basierend auf den Vorschlagewerten
+- **Feature:** **Optionale Darstellung** – Schalter in der Einstellungs-App: Wortvorhersage und dynamische Tastengröße separat ein-/ausblenden
+- **UI:** Einstellungs-App um zwei Material-Switches erweitert (Suggestions / Dynamic Keys)
 
 - **Feature:** Editor- und Clipboard-Tab zusammengelegt → **„Notes"**; Tab-Leiste jetzt: abc · Notes · Files · Terminal
 - **Feature:** **📂 Load öffnet einen Ordner-Browser** (Dialog mit IME-Fenster-Token): Ordner navigieren, Datei wählen → wird geladen und als Save-Ziel gemerkt
@@ -207,6 +212,15 @@ app/src/test/java/com/piotv/keytab/ime/
 - Refactoring: Gott-Klasse in Panel-Klassen + testbare `TextEditLogic` aufgeteilt
 - Alle UI-Strings nach `strings.xml` (i18n-fähig), DiffUtil im App-Dateimanager
 - 17 Unit-Tests + JUnit-Setup
+
+## Changelog (1.4.1 → 1.5.0)
+
+- **Feature:** On-Device Wortvorhersage (n-gram + User-Dictionary + Suggestion-Bar)
+  - Unigram-Frequenzmodell (FrequencyWords de_50k, CC-BY-SA-4.0) + Bigramme für Next-Word-Prediction
+  - User-Dictionary mit Decay, persistiert in SharedPreferences
+  - Prefix-Autovervollständigung + Damerau-Levenshtein-Fuzzy-Korrektur
+  - **Top-Vorschlag (höchste Wahrscheinlichkeit) = 2× breiter, bold, grüner Akzent-Balken** → besserer Treffbereich
+  - 125 Unit-Tests (SuggestionEngine: Scoring, Bigramme, Edit-Distance, Persistenz)
 
 ## Lizenz
 

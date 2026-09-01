@@ -62,6 +62,8 @@ class KeyTabImeService : InputMethodService() {
     private var currentTypedWord = ""
     private var prevTypedWord: String? = null
     private val suggestionViews = arrayOfNulls<TextView>(3)
+    // Aktuelle Vorschläge (für dynamische Tastengröße: nächster Buchstabe → Wahrscheinlichkeit)
+    private var currentSuggestions: List<SuggestionEngine.Suggestion> = emptyList()
 
     private var shifted = false
     private var capsLock = false
@@ -209,13 +211,22 @@ class KeyTabImeService : InputMethodService() {
     /** Vorschläge berechnen und in der Leiste anzeigen (leer = ausblenden). */
     private fun updateSuggestions() {
         val bar = keyboardRoot?.findViewById<View>(R.id.suggestion_bar) ?: return
+        // Optionale Darstellung: in den Einstellungen deaktiviert → Bar ausblenden
+        val enabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+            .getBoolean(com.piotv.keytab.MainActivity.KEY_SUGGESTIONS, true)
+        if (!enabled) {
+            bar.visibility = View.GONE
+            return
+        }
         val engine = suggestionEngine ?: run { bar.visibility = View.GONE; return }
         val (typed, prev) = wordContext()
         val list = try {
             engine.suggest(typed, prev)
         } catch (_: Exception) { emptyList() }
         if (list.isEmpty()) {
+            currentSuggestions = emptyList()
             bar.visibility = View.GONE
+            updateDynamicKeys()
             return
         }
         for (i in 0..2) {
@@ -230,7 +241,44 @@ class KeyTabImeService : InputMethodService() {
                 tv.tag = sug.word
             }
         }
+        currentSuggestions = list
         bar.visibility = View.VISIBLE
+        updateDynamicKeys()
+    }
+
+    /**
+     * Optionale dynamische Tastengröße: Buchstaben, die als nächstes wahrscheinlich
+     * getippt werden (aus den aktuellen Vorschlagewerten), werden skaliert.
+     * Bereich 0,85× (unwahrscheinlich) … 1,15× (höchste Wahrscheinlichkeit).
+     * In den Einstellungen deaktiviert → alle Tasten auf 1,0× zurückgesetzt.
+     */
+    private fun updateDynamicKeys() {
+        val enabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+            .getBoolean(com.piotv.keytab.MainActivity.KEY_DYNAMIC_KEYS, true)
+        // Nächsten Buchstaben pro Vorschlag gewichtet mit dessen Score akkumulieren
+        val charScore = HashMap<Char, Double>()
+        var maxScore = 0.0
+        for (sug in currentSuggestions) {
+            val nextChar = sug.word.getOrNull(currentTypedWord.length)?.lowercaseChar() ?: continue
+            val acc = (charScore[nextChar] ?: 0.0) + sug.score
+            charScore[nextChar] = acc
+            if (acc > maxScore) maxScore = acc
+        }
+        // Relative Wahrscheinlichkeit (0..1) → Skalierung (0.85..1.15)
+        val scaleFor: (Char) -> Float = { c ->
+            val rel = if (maxScore > 0.0) (charScore[c] ?: 0.0) / maxScore else 0.0
+            (0.85 + (rel * 0.30)).toFloat()
+        }
+        for ((btn, letter) in baseLetters) {
+            if (!enabled) {
+                btn.scaleX = 1f
+                btn.scaleY = 1f
+                continue
+            }
+            val s = scaleFor(letter.lowercaseChar())
+            btn.scaleX = s
+            btn.scaleY = s
+        }
     }
 
     /** Wortabschluss (Space/Punkt/Enter): lernen + Vorschläge aktualisieren. */

@@ -11,8 +11,8 @@ android {
         applicationId = "com.piotv.keytab"
         minSdk = 24
         targetSdk = 34
-        versionCode = 9
-        versionName = "1.4.1"
+        versionCode = 6
+        versionName = "0.6.0"
     }
 
     buildTypes {

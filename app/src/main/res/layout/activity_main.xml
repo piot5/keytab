@@ -57,4 +57,18 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="@string/settings_term_tab" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/sw_suggestions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/settings_suggestions" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/sw_dynamic_keys"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/settings_dynamic_keys" />
 </LinearLayout>

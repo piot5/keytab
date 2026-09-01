@@ -48,8 +48,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cp app/build/outputs/apk/release/app-release.apk "KeyTab-${GITHUB_REF_NAME#v}.apk"
           gh release create "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
             --title "KeyTab ${GITHUB_REF_NAME}" \
             --notes "${{ steps.notes.outputs.body }}" \
-            app/build/outputs/apk/release/app-release.apk#KeyTab-${GITHUB_REF_NAME#v}.apk
+            "KeyTab-${GITHUB_REF_NAME#v}.apk"

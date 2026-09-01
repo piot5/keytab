@@ -14,6 +14,20 @@
 
 Keyboard app (IME) with a tabbed file manager and word prediction. 100% Kotlin, builds with Gradle.
 
+## Download
+
+Grab the latest signed APK from the [GitHub Releases](https://github.com/piot5/keytab/releases/latest):
+
+[![Download APK](https://img.shields.io/github/v/release/piot5/keytab?include_prereleases&label=download%20APK&color=3ddc84)](https://github.com/piot5/keytab/releases/latest)
+
+Every tagged release (`v*`) is built and published automatically by CI:
+
+| File | Purpose |
+|---|---|
+| `KeyTab-<version>.apk` | Signed release APK — install this |
+
+Install: open the APK in a file manager (allow "install unknown apps"), then enable KeyTab in *Settings → System → Languages & input → On-screen keyboard* and switch to it in any text field.
+
 ## What it does
 
 **File manager in the keyboard** -- browse folders, switch tabs, navigate with back-stack and parent-navigation. Tapping a file inserts its path; in the app it opens via VIEW-Intent. Each tab remembers its own directory. Listing runs asynchronously so large folders don't freeze the UI.

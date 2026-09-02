@@ -42,7 +42,7 @@ Install: open the APK in a file manager (allow "install unknown apps"), then ena
 
 **Keyboard** -- full InputMethodService with TAB key (sends KEYCODE_TAB, useful for Termux/SSH), shift/caps-lock, long-press popups for umlauts/special characters, accelerating backspace on long-press (250ms down to 30ms).
 
-**Privacy** -- no network permission, no data collection.
+**Privacy** -- no network permission, no data collection. All data stays on the device.
 
 ## Architecture
 
@@ -162,6 +162,26 @@ app/src/main/assets/
 ```
 
 ## Changelog
+
+### 0.7.2
+
+- Housekeeping: removed stray debug APK from repo root, aligned version metadata (0.7.2, versionCode 14), fastlane changelog added
+
+### 0.7.0
+
+- Maintenance release: word-delete logic fixed (single separator space kept, multi-space gap deleted with the word)
+- Case matching: suggestions capitalize on empty input
+- CI: unit tests green, actions upgraded to v5
+- Release automation: tag `v*` builds a signed APK and publishes a GitHub release
+
+### 0.6.1
+
+- Fix: SuggestionEngine.topBaseOrder jetzt lazy-initialisiert (Crash bei Instanziierung behoben)
+- Fix: FileManagerPanel.navigate() null-sicher (Crash bei Navigation behoben)
+- Fix: TerminalPanel Shell-Fallback für verschiedene Android-Geräte
+- Fix: SuggestionEngine thread-safe (ConcurrentHashMap)
+- Fix: KeyTabImeService.onDestroy() für korrektes Cleanup
+- Feature: Build-Skripte (build_keytab.sh, install_keytab.sh)
 
 ### 0.6.0
 

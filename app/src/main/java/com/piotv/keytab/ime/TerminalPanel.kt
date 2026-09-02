@@ -35,11 +35,44 @@ class TerminalPanel(
     private var readerThread: Thread? = null
     private val history = StringBuilder()
 
+    // Für den Standard-Prompt: user@host:pfad$
+    private var userName: String = "user"
+    private val hostName: String = android.os.Build.HOST.ifBlank { "localhost" }
+    private var cwd: String = context.filesDir.absolutePath ?: "/"
+
     init {
         root.findViewById<Button>(R.id.btn_term_send)?.setOnClickListener { runLine() }
         // Enter direkt im Feld (Hardware-Tastatur) führt ebenfalls aus
         input?.setOnEditorActionListener { _, _, _ -> runLine(); true }
+        resolveUserName()
         startShell()
+        appendOut(prompt() + "\n")
+    }
+
+    /** Prompt im Standard-Stil: user@host:pfad$ (Home = ~) */
+    private fun prompt(): String {
+        val home = context.filesDir.absolutePath
+        val shownDir = when {
+            cwd == home -> "~"
+            cwd.startsWith(home + "/") -> "~" + cwd.substring(home.length)
+            else -> cwd
+        }
+        return "$userName@$hostName:$shownDir$ "
+    }
+
+    /** Shell-User für den Prompt ermitteln (Fallback: Android-UID-Name). */
+    private fun resolveUserName() {
+        Thread {
+            val name = try {
+                val p = ProcessBuilder("/system/bin/sh", "-c", "id -un")
+                    .redirectErrorStream(true).start()
+                p.inputStream.bufferedReader().readText().trim().ifBlank { null }.also { p.destroy() }
+            } catch (_: Exception) { null }
+            mainHandler.post {
+                userName = name ?: "u" + android.os.Process.myUid() / 100000 + "a" +
+                        (android.os.Process.myUid() % 100000)
+            }
+        }.apply { isDaemon = true; start() }
     }
 
     /** Text + Cursorposition (für die Wortvorhersage), null wenn nicht bereit. */
@@ -98,13 +131,32 @@ class TerminalPanel(
         val cmd = et.text?.toString()?.trim() ?: return
         if (cmd.isEmpty()) return
         et.setText("")
-        appendOut("$ $cmd\n")
+        // Standard-Look: Zeile mit Prompt im Verlauf anzeigen
+        appendOut(prompt() + cmd + "\n")
+        trackCd(cmd)
         try {
             stdin?.write((cmd + "\n").toByteArray())
             stdin?.flush()
         } catch (e: Exception) {
             appendOut(context.getString(R.string.terminal_shell_dead) + "\n")
+            appendOut(prompt() + "\n")
         }
+    }
+
+    /** Verfolgt `cd`-Befehle, damit der Prompt dem Verzeichnis folgt. */
+    private fun trackCd(cmd: String) {
+        val parts = cmd.trim().split(Regex("\\s+"))
+        if (parts.firstOrNull()?.lowercase() != "cd") return
+        val target = parts.getOrNull(1) ?: return
+        val home = context.filesDir.absolutePath
+        val newDir = when {
+            target == "~" || target == "" -> home
+            target.startsWith("~") -> home + target.substring(1)
+            target.startsWith("/") -> target
+            else -> cwd + "/" + target
+        }
+        cwd = File(newDir).normalize().absolutePath
+        if (!File(cwd).isDirectory) cwd = home
     }
 
     private fun appendOut(text: String) {

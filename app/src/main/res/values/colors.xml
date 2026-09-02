@@ -23,4 +23,8 @@
     <color name="popup_focus_bg">#bdbdbd</color>
     <color name="popup_text">#000000</color>
     <color name="divider">#cccccc</color>
+    <!-- Terminal: immer schwarz mit hellem Monospace-Text (Standard-Terminal-Look) -->
+    <color name="term_bg">#000000</color>
+    <color name="term_text">#e8e8e8</color>
+    <color name="term_prompt">#4caf50</color>
 </resources>

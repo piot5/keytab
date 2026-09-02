@@ -195,7 +195,7 @@
             android:id="@+id/term_scroll"
             android:layout_width="match_parent"
             android:layout_height="150dp"
-            android:background="@color/editor_bg"
+            android:background="@color/term_bg"
             android:fillViewport="true">
 
             <TextView
@@ -204,7 +204,7 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="monospace"
                 android:textSize="12sp"
-                android:textColor="@color/text_primary"
+                android:textColor="@color/term_text"
                 android:padding="6dp"
                 android:textIsSelectable="false" />
         </ScrollView>
@@ -214,7 +214,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:background="@color/key_bg">
+            android:background="@color/term_bg">
 
             <EditText
                 android:id="@+id/terminal_input"
@@ -223,8 +223,8 @@
                 android:layout_weight="1"
                 android:singleLine="true"
                 android:inputType="textNoSuggestions"
-                android:background="@color/editor_bg"
-                android:textColor="@color/text_primary"
+                android:background="@color/term_bg"
+                android:textColor="@color/term_text"
                 android:hint="@string/terminal_hint"
                 android:padding="8dp" />
 

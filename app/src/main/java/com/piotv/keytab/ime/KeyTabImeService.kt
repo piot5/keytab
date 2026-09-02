@@ -179,7 +179,9 @@ class KeyTabImeService : InputMethodService() {
             canAutoCapture = { isInputViewShown })
         // 📋-Button öffnet den Clipboard-Picker; gewählter Eintrag → Editorfeld einfügen
         editorPanel?.setClipboardPicker {
-            clipboardPanel?.showPicker { editorPanel?.insert(it) ?: commitToApp(it) }
+            clipboardPanel?.showPicker(keyboardRoot?.windowToken) {
+                editorPanel?.insert(it) ?: commitToApp(it)
+            }
         }
         setupTabs(root)
         hookKeyboardButtons(root)

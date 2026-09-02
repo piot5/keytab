@@ -163,6 +163,10 @@ app/src/main/assets/
 
 ## Changelog
 
+### 0.7.2
+
+- Housekeeping: removed stray debug APK from repo root, aligned version metadata (0.7.2, versionCode 14), fastlane changelog added
+
 ### 0.7.0
 
 - Maintenance release: word-delete logic fixed (single separator space kept, multi-space gap deleted with the word)

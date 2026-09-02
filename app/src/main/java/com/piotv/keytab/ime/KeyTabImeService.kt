@@ -227,24 +227,32 @@ class KeyTabImeService : InputMethodService() {
     private fun wordContext(): Pair<String, String?> =
         currentTypedWord to prevTypedWord
 
-    /** Vorschläge berechnen und in der Leiste anzeigen (leer = ausblenden). */
+    /** Vorschläge berechnen und in der Leiste anzeigen. Die Leiste bleibt immer sichtbar (kein Auf-/Zupoppen). */
     private fun updateSuggestions() {
         val bar = keyboardRoot?.findViewById<View>(R.id.suggestion_bar) ?: return
-        // Optionale Darstellung: in den Einstellungen deaktiviert → Bar ausblenden
+        // Optionale Darstellung: in den Einstellungen deaktiviert → Bar komplett ausblenden
         val enabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
             .getBoolean(com.piotv.keytab.MainActivity.KEY_SUGGESTIONS, true)
         if (!enabled) {
             bar.visibility = View.GONE
             return
         }
-        val engine = suggestionEngine ?: run { bar.visibility = View.GONE; return }
-        val (typed, prev) = wordContext()
-        val list = try {
-            engine.suggest(typed, prev)
-        } catch (_: Exception) { emptyList() }
+        val engine = suggestionEngine
+        val list = if (engine == null) emptyList() else {
+            val (typed, prev) = wordContext()
+            try {
+                engine.suggest(typed, prev)
+            } catch (_: Exception) { emptyList() }
+        }
+        // Leiste bleibt sichtbar, auch ohne Vorschläge (fixer Platz, kein Aufpoppen)
         if (list.isEmpty()) {
             currentSuggestions = emptyList()
-            bar.visibility = View.GONE
+            for (i in 0..2) {
+                val tv = suggestionViews[i] ?: continue
+                tv.visibility = View.INVISIBLE
+                tv.tag = null
+            }
+            bar.visibility = View.VISIBLE
             updateDynamicKeys()
             return
         }
@@ -256,7 +264,7 @@ class KeyTabImeService : InputMethodService() {
                 tv.tag = null
             } else {
                 tv.visibility = View.VISIBLE
-                tv.text = engine.matchCase(sug.word, typed)
+                tv.text = engine!!.matchCase(sug.word, currentTypedWord)
                 tv.tag = sug.word
             }
         }
@@ -267,37 +275,62 @@ class KeyTabImeService : InputMethodService() {
 
     /**
      * Optionale dynamische Tastengröße: Buchstaben, die als nächstes wahrscheinlich
-     * getippt werden (aus den aktuellen Vorschlagewerten), werden skaliert.
-     * Bereich 0,85× (unwahrscheinlich) … 1,15× (höchste Wahrscheinlichkeit).
-     * In den Einstellungen deaktiviert → alle Tasten auf 1,0× zurückgesetzt.
+     * getippt werden (gewichtete Vorschlags-Scores), werden proportional zur
+     * Wahrscheinlichkeit vergrößert (bis 1,30×). Verkleinert (bis 0,85×) werden
+     * ausschließlich die direkten Nachbartasten vergrößerter Tasten; alle übrigen
+     * bleiben neutral. Logik: [KeyScaleLogic] (pure, unit-getestet).
      */
     private fun updateDynamicKeys() {
         val enabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
             .getBoolean(com.piotv.keytab.MainActivity.KEY_DYNAMIC_KEYS, true)
-        // Nächsten Buchstaben pro Vorschlag gewichtet mit dessen Score akkumulieren
-        val charScore = HashMap<Char, Double>()
-        var maxScore = 0.0
-        for (sug in currentSuggestions) {
-            val nextChar = sug.word.getOrNull(currentTypedWord.length)?.lowercaseChar() ?: continue
-            val acc = (charScore[nextChar] ?: 0.0) + sug.score
-            charScore[nextChar] = acc
-            if (acc > maxScore) maxScore = acc
-        }
-        // Relative Wahrscheinlichkeit (0..1) → Skalierung (0.85..1.15)
-        val scaleFor: (Char) -> Float = { c ->
-            val rel = if (maxScore > 0.0) (charScore[c] ?: 0.0) / maxScore else 0.0
-            (0.85 + (rel * 0.30)).toFloat()
-        }
-        for ((btn, letter) in baseLetters) {
-            if (!enabled) {
+        if (!enabled) {
+            for ((btn, _) in baseLetters) {
                 btn.scaleX = 1f
                 btn.scaleY = 1f
-                continue
             }
-            val s = scaleFor(letter.lowercaseChar())
+            return
+        }
+        // Nächsten Buchstaben pro Vorschlag gewichtet mit dessen Score akkumulieren
+        val charScore = HashMap<Char, Double>()
+        for (sug in currentSuggestions) {
+            val nextChar = sug.word.getOrNull(currentTypedWord.length)?.lowercaseChar() ?: continue
+            charScore[nextChar] = (charScore[nextChar] ?: 0.0) + sug.score
+        }
+        val neighbors = keyNeighborLetters()
+        val scaleMap = KeyScaleLogic.scales(charScore, neighbors)
+        for ((btn, letter) in baseLetters) {
+            val s = scaleMap[letter.lowercaseChar()] ?: 1f
             btn.scaleX = s
             btn.scaleY = s
         }
+    }
+
+    /**
+     * Direkte Nachbarschaft der Buchstaben-Tasten: gleiche Zeile ±1 Spalte,
+     * direkt angrenzende Zeile mit ±1 Spalte. Fallback (leer) = keine Verkleinerung.
+     */
+    private fun keyNeighborLetters(): (Char) -> Set<Char> {
+        val byRow = baseLetters.keys.groupBy { it.parent as? android.view.ViewGroup }
+        val rows = byRow.keys.filterNotNull()
+            .sortedBy { row -> (row.parent as? android.view.ViewGroup)?.indexOfChild(row) ?: 0 }
+        val cellOf = HashMap<Button, Pair<Int, Int>>() // row, col
+        rows.forEachIndexed { r, row ->
+            byRow[row]?.forEach { btn -> cellOf[btn] = r to row.indexOfChild(btn) }
+        }
+        val neighborButtons = HashMap<Char, MutableSet<Char>>()
+        for ((btn, letter) in baseLetters) {
+            val (r, c) = cellOf[btn] ?: continue
+            val key = letter.lowercaseChar()
+            val set = neighborButtons.getOrPut(key) { mutableSetOf() }
+            for ((other, otherLetter) in baseLetters) {
+                if (other === btn) continue
+                val (r2, c2) = cellOf[other] ?: continue
+                val sameRow = r2 == r && kotlin.math.abs(c2 - c) == 1
+                val adjacentRow = kotlin.math.abs(r2 - r) == 1 && kotlin.math.abs(c2 - c) <= 1
+                if (sameRow || adjacentRow) set.add(otherLetter.lowercaseChar())
+            }
+        }
+        return { c -> neighborButtons[c] ?: emptySet() }
     }
 
     /** Wortabschluss (Space/Punkt/Enter): lernen + Vorschläge aktualisieren. */

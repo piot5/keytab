@@ -99,7 +99,7 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             userFreq.minByOrNull { it.value }?.key?.let { userFreq.remove(it) }
         }
         val p = prevWord?.lowercase()
-                if (p != null && isLearnable(p)) {
+        if (p != null && isLearnable(p)) {
             val key = "$p $w"
             bigrams[key] = (bigrams[key] ?: 0.1) + 0.3
             if (bigrams.size > MAX_BIGRAMS) {

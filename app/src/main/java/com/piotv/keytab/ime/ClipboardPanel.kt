@@ -74,20 +74,30 @@ class ClipboardPanel(
     /**
      * Zeigt alle Clipboard-Einträge als Picker-Dialog an; [onPick] liefert den
      * gewählten Eintrag zurück (z. B. in das aktive Eingabefeld einsetzen).
+     *
+     * [windowToken] ist das Token des IME-Input-Views – nötig in einer IME ohne
+     * Activity, sonst wirft ein AlertDialog eine BadTokenException und zeigt nichts.
      */
-    fun showPicker(onPick: (String) -> Unit) {
+    fun showPicker(windowToken: android.os.IBinder?, onPick: (String) -> Unit) {
         val items = history.map { TextEditLogic.clipDisplayText(it) }
         if (items.isEmpty()) {
             Toast.makeText(context, context.getString(R.string.clip_hint_empty), Toast.LENGTH_SHORT).show()
             return
         }
-        android.app.AlertDialog.Builder(context)
+        val dialog = android.app.AlertDialog.Builder(context)
             .setTitle(R.string.clip_pick_title)
             .setItems(items.toTypedArray()) { _, which ->
                 history.getOrNull(which)?.let(onPick)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .create()
+        if (windowToken != null) {
+            dialog.window?.apply {
+                setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+                attributes.token = windowToken
+            }
+        }
+        dialog.show()
     }
 
     private fun historyFile(): File = File(context.filesDir, "clipboard_history.txt")

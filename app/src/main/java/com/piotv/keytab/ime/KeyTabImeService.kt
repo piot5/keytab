@@ -221,6 +221,12 @@ class KeyTabImeService : InputMethodService() {
                 mainHandler.post { updateSuggestions() }
             }
         }
+        // Platzhalter: Leiste von Anfang an sichtbar (fixer Platz → kein Auf-/Zupoppen
+        // beim ersten Tippen). Nur wenn Vorschläge in den Einstellungen deaktiviert sind, ausblenden.
+        val enabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+            .getBoolean(com.piotv.keytab.MainActivity.KEY_SUGGESTIONS, true)
+        root.findViewById<View>(R.id.suggestion_bar)?.visibility =
+            if (enabled) View.VISIBLE else View.GONE
     }
 
     /** Aktuelles Teilwort + Wort davor aus dem aktiven Eingabekontext ermitteln. */

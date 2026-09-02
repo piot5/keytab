@@ -116,6 +116,12 @@
                 style="@style/KeyEditorBar"
                 android:text="@string/editor_save" />
 
+            <!-- Clipboard direkt ins Editorfeld einfügen -->
+            <Button
+                android:id="@+id/btn_editor_clip"
+                style="@style/KeyEditorBar"
+                android:text="📋" />
+
             <TextView
                 android:id="@+id/editor_file"
                 android:layout_width="0dp"

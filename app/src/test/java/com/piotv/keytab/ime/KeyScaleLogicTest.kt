@@ -26,18 +26,14 @@ class KeyScaleLogicTest {
     }
 
     @Test
-    fun scaling_isProportionalToScore() {
-        val out = KeyScaleLogic.scales(mapOf('a' to 1.0, 'b' to 0.8, 'c' to 0.4), noNeighbors)
-        val sa = out['a']!!
-        val sb = out['b']!!
-        // Nicht-hot-Tasten ohne Nachbarn fehlen in der Map (= neutral 1.0)
-        val sc = out['c'] ?: 1f
-        // b liegt proportional zwischen a und neutral
-        assertTrue(sb < sa && sb > 1f)
-        // c unterhalb des Hot-Thresholds bleibt neutral (keine Nachbarn)
-        assertTrue(sc >= 1f)
-        // Proportionalität: (sb-1)/(sa-1) == 0.8
-        assertEquals(0.8, ((sb - 1f) / (sa - 1f)).toDouble(), 0.01)
+    fun scaling_isSteppedByProbability() {
+        val out = KeyScaleLogic.scales(mapOf('a' to 1.0, 'b' to 0.6, 'c' to 0.4), noNeighbors)
+        // Stufe 3 (rel >= 0.75)
+        assertEquals(KeyScaleLogic.MAX_SCALE, out['a']!!, 0.001f)
+        // Stufe 2 (rel >= 0.55)
+        assertEquals(KeyScaleLogic.MID_SCALE, out['b']!!, 0.001f)
+        // Unterhalb der Stufe-2-Schwelle: neutral (fehlt in der Map)
+        assertFalse(out.containsKey('c'))
     }
 
     @Test
@@ -62,17 +58,34 @@ class KeyScaleLogicTest {
     }
 
     @Test
-    fun neighborShrink_proportionalToHotStrength() {
+    fun neighborShrink_isSteppedByHotStrength() {
         val neighborsOf: (Char) -> Set<Char> = { c ->
             when (c) {
-                's' -> setOf('a', 'b')
-                'a', 'b' -> setOf('s')
+                's' -> setOf('a', 'b', 't')   // s grenzt an Stufe3 (a), Stufe2 (b), neutral (t)
+                'a', 't' -> setOf('s')
+                'b' -> setOf('s')
                 else -> emptySet()
             }
         }
         val out = KeyScaleLogic.scales(mapOf('a' to 1.0, 'b' to 0.6), neighborsOf)
-        val sNearStrong = out['s']!!
-        assertTrue(sNearStrong < 1f && sNearStrong >= KeyScaleLogic.MIN_NEIGHBOR_SCALE)
+        // Nachbar einer Stufe-3-Taste → stärkste Verkleinerung
+        assertEquals(KeyScaleLogic.MIN_NEIGHBOR_SCALE, out['s']!!, 0.001f)
+        // 't' hat nur neutrale Nachbarn → bleibt neutral
+        assertFalse(out.containsKey('t'))
+    }
+
+    @Test
+    fun neighborOfMidStepKey_getsMilderShrink() {
+        val neighborsOf: (Char) -> Set<Char> = { c ->
+            when (c) {
+                's' -> setOf('b')   // s grenzt NUR an eine Stufe-2-Taste
+                'b' -> setOf('s')
+                else -> emptySet()
+            }
+        }
+        // a = Stufe 3 (rel 1.0), b = Stufe 2 (rel 0.6); s grenzt nur an b
+        val out = KeyScaleLogic.scales(mapOf('a' to 1.0, 'b' to 0.6), neighborsOf)
+        assertEquals(KeyScaleLogic.MID_NEIGHBOR_SCALE, out['s']!!, 0.001f)
     }
 
     @Test

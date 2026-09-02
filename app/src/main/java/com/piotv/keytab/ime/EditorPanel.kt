@@ -37,6 +37,7 @@ class EditorPanel(
         fileLabel?.text = editorFile.name
         setupSave(rootView)
         setupLoad(rootView)
+        setupClipPaste(rootView)
     }
 
     /** Text + Cursorposition (für die Wortvorhersage), null wenn nicht bereit. */
@@ -84,6 +85,22 @@ class EditorPanel(
         } else {
             editable.delete(cursor - 1, cursor)
             et.setSelection(cursor - 1)
+        }
+    }
+
+    /**
+     * 📋-Taste (neben Save/Load): fügt den aktuellen Clipboard-Inhalt direkt
+     * an der Cursorposition in das Editorfeld ein.
+     */
+    private fun setupClipPaste(root: View) {
+        root.findViewById<Button>(R.id.btn_editor_clip)?.setOnClickListener {
+            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            val text = cm?.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString()
+            if (text.isNullOrBlank()) {
+                Toast.makeText(context, context.getString(R.string.clip_empty), Toast.LENGTH_SHORT).show()
+            } else {
+                insert(text)
+            }
         }
     }
 

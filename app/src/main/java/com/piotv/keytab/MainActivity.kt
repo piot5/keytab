@@ -7,12 +7,17 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.inputmethod.InputMethodManager
+import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.Spinner
 import android.widget.Toast
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import com.piotv.keytab.ime.KeyboardLanguage
+import com.piotv.keytab.ime.Languages
 
 /**
  * KeyTab – Einstellungsbildschirm: Tastatur aktivieren/wechseln, Theme.
@@ -32,6 +37,14 @@ class MainActivity : AppCompatActivity() {
         const val KEY_TERM_TAB = "term_tab_enabled"
         const val KEY_SUGGESTIONS = "suggestions_enabled"
         const val KEY_DYNAMIC_KEYS = "dynamic_keys_enabled"
+        const val KEY_LANGUAGE = "language"
+
+        /** Aktive Sprache aus den Einstellungen (Default Deutsch). */
+        fun activeLanguage(context: Context): KeyboardLanguage {
+            val code = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getString(KEY_LANGUAGE, "de")
+            return Languages.byCode(code)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +54,28 @@ class MainActivity : AppCompatActivity() {
         // Zahlenreihe-Umschalter (wirkt beim nächsten Öffnen der Tastatur)
         val swNumRow = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_num_row)
         val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+        // Sprachauswahl (Spinner) – wirkt beim nächsten Öffnen der Tastatur
+        val langSpinner = findViewById<Spinner>(R.id.spinner_language)
+        val names = Languages.all.map { it.displayName }
+        langSpinner.adapter = ArrayAdapter(
+            this, android.R.layout.simple_spinner_item, names
+        ).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        val currentIndex = Languages.all.indexOfFirst { it.code == activeLanguage(this).code }
+        langSpinner.setSelection(currentIndex.coerceAtLeast(0))
+        langSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, pos: Int, id: Long) {
+                val lang = Languages.all.getOrNull(pos) ?: return
+                val prev = prefs.getString(KEY_LANGUAGE, "de")
+                if (prev == lang.code) return
+                prefs.edit().putString(KEY_LANGUAGE, lang.code).apply()
+                Toast.makeText(this@MainActivity,
+                    getString(R.string.language_changed_to, lang.displayName), Toast.LENGTH_SHORT).show()
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
         swNumRow.isChecked = prefs.getBoolean(KEY_NUM_ROW, false)
         swNumRow.setOnCheckedChangeListener { _, checked ->
             prefs.edit().putBoolean(KEY_NUM_ROW, checked).apply()

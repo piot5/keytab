@@ -5,13 +5,11 @@
     <string name="tab_keyboard">abc</string>
     <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Files</string>
-    <string name="ime_tab_editor">Notes</string>
-    <string name="clip_add">＋ Add</string>
-    <string name="clip_clear">🗑</string>
-    <string name="clip_hint_empty">No entries yet – copy something and tap “＋ Add”.</string>
+            <string name="ime_tab_editor">Notes</string>
+    <string name="editor_hint">Type text here …</string>
     <string name="editor_save">💾 Save</string>
     <string name="editor_load">📂 Load</string>
-    <string name="editor_hint">Type text here …</string>
+    <string name="clip_hint_empty">No entries yet – copy something and tap 📋.</string>
     <string name="new_tab">＋</string>
     <string name="up_dir">▲</string>
     <string name="keyboard_not_enabled">KeyTab is not enabled as a keyboard yet.</string>

@@ -113,61 +113,50 @@ class ClipboardPanelTest {
         cm.setPrimaryClip(ClipData.newPlainText("test", text))
     }
 
-    private fun panel(root: View, canAutoCapture: Boolean = true) =
-        ClipboardPanel(app, root, directExecutor, Handler(Looper.getMainLooper()),
+    private fun panel(canAutoCapture: Boolean = true) =
+        ClipboardPanel(app, directExecutor, Handler(Looper.getMainLooper()),
             onCommit = {}, canAutoCapture = { canAutoCapture })
-
-    private fun clipCount(root: View): Int =
-        root.findViewById<ListView>(R.id.clip_list).adapter.count
-
-    private fun clipItem(root: View, pos: Int): String =
-        root.findViewById<ListView>(R.id.clip_list).adapter.getItem(pos) as String
 
     @Test
     fun `capture nimmt Clipboard auf und Liste zeigt es`() {
         setClipboard("hallo welt")
-        val root = inflateKeyboardRoot(app)
-        val p = panel(root)
+        val p = panel()
         p.onSelected()
-        assertEquals(1, clipCount(root))
-        assertEquals("hallo welt", clipItem(root, 0))
+        assertEquals(1, p.entries().size)
+        assertEquals("hallo welt", p.entries()[0])
     }
 
     @Test
     fun `Persistenz - zweite Panel-Instanz laedt Historie`() {
         setClipboard("eintrag eins")
-        panel(inflateKeyboardRoot(app)).onSelected()
+        panel().onSelected()
         // zweite Instanz: lädt beim Init die persistierte Historie
-        val root2 = inflateKeyboardRoot(app)
-        panel(root2)
-        assertEquals(1, clipCount(root2))
-        assertEquals("eintrag eins", clipItem(root2, 0))
+        val p2 = panel()
+        assertEquals(1, p2.entries().size)
+        assertEquals("eintrag eins", p2.entries()[0])
     }
 
     @Test
     fun `Auto-Capture wird blockiert wenn IME nicht fokussiert`() {
         setClipboard("geheim")
-        val root = inflateKeyboardRoot(app)
-        val p = panel(root, canAutoCapture = false)
+        val p = panel(canAutoCapture = false)
         p.onSelected()
-        assertEquals(0, clipCount(root))
+        assertEquals(0, p.entries().size)
     }
 
     @Test
     fun `Duplikate werden nicht doppelt aufgenommen`() {
         setClipboard("x")
-        val root = inflateKeyboardRoot(app)
-        val p = panel(root)
+        val p = panel()
         p.onSelected()
         p.onSelected()
-        assertEquals(1, clipCount(root))
+        assertEquals(1, p.entries().size)
     }
 
     @Test
     fun `leeres Clipboard fuehrt zu leerer Liste ohne Crash`() {
-        val root = inflateKeyboardRoot(app)
-        val p = panel(root)
+        val p = panel()
         p.onSelected()
-        assertTrue(clipCount(root) >= 0)
+        assertTrue(p.entries().isEmpty())
     }
 }

@@ -171,12 +171,16 @@ class KeyTabImeService : InputMethodService() {
         root.findViewById<View>(R.id.num_row)?.visibility =
             if (baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
                     .getBoolean(com.piotv.keytab.MainActivity.KEY_NUM_ROW, false)) View.VISIBLE else View.GONE
-        fileManagerPanel = FileManagerPanel(this, root, ioExecutor, mainHandler) { commitText(it) }
+                                fileManagerPanel = FileManagerPanel(this, root, ioExecutor, mainHandler) { commitText(it) }
         editorPanel = EditorPanel(this, root, ioExecutor, mainHandler)
         terminalPanel = TerminalPanel(this, root, mainHandler)
-        clipboardPanel = ClipboardPanel(this, root, ioExecutor, mainHandler,
+        clipboardPanel = ClipboardPanel(this, ioExecutor, mainHandler,
             onCommit = { commitToApp(it) },
             canAutoCapture = { isInputViewShown })
+        // 📋-Button öffnet den Clipboard-Picker; gewählter Eintrag → Editorfeld einfügen
+        editorPanel?.setClipboardPicker {
+            clipboardPanel?.showPicker { editorPanel?.insert(it) ?: commitToApp(it) }
+        }
         setupTabs(root)
         hookKeyboardButtons(root)
         applyLetterCase(root)

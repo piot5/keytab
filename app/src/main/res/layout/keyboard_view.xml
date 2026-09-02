@@ -111,16 +111,18 @@
                 style="@style/KeyEditorBar"
                 android:text="@string/editor_load" />
 
-            <Button
+                        <Button
                 android:id="@+id/btn_editor_save"
                 style="@style/KeyEditorBar"
                 android:text="@string/editor_save" />
 
-            <!-- Clipboard direkt ins Editorfeld einfügen -->
+            <!-- Clipboard: alle Einträge über Picker-Dialog -->
             <Button
                 android:id="@+id/btn_editor_clip"
                 style="@style/KeyEditorBar"
                 android:text="📋" />
+
+
 
             <TextView
                 android:id="@+id/editor_file"
@@ -144,42 +146,6 @@
             android:textColor="@color/text_primary"
             android:hint="@string/editor_hint"
             android:padding="8dp" />
-
-        <!-- Clipboard-Historie (ehem. eigener Ablage-Tab) -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="@color/key_bg">
-
-            <Button
-                android:id="@+id/btn_clip_add"
-                style="@style/KeyEditorBar"
-                android:text="@string/clip_add" />
-
-            <Button
-                android:id="@+id/btn_clip_clear"
-                style="@style/KeyEditorBar"
-                android:text="@string/clip_clear" />
-
-            <TextView
-                android:id="@+id/clip_hint"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:textSize="11sp"
-                android:textColor="@color/text_secondary"
-                android:padding="4dp" />
-        </LinearLayout>
-
-        <ListView
-            android:id="@+id/clip_list"
-            android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:background="@color/list_bg" />
     </LinearLayout>
 
     <!-- Terminal ÜBER den Buchstaben (nur im Terminal-Tab sichtbar):

@@ -53,12 +53,13 @@ class KeyTabImeService : InputMethodService() {
         const val SUN_SYMBOL = "\u2600\uFE0E"  // ☀ (Text-Präsentation)
         const val MOON_SYMBOL = "\u263E\uFE0E" // ☾ (Text-Präsentation)
         const val KEY_USER_DICT = "user_dict"
-        const val ASSET_DE_FREQ = "de_freq_top6000.txt"
     }
 
     // ---------- Wortvorhersage (SuggestionEngine, siehe Klasse) ----------
     private var suggestionEngine: SuggestionEngine? = null
     private var engineLoading = false
+    /** Sprache, für die die Engine zuletzt geladen wurde (für Sprachwechsel-Erkennung). */
+    private var engineLanguage: String? = null
     private var currentTypedWord = ""
     private var prevTypedWord: String? = null
     private val suggestionViews = arrayOfNulls<TextView>(3)
@@ -84,48 +85,12 @@ class KeyTabImeService : InputMethodService() {
     private var terminalPanel: TerminalPanel? = null
     private var clipboardPanel: ClipboardPanel? = null
 
-    private val letterExtras = mapOf(
-        // === EXAKT wie FlorisBoard popupMappings/de.json (KeyVariation.ALL) ===
-        // Reihenfolge = akzent-Priorität, Hauptzeichen (main) ist der erste Eintrag.
-        'a' to listOf("ä", "æ", "ã", "å", "ā", "â", "à", "á"),
-        'A' to listOf("Ä", "Æ", "Ã", "Å", "Ā", "Â", "À", "Á"),
-        'c' to listOf("ç"),
-        'C' to listOf("Ç"),
-        'e' to listOf("é", "ē", "ê", "è", "ë"),
-        'E' to listOf("É", "Ē", "Ê", "È", "Ë"),
-        'i' to listOf("í", "ì", "ï", "î", "ī"),
-        'I' to listOf("Í", "Ì", "Ï", "Î", "Ī"),
-        'n' to listOf("ñ", "ń"),
-        'N' to listOf("Ñ", "Ń"),
-        'o' to listOf("ö", "ō", "ø", "õ", "œ", "ó", "ò", "ô"),
-        'O' to listOf("Ö", "Ō", "Ø", "Õ", "Œ", "Ó", "Ò", "Ô"),
-        // case_selector: ß<->ẞ (FlorisBoard verwendet case_selector)
-        's' to listOf("ß", "š", "ś"),
-        'S' to listOf("ẞ", "Š", "Ś"),
-        'u' to listOf("ü", "ū", "ù", "û", "ú"),
-        'U' to listOf("Ü", "Ū", "Ù", "Û", "Ú"),
-        // Komma-Taste (rechts unten): FlorisBoard "~right" mit & % + " - : ' @ ; / ( ) # ! ?
-        ',' to listOf("&", "%", "+", "\"", "-", ":", "'", "@", ";", "/", "(", ")", "#", "!", "?"),
-        // Interpunktion auf Buchstaben-Tasten (Long-Press) – nur auf Tasten ohne Akzent-Konflikt.
-        // Erster Eintrag = Hinweis-Zeichen rechts unten auf der Taste.
-        'r' to listOf(".", ","),
-        't' to listOf("?", "!"),
-        'z' to listOf("!"),
-        'p' to listOf("/", "\\", "|"),
-        'f' to listOf("@", "#", "&"),
-        'g' to listOf("(", "[", "{"),
-        'h' to listOf(")", "]", "}"),
-        'j' to listOf(":", ";"),
-        'k' to listOf(";", ":"),
-        'l' to listOf(",", "\"", "'"),
-        'm' to listOf("&", "%", "*"),
-        'v' to listOf("\""),
-        'b' to listOf("'"),
-        'x' to listOf("+", "-", "="),
-        'w' to listOf("-", "_"),
-        'y' to listOf("#", "$", "€"),
-        'd' to listOf("_")
-    )
+    /** Aktive Sprache (aus Einstellungen, default Deutsch). */
+    private var activeLanguage: KeyboardLanguage = Languages.de
+
+    /** Kombinierte Long-Press-Zuordnungen der aktiven Sprache (Akzente + Interpunktion). */
+    private val letterExtras: Map<Char, List<String>>
+        get() = activeLanguage.letterExtras(Languages.basePunctuation)
 
     /**
      * Alte Panel-Instanzen freigeben, bevor der Input-View neu aufgebaut wird.
@@ -177,6 +142,14 @@ class KeyTabImeService : InputMethodService() {
         clipboardPanel = ClipboardPanel(this, ioExecutor, mainHandler,
             onCommit = { commitToApp(it) },
             canAutoCapture = { isInputViewShown })
+        // Aktive Sprache aus den Einstellungen übernehmen (wirkt beim nächsten Öffnen)
+        val newLang = com.piotv.keytab.MainActivity.activeLanguage(baseContext)
+        if (newLang.code != engineLanguage) {
+            // Sprache gewechselt → Engine mit neuem Wortschatz neu laden
+            suggestionEngine = null
+            engineLoading = false
+        }
+        activeLanguage = newLang
         // 📋-Button öffnet den Clipboard-Picker; gewählter Eintrag → Editorfeld einfügen
         editorPanel?.setClipboardPicker {
             clipboardPanel?.showPicker(keyboardRoot?.windowToken) {
@@ -206,10 +179,10 @@ class KeyTabImeService : InputMethodService() {
         if (suggestionEngine == null && !engineLoading) {
             engineLoading = true
             ioExecutor.execute {
-                // Basiswortschatz: FrequencyWords de_50k (CC-BY-SA-4.0), Top 6000
+                // Basiswortschatz der aktiven Sprache (FrequencyWords, CC-BY-SA-4.0), Top 6000
                 val words = mutableListOf<Pair<String, Int>>()
                 try {
-                    assets.open(ASSET_DE_FREQ).bufferedReader().useLines { lines ->
+                    assets.open(activeLanguage.assetName).bufferedReader().useLines { lines ->
                         for (line in lines) {
                             val sp = line.trim().split(' ')
                             if (sp.size == 2) {
@@ -220,6 +193,7 @@ class KeyTabImeService : InputMethodService() {
                     }
                 } catch (_: Exception) { /* Asset fehlt: Engine läuft nur mit gelernten Wörtern */ }
                 val engine = SuggestionEngine(words)
+                engineLanguage = activeLanguage.code
                 // Gelerntes User-Dictionary wiederherstellen
                 val saved = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_USER_DICT, null)
                 if (saved != null) engine.restoreUserDict(saved)

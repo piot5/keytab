@@ -88,4 +88,7 @@
     <string name="editor_pick_empty">Empty folder</string>
     <string name="terminal_send">Send</string>
     <string name="terminal_hint">command…</string>
+    <string name="settings_language_label">Keyboard language</string>
+    <string name="settings_suggestions_label">Suggestions</string>
+    <string name="language_changed_to">Language: %1$s</string>
 </resources>

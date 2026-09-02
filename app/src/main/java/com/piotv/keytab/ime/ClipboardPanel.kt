@@ -23,7 +23,6 @@ import java.util.concurrent.Executor
  */
 class ClipboardPanel(
     private val context: Context,
-    root: View,
     private val ioExecutor: Executor,
     private val mainHandler: Handler,
     private val onCommit: (String) -> Unit,
@@ -34,33 +33,16 @@ class ClipboardPanel(
         const val MAX_ENTRIES = 50
     }
 
-    private val list = root.findViewById<ListView>(R.id.clip_list)
-    private val hint = root.findViewById<TextView>(R.id.clip_hint)
     private val history = mutableListOf<String>()
 
     init {
         loadHistory()
-        root.findViewById<Button>(R.id.btn_clip_add)?.setOnClickListener {
-            val text = currentClipboardText()
-            if (text == null) {
-                Toast.makeText(context, context.getString(R.string.clip_empty), Toast.LENGTH_SHORT).show()
-            } else {
-                capture()
-                refresh()
-            }
-        }
-        root.findViewById<Button>(R.id.btn_clip_clear)?.setOnClickListener {
-            history.clear()
-            persistAsync()
-            refresh()
-        }
-        list?.setOnItemClickListener { _, _, position, _ ->
-            history.getOrNull(position)?.let(onCommit)
-        }
-        refresh()
     }
 
-    /** Wird beim Wechsel auf den Ablage-Tab aufgerufen. */
+    /** Öffentliche Historie (für die Picker-Dialoge und Tests). */
+    fun entries(): List<String> = history.toList()
+
+    /** Wird beim Wechsel auf den Ablage-/Editor-Tab aufgerufen. */
     fun onSelected() {
         if (canAutoCapture()) capture()
         refresh()
@@ -71,7 +53,7 @@ class ClipboardPanel(
         return cm.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString()?.takeIf { it.isNotBlank() }
     }
 
-    private fun capture() {
+    fun capture() {
         val text = currentClipboardText() ?: return
         if (history.firstOrNull() == text) return
         history.removeAll { it == text }
@@ -81,9 +63,31 @@ class ClipboardPanel(
     }
 
     private fun refresh() {
-        hint?.text = if (history.isEmpty()) context.getString(R.string.clip_hint_empty)
-        else context.getString(R.string.clip_hint_count, history.size)
-        list?.adapter = themedAdapter(context, history.map { TextEditLogic.clipDisplayText(it) })
+        // UI-Refresh übernimmt der Picker-Dialog beim Öffnen (lazy)
+    }
+
+    fun clear() {
+        history.clear()
+        persistAsync()
+    }
+
+    /**
+     * Zeigt alle Clipboard-Einträge als Picker-Dialog an; [onPick] liefert den
+     * gewählten Eintrag zurück (z. B. in das aktive Eingabefeld einsetzen).
+     */
+    fun showPicker(onPick: (String) -> Unit) {
+        val items = history.map { TextEditLogic.clipDisplayText(it) }
+        if (items.isEmpty()) {
+            Toast.makeText(context, context.getString(R.string.clip_hint_empty), Toast.LENGTH_SHORT).show()
+            return
+        }
+        android.app.AlertDialog.Builder(context)
+            .setTitle(R.string.clip_pick_title)
+            .setItems(items.toTypedArray()) { _, which ->
+                history.getOrNull(which)?.let(onPick)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun historyFile(): File = File(context.filesDir, "clipboard_history.txt")
@@ -94,6 +98,7 @@ class ClipboardPanel(
         ioExecutor.execute {
             try { f.writeText(encoded) } catch (_: Exception) {}
         }
+        mainHandler.post { refresh() }
     }
 
     private fun loadHistory() {

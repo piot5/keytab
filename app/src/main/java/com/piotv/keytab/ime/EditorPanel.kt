@@ -29,15 +29,23 @@ class EditorPanel(
     private val mainHandler: Handler
 ) {
 
-                    private val input: EditText? = rootView.findViewById(R.id.editor_input)
+                        private val input: EditText? = rootView.findViewById(R.id.editor_input)
     private val fileLabel: TextView? = rootView.findViewById(R.id.editor_file)
     private var editorFile: File = defaultFile()
+
+    /** Callback, der den Clipboard-Picker öffnet (wird vom Service nach dem Panel verknüpft). */
+    private var clipboardPicker: (() -> Unit)? = null
 
     init {
         fileLabel?.text = editorFile.name
         setupSave(rootView)
         setupLoad(rootView)
         setupClipPaste(rootView)
+    }
+
+    /** Verknüpft den 📋-Button mit dem Clipboard-Picker des Services. */
+    fun setClipboardPicker(picker: (() -> Unit)?) {
+        clipboardPicker = picker
     }
 
     /** Text + Cursorposition (für die Wortvorhersage), null wenn nicht bereit. */
@@ -88,20 +96,18 @@ class EditorPanel(
         }
     }
 
-    /**
-     * 📋-Taste (neben Save/Load): fügt den aktuellen Clipboard-Inhalt direkt
-     * an der Cursorposition in das Editorfeld ein.
+        /**
+     * 📋-Taste (neben Save/Load): öffnet den Picker aller Clipboard-Einträge.
      */
     private fun setupClipPaste(root: View) {
         root.findViewById<Button>(R.id.btn_editor_clip)?.setOnClickListener {
-            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-            val text = cm?.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString()
-            if (text.isNullOrBlank()) {
-                Toast.makeText(context, context.getString(R.string.clip_empty), Toast.LENGTH_SHORT).show()
-            } else {
-                insert(text)
-            }
+            clipboardPicker?.invoke() ?: insert(currentClipboardText())
         }
+    }
+
+    private fun currentClipboardText(): String {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        return cm?.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString() ?: ""
     }
 
     private fun setupSave(root: View) {

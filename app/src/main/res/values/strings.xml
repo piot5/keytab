@@ -3,12 +3,12 @@
     <string name="ime_label">KeyTab Keyboard</string>
     <string name="tab_files">Files</string>
     <string name="tab_keyboard">abc</string>
-    <string name="ime_tab_letters">abc</string>
+            <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Files</string>
     <string name="ime_tab_editor">Notes</string>
     <string name="clip_add">＋ Add</string>
-    <string name="clip_clear">🗑</string>
-    <string name="clip_hint_empty">No entries yet — copy something and tap „＋ Add“.</string>
+    <string name="clip_hint_empty">No entries yet — copy something, then tap 📋.</string>
+    <string name="clip_pick_title">Clipboard history</string>
     <string name="editor_save">💾 Save</string>
     <string name="editor_load">📂 Load</string>
     <string name="editor_hint">Type here …</string>

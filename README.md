@@ -32,82 +32,75 @@ Install: open the APK in a file manager (allow "install unknown apps"), then ena
 
 **File manager in the keyboard** -- browse folders, switch tabs, navigate with back-stack and parent-navigation. Tapping a file inserts its path; in the app it opens via VIEW-Intent. Each tab remembers its own directory. Listing runs asynchronously so large folders don't freeze the UI.
 
-**Word prediction** -- offline n-gram model (FrequencyWords de_50k, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings.
+**Word prediction** -- offline n-gram model (FrequencyWords, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings.
 
-**Dynamic key sizing** -- likely-next keys scale up to 1.15x, unlikely ones down to 0.85x, driven by the current suggestion scores. Toggleable in settings.
+**Dynamic key sizing** -- likely-next keys scale up to 1.30× (stepped grades 1.30×/1.15×), unlikely ones shrink down to 0.85× — but only in the direct neighborhood of enlarged keys, driven by the current suggestion scores. Toggleable in settings.
 
-**Notes tab** -- editor and clipboard merged into one tab. The "Load" button opens a folder browser (IME dialog with proper window token). The clipboard holds up to 50 persistent entries; tapping one inserts directly into the target field (the editor does not intercept it -- only Load fills the editor).
+**Multi-language** -- modular latin-script support (7 languages: de, en, es, fr, it, pt, nl). Each language ships its own frequency corpus and language-specific accent popups (long-press). Switch instantly in settings; the suggestion engine reloads on the fly.
 
-**Terminal tab** -- optional interactive shell in the keyboard, togglable in settings.
+**Notes tab** -- editor and clipboard merged into one tab. The "Load" button opens a folder browser (IME dialog with proper window token). The clipboard holds up to 50 persistent entries; the 📋 button opens a picker dialog to insert any entry directly into the target field.
+
+**Terminal tab** -- optional interactive shell in the keyboard, togglable in settings. Black background with standard prompt `user@host:~$` and cd tracking.
 
 **Keyboard** -- full InputMethodService with TAB key (sends KEYCODE_TAB, useful for Termux/SSH), shift/caps-lock, long-press popups for umlauts/special characters, accelerating backspace on long-press (250ms down to 30ms).
 
 **Privacy** -- no network permission, no data collection. All data stays on the device.
-
 ## Architecture
 
-`KeyTabImeService` is the keyboard core. Sub-features live in their own classes:
+`KeyTabImeService` is the keyboard core. Every feature lives in its own class —
+panels for UI, pure modules for logic (Android-free and unit-testable):
 
 | Class | Responsibility |
 |---|---|
 | `FileManagerPanel` | File manager (navigation, async listing) |
 | `EditorPanel` | Notes editor with save/load and folder browser |
-| `ClipboardPanel` | Clipboard history |
-| `SuggestionEngine` | Word prediction (offline, testable) |
+| `ClipboardPanel` | Clipboard history (picker dialog) |
 | `TerminalPanel` | Interactive shell |
+| `WordPredictionManager` | Suggestion orchestration (engine load, bar render, learn words, language reload) |
+| `DynamicKeyScaler` | Maps suggestion scores → key sizes via neighbor-aware scaling |
+| `SuggestionEngine` | Pure word prediction (offline, unit-tested) |
+| `KeyScaleLogic` | Pure scaling math (stepped grades 1.30×/1.15×, shrink 0.85×/0.925×) |
+| `LanguageModule` | Multi-language registry (7 latin scripts) + per-language accents |
 | `TextEditLogic` | Pure, Android-free text logic |
 
 All panels share a background executor for file I/O and a main handler for UI updates; stale results are discarded on navigation.
 
 ## Tests
 
-```bash
-./gradlew :app:testDebugUnitTest
-```
+Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`) are fully Android-free and fast.
 
-20 unit tests for `TextEditLogic`, 11 Robolectric panel tests, 19 tests for `SuggestionEngine`. The logic class is intentionally Android-free so it runs without an emulator.
+```bash
+# Run all unit tests
+sh ./gradlew :app:testDebugUnitTest
+
+# Run only the Android-free logic tests (fast, no Robolectric)
+sh ./gradlew :app:testDebugUnitTest --tests "com.piotv.keytab.ime.SuggestionEngineTest" --tests "com.piotv.keytab.ime.TextEditLogicTest" --tests "com.piotv.keytab.ime.KeyScaleLogicTest" --tests "com.piotv.keytab.ime.KeyTabConfigTest"
+
+# Run a single test class
+sh ./gradlew :app:testDebugUnitTest --tests "com.piotv.keytab.ime.SuggestionEngineTest"
+```
 
 ## Build
 
-### On a PC
+KeyTab builds with Gradle on-device (Android 7+, API 24+). No Android Studio needed.
 
 ```bash
-./gradlew :app:assembleDebug
-# APK: app/build/outputs/apk/debug/app-debug.apk
+# Debug build
+bash build_keytab.sh debug
+
+# Release build (signed, with R8 minification)
+bash build_keytab.sh release
+
+# Install via Shizuku/rish
+bash install_keytab.sh
 ```
 
-Requires JDK 17 and Android SDK (compileSdk 34). Set the SDK path in `local.properties` (`sdk.dir=...`) or via `ANDROID_HOME`.
+### Building on Android (Termux/proot)
 
-### Release signing
+The bundled `gradlew` works in Ubuntu-proot on Android. Two caveats:
 
-The release keystore lives at **`keystore/keytab-release.jks`** (local only, git-ignored — **back it up**, it is required to sign updates with the same signature).
-
-```bash
-# Defaults: keystore/keytab-release.jks, store/key password "keytab-release", alias "keytab"
-./gradlew :app:assembleRelease
-# APK: app/build/outputs/apk/release/app-release.apk
-```
-
-Override via environment variables:
-
-| Variable | Purpose |
-|---|---|
-| `KEYTAB_KEYSTORE` | Path to the `.jks` keystore |
-| `KEYTAB_KEYSTORE_PASSWORD` | Keystore password |
-| `KEYTAB_KEY_ALIAS` | Key alias (`keytab`) |
-| `KEYTAB_KEY_PASSWORD` | Key password |
-
-> CI note: lintVital is disabled (`lint { checkReleaseBuilds = false }`) because `lint-gradle` downloads break behind restrictive TLS environments.
-
-### On a device (ARM64 / Proot / Termux)
-
-Google's `aapt2` is x86_64-only. Use the ARM build tools from <https://github.com/lzhiyong/android-sdk-tools> and set in `~/.gradle/gradle.properties`:
-```
-android.aapt2FromMavenOverride=/path/to/aapt2
-```
-
-Building directly on the SD card is unreliable (the Gradle daemon gets killed, FUSE file locks cause issues). Copy the project to internal storage and build there:
-
+- The Gradle wrapper JAR is re-downloaded on first run (TLS can break in proot). If that fails, run Gradle once with a working network connection.
+- Building directly on the SD card is unreliable (the Gradle daemon gets killed, FUSE file locks cause issues). Copy the project to internal storage and build there:
 ```bash
 cp -r /path/to/keytab ~/build/
 cd ~/build/keytab
@@ -142,27 +135,46 @@ Or copy the APK, open it in a file manager, and confirm the package installer di
 
 ```
 app/src/main/java/com/piotv/keytab/
-├── MainActivity.kt              # Settings: enable keyboard, theme, toggles
-├── file/FileManagerFragment.kt  # File manager in the app (with DiffUtil)
+├── MainActivity.kt                  # Settings: enable keyboard, theme, language, toggles
+├── file/FileManagerFragment.kt      # File manager in the app (with DiffUtil)
 └── ime/
-    ├── KeyTabImeService.kt      # Keyboard core: keys, shift, popups, tabs
-    ├── FileManagerPanel.kt      # IME file manager
-    ├── EditorPanel.kt           # Notes editor with folder browser
-    ├── ClipboardPanel.kt        # Clipboard history
-    ├── SuggestionEngine.kt      # Word prediction
-    ├── TerminalPanel.kt         # Interactive shell
-    ├── LetterPopup.kt           # Long-press characters + drag selection
-    └── TextEditLogic.kt         # Pure, testable text logic
+    ├── KeyTabImeService.kt          # Keyboard core: keys, shift, popups, tabs
+    ├── FileManagerPanel.kt          # IME file manager
+    ├── EditorPanel.kt               # Notes editor with folder browser
+    ├── ClipboardPanel.kt            # Clipboard history (picker dialog)
+    ├── TerminalPanel.kt             # Interactive shell
+    ├── WordPredictionManager.kt     # Suggestion orchestration (engine load, bar render, language reload)
+    ├── DynamicKeyScaler.kt          # Maps suggestion scores → key sizes (neighbor-aware)
+    ├── SuggestionEngine.kt          # Pure word prediction (offline, unit-tested)
+    ├── KeyScaleLogic.kt             # Pure scaling math (stepped grades)
+    ├── LanguageModule.kt            # Multi-language registry (7 latin scripts) + accents
+    ├── LetterPopup.kt               # Long-press characters + drag selection
+    └── TextEditLogic.kt             # Pure, testable text logic
 app/src/test/java/com/piotv/keytab/ime/
-├── PanelsTest.kt                # 11 Robolectric tests
-├── SuggestionEngineTest.kt      # 19 unit tests
-└── TextEditLogicTest.kt         # 20 unit tests
+├── PanelsTest.kt                    # Clipboard + editor panels (Robolectric)
+├── SuggestionEngineTest.kt          # 19 unit tests
+├── TextEditLogicTest.kt             # 20 unit tests
+└── KeyScaleLogicTest.kt             # 10 unit tests
 app/src/main/assets/
-└── de_freq_top6000.txt          # Frequency corpus (CC-BY-SA-4.0)
+├── de_freq_top6000.txt              # German corpus (CC-BY-SA-4.0)
+├── en_freq_top6000.txt              # English corpus (CC-BY-SA-4.0)
+├── es_freq_top6000.txt              # Spanish corpus (CC-BY-SA-4.0)
+├── fr_freq_top6000.txt              # French corpus (CC-BY-SA-4.0)
+├── it_freq_top6000.txt              # Italian corpus (CC-BY-SA-4.0)
+├── pt_freq_top6000.txt              # Portuguese corpus (CC-BY-SA-4.0)
+└── nl_freq_top6000.txt              # Dutch corpus (CC-BY-SA-4.0)
 ```
-
 ## Changelog
 
+### 0.8.0
+
+- **Multi-language support** (modular, latin-script only): 7 languages (de, en, es, fr, it, pt, nl), each with its own frequency corpus and language-specific accent popups. Switch in settings; engine reloads on the fly.
+- **Architecture**: refactored into dedicated modules — `WordPredictionManager` (suggestion orchestration), `DynamicKeyScaler` (neighbor-aware key sizing), `LanguageModule` (registry + accents), alongside existing `SuggestionEngine`, `KeyScaleLogic`, `TextEditLogic`.
+- Clipboard history moved into a picker dialog (📋 button in Notes tab); inline clipboard list removed.
+- Dynamic key sizing: stepped grades (1.30×/1.15×), shrink limited to direct neighbors (0.85×/0.925×).
+- Terminal: black theme + standard prompt `user@host:~$` with cd tracking.
+- BadToken fix for IME dialogs (proper window token).
+- Upgraded unit tests: 58 tests across `SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, panels.
 ### 0.7.2
 
 - Housekeeping: removed stray debug APK from repo root, aligned version metadata (0.7.2, versionCode 14), fastlane changelog added

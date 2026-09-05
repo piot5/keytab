@@ -4,32 +4,49 @@ package com.piotv.keytab.ime
  * Reine (Android-freie) Logik für die dynamische Tastenskalierung.
  *
  * Gestuftes Modell („Stufen“ analog zur Wahrscheinlichkeit):
- * - Stufe 3: rel ≥ 0.75 → 1.30× (größte Stufe)
- * - Stufe 2: rel ≥ 0.55 → 1.15×
+ * - Stufe 3: rel ≥ hotThreshold → maxScale (größte Stufe)
+ * - Stufe 2: rel ≥ midThreshold → midScale
  * - Verkleinerung ausschließlich im direkten Umfeld vergrößerter Tasten,
  *   ebenfalls gestuft nach Stärke des vergrößerten Nachbarn:
- *   Nachbar von Stufe 3 → 0.85×, Nachbar von Stufe 2 → 0.925×
+ *   Nachbar von Stufe 3 → minNeighborScale, Nachbar von Stufe 2 → midNeighborScale
  * - Alle übrigen Tasten neutral (1.0×; in der Map nicht enthalten).
+ *
+ * Die Schwellen/Skalen sind über [params] zur Laufzeit konfigurierbar
+ * (KeyTab-Konfigurationsdatei, siehe [KeyTabConfig]).
  */
 object KeyScaleLogic {
 
-    /** Größte Vergrößerungsstufe (höchste Wahrscheinlichkeit). */
+    /** Größte Vergrößerungsstufe (höchste Wahrscheinlichkeit). Default. */
     const val MAX_SCALE = 1.30f
 
-    /** Zweite Vergrößerungsstufe. */
+    /** Zweite Vergrößerungsstufe. Default. */
     const val MID_SCALE = 1.15f
 
-    /** Schwellwert für die zweite Stufe (relative Wahrscheinlichkeit). */
+    /** Schwellwert für die zweite Stufe (relative Wahrscheinlichkeit). Default. */
     const val MID_THRESHOLD = 0.55
 
-    /** Schwellwert für die größte Stufe (relative Wahrscheinlichkeit). */
+    /** Schwellwert für die größte Stufe (relative Wahrscheinlichkeit). Default. */
     const val HOT_THRESHOLD = 0.75
 
-    /** Stärkste Verkleinerung direkt neben einer Stufe-3-Taste. */
+    /** Stärkste Verkleinerung direkt neben einer Stufe-3-Taste. Default. */
     const val MIN_NEIGHBOR_SCALE = 0.85f
 
-    /** Verkleinerung direkt neben einer Stufe-2-Taste. */
+    /** Verkleinerung direkt neben einer Stufe-2-Taste. Default. */
     const val MID_NEIGHBOR_SCALE = 0.925f
+
+    /** Konfigurierbare Parameter (Defaults = obige Konstanten). */
+    data class Params(
+        val maxScale: Float = MAX_SCALE,
+        val midScale: Float = MID_SCALE,
+        val hotThreshold: Double = HOT_THRESHOLD,
+        val midThreshold: Double = MID_THRESHOLD,
+        val minNeighborScale: Float = MIN_NEIGHBOR_SCALE,
+        val midNeighborScale: Float = MID_NEIGHBOR_SCALE
+    )
+
+    /** Aktive Parameter; werden aus der KeyTab-Konfigurationsdatei gesetzt. */
+    @Volatile
+    var params: Params = Params()
 
     /**
      * Berechnet die Skalierung pro Buchstabe.
@@ -42,6 +59,7 @@ object KeyScaleLogic {
         scores: Map<Char, Double>,
         neighborsOf: (Char) -> Set<Char>
     ): Map<Char, Float> {
+        val p = params
         val maxScore = scores.values.maxOrNull() ?: return emptyMap()
         if (maxScore <= 0.0) return emptyMap()
 
@@ -50,8 +68,8 @@ object KeyScaleLogic {
         // 1) Vergrößerung: gestuft proportional zur Wahrscheinlichkeit
         val out = HashMap<Char, Float>()
         for ((c, r) in rel) {
-            if (r >= HOT_THRESHOLD) out[c] = MAX_SCALE
-            else if (r >= MID_THRESHOLD) out[c] = MID_SCALE
+            if (r >= p.hotThreshold) out[c] = p.maxScale
+            else if (r >= p.midThreshold) out[c] = p.midScale
         }
 
         // 2) Verkleinerung: nur direkte Nachbarn vergrößerter Tasten, gestuft
@@ -61,10 +79,10 @@ object KeyScaleLogic {
         for (c in candidates) {
             if (out.containsKey(c)) continue
             val hotNeighborRel = neighborsOf(c).mapNotNull { rel[it] }
-                .filter { it >= MID_THRESHOLD }
+                .filter { it >= p.midThreshold }
                 .maxOrNull() ?: continue
-            out[c] = if (hotNeighborRel >= HOT_THRESHOLD) MIN_NEIGHBOR_SCALE
-            else MID_NEIGHBOR_SCALE
+            out[c] = if (hotNeighborRel >= p.hotThreshold) p.minNeighborScale
+            else p.midNeighborScale
         }
         return out
     }

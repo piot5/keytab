@@ -70,6 +70,9 @@
     <string name="settings_dynamic_keys">Dynamic key size (likely keys bigger)</string>
     <string name="settings_dynamic_keys_on">Dynamic key sizing enabled</string>
     <string name="settings_dynamic_keys_off">Dynamic key sizing disabled</string>
+    <string name="settings_update_config">⚙️ Konfiguration schreiben (keytab_config.txt)</string>
+    <string name="config_ready">Konfiguration bereit: %1$s</string>
+    <string name="config_exists">Datei existiert bereits — Werte direkt editieren, wirkt beim nächsten Öffnen der Tastatur</string>
     <string name="terminal_start_failed">Could not start shell.</string>
     <string name="terminal_shell_dead">Shell is not running.</string>
     <string name="ime_tab_editor_short">Notes</string>

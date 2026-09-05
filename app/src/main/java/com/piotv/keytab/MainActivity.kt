@@ -38,6 +38,7 @@ class MainActivity : AppCompatActivity() {
         const val KEY_SUGGESTIONS = "suggestions_enabled"
         const val KEY_DYNAMIC_KEYS = "dynamic_keys_enabled"
         const val KEY_LANGUAGE = "language"
+        const val KEY_USER_DICT = "user_dict"
 
         /** Aktive Sprache aus den Einstellungen (Default Deutsch). */
         fun activeLanguage(context: Context): KeyboardLanguage {
@@ -108,6 +109,17 @@ class MainActivity : AppCompatActivity() {
             prefs.edit().putBoolean(KEY_DYNAMIC_KEYS, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_dynamic_keys_on
             else R.string.settings_dynamic_keys_off, Toast.LENGTH_SHORT).show()
+        }
+
+        // Konfigurationsdatei schreiben/aktualisieren (Werte direkt editierbar)
+        findViewById<Button>(R.id.btn_update_config).setOnClickListener {
+            val dir = getExternalFilesDir(null) ?: filesDir
+            val f = java.io.File(dir, com.piotv.keytab.ime.KeyTabConfig.FILE_NAME)
+            val created = com.piotv.keytab.ime.KeyTabConfig.writeDefault(f, overwrite = false)
+            Toast.makeText(this,
+                getString(R.string.config_ready, f.absolutePath) +
+                    if (created) "" else "\n(" + getString(R.string.config_exists) + ")",
+                Toast.LENGTH_LONG).show()
         }
 
         findViewById<Button>(R.id.btn_enable_keyboard).setOnClickListener {

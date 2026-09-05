@@ -1,5 +1,6 @@
 package com.piotv.keytab.ime
 
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Typeface
@@ -24,6 +25,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.google.android.material.tabs.TabLayout
+import com.piotv.keytab.MainActivity
 import com.piotv.keytab.R
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -55,16 +57,10 @@ class KeyTabImeService : InputMethodService() {
         const val KEY_USER_DICT = "user_dict"
     }
 
-    // ---------- Wortvorhersage (SuggestionEngine, siehe Klasse) ----------
-    private var suggestionEngine: SuggestionEngine? = null
-    private var engineLoading = false
-    /** Sprache, für die die Engine zuletzt geladen wurde (für Sprachwechsel-Erkennung). */
-    private var engineLanguage: String? = null
-    private var currentTypedWord = ""
-    private var prevTypedWord: String? = null
+    // ---------- Module ----------
     private val suggestionViews = arrayOfNulls<TextView>(3)
-    // Aktuelle Vorschläge (für dynamische Tastengröße: nächster Buchstabe → Wahrscheinlichkeit)
-    private var currentSuggestions: List<SuggestionEngine.Suggestion> = emptyList()
+    private var keyScaler: DynamicKeyScaler? = null
+    private var predictionManager: WordPredictionManager? = null
 
     private var shifted = false
     private var capsLock = false
@@ -88,6 +84,13 @@ class KeyTabImeService : InputMethodService() {
     /** Aktive Sprache (aus Einstellungen, default Deutsch). */
     private var activeLanguage: KeyboardLanguage = Languages.de
 
+    /**
+     * Aktive Konfiguration (aus keytab_config.txt im externen Files-Dir,
+     * Defaults wenn fehlend). Wird bei jedem Aufbau der Tastatur neu geladen,
+     * damit Änderungen über die App ohne Neustart greifen.
+     */
+    private var config: KeyTabConfig = KeyTabConfig()
+
     /** Kombinierte Long-Press-Zuordnungen der aktiven Sprache (Akzente + Interpunktion). */
     private val letterExtras: Map<Char, List<String>>
         get() = activeLanguage.letterExtras(Languages.basePunctuation)
@@ -106,6 +109,7 @@ class KeyTabImeService : InputMethodService() {
         clipboardPanel = null
         keyboardRoot = null
         suggestionViews.fill(null)
+        baseLetters.clear()
     }
 
     override fun onCreateInputView(): View {
@@ -123,6 +127,16 @@ class KeyTabImeService : InputMethodService() {
         val root = inflater.cloneInContext(themedContext)
             .inflate(R.layout.keyboard_view, null)
         keyboardRoot = root
+        // Konfiguration laden (Skalierung, Verschiebung, Seiten-Hinweise)
+        config = KeyTabConfig.load(configFile())
+        KeyScaleLogic.params = KeyScaleLogic.Params(
+            maxScale = config.maxScale,
+            midScale = config.midScale,
+            hotThreshold = config.hotThreshold,
+            midThreshold = config.midThreshold,
+            minNeighborScale = config.minNeighborScale,
+            midNeighborScale = config.midNeighborScale
+        )
         // Theme-Umschalter-Icon passend zum aktiven Modus – monochrom (☾ Dark / ☀ Light),
         // kräftige Schrift in key_text (sw) und kleiner als zuvor
         val themeBtn = root.findViewById<Button>(R.id.key_theme)
@@ -143,13 +157,51 @@ class KeyTabImeService : InputMethodService() {
             onCommit = { commitToApp(it) },
             canAutoCapture = { isInputViewShown })
         // Aktive Sprache aus den Einstellungen übernehmen (wirkt beim nächsten Öffnen)
-        val newLang = com.piotv.keytab.MainActivity.activeLanguage(baseContext)
-        if (newLang.code != engineLanguage) {
-            // Sprache gewechselt → Engine mit neuem Wortschatz neu laden
-            suggestionEngine = null
-            engineLoading = false
+        activeLanguage = com.piotv.keytab.MainActivity.activeLanguage(baseContext)
+        // Module einhängen
+        predictionManager = WordPredictionManager(
+            baseContext, ioExecutor, mainHandler, suggestionViews,
+            inputOps = object : WordPredictionManager.InputOperations {
+                override fun deleteBefore(count: Int) {
+                    if (editorActive) editorPanel?.deleteBefore(count)
+                    else if (terminalActive) terminalPanel?.deleteBefore(count)
+                    else currentInputConnection?.deleteSurroundingText(count, 0)
+                }
+                override fun deleteBeforeKeys(count: Int) {
+                    if (editorActive) { editorPanel?.deleteBefore(count); return }
+                    if (terminalActive) { terminalPanel?.deleteBefore(count); return }
+                    // KEYCODE_DEL-Key-Events: funktioniert auch in Feldern, die
+                    // deleteSurroundingText ignorieren (z. B. Termux, WebView)
+                    repeat(count.coerceAtLeast(0)) { sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL) }
+                }
+                override fun textBefore(count: Int): String {
+                    if (editorActive) {
+                        val ctx = editorPanel?.cursorContext() ?: return ""
+                        val (t, cursor) = ctx
+                        val start = (cursor - count).coerceAtLeast(0)
+                        return t.substring(start, cursor).toString()
+                    }
+                    if (terminalActive) {
+                        val ctx = terminalPanel?.cursorContext() ?: return ""
+                        val (t, cursor) = ctx
+                        val start = (cursor - count).coerceAtLeast(0)
+                        return t.substring(start, cursor).toString()
+                    }
+                    return currentInputConnection?.getTextBeforeCursor(count, 0)?.toString() ?: ""
+                }
+                override fun insert(text: String) {
+                    if (editorActive) editorPanel?.insert(text)
+                    else if (terminalActive) terminalPanel?.insert(text)
+                    else currentInputConnection?.commitText(text, 1)
+                }
+                override fun commitToApp(text: String) {
+                    currentInputConnection?.commitText(text, 1)
+                }
+            }
+        ).also { pm ->
+            pm.setOnEngineReady { updateSuggestions() }
         }
-        activeLanguage = newLang
+        keyScaler = DynamicKeyScaler(baseLetters)
         // 📋-Button öffnet den Clipboard-Picker; gewählter Eintrag → Editorfeld einfügen
         editorPanel?.setClipboardPicker {
             clipboardPanel?.showPicker(keyboardRoot?.windowToken) {
@@ -159,13 +211,13 @@ class KeyTabImeService : InputMethodService() {
         setupTabs(root)
         hookKeyboardButtons(root)
         applyLetterCase(root)
+        // Suggestion-Views holen, Module starten (Engine lazy, Skaler aufbauen)
         setupSuggestions(root)
         return root
     }
 
-    // ===================== Wortvorhersage =====================
+    // ===================== Wortvorhersage (Module) =====================
 
-    /** Suggestion-Bar verkabeln + Engine im Hintergrund laden (einmalig). */
     private fun setupSuggestions(root: View) {
         suggestionViews[0] = root.findViewById(R.id.sug_1)
         suggestionViews[1] = root.findViewById(R.id.sug_2)
@@ -176,193 +228,46 @@ class KeyTabImeService : InputMethodService() {
                 applySuggestion(word)
             }
         }
-        if (suggestionEngine == null && !engineLoading) {
-            engineLoading = true
-            ioExecutor.execute {
-                // Basiswortschatz der aktiven Sprache (FrequencyWords, CC-BY-SA-4.0), Top 6000
-                val words = mutableListOf<Pair<String, Int>>()
-                try {
-                    assets.open(activeLanguage.assetName).bufferedReader().useLines { lines ->
-                        for (line in lines) {
-                            val sp = line.trim().split(' ')
-                            if (sp.size == 2) {
-                                val f = sp[1].toIntOrNull() ?: continue
-                                words.add(sp[0] to f)
-                            }
-                        }
-                    }
-                } catch (_: Exception) { /* Asset fehlt: Engine läuft nur mit gelernten Wörtern */ }
-                val engine = SuggestionEngine(words)
-                engineLanguage = activeLanguage.code
-                // Gelerntes User-Dictionary wiederherstellen
-                val saved = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_USER_DICT, null)
-                if (saved != null) engine.restoreUserDict(saved)
-                suggestionEngine = engine
-                mainHandler.post { updateSuggestions() }
-            }
-        }
-        // Platzhalter: Leiste von Anfang an sichtbar (fixer Platz → kein Auf-/Zupoppen
-        // beim ersten Tippen). Nur wenn Vorschläge in den Einstellungen deaktiviert sind, ausblenden.
+        // Engine der aktiven Sprache laden (async, bei Wechsel: Reload)
+        predictionManager?.loadEngine(activeLanguage)
+        // Nachhalten der Tasten-Nachbarschaft für den dynamischen Skaler
+        keyScaler?.rebuildNeighbors()
+        // Platzhalter: Leiste von Anfang an sichtbar (fixer Platz → kein Auf-/Zupoppen)
         val enabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
             .getBoolean(com.piotv.keytab.MainActivity.KEY_SUGGESTIONS, true)
         root.findViewById<View>(R.id.suggestion_bar)?.visibility =
             if (enabled) View.VISIBLE else View.GONE
     }
 
-    /** Aktuelles Teilwort + Wort davor aus dem aktiven Eingabekontext ermitteln. */
-    private fun wordContext(): Pair<String, String?> =
-        currentTypedWord to prevTypedWord
-
-    /** Vorschläge berechnen und in der Leiste anzeigen. Die Leiste bleibt immer sichtbar (kein Auf-/Zupoppen). */
+    /** Vorschläge berechnen (Manager) + Tasten skalieren. */
     private fun updateSuggestions() {
         val bar = keyboardRoot?.findViewById<View>(R.id.suggestion_bar) ?: return
-        // Optionale Darstellung: in den Einstellungen deaktiviert → Bar komplett ausblenden
-        val enabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+        val suggestionEnabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
             .getBoolean(com.piotv.keytab.MainActivity.KEY_SUGGESTIONS, true)
-        if (!enabled) {
-            bar.visibility = View.GONE
-            return
-        }
-        val engine = suggestionEngine
-        val list = if (engine == null) emptyList() else {
-            val (typed, prev) = wordContext()
-            try {
-                engine.suggest(typed, prev)
-            } catch (_: Exception) { emptyList() }
-        }
-        // Leiste bleibt sichtbar, auch ohne Vorschläge (fixer Platz, kein Aufpoppen)
-        if (list.isEmpty()) {
-            currentSuggestions = emptyList()
-            for (i in 0..2) {
-                val tv = suggestionViews[i] ?: continue
-                tv.visibility = View.INVISIBLE
-                tv.tag = null
-            }
-            bar.visibility = View.VISIBLE
-            updateDynamicKeys()
-            return
-        }
-        for (i in 0..2) {
-            val tv = suggestionViews[i] ?: continue
-            val sug = list.getOrNull(i)
-            if (sug == null) {
-                tv.visibility = View.INVISIBLE
-                tv.tag = null
-            } else {
-                tv.visibility = View.VISIBLE
-                tv.text = engine!!.matchCase(sug.word, currentTypedWord)
-                tv.tag = sug.word
-            }
-        }
-        currentSuggestions = list
-        bar.visibility = View.VISIBLE
+        predictionManager?.updateSuggestions(bar, suggestionEnabled)
         updateDynamicKeys()
     }
 
-    /**
-     * Optionale dynamische Tastengröße: Buchstaben, die als nächstes wahrscheinlich
-     * getippt werden (gewichtete Vorschlags-Scores), werden proportional zur
-     * Wahrscheinlichkeit vergrößert (bis 1,30×). Verkleinert (bis 0,85×) werden
-     * ausschließlich die direkten Nachbartasten vergrößerter Tasten; alle übrigen
-     * bleiben neutral. Logik: [KeyScaleLogic] (pure, unit-getestet).
-     */
+    /** Dynamische Tastengröße (Skaler-Modul). */
     private fun updateDynamicKeys() {
         val enabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
             .getBoolean(com.piotv.keytab.MainActivity.KEY_DYNAMIC_KEYS, true)
-        if (!enabled) {
-            for ((btn, _) in baseLetters) {
-                btn.scaleX = 1f
-                btn.scaleY = 1f
-            }
-            return
-        }
-        // Nächsten Buchstaben pro Vorschlag gewichtet mit dessen Score akkumulieren
-        val charScore = HashMap<Char, Double>()
-        for (sug in currentSuggestions) {
-            val nextChar = sug.word.getOrNull(currentTypedWord.length)?.lowercaseChar() ?: continue
-            charScore[nextChar] = (charScore[nextChar] ?: 0.0) + sug.score
-        }
-        val neighbors = keyNeighborLetters()
-        val scaleMap = KeyScaleLogic.scales(charScore, neighbors)
-        for ((btn, letter) in baseLetters) {
-            val s = scaleMap[letter.lowercaseChar()] ?: 1f
-            btn.scaleX = s
-            btn.scaleY = s
-        }
+        val pm = predictionManager
+        keyScaler?.apply(pm?.currentSuggestions ?: emptyList(), pm?.currentTypedWord?.length ?: 0, enabled)
     }
 
-    /**
-     * Direkte Nachbarschaft der Buchstaben-Tasten: gleiche Zeile ±1 Spalte,
-     * direkt angrenzende Zeile mit ±1 Spalte. Fallback (leer) = keine Verkleinerung.
-     */
-    private fun keyNeighborLetters(): (Char) -> Set<Char> {
-        val byRow = baseLetters.keys.groupBy { it.parent as? android.view.ViewGroup }
-        val rows = byRow.keys.filterNotNull()
-            .sortedBy { row -> (row.parent as? android.view.ViewGroup)?.indexOfChild(row) ?: 0 }
-        val cellOf = HashMap<Button, Pair<Int, Int>>() // row, col
-        rows.forEachIndexed { r, row ->
-            byRow[row]?.forEach { btn -> cellOf[btn] = r to row.indexOfChild(btn) }
-        }
-        val neighborButtons = HashMap<Char, MutableSet<Char>>()
-        for ((btn, letter) in baseLetters) {
-            val (r, c) = cellOf[btn] ?: continue
-            val key = letter.lowercaseChar()
-            val set = neighborButtons.getOrPut(key) { mutableSetOf() }
-            for ((other, otherLetter) in baseLetters) {
-                if (other === btn) continue
-                val (r2, c2) = cellOf[other] ?: continue
-                val sameRow = r2 == r && kotlin.math.abs(c2 - c) == 1
-                val adjacentRow = kotlin.math.abs(r2 - r) == 1 && kotlin.math.abs(c2 - c) <= 1
-                if (sameRow || adjacentRow) set.add(otherLetter.lowercaseChar())
-            }
-        }
-        return { c -> neighborButtons[c] ?: emptySet() }
+// keyNeighborLetters logic moved to DynamicKeyScaler
+
+    /** Pfad der Konfigurationsdatei (externes Files-Dir; dort direkt editierbar). */
+    private fun configFile(): java.io.File {
+        val dir = baseContext.getExternalFilesDir(null) ?: baseContext.filesDir
+        return java.io.File(dir, KeyTabConfig.FILE_NAME)
     }
 
-    /** Wortabschluss (Space/Punkt/Enter): lernen + Vorschläge aktualisieren. */
-    private fun onWordCompleted() {
-        if (currentTypedWord.isNotEmpty()) {
-            suggestionEngine?.learn(prevTypedWord, currentTypedWord)
-            prevTypedWord = currentTypedWord.lowercase()
-            currentTypedWord = ""
-            persistUserDict()
-        }
-    }
-
-    /** User-Dictionary asynchron in Preferences sichern. */
-    private fun persistUserDict() {
-        val engine = suggestionEngine ?: return
-        val raw = engine.serializeUserDict()
-        ioExecutor.execute {
-            getSharedPreferences(PREFS, MODE_PRIVATE)
-                .edit().putString(KEY_USER_DICT, raw).apply()
-        }
-    }
-
-    /**
-     * Vorschlag übernehmen: aktuelles Teilwort löschen, Wort + Space einfügen,
-     * als Bigramm lernen (der getippte Teil zählt als abgeschlossen).
-     */
+    /** Vorschlag übernehmen (delegiert an Manager). */
     private fun applySuggestion(word: String) {
         haptic()
-        val typedLen = currentTypedWord.length
-        val fullWord = suggestionEngine?.matchCase(word, currentTypedWord) ?: word
-        val insert = "$fullWord "
-        if (editorActive) {
-            if (typedLen > 0) editorPanel?.deleteBefore(typedLen)
-            editorPanel?.insert(insert)
-        } else if (terminalActive) {
-            if (typedLen > 0) terminalPanel?.deleteBefore(typedLen)
-            terminalPanel?.insert(insert)
-        } else {
-            val ic = currentInputConnection ?: return
-            if (typedLen > 0) ic.deleteSurroundingText(typedLen, 0)
-            ic.commitText(insert, 1)
-        }
-        suggestionEngine?.learn(prevTypedWord, fullWord)
-        prevTypedWord = fullWord.lowercase()
-        currentTypedWord = ""
-        persistUserDict()
+        predictionManager?.applySuggestion(word)
         if (shifted && !capsLock) {
             shifted = false
             updateShiftVisual(keyboardRoot)
@@ -587,7 +492,7 @@ class KeyTabImeService : InputMethodService() {
                         letterPopup.dismiss()
                         if (picked != null) commitText(picked.toString())
                     } else {
-                        commitText(btn.text.toString().first().toString())
+                        commitText(tapLetter(btn))
                     }
                     true
                 }
@@ -612,7 +517,7 @@ class KeyTabImeService : InputMethodService() {
                     if (editorActive) editorPanel?.delete(word = false)
                     else if (terminalActive) terminalPanel?.delete(word = false)
                     else sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
-                    currentTypedWord = currentTypedWord.dropLast(1).takeIf { it.isNotEmpty() } ?: ""
+                    predictionManager?.deleteLast()
                     updateSuggestions()
                     pendingLongPress = Runnable {
                         deleteLastWord()
@@ -644,9 +549,26 @@ class KeyTabImeService : InputMethodService() {
         }
     }
 
+    /**
+     * Hauptbuchstabe einer Buchstaben-Taste für den Tap (Shift/Caps beachten).
+     * WICHTIG: nicht btn.text lesen — dort stehen inzwischen auch die
+     * Sonderzeichen-Hinweise an den Rändern (applyLetterCase).
+     */
+    private fun tapLetter(btn: Button): String {
+        val base = baseLetters[btn] ?: btn.text?.toString()?.firstOrNull() ?: return ""
+        val upper = shifted || capsLock
+        val ch = when {
+            upper && base == 'ß' -> 'ẞ'
+            upper -> base.uppercaseChar()
+            else -> base.lowercaseChar()
+        }
+        return ch.toString()
+    }
+
     private fun showLetterExtras(anchor: Button) {
-        val letter = anchor.text?.firstOrNull() ?: return
-        val base = baseLetters[anchor] ?: letter.lowercaseChar()
+        // Basis IMMER aus baseLetters (nicht btn.text — dort stehen inzwischen
+        // auch die Sonderzeichen-Hinweise an den Rändern)
+        val base = baseLetters[anchor] ?: return
         val upper = shifted || capsLock
         val showExtras = letterExtras[if (upper) base.uppercaseChar() else base]
             ?: letterExtras[base]
@@ -730,7 +652,7 @@ class KeyTabImeService : InputMethodService() {
         } else {
             ic.deleteSurroundingText(1, 0)
         }
-        currentTypedWord = ""
+        predictionManager?.reset()
         updateSuggestions()
     }
 
@@ -745,11 +667,11 @@ class KeyTabImeService : InputMethodService() {
         }
         // Wortvorhersage-Buchführung: Buchstaben sammeln, Abschluss lernen
         if (text.length == 1 && text[0].isLetter()) {
-            currentTypedWord += text[0]
+            predictionManager?.onCharacter(text)
         } else if (text == " " || text == "." || text == "\n") {
-            onWordCompleted()
-        } else if (currentTypedWord.isNotEmpty() && !text[0].isLetter()) {
-            onWordCompleted()
+            predictionManager?.onWordCompleted()
+        } else if ((predictionManager?.currentTypedWord?.isNotEmpty() == true) && !text[0].isLetter()) {
+            predictionManager?.onWordCompleted()
         }
         if (shifted && !capsLock) {
             shifted = false
@@ -794,7 +716,11 @@ class KeyTabImeService : InputMethodService() {
     }
 
     override fun onDestroy() {
-        persistUserDict()
+        predictionManager?.engine?.let {
+            val raw = it.serializeUserDict()
+            baseContext.getSharedPreferences(MainActivity.PREFS, Context.MODE_PRIVATE)
+                .edit().putString(MainActivity.KEY_USER_DICT, raw).apply()
+        }
         letterPopup.dismiss()
         longPressHandler.removeCallbacksAndMessages(null)
         super.onDestroy()

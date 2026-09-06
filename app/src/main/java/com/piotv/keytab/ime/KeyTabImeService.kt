@@ -658,12 +658,26 @@ class KeyTabImeService : InputMethodService() {
 
     private fun commitText(text: String) {
         haptic()
+        // Aktive Autokorrektur (v0.9.1): Space nach unbekanntem Wort → Wort
+        // ersetzen, wenn ein klarer Wörterbuch-Kandidat existiert (nur App-Felder;
+        // Editor/Terminal buchen ihren Text selbst).
+        if (text == " " && !editorActive && !terminalActive &&
+            predictionManager?.autoCorrectBeforeSpace() == true
+        ) {
+            if (shifted && !capsLock) {
+                shifted = false
+                updateShiftVisual(keyboardRoot)
+                applyLetterCase(keyboardRoot)
+            }
+            updateSuggestions()
+            return
+        }
         if (editorActive) {
             editorPanel?.insert(text)
         } else if (terminalActive) {
             terminalPanel?.insert(text)
         } else {
-            currentInputConnection?.commitText(text, 1)
+            runCatching { currentInputConnection?.commitText(text, 1) }
         }
         // Wortvorhersage-Buchführung: Buchstaben sammeln, Abschluss lernen
         if (text.length == 1 && text[0].isLetter()) {
@@ -687,7 +701,7 @@ class KeyTabImeService : InputMethodService() {
      */
     private fun commitToApp(text: String) {
         haptic()
-        currentInputConnection?.commitText(text, 1)
+        runCatching { currentInputConnection?.commitText(text, 1) }
         if (shifted && !capsLock) {
             shifted = false
             updateShiftVisual(keyboardRoot)

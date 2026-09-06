@@ -115,11 +115,45 @@ class SuggestionEngineTest {
 
     // ---------- Case-Matching ----------
 
+    // ---------- Case-Matching ----------
+
     @Test
     fun `grossschreibung wird uebertragen`() {
         val e = engine()
         assertEquals("Haus", e.matchCase("haus", "H"))
         assertEquals("haus", e.matchCase("haus", "h"))
         assertEquals("Haus", e.matchCase("haus", ""))
+    }
+
+    // ---------- Aktive Autokorrektur ----------
+
+    @Test
+    fun `tippfehler wird beim space korrigiert`() {
+        val e = engine()
+        assertEquals("haus", e.autoCorrect("hais"))
+        assertEquals("haus", e.autoCorrect("ahus")) // Transposition
+        assertEquals("wort", e.autoCorrect("wrot"))
+    }
+
+    @Test
+    fun `bekannte woerter werden nicht korrigiert`() {
+        val e = engine()
+        assertEquals(null, e.autoCorrect("haus"))
+        assertEquals(null, e.autoCorrect("das"))
+        assertEquals(null, e.autoCorrect("wort"))
+    }
+
+    @Test
+    fun `kurze woerter und garbagewort werden nie korrigiert`() {
+        val e = engine()
+        assertEquals(null, e.autoCorrect("dx")) // < 3 Zeichen
+        assertEquals(null, e.autoCorrect("xyzabc")) // kein Anfangs-Buchstaben-Match
+    }
+
+    @Test
+    fun `gelerntes user-wort schuetzt vor korrektur`() {
+        val e = engine()
+        repeat(3) { e.learn(null, "spezial") }
+        assertEquals(null, e.autoCorrect("spezial"))
     }
 }

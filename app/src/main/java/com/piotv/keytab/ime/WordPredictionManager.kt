@@ -183,6 +183,22 @@ class WordPredictionManager(
         }
     }
 
+    /**
+     * Aktive Autokorrektur beim Space (v0.9.1): Ist das getippte Wort ein
+     * offensichtlicher Tippfehler, wird es via [applySuggestion] durch den
+     * besten Wörterbuch-Kandidaten ersetzt (inkl. nachfolgendem Space).
+     *
+     * @return true, wenn korrigiert wurde (der Aufrufer committet dann KEINEN
+     *   zusätzlichen Space mehr), false wenn normal durchgelassen werden soll.
+     */
+    fun autoCorrectBeforeSpace(): Boolean {
+        val typed = currentTypedWord
+        if (typed.length < 3) return false
+        val corrected = engine?.autoCorrect(typed, prevTypedWord) ?: return false
+        applySuggestion(corrected)
+        return true
+    }
+
     private fun persistUserDict() {
         val eng = engine ?: return
         val raw = eng.serializeUserDict()

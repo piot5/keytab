@@ -191,6 +191,48 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             suggestion.replaceFirstChar { it.uppercase() }
         } else suggestion
 
+    // ---------- Aktive Autokorrektur (v0.9.1) ----------
+
+    /**
+     * Aktive Korrektur beim Wortabschluss (Space): Wenn [typed] kein bekanntes
+     * Wort ist, liefert diese Funktion den besten Kandidaten aus dem Wörterbuch
+     * (Damerau-Levenshtein ≤ 1 bzw. ≤ 2 ab 6 Zeichen), sonst null.
+     *
+     * Konservativ: Nur Wörter mit gleichem Anfangsbuchstaben, Kandidat muss
+     * eine Mindestfrequenz haben (kein User-Wort-Raten), kurz getippte Wörter
+     * (< 3 Zeichen) werden nie korrigiert.
+     */
+    fun autoCorrect(typed: String, prev: String? = null): String? {
+        if (typed.length < 3) return null
+        val cur = typed.lowercase()
+        // Bekanntes Wort (Basis- oder User-Dictionary) → nichts tun
+        if (baseFreq.containsKey(cur) || userFreq.containsKey(cur)) return null
+        // Direkte Vertauschung der ersten beiden Buchstaben (z. B. "ahus" → "haus")
+        if (cur.length >= 2) {
+            val swapped = "${cur[1]}${cur[0]}${cur.substring(2)}"
+            if (baseFreq.containsKey(swapped) || userFreq.containsKey(swapped)) return swapped
+        }
+        val maxDist = if (cur.length >= 6) 2 else 1
+        val first = cur[0]
+        val second = cur.getOrNull(1)
+        var best: String? = null
+        var bestScore = -Double.MAX_VALUE
+        val pool = baseFreq.keys.asSequence() + userFreq.keys.asSequence()
+        for (w in pool) {
+            // Erster ODER zweiter Buchstabe muss übereinstimmen — begrenzt Wild-Corrections
+            if (w[0] != first && w.getOrNull(1) != second) continue
+            if (w == cur) continue
+            val dist = editDistance(cur, w)
+            if (dist !in 1..maxDist) continue
+            val s = baseScore(w) + (userFreq[w] ?: 0.0) * 1.2
+                + (if (prev != null) bigrams["$prev $w"] ?: 0.0 else 0.0) * 3.0
+                - dist * 0.45
+            if (s > bestScore) { bestScore = s; best = w }
+        }
+        // Nur korrigieren, wenn der Kandidat ein echtes Wörterbuchwort ist
+        return best?.takeIf { baseFreq.containsKey(it) || (userFreq.containsKey(it) && bestScore > 0.3) }
+    }
+
     // ---------- Persistenz ----------
 
     /** User-Dictionary + Bigramme als kompakter String serialisieren. */

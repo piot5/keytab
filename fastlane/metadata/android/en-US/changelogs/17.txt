@@ -1,0 +1,5 @@
+v0.9.1
+
+- Aktive Autokorrektur: offensichtliche Tippfehler werden beim Space durch den besten Wörterbuch-Kandidaten ersetzt (Damerau-Levenshtein, konservativ: nur gleiche Anfangsbuchstaben, kein Ersetzen bekannter/gelernter Wörter)
+- Robustheit: InputConnection-Operationen mit Crash-Guards
+- Neue Unit-Tests für die Autokorrektur-Logik

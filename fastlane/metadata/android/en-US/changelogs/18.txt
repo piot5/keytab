@@ -1,0 +1,6 @@
+v0.9.2
+
+- Notes-Tab im Tastatur-Look: Load/Save/📋-Buttons wie abc-Tasten gestylt
+- 📋-Button lädt den Clipboard-Inhalt direkt ins Editorfeld (Long-Press = Picker)
+- Einstellungen: Version wird angezeigt, Abschnitte sortiert (Tastatur/Optionen/Speicher/Test)
+- Neuer Testbereich: Tastatur direkt in den Einstellungen ausprobieren

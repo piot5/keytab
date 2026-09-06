@@ -52,6 +52,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Versionszeile aus PackageManager
+        try {
+            val vName = packageManager.getPackageInfo(packageName, 0).versionName
+            findViewById<android.widget.TextView>(R.id.text_version).text =
+                getString(R.string.settings_version_label, vName)
+        } catch (_: Exception) { /* Fallback-Text bleibt */ }
+
         // Zahlenreihe-Umschalter (wirkt beim nächsten Öffnen der Tastatur)
         val swNumRow = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_num_row)
         val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)

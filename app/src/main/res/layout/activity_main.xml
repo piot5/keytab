@@ -1,101 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="32dp">
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/app_name"
-        android:textSize="34sp"
-        android:textStyle="bold"
-        android:gravity="center" />
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="24dp"
-        android:text="@string/app_subtitle"
-        android:textSize="15sp"
-        android:gravity="center" />
-    <Button
-        android:id="@+id/btn_enable_keyboard"
+    android:fillViewport="true">
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/enable_keyboard" />
-    <Button
-        android:id="@+id/btn_switch_keyboard"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/switch_keyboard" />
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="8dp"
-        android:text="@string/theme_label"
-        android:textSize="15sp" />
-    <Button
-        android:id="@+id/btn_request_manage_storage"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/request_storage_access" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/sw_num_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/settings_num_row" />
+        android:orientation="vertical"
+        android:padding="24dp">
 
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/sw_term_tab"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/settings_term_tab" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+        <TextView
+            android:id="@+id/text_version"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="16dp"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:text="@string/settings_version_fallback" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_subtitle"
+            android:textSize="14sp"
+            android:layout_marginBottom="20dp" />
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="8dp"
-        android:text="@string/settings_language_label"
-        android:textSize="15sp" />
-    <Spinner
-        android:id="@+id/spinner_language"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        <!-- ── Tastatur ─────────────────────────────────────────────── -->
+        <TextView
+            style="@style/SettingsSection"
+            android:text="@string/settings_section_keyboard" />
+        <Button
+            android:id="@+id/btn_enable_keyboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/enable_keyboard" />
+        <Button
+            android:id="@+id/btn_switch_keyboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/switch_keyboard" />
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="8dp"
-        android:text="@string/settings_suggestions_label"
-        android:textSize="15sp" />
+        <!-- ── Optionen ─────────────────────────────────────────────── -->
+        <TextView
+            style="@style/SettingsSection"
+            android:text="@string/settings_section_options" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/settings_language_label"
+            android:textSize="14sp" />
+        <Spinner
+            android:id="@+id/spinner_language"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_num_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_num_row" />
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_term_tab"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_term_tab" />
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_suggestions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_suggestions" />
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_dynamic_keys"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_dynamic_keys" />
 
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/sw_suggestions"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/settings_suggestions" />
+        <!-- ── Speicher & Konfiguration ─────────────────────────────── -->
+        <TextView
+            style="@style/SettingsSection"
+            android:text="@string/settings_section_storage" />
+        <Button
+            android:id="@+id/btn_request_manage_storage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/request_storage_access" />
+        <Button
+            android:id="@+id/btn_update_config"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_update_config" />
 
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/sw_dynamic_keys"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/settings_dynamic_keys" />
-
-    <Button
-        android:id="@+id/btn_update_config"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/settings_update_config" />
-</LinearLayout>
+        <!-- ── Testbereich ──────────────────────────────────────────── -->
+        <TextView
+            style="@style/SettingsSection"
+            android:text="@string/settings_section_test" />
+        <EditText
+            android:id="@+id/test_input"
+            android:layout_width="match_parent"
+            android:layout_height="110dp"
+            android:gravity="top|start"
+            android:inputType="textMultiLine"
+            android:hint="@string/settings_test_hint"
+            android:padding="8dp"
+            android:textSize="14sp" />
+    </LinearLayout>
+</ScrollView>

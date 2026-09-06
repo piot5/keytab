@@ -98,7 +98,7 @@
         android:orientation="vertical"
         android:visibility="gone">
 
-        <!-- Load/Save-Zeile: deutlich flacher (26dp statt 42dp) -->
+        <!-- Load/Save-Zeile: Buttons im abc-Tastatur-Look (KeyDark) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -108,21 +108,28 @@
 
             <Button
                 android:id="@+id/btn_editor_load"
-                style="@style/KeyEditorBar"
+                style="@style/KeyDark"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:paddingTop="0dp"
                 android:text="@string/editor_load" />
 
-                        <Button
+            <Button
                 android:id="@+id/btn_editor_save"
-                style="@style/KeyEditorBar"
+                style="@style/KeyDark"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:paddingTop="0dp"
                 android:text="@string/editor_save" />
 
-            <!-- Clipboard: alle Einträge über Picker-Dialog -->
+            <!-- Clipboard: Klick = Inhalt ins Editorfeld, Long-Press = Picker -->
             <Button
                 android:id="@+id/btn_editor_clip"
-                style="@style/KeyEditorBar"
+                style="@style/KeyDark"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:paddingTop="0dp"
                 android:text="📋" />
-
-
 
             <TextView
                 android:id="@+id/editor_file"

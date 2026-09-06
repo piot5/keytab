@@ -26,6 +26,15 @@
     <string name="key_enter_label">↵</string>
     <string name="close_tab">✕</string>
     <string name="app_subtitle">Keyboard with tabbed file manager</string>
+    <string name="settings_version_fallback">Version …</string>
+    <string name="settings_version_label">Version %1$s</string>
+    <string name="settings_section_keyboard">⌨️ Keyboard</string>
+    <string name="settings_section_options">⚙️ Options</string>
+    <string name="settings_section_storage">💾 Storage &amp; config</string>
+    <string name="settings_section_test">🧪 Test area</string>
+    <string name="settings_test_hint">Type here to test the keyboard …</string>
+    <string name="editor_clip_pasted">Clipboard inserted</string>
+    <string name="editor_clip_empty">Clipboard is empty</string>
     <string name="ime_tab_files_desc">Tabbed file manager — multiple tabs, navigation, open files</string>
     <string name="theme_label">Theme</string>
     <string name="theme_dark">🌙 Dark</string>

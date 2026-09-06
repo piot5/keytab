@@ -97,11 +97,24 @@ class EditorPanel(
     }
 
         /**
-     * 📋-Taste (neben Save/Load): öffnet den Picker aller Clipboard-Einträge.
+     * 📋-Taste (neben Save/Load): Klick = Clipboard-Inhalt direkt ins
+     * Editorfeld laden. Long-Press = Picker aller Clipboard-Einträge.
      */
     private fun setupClipPaste(root: View) {
-        root.findViewById<Button>(R.id.btn_editor_clip)?.setOnClickListener {
-            clipboardPicker?.invoke() ?: insert(currentClipboardText())
+        root.findViewById<Button>(R.id.btn_editor_clip)?.apply {
+            setOnClickListener {
+                val text = currentClipboardText()
+                if (text.isNullOrEmpty()) {
+                    Toast.makeText(context, R.string.editor_clip_empty, Toast.LENGTH_SHORT).show()
+                } else {
+                    insert(text)
+                    Toast.makeText(context, R.string.editor_clip_pasted, Toast.LENGTH_SHORT).show()
+                }
+            }
+            setOnLongClickListener {
+                clipboardPicker?.invoke() ?: insert(currentClipboardText())
+                true
+            }
         }
     }
 

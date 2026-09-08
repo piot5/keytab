@@ -156,4 +156,26 @@ class SuggestionEngineTest {
         repeat(3) { e.learn(null, "spezial") }
         assertEquals(null, e.autoCorrect("spezial"))
     }
+
+    @Test
+    fun `bigramm beeinflusst autokorrektur-kandidat`() {
+        val e = engine()
+        // "hane" ist dist=1 zu "hase" und "hand" — mit gelerntem Bigramm
+        // "die hase" (plus User-Dictionary-Eintrag) gewinnt "hase".
+        e.learn("die", "hase")
+        assertEquals("hase", e.autoCorrect("hane", "die"))
+        // Frische Engine ohne gelerntes "hase": das frequentere "hand" gewinnt
+        assertEquals("hand", engine().autoCorrect("hane", null))
+    }
+
+    @Test
+    fun `korrektur toleriert gross-kleinschreibung`() {
+        val e = engine()
+        // Satzbeginn: "Hais" → "haus" korrigiert, Großschreibung bleibt Sache
+        // des Aufrufers (matchCase), autoCorrect selbst liefert lowercase.
+        assertEquals("haus", e.autoCorrect("Hais"))
+        // GROSSGESCHRIEBENES bekanntes Wort wird nicht angetastet
+        assertEquals(null, e.autoCorrect("HAUS"))
+    }
 }
+

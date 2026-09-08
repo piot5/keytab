@@ -192,6 +192,10 @@ class WordPredictionManager(
      *   zusätzlichen Space mehr), false wenn normal durchgelassen werden soll.
      */
     fun autoCorrectBeforeSpace(): Boolean {
+        // Optional in den Einstellungen (Default: an)
+        if (!context.getSharedPreferences(MainActivity.PREFS, Context.MODE_PRIVATE)
+                .getBoolean(MainActivity.KEY_AUTOCORRECT, true)
+        ) return false
         val typed = currentTypedWord
         if (typed.length < 3) return false
         val corrected = engine?.autoCorrect(typed, prevTypedWord) ?: return false

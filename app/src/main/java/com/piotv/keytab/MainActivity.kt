@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
         const val KEY_NUM_ROW = "num_row"
         const val KEY_TERM_TAB = "term_tab_enabled"
         const val KEY_SUGGESTIONS = "suggestions_enabled"
+        const val KEY_AUTOCORRECT = "autocorrect_enabled"
         const val KEY_DYNAMIC_KEYS = "dynamic_keys_enabled"
         const val KEY_LANGUAGE = "language"
         const val KEY_USER_DICT = "user_dict"
@@ -107,6 +108,15 @@ class MainActivity : AppCompatActivity() {
             prefs.edit().putBoolean(KEY_SUGGESTIONS, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_suggestions_on
             else R.string.settings_suggestions_off, Toast.LENGTH_SHORT).show()
+        }
+
+        // Aktive Autokorrektur ein-/ausschalten (wirkt sofort)
+        val swAutoCorrect = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_autocorrect)
+        swAutoCorrect.isChecked = prefs.getBoolean(KEY_AUTOCORRECT, true)
+        swAutoCorrect.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(KEY_AUTOCORRECT, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_autocorrect_on
+            else R.string.settings_autocorrect_off, Toast.LENGTH_SHORT).show()
         }
 
         // Dynamische Tastengröße ein-/ausblenden (wirkt beim nächsten Öffnen)

@@ -202,6 +202,11 @@ class KeyTabImeService : InputMethodService() {
             pm.setOnEngineReady { updateSuggestions() }
         }
         keyScaler = DynamicKeyScaler(baseLetters)
+        // Skalierung darf über das Raster hinausragen: Clipping der gesamten
+        // View-Hierarchie deaktivieren (sonst werden vergrößerte Tasten an den
+        // Container-Grenzen abgeschnitten).
+        disableClipping(root)
+
         // 📋-Button öffnet den Clipboard-Picker; gewählter Eintrag → Editorfeld einfügen
         editorPanel?.setClipboardPicker {
             clipboardPanel?.showPicker(keyboardRoot?.windowToken) {
@@ -250,10 +255,15 @@ class KeyTabImeService : InputMethodService() {
 
     /** Dynamische Tastengröße (Skaler-Modul). */
     private fun updateDynamicKeys() {
-        val enabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
-            .getBoolean(com.piotv.keytab.MainActivity.KEY_DYNAMIC_KEYS, true)
+        val prefs = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+        val enabled = prefs.getBoolean(
+            com.piotv.keytab.MainActivity.KEY_DYNAMIC_KEYS, true)
         val pm = predictionManager
-        keyScaler?.apply(pm?.currentSuggestions ?: emptyList(), pm?.currentTypedWord?.length ?: 0, enabled)
+        keyScaler?.apply(
+            pm?.currentSuggestions ?: emptyList(),
+            pm?.currentTypedWord?.length ?: 0,
+            enabled
+        )
     }
 
 // keyNeighborLetters logic moved to DynamicKeyScaler
@@ -693,6 +703,21 @@ class KeyTabImeService : InputMethodService() {
             applyLetterCase(keyboardRoot)
         }
         updateSuggestions()
+    }
+
+    /**
+     * Deaktiviert Clipping für [v] und alle Eltern: vergrößerte/bewegte Tasten
+     * dürfen über die Raster- und Containergrenzen hinausragen.
+     */
+    private fun disableClipping(v: View?) {
+        var cur: View? = v
+        while (cur != null) {
+            if (cur is ViewGroup) {
+                cur.clipChildren = false
+                cur.clipToPadding = false
+            }
+            cur = cur.parent as? View
+        }
     }
 
     /**

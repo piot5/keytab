@@ -166,6 +166,10 @@ app/src/main/assets/
 ```
 ## Changelog
 
+### 0.9.3
+
+- **Tasten wachsen real**: dynamische Tastengröße wirkt jetzt auf das Layout-Gewicht (echte Größe + Trefferfläche), nicht nur auf die visuelle Transformation; zusätzlich ist das Clipping deaktiviert — vergrößerte Tasten ragen jetzt über die Rasterzelle/den Containerrand hinaus, statt abgeschnitten zu werden.
+
 ### 0.8.0
 
 - **Multi-language support** (modular, latin-script only): 7 languages (de, en, es, fr, it, pt, nl), each with its own frequency corpus and language-specific accent popups. Switch in settings; engine reloads on the fly.

@@ -2,6 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/kbd_bg"
     android:fillViewport="true">
     <LinearLayout
         android:layout_width="match_parent"
@@ -38,14 +39,13 @@
             android:text="@string/settings_section_keyboard" />
         <Button
             android:id="@+id/btn_enable_keyboard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+        style="@style/SettingsKeyButton"
+
             android:text="@string/enable_keyboard" />
         <Button
             android:id="@+id/btn_switch_keyboard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+        style="@style/SettingsKeyButton"
+
             android:text="@string/switch_keyboard" />
 
         <!-- ── Optionen ─────────────────────────────────────────────── -->
@@ -81,6 +81,12 @@
             android:layout_marginTop="8dp"
             android:text="@string/settings_suggestions" />
         <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_autocorrect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_autocorrect" />
+        <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/sw_dynamic_keys"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -93,14 +99,13 @@
             android:text="@string/settings_section_storage" />
         <Button
             android:id="@+id/btn_request_manage_storage"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+        style="@style/SettingsKeyButton"
+
             android:text="@string/request_storage_access" />
         <Button
             android:id="@+id/btn_update_config"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+        style="@style/SettingsKeyButton"
+
             android:text="@string/settings_update_config" />
 
         <!-- ── Testbereich ──────────────────────────────────────────── -->

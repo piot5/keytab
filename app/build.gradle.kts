@@ -11,8 +11,8 @@ android {
         applicationId = "com.piotv.keytab"
         minSdk = 24
         targetSdk = 34
-        versionCode = 18
-        versionName = "0.9.2"
+        versionCode = 19
+        versionName = "0.9.3"
     }
 
     buildTypes {
@@ -76,6 +76,10 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.8.2")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.12.2")
+    // aarch64-Hosts: Conscrypt 2.5.2 (Robolectric-Transitiv) hat keine linux-aarch_64
+    // Native-Bibliothek; 2.6.3 bringt libconscrypt_openjdk_jni-linux-aarch_64.so mit
+    // (in /usr/lib/jni installiert) und hebt die Klassen auf die gleiche Version.
+    testImplementation("org.conscrypt:conscrypt-openjdk-uber:2.6.3")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.test:runner:1.6.2")

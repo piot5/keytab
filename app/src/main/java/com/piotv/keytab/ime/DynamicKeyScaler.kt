@@ -2,6 +2,7 @@ package com.piotv.keytab.ime
 
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.LinearLayout
 import com.piotv.keytab.ime.KeyScaleLogic
 
 /**
@@ -23,31 +24,37 @@ class DynamicKeyScaler(
 
     /**
      * Skaliert alle Buchstaben-Tasten anhand der aktuellen Vorschläge.
+     * Wahrscheinliche Tasten wachsen real (Layout-Gewicht + visuelle Skalierung),
+     * unwahrscheinliche Nachbarn weichen aus.
      *
      * @param suggestions aktuelle Vorschläge (nächster Buchstabe + Score)
      * @param typedLength Länge des bereits getippten Teilworts
-     * @param enabled Feature-Flag (Einstellungen)
+     * @param enabled Feature-Flag (Einstellungen, Skalierung)
      */
     fun apply(
         suggestions: List<SuggestionEngine.Suggestion>,
         typedLength: Int,
         enabled: Boolean
     ) {
-        if (!enabled) {
-            for ((btn, _) in baseLetters) {
-                btn.scaleX = 1f
-                btn.scaleY = 1f
-            }
-            return
-        }
-        val charScore = HashMap<Char, Double>()
+        val charScore = HashMap<String, Double>()
         for (sug in suggestions) {
             val nextChar = sug.word.getOrNull(typedLength)?.lowercaseChar() ?: continue
-            charScore[nextChar] = (charScore[nextChar] ?: 0.0) + sug.score
+            charScore[nextChar.toString()] = (charScore[nextChar.toString()] ?: 0.0) + sug.score
         }
-        val scaleMap = KeyScaleLogic.scales(charScore, neighborLookup)
+        val scaleMap = if (enabled) {
+            KeyScaleLogic.scales(charScore.mapKeys { it.key.first() }, neighborLookup)
+        } else emptyMap()
+        // Echtes Wachstum statt nur Transformation: Das Layout-Gewicht bestimmt
+        // den tatsächlichen Platz in der Reihe — die Taste wird physisch größer
+        // (auch die Trefferfläche), Nachbarn weichen real aus. Gleichzeitig bleibt
+        // ein leichter visuelle Skalierung für den „über das Raster ragend“-Effekt.
         for ((btn, letter) in baseLetters) {
             val s = scaleMap[letter.lowercaseChar()] ?: 1f
+            val lp = btn.layoutParams as? LinearLayout.LayoutParams
+            if (lp != null && lp.weight != s) {
+                lp.weight = s
+                btn.layoutParams = lp
+            }
             btn.scaleX = s
             btn.scaleY = s
         }

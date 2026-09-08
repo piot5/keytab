@@ -83,6 +83,10 @@
     <string name="settings_suggestions">Word suggestions (click = insert)</string>
     <string name="settings_suggestions_on">Suggestions enabled</string>
     <string name="settings_suggestions_off">Suggestions disabled</string>
+    <string name="settings_autocorrect">Auto-correction (fix typos on space)</string>
+    <string name="settings_autocorrect_on">Auto-correction enabled</string>
+    <string name="settings_autocorrect_off">Auto-correction disabled</string>
+
     <string name="settings_dynamic_keys">Dynamic key size (likely keys bigger)</string>
     <string name="settings_dynamic_keys_on">Dynamic key sizing enabled</string>
     <string name="settings_dynamic_keys_off">Dynamic key sizing disabled</string>

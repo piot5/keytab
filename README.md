@@ -166,6 +166,10 @@ app/src/main/assets/
 ```
 ## Changelog
 
+### 0.9.4
+
+- Release-Fix: 0.9.3-Tag war nachträglich verschoben worden, das existierende GitHub-Release blockierte den CI-Upload → saubere Version 0.9.4 (versionCode 20). Inhaltlich identisch zu 0.9.3.
+
 ### 0.9.3
 
 - **Tasten wachsen real**: dynamische Tastengröße wirkt jetzt auf das Layout-Gewicht (echte Größe + Trefferfläche), nicht nur auf die visuelle Transformation; zusätzlich ist das Clipping deaktiviert — vergrößerte Tasten ragen jetzt über die Rasterzelle/den Containerrand hinaus, statt abgeschnitten zu werden.

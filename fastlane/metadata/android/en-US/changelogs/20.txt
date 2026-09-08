@@ -1,0 +1,1 @@
+Echtes Tasten-Wachstum (Layout-Gewicht + Skalierung, Clipping aus), Einstellungen im abc-Tastatur-Look, Autokorrektur-Pref im Manager geprüft.

@@ -37,7 +37,7 @@ jobs:
         id: notes
         run: |
           VC=$(sed -n 's/.*"versionCode": \([0-9]*\).*/\1/p' app/build/outputs/apk/release/output-metadata.json | head -1)
-          CL="app/fastlane/metadata/android/en-US/changelogs/${VC}.txt"
+          CL="fastlane/metadata/android/en-US/changelogs/${VC}.txt"
           if [ -f "$CL" ]; then
             { echo "body<<EOF"; cat "$CL"; echo "EOF"; } >> "$GITHUB_OUTPUT"
           else

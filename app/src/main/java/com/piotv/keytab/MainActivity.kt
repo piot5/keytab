@@ -152,6 +152,11 @@ class MainActivity : AppCompatActivity() {
             imm.showInputMethodPicker()
         }
 
+        // Zweite Einstellungsseite: Theme (Verlauf, Farben, Alpha)
+        findViewById<Button>(R.id.btn_theme_settings).setOnClickListener {
+            startActivity(Intent(this, ThemeSettingsActivity::class.java))
+        }
+
         // Speicher-Berechtigung anstoßen, falls IME Zugriff verweigert
         val missingStorage = if (Build.VERSION.SDK_INT >= 33) {
             neededPermissions(

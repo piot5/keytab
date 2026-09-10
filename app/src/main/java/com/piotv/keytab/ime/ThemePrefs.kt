@@ -2,6 +2,7 @@ package com.piotv.keytab.ime
 
 import android.content.SharedPreferences
 import android.graphics.drawable.GradientDrawable
+import com.piotv.keytab.R
 
 /**
  * Theme-Einstellungen (Long-Press auf Mond/Sonne):
@@ -26,6 +27,37 @@ object ThemePrefs {
     const val KIND_BG = "bg"
     const val KIND_HL = "hl"
     const val KIND_TEXT = "text"
+
+    /** Zähler: ändert sich bei jeder Theme-Änderung → IME baut die Tastatur neu. */
+    const val KEY_THEME_VERSION = "theme_version"
+    fun themeVersion(prefs: SharedPreferences): Int = prefs.getInt(KEY_THEME_VERSION, 0)
+    fun bumpVersion(prefs: SharedPreferences) {
+        prefs.edit().putInt(KEY_THEME_VERSION, themeVersion(prefs) + 1).apply()
+    }
+
+    /** Dark-Mode-Override (Pref) bzw. System-Modus – identisch zum IME. */
+    fun isDarkMode(context: android.content.Context): Boolean {
+        val prefs = context.getSharedPreferences("keytab_prefs", 0)
+        if (prefs.contains("dark_mode")) return prefs.getBoolean("dark_mode", false)
+        val mask = context.resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        return mask == android.content.res.Configuration.UI_MODE_NIGHT_YES
+    }
+
+    /** Default-Farbe einer Theme-Art (colors.xml, thema-richtig aufgelöst). */
+    fun defaultColor(context: android.content.Context, dark: Boolean, kind: String): Int {
+        val conf = android.content.res.Configuration(context.resources.configuration)
+        conf.uiMode = (conf.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK.inv()) or
+            (if (dark) android.content.res.Configuration.UI_MODE_NIGHT_YES
+            else android.content.res.Configuration.UI_MODE_NIGHT_NO)
+        val ctx = context.createConfigurationContext(conf)
+        val res = when (kind) {
+            KIND_HL -> R.color.key_pressed
+            KIND_TEXT -> R.color.key_text
+            else -> R.color.kbd_bg
+        }
+        return androidx.core.content.ContextCompat.getColor(ctx, res)
+    }
 
     /** Pref-Key für eine Theme-Farbe (dark/light × Art). */
     fun colorKey(dark: Boolean, kind: String): String =

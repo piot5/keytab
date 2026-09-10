@@ -47,6 +47,11 @@
         style="@style/SettingsKeyButton"
 
             android:text="@string/switch_keyboard" />
+        <Button
+            android:id="@+id/btn_theme_settings"
+        style="@style/SettingsKeyButton"
+
+            android:text="@string/settings_theme_button" />
 
         <!-- ── Optionen ─────────────────────────────────────────────── -->
         <TextView

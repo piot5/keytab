@@ -69,8 +69,6 @@ class KeyTabImeService : InputMethodService() {
     private var showSymbols = false
     // Long-Press-Popup: Zustand/Fenster liegen in der eigenen Klasse
     private val letterPopup = LetterPopup(this)
-    // Theme-Einstellungen (Long-Press auf Mond/Sonne)
-    private var themeSettingsPanel: ThemeSettingsPanel? = null
     private val longPressHandler = Handler(Looper.getMainLooper())
     private val mainHandler = Handler(Looper.getMainLooper())
     private val ioExecutor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -292,10 +290,30 @@ class KeyTabImeService : InputMethodService() {
 
     override fun onStartInput(attribute: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
+        maybeRebuildForThemeChange()
         capsLock = false
         shifted = autoCapitalize(attribute)
         applyLetterCase(keyboardRoot)
         updateShiftVisual(keyboardRoot)
+    }
+
+    /**
+     * Tastatur neu aufbauen, wenn die Theme-Einstellungsseite Änderungen gemacht
+     * hat (Theme-Version erhöht). Ohne Änderung passiert nichts (0.9.4-Look
+     * bleibt unverändert erhalten).
+     */
+    private var appliedThemeVersion = 0
+    private fun maybeRebuildForThemeChange() {
+        val prefs = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+        val version = ThemePrefs.themeVersion(prefs)
+        if (version == appliedThemeVersion) return
+        appliedThemeVersion = version
+        // Nur bei tatsächlichen Overrides neu aufbauen; die Version sagt nicht,
+        // OB overrides gesetzt sind – onCreateInputView wendet sie eh korrekt an.
+        val newRoot = onCreateInputView()
+        newRoot.findViewById<Button>(R.id.key_theme)?.text =
+            if (isDarkMode()) MOON_SYMBOL else SUN_SYMBOL
+        setInputView(newRoot)
     }
 
     /**
@@ -377,40 +395,10 @@ class KeyTabImeService : InputMethodService() {
         }
     }
 
-    /** Theme-Einstellungs-Panel (Mond/Sonne, Verläufe, Farben+Alpha) öffnen. */
+    /** Theme-Einstellungs-Seite (2. Einstellungsseite der App) öffnen. */
     fun showThemeSettings(anchor: View) {
-        themeSettingsPanel?.dismiss()
-        val panel = ThemeSettingsPanel(
-            this,
-            onSwitchTheme = { dark ->
-                baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
-                    .edit().putBoolean(KEY_DARK, dark).apply()
-                val newRoot = onCreateInputView()
-                newRoot.findViewById<Button>(R.id.key_theme)?.text =
-                    if (isDarkMode()) MOON_SYMBOL else SUN_SYMBOL
-                setInputView(newRoot)
-                // Panel am neuen Theme-Button wieder öffnen (neues Fenster/Token)
-                newRoot.findViewById<Button>(R.id.key_theme)?.let { showThemeSettings(it) }
-            },
-            onLiveApply = { applyThemeInPlace(keyboardRoot, keyboardRoot?.context) }
-        )
-        themeSettingsPanel = panel
-        panel.show(anchor)
-    }
-
-    /** Default-Farbe einer Theme-Art (aus colors.xml, thema-richtig aufgelöst). */
-    fun defaultThemeColor(dark: Boolean, kind: String): Int {
-        val conf = android.content.res.Configuration(baseContext.resources.configuration)
-        conf.uiMode = (conf.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK.inv()) or
-            (if (dark) android.content.res.Configuration.UI_MODE_NIGHT_YES
-            else android.content.res.Configuration.UI_MODE_NIGHT_NO)
-        val ctx = baseContext.createConfigurationContext(conf)
-        val res = when (kind) {
-            ThemePrefs.KIND_HL -> R.color.key_pressed
-            ThemePrefs.KIND_TEXT -> R.color.key_text
-            else -> R.color.kbd_bg
-        }
-        return ContextCompat.getColor(ctx, res)
+        startActivity(Intent(this, com.piotv.keytab.ThemeSettingsActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     /**
@@ -488,7 +476,6 @@ class KeyTabImeService : InputMethodService() {
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 letterPopup.dismiss()
-                themeSettingsPanel?.dismiss()
                 val pos = tab.position
                 // Tab 0=abc, 1=Notes, 2=Files, 3=Terminal
                 // Notes/Terminal zeigen die Tastatur + Eingabezeile über der Tastatur
@@ -882,7 +869,6 @@ class KeyTabImeService : InputMethodService() {
                 .edit().putString(MainActivity.KEY_USER_DICT, raw).apply()
         }
         letterPopup.dismiss()
-        themeSettingsPanel?.dismiss()
         longPressHandler.removeCallbacksAndMessages(null)
         super.onDestroy()
         ioExecutor.shutdownNow()

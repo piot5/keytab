@@ -25,6 +25,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ThemeSettingsActivity"
+            android:exported="false"
+            android:label="@string/theme_settings_title" />
+
         <service
             android:name=".ime.KeyTabImeService"
             android:exported="true"

@@ -117,6 +117,9 @@
     <string name="theme_reset">Reset</string>
     <string name="theme_done">Done</string>
     <string name="theme_preview_word">word suggestion</string>
+    <string name="theme_settings_title">🎨 Theme settings</string>
+    <string name="settings_theme_button">🎨 Theme settings</string>
+    <string name="theme_longpress_hint">Long-press ☀/☾ on the keyboard opens this page too. Default look = 0.9.4 (no gradient/colors until you set them).</string>
     <string name="editor_pick_parent">▲ …</string>
     <string name="editor_pick_empty">Empty folder</string>
     <string name="terminal_send">Send</string>

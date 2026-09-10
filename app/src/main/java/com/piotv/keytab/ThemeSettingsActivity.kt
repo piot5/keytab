@@ -32,9 +32,12 @@ class ThemeSettingsActivity : AppCompatActivity() {
 
     private var themeIconDark: TextView? = null
     private var themeIconLight: TextView? = null
-    private val chipRows = mutableMapOf<String, LinearLayout>()
-    private val alphaViews = mutableMapOf<String, TextView>()
-    private val alphaBars = mutableMapOf<String, SeekBar>()
+    private var selectedTarget = ThemePrefs.KIND_BG
+    private var targetButtons: List<Pair<String, Button>> = emptyList()
+    private var colorWheel: ColorWheelView? = null
+    private var brightnessBar: SeekBar? = null
+    private var alphaSlider: SeekBar? = null
+    private var alphaLabel: TextView? = null
     private var modeButtons: List<Pair<String, Button>> = emptyList()
 
     // Live-Vorschau
@@ -171,11 +174,8 @@ class ThemeSettingsActivity : AppCompatActivity() {
     private fun buildGradientSection(col: LinearLayout) {
         sectionLabel(col, getString(R.string.theme_section_gradient))
         col.addView(presetRow(), rowParams())
-        miniLabel(col, getString(R.string.settings_gradient_color1))
-        col.addView(chipsRow("grad1"), rowParams())
-        miniLabel(col, getString(R.string.settings_gradient_color2))
-        col.addView(chipsRow("grad2"), rowParams())
         col.addView(modeRow(), rowParams())
+        miniLabel(col, getString(R.string.theme_gradient_hint))
     }
 
     /** Preset-Verläufe als Mini-Swatches; Klick übernimmt Farben + Modus. */
@@ -210,8 +210,8 @@ class ThemeSettingsActivity : AppCompatActivity() {
                         .putInt(ThemePrefs.KEY_GRADIENT_COLOR2, p.c2)
                         .putString(ThemePrefs.KEY_GRADIENT_MODE, p.mode).apply()
                     ThemePrefs.bumpVersion(prefs)
-                    rebuildChips()
-                    refreshModeButtons()
+                    refreshTargetButtons()
+                    loadTargetIntoWheel()
                     updatePreview()
                 }
             })
@@ -259,55 +259,133 @@ class ThemeSettingsActivity : AppCompatActivity() {
         }
     }
 
-    // ---------- Farben (Background/Highlight/Text mit Alpha) ----------
+    // ---------- Farben (Farbwahlrad: Background/Highlight/Text/Verlauf) ----------
 
+    /** Farb-Sektion: Ziel-Auswahl + Farbwahlrad + Helligkeit + Alpha. */
     private fun colorSection(col: LinearLayout) {
-        listOf(
+        sectionLabel(col, getString(R.string.theme_section_colors))
+        val targets = listOf(
             ThemePrefs.KIND_BG to getString(R.string.theme_color_bg),
             ThemePrefs.KIND_HL to getString(R.string.theme_color_hl),
-            ThemePrefs.KIND_TEXT to getString(R.string.theme_color_text)
-        ).forEach { (kind, label) ->
-            val head = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-            }
-            head.addView(TextView(this).apply {
+            ThemePrefs.KIND_TEXT to getString(R.string.theme_color_text),
+            "grad1" to getString(R.string.settings_gradient_color1),
+            "grad2" to getString(R.string.settings_gradient_color2)
+        )
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        targetButtons = targets.map { (key, label) ->
+            val b = Button(this).apply {
                 text = label
-                textSize = 13f
-                setTextColor(ContextCompat.getColor(this@ThemeSettingsActivity, R.color.text_primary))
-                layoutParams = LinearLayout.LayoutParams(0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            })
-            val alphaView = TextView(this).apply {
-                textSize = 12f
-                setTextColor(ContextCompat.getColor(this@ThemeSettingsActivity, R.color.text_secondary))
-                text = alphaText(kind)
+                textSize = 11f
+                isAllCaps = false
+                minimumHeight = 0
+                setPadding((6 * dip).toInt(), (4 * dip).toInt(), (6 * dip).toInt(), (4 * dip).toInt())
+                setOnClickListener {
+                    selectedTarget = key
+                    refreshTargetButtons()
+                    loadTargetIntoWheel()
+                }
             }
-            alphaViews[kind] = alphaView
-            head.addView(alphaView)
-            col.addView(head)
-            col.addView(chipsRow(kind), rowParams())
-            col.addView(alphaBar(kind), rowParams())
+            row.addView(b, LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = (3 * dip).toInt()
+            })
+            key to b
         }
-    }
+        col.addView(row, rowParams())
 
-    /** Alpha-Slider; ändert nur den Alpha-Anteil der jeweiligen Farbe. */
-    private fun alphaBar(kind: String): SeekBar = SeekBar(this).apply {
-        max = 255
-        progress = Color.alpha(currentColor(kind))
-        alphaBars[kind] = this
-        setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(s: SeekBar?, value: Int, fromUser: Boolean) {
-                if (!fromUser) return
-                val rgb = currentColor(kind) and 0xFFFFFF
-                ThemePrefs.setColor(prefs, editingDark, kind, ThemePrefs.withAlpha(rgb, value))
-                alphaViews[kind]?.text = alphaText(kind)
-                ThemePrefs.bumpVersion(prefs)
+        colorWheel = ColorWheelView(this).apply {
+            onColorPicked = { argb ->
+                writeToTarget(argb)
                 updatePreview()
             }
-            override fun onStartTrackingTouch(s: SeekBar?) {}
-            override fun onStopTrackingTouch(s: SeekBar?) {}
+        }
+        col.addView(colorWheel, rowParams((210 * dip).toInt()))
+
+        miniLabel(col, getString(R.string.theme_brightness))
+        brightnessBar = SeekBar(this).apply {
+            max = 100
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(s: SeekBar?, value: Int, fromUser: Boolean) {
+                    if (fromUser) colorWheel?.setBrightness(value / 100f)
+                }
+                override fun onStartTrackingTouch(s: SeekBar?) {}
+                override fun onStopTrackingTouch(s: SeekBar?) {}
+            })
+        }
+        col.addView(brightnessBar, rowParams())
+
+        val alphaHead = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        alphaHead.addView(TextView(this).apply {
+            text = getString(R.string.theme_alpha)
+            textSize = 12f
+            setTextColor(ContextCompat.getColor(this@ThemeSettingsActivity, R.color.text_secondary))
+            layoutParams = LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         })
+        val alphaText = TextView(this).apply {
+            textSize = 12f
+            setTextColor(ContextCompat.getColor(this@ThemeSettingsActivity, R.color.text_secondary))
+            text = "100 %"
+        }
+        alphaLabel = alphaText
+        alphaHead.addView(alphaText)
+        col.addView(alphaHead)
+        alphaSlider = SeekBar(this).apply {
+            max = 100
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(s: SeekBar?, value: Int, fromUser: Boolean) {
+                    if (fromUser) colorWheel?.setAlphaValue(value * 255 / 100)
+                }
+                override fun onStartTrackingTouch(s: SeekBar?) {}
+                override fun onStopTrackingTouch(s: SeekBar?) {}
+            })
+        }
+        col.addView(alphaSlider, rowParams())
+
+        refreshTargetButtons()
+        loadTargetIntoWheel()
+    }
+
+    /** Farb-Override in das gewählte Ziel schreiben + Theme-Version hochzählen. */
+    private fun writeToTarget(argb: Int) {
+        when (selectedTarget) {
+            "grad1" -> prefs.edit().putInt(ThemePrefs.KEY_GRADIENT_COLOR1, argb).apply()
+            "grad2" -> prefs.edit().putInt(ThemePrefs.KEY_GRADIENT_COLOR2, argb).apply()
+            else -> ThemePrefs.setColor(prefs, editingDark, selectedTarget, argb)
+        }
+        ThemePrefs.bumpVersion(prefs)
+        alphaLabel?.text = (Color.alpha(argb) * 100 / 255).toString() + " %"
+    }
+
+    /** Aktuelle Farbe des gewählten Ziels (Pref oder Default). */
+    private fun currentTargetColor(): Int = when (selectedTarget) {
+        "grad1" -> ThemePrefs.gradientColor1(prefs)
+        "grad2" -> ThemePrefs.gradientColor2(prefs)
+        else -> currentColor(selectedTarget)
+    }
+
+    /** Rad + Slider auf das gewählte Ziel laden. */
+    private fun loadTargetIntoWheel() {
+        val argb = currentTargetColor()
+        colorWheel?.setArgb(argb)
+        val hsv = FloatArray(3)
+        android.graphics.Color.RGBToHSV(
+            android.graphics.Color.red(argb), android.graphics.Color.green(argb),
+            android.graphics.Color.blue(argb), hsv)
+        brightnessBar?.progress = (hsv[2] * 100).toInt()
+        alphaSlider?.progress = android.graphics.Color.alpha(argb) * 100 / 255
+        alphaLabel?.text = (android.graphics.Color.alpha(argb) * 100 / 255).toString() + " %"
+        refreshTargetButtons()
+    }
+
+    private fun refreshTargetButtons() {
+        targetButtons.forEach { (key, b) ->
+            b.setTypeface(null, if (key == selectedTarget) Typeface.BOLD else Typeface.NORMAL)
+            b.alpha = if (key == selectedTarget) 1f else 0.65f
+        }
     }
 
     /** Aktuelle Farbe (Pref oder Theme-Default) für eine Farb-Art. */
@@ -315,68 +393,9 @@ class ThemeSettingsActivity : AppCompatActivity() {
         ThemePrefs.getColor(prefs, editingDark, kind,
             ThemePrefs.defaultColor(this, editingDark, kind))
 
-    private fun alphaText(kind: String): String =
-        (Color.alpha(currentColor(kind)) * 100 / 255).toString() + " %"
-
-    /** Reihe von Farb-Chips (Palette) mit Auswahl-Markierung. */
-    private fun chipsRow(key: String): HorizontalScrollView {
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        chipRows[key] = row
-        fillChips(row, key)
-        val scroll = HorizontalScrollView(this).apply {
-            isHorizontalScrollBarEnabled = false
-            addView(row)
-        }
-        return scroll
-    }
-
-    private fun fillChips(row: LinearLayout, key: String) {
-        row.removeAllViews()
-        val isKind = key != "grad1" && key != "grad2"
-        val current = if (isKind) currentColor(key)
-            else if (key == "grad1") ThemePrefs.gradientColor1(prefs)
-            else ThemePrefs.gradientColor2(prefs)
-        ThemePrefs.PALETTE.forEach { color ->
-            row.addView(View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    (34 * dip).toInt(), (34 * dip).toInt()
-                ).apply { marginEnd = (8 * dip).toInt() }
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    shape = android.graphics.drawable.GradientDrawable.OVAL
-                    setColor(color)
-                    setStroke(
-                        ((if (color == current) 3f else 1f) * dip).toInt(),
-                        if (color == current) 0xFF4CAF50.toInt() else 0xFF888888.toInt()
-                    )
-                }
-                setOnClickListener {
-                    if (isKind) {
-                        ThemePrefs.setColor(prefs, editingDark, key,
-                            ThemePrefs.withAlpha(color, Color.alpha(currentColor(key))))
-                    } else {
-                        prefs.edit().putInt(
-                            if (key == "grad1") ThemePrefs.KEY_GRADIENT_COLOR1
-                            else ThemePrefs.KEY_GRADIENT_COLOR2, color).apply()
-                    }
-                    ThemePrefs.bumpVersion(prefs)
-                    rebuildChips()
-                    updatePreview()
-                }
-            })
-        }
-    }
-
-    private fun rebuildChips() {
-        chipRows.forEach { (key, row) -> fillChips(row, key) }
-        alphaBars.forEach { (kind, bar) ->
-            bar.progress = Color.alpha(currentColor(kind))
-            alphaViews[kind]?.text = alphaText(kind)
-        }
-        refreshModeButtons()
-    }
-
     private fun refreshAllUi() {
-        rebuildChips()
+        refreshTargetButtons()
+        loadTargetIntoWheel()
         updatePreview()
     }
 
@@ -466,7 +485,9 @@ class ThemeSettingsActivity : AppCompatActivity() {
         })
     }
 
-    private fun rowParams(): LinearLayout.LayoutParams = LinearLayout.LayoutParams(
-        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-    ).apply { topMargin = (2 * dip).toInt() }
+    private fun rowParams(heightPx: Int? = null): LinearLayout.LayoutParams =
+        LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            heightPx ?: LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = (2 * dip).toInt() }
 }

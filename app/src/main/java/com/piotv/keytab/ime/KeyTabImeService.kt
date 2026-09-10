@@ -403,9 +403,9 @@ class KeyTabImeService : InputMethodService() {
 
     /**
      * Theme-Verlauf + Farb-Overrides (Background/Highlight/Text, mit Alpha) auf
-     * den View-Baum anwenden. Läuft beim Aufbau UND live (Slider im Panel).
-     * Default-Werte werden über die aufgelösten Ressourcen erkannt und 1:1
-     * ersetzt; alles andere bleibt unangetastet.
+     * den View-Baum anwenden. Erkennt die Original-Drawables über deren
+     * constantState (key_bg-Selector, tab_bg_inset, sug_top_bg) und baut sie mit
+     * den neuen Farben neu. Ohne Overrides ergibt sich der 0.9.4-Look 1:1.
      */
     private fun applyThemeInPlace(root: View?, ctx: android.content.Context?) {
         val v = root ?: return
@@ -416,30 +416,69 @@ class KeyTabImeService : InputMethodService() {
         val defKeyBg = ContextCompat.getColor(context, R.color.key_bg)
         val defPressed = ContextCompat.getColor(context, R.color.key_pressed)
         val defText = ContextCompat.getColor(context, R.color.key_text)
+        val defPrimary = ContextCompat.getColor(context, R.color.primary)
         val bg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_BG, defKbdBg)
         val keyBg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_BG, defKeyBg)
         val hl = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_HL, defPressed)
         val text = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_TEXT, defText)
+
+        fun rounded(color: Int) = android.graphics.drawable.GradientDrawable().apply {
+            cornerRadius = 8f * context.resources.displayMetrics.density
+            setColor(color)
+        }
+        fun keyBackground() = android.graphics.drawable.StateListDrawable().apply {
+            addState(intArrayOf(android.R.attr.state_pressed), rounded(hl))
+            addState(intArrayOf(), rounded(keyBg))
+        }
+        val defKeyBgState = ContextCompat.getDrawable(context, R.drawable.key_bg)?.constantState
+        val defTabState = ContextCompat.getDrawable(context, R.drawable.tab_bg_inset)?.constantState
+        val defSugState = ContextCompat.getDrawable(context, R.drawable.sug_top_bg)?.constantState
+        val dip = context.resources.displayMetrics.density
+
         // Root: Verlauf wenn konfiguriert, sonst Background-Farbe
         ThemePrefs.gradientDrawable(prefs,
             context.resources.displayMetrics.widthPixels)?.let { v.background = it }
             ?: run { v.background = android.graphics.drawable.ColorDrawable(bg) }
         forEachView(v) { view ->
-            val d = view.background
-            if (d is android.graphics.drawable.ColorDrawable) {
-                val c = d.color
-                when (c) {
-                    defKeyBg -> view.background =
-                        android.graphics.drawable.ColorDrawable(keyBg)
-                    defKbdBg -> view.background =
-                        android.graphics.drawable.ColorDrawable(bg)
-                    defPressed -> view.background =
-                        android.graphics.drawable.ColorDrawable(hl)
+            val state = view.background?.constantState
+            when (state) {
+                defKeyBgState -> view.background = keyBackground()
+                defTabState -> view.background = android.graphics.drawable.InsetDrawable(
+                    keyBackground(),
+                    (4 * dip).toInt(), (3 * dip).toInt(), (4 * dip).toInt(), (3 * dip).toInt())
+                defSugState -> {
+                    val sugLayer = android.graphics.drawable.LayerDrawable(
+                        arrayOf<android.graphics.drawable.Drawable>(
+                            android.graphics.drawable.ColorDrawable(keyBg),
+                            rounded(defPrimary) // grüner Top-Streifen (3dp) bleibt
+                        ))
+                    sugLayer.setLayerGravity(1, android.view.Gravity.TOP)
+                    sugLayer.setLayerHeight(1, (3 * dip).toInt())
+                    view.background = sugLayer
+                }
+                else -> {
+                    val d = view.background
+                    if (d is android.graphics.drawable.ColorDrawable) {
+                        when (d.color) {
+                            defKeyBg -> view.background =
+                                android.graphics.drawable.ColorDrawable(keyBg)
+                            defKbdBg -> view.background =
+                                android.graphics.drawable.ColorDrawable(bg)
+                            defPressed -> view.background =
+                                android.graphics.drawable.ColorDrawable(hl)
+                        }
+                    }
                 }
             }
             if (view is TextView && view.currentTextColor == defText) {
                 view.setTextColor(text)
             }
+        }
+        // Tabs (ABC/Notes/Files/Terminal): Textfarben normal/ausgewählt
+        v.findViewById<com.google.android.material.tabs.TabLayout>(R.id.ime_tabs)?.let { tabs ->
+            val dimText = androidx.core.graphics.ColorUtils.setAlphaComponent(
+                text, (android.graphics.Color.alpha(text) * 0.6f).toInt().coerceAtMost(255))
+            tabs.setTabTextColors(dimText, text)
         }
         // Theme-Button-Farbe explizit (wurde im Aufbau separat gesetzt)
         v.findViewById<Button>(R.id.key_theme)?.setTextColor(text)

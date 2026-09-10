@@ -4,7 +4,11 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
 APK_PATH="${1:-app/build/outputs/apk/debug/app-debug.apk}"
+APK_BASENAME="$(basename "$APK_PATH")"
 APK_NAME="keytab.apk"
 
 if [ ! -f "$APK_PATH" ]; then
@@ -16,16 +20,24 @@ fi
 echo "📦 Installiere KeyTab..."
 
 # Prüfe Shizuku
-if ! sh ~/bin/rish 'echo test' >/dev/null 2>&1; then
+if ! sh ~/bin/rsh 'echo test' >/dev/null 2>&1; then
     echo "⚠️  Shizuku nicht erreichbar. Starte Shizuku-App..."
     echo "   Alternativ: Kopiere APK manuell und installiere über Dateimanager"
     exit 1
 fi
 
-# Kopiere und installiere
-sh ~/bin/rish "cp '/sdcard/$(echo $APK_PATH | sed 's|.*/||')" "/data/local/tmp/$APK_NAME" 2>/dev/null || cp "$APK_PATH" /sdcard/Download/$APK_NAME && sh ~/bin/rish 'cp /sdcard/Download/$APK_NAME /data/local/tmp/$APK_NAME'"
+# Staging: APK in den /sdcard-Bereich kopieren (für rish/shell lesbar), dann per
+# Shizuku nach /data/local/tmp kopieren und pm install. Ersetzt die fehlerhafte
+# Quoting-Zeile aus v0.9.x (robust gegen Leerzeichen/Sonderzeichen im Pfad).
+STAGING="/sdcard/Download"
+mkdir -p "$STAGING"
+cp -f "$APK_PATH" "$STAGING/$APK_NAME"
 
-sh ~/bin/rish "pm install -r /data/local/tmp/$APK_NAME"
+sh ~/bin/rsh "cp -f '$STAGING/$APK_NAME' /data/local/tmp/$APK_NAME"
+sh ~/bin/rsh "pm install -r /data/local/tmp/$APK_NAME"
+
+# Aufräumen (best effort)
+rm -f "$STAGING/$APK_NAME"
 
 echo "✅ Installation erfolgreich!"
 echo ""

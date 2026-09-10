@@ -67,12 +67,15 @@ panels for UI, pure modules for logic (Android-free and unit-testable):
 | `ThemeSettingsActivity` | Settings page: dark/light, gradients, per-theme colors (color wheel) |
 | `ColorWheelView` | HSV color wheel (hue/saturation) + brightness/alpha |
 | `ThemePrefs` | Theme pref keys, presets, version counter for IME rebuild |
+| `ThemeApplier` | Applies gradients/colors to the keyboard view tree (recursive recolor) — extracted from the IME service |
 
 All panels share a background executor for file I/O and a main handler for UI updates; stale results are discarded on navigation.
 
 ## Tests
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`) are fully Android-free and fast.
+
+**65 unit tests** across 6 suites (18 `SuggestionEngine`, 20 `TextEditLogic`, 10 `KeyScaleLogic`, 6 `KeyTabConfig`, 11 Robolectric panels `EditorPanel`/`ClipboardPanel`). Instrumented tests (`app/src/androidTest`) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
 
 ```bash
 # Run all unit tests
@@ -147,6 +150,7 @@ app/src/main/java/com/piotv/keytab/
 └── ime/
     ├── KeyTabImeService.kt          # Keyboard core: keys, shift, popups, tabs
     ├── ThemePrefs.kt                # Theme keys/presets + rebuild version
+    ├── ThemeApplier.kt              # Recursive theme application on the keyboard view tree
     ├── FileManagerPanel.kt          # IME file manager
     ├── EditorPanel.kt               # Notes editor with folder browser
     ├── ClipboardPanel.kt            # Clipboard history (picker dialog)
@@ -160,7 +164,8 @@ app/src/main/java/com/piotv/keytab/
     └── TextEditLogic.kt             # Pure, testable text logic
 app/src/test/java/com/piotv/keytab/ime/
 ├── PanelsTest.kt                    # Clipboard + editor panels (Robolectric)
-├── SuggestionEngineTest.kt          # 19 unit tests
+├── KeyTabConfigTest.kt              # 6 unit tests
+├── SuggestionEngineTest.kt          # 18 unit tests
 ├── TextEditLogicTest.kt             # 20 unit tests
 └── KeyScaleLogicTest.kt             # 10 unit tests
 app/src/main/assets/
@@ -173,6 +178,14 @@ app/src/main/assets/
 └── nl_freq_top6000.txt              # Dutch corpus (CC-BY-SA-4.0)
 ```
 ## Changelog
+
+### 0.9.6
+
+- **Refactor**: theme application moved into `ThemeApplier` (recursive view-tree recolor, gradients, per-theme colors) — `KeyTabImeService` slims down.
+- **CI**: instrumented tests now run on an API-34 emulator (ReactiveCircus runner, KVM-enabled; `testInstrumentationRunner` declared).
+- **Fix**: quoting bug in `install_keytab.sh` — APK staging + Shizuku/rish copy + `pm install` is now clean and robust.
+- **Quality**: test counts synchronized (65 unit tests across 6 suites), instrumented-test package assertion tolerates the `.debug` suffix.
+- **Housekeeping**: version bumped to 0.9.6/versionCode 22, local mislabeled `v1.2.0` tag removed, `themedv0.9.5` branch kept (unmerged).
 
 ### 0.9.5
 

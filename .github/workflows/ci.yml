@@ -35,3 +35,42 @@ jobs:
           name: test-reports
           path: app/build/reports/tests/testDebugUnitTest/**
           if-no-files-found: warn
+
+  # Instrumentierte Tests auf echtem Emulator (API 34, KVM-beschleunigt)
+  instrumented:
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # KVM-Gruppenrechte für hardware-beschleunigten Emulator
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Instrumented-Tests (Emulator API 34)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: chmod +x gradlew && ./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
+
+      - name: Instrumented-Report als Artifact hochladen (bei Fehlern)
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: instrumented-reports
+          path: app/build/reports/androidTests/**
+          if-no-files-found: warn

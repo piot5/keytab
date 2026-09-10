@@ -13,7 +13,7 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
-import android.util.TypedValue
+
 import android.view.ContextThemeWrapper
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
@@ -147,7 +147,9 @@ class KeyTabImeService : InputMethodService() {
         themeBtn?.typeface = Typeface.DEFAULT_BOLD
         themeBtn?.textSize = 14f
         // Theme-Verlauf + Farb-Overrides (aus den Theme-Einstellungen) anwenden
-        applyThemeInPlace(root, cfgCtx)
+        ThemeApplier.apply(
+            baseContext.getSharedPreferences(PREFS, MODE_PRIVATE),
+            isDarkMode(), root, cfgCtx)
         // Optionale Zahlenreihe aus den Einstellungen
         root.findViewById<View>(R.id.num_row)?.visibility =
             if (baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
@@ -404,91 +406,6 @@ class KeyTabImeService : InputMethodService() {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
-    /**
-     * Theme-Verlauf + Farb-Overrides (Background/Highlight/Text, mit Alpha) auf
-     * den View-Baum anwenden. Erkennt die Original-Drawables über deren
-     * constantState (key_bg-Selector, tab_bg_inset, sug_top_bg) und baut sie mit
-     * den neuen Farben neu. Ohne Overrides ergibt sich der 0.9.4-Look 1:1.
-     */
-    private fun applyThemeInPlace(root: View?, ctx: android.content.Context?) {
-        val v = root ?: return
-        val context = ctx ?: v.context
-        val prefs = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
-        val dark = isDarkMode()
-        val defKbdBg = ContextCompat.getColor(context, R.color.kbd_bg)
-        val defKeyBg = ContextCompat.getColor(context, R.color.key_bg)
-        val defPressed = ContextCompat.getColor(context, R.color.key_pressed)
-        val defText = ContextCompat.getColor(context, R.color.key_text)
-        val defPrimary = ContextCompat.getColor(context, R.color.primary)
-        val bg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_BG, defKbdBg)
-        val keyBg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_BG, defKeyBg)
-        val hl = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_HL, defPressed)
-        val text = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_TEXT, defText)
-
-        fun rounded(color: Int) = android.graphics.drawable.GradientDrawable().apply {
-            cornerRadius = 8f * context.resources.displayMetrics.density
-            setColor(color)
-        }
-        fun keyBackground() = android.graphics.drawable.StateListDrawable().apply {
-            addState(intArrayOf(android.R.attr.state_pressed), rounded(hl))
-            addState(intArrayOf(), rounded(keyBg))
-        }
-        val defKeyBgState = ContextCompat.getDrawable(context, R.drawable.key_bg)?.constantState
-        val defTabState = ContextCompat.getDrawable(context, R.drawable.tab_bg_inset)?.constantState
-        val defSugState = ContextCompat.getDrawable(context, R.drawable.sug_top_bg)?.constantState
-        val dip = context.resources.displayMetrics.density
-
-        // Root: Verlauf wenn konfiguriert, sonst Background-Farbe
-        ThemePrefs.gradientDrawable(prefs,
-            context.resources.displayMetrics.widthPixels)?.let { v.background = it }
-            ?: run { v.background = android.graphics.drawable.ColorDrawable(bg) }
-        forEachView(v) { view ->
-            val state = view.background?.constantState
-            when (state) {
-                defKeyBgState -> view.background = keyBackground()
-                defTabState -> view.background = android.graphics.drawable.InsetDrawable(
-                    keyBackground(),
-                    (4 * dip).toInt(), (3 * dip).toInt(), (4 * dip).toInt(), (3 * dip).toInt())
-                defSugState -> {
-                    // Vorschlagsleiste: key_bg + flacher 3dp-Streifen oben (primär)
-                    val strip = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(defPrimary)
-                    }
-                    val sugLayer = android.graphics.drawable.LayerDrawable(
-                        arrayOf<android.graphics.drawable.Drawable>(
-                            android.graphics.drawable.ColorDrawable(keyBg), strip))
-                    sugLayer.setLayerGravity(1, android.view.Gravity.TOP)
-                    sugLayer.setLayerHeight(1, (3 * dip).toInt())
-                    view.background = sugLayer
-                }
-                else -> {
-                    val d = view.background
-                    if (d is android.graphics.drawable.ColorDrawable) {
-                        when (d.color) {
-                            defKeyBg -> view.background =
-                                android.graphics.drawable.ColorDrawable(keyBg)
-                            defKbdBg -> view.background =
-                                android.graphics.drawable.ColorDrawable(bg)
-                            defPressed -> view.background =
-                                android.graphics.drawable.ColorDrawable(hl)
-                        }
-                    }
-                }
-            }
-            if (view is TextView && view.currentTextColor == defText) {
-                view.setTextColor(text)
-            }
-        }
-        // Tabs (ABC/Notes/Files/Terminal): Textfarben normal/ausgewählt
-        v.findViewById<com.google.android.material.tabs.TabLayout>(R.id.ime_tabs)?.let { tabs ->
-            val dimText = androidx.core.graphics.ColorUtils.setAlphaComponent(
-                text, (android.graphics.Color.alpha(text) * 0.6f).toInt().coerceAtMost(255))
-            tabs.setTabTextColors(dimText, text)
-        }
-        // Theme-Button-Farbe explizit (wurde im Aufbau separat gesetzt)
-        v.findViewById<Button>(R.id.key_theme)?.setTextColor(text)
-    }
-
     private fun updateShiftVisual(root: View?) {
         val shift = root?.findViewById<Button>(R.id.key_shift) ?: return
         shift.alpha = if (shifted || capsLock) 1f else 0.6f
@@ -558,7 +475,7 @@ class KeyTabImeService : InputMethodService() {
     }
 
     private fun hookKeyboardButtons(root: View) {
-        forEachView(root) { v ->
+        ThemeApplier.forEachView(root) { v ->
             val btn = v as? Button ?: return@forEachView
             when {
                 btn.tag == "letter" -> setupLetterButton(btn)
@@ -749,18 +666,10 @@ class KeyTabImeService : InputMethodService() {
             if (showSymbols) getString(R.string.key_toggle_letters) else "?123"
     }
 
-    /** Theme-Attribut-Farbe auflösen (funktioniert über Day/Night hinweg). */
-    private fun themeColor(context: android.content.Context, attr: Int): Int {
-        val tv = TypedValue()
-        context.theme.resolveAttribute(attr, tv, true)
-        return if (tv.resourceId != 0) androidx.core.content.ContextCompat.getColor(context, tv.resourceId)
-        else tv.data
-    }
-
     private fun applyLetterCase(view: View?) {
         if (view == null) return
         val secondary = androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary)
-        forEachView(view) { v ->
+        ThemeApplier.forEachView(view) { v ->
             val btn = v as? Button ?: return@forEachView
             if (btn.tag != "letter") return@forEachView
             val base = baseLetters[btn]
@@ -883,14 +792,6 @@ class KeyTabImeService : InputMethodService() {
             shifted = false
             updateShiftVisual(keyboardRoot)
             applyLetterCase(keyboardRoot)
-        }
-    }
-
-    private fun forEachView(root: View, action: (View) -> Unit) {
-        if (root is ViewGroup) {
-            for (i in 0 until root.childCount) forEachView(root.getChildAt(i), action)
-        } else {
-            action(root)
         }
     }
 

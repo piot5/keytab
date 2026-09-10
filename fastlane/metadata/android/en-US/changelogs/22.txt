@@ -1,0 +1,5 @@
+- Refactor: theme application moved into ThemeApplier (recursive view-tree recolor), IME service slimmed down
+- CI: instrumented tests run on an API-34 emulator
+- Fix: install-script quoting bug (Shizuku/rish staging + pm install)
+- Quality: test runner declared, test counts synchronized (65 unit tests)
+- Housekeeping: version 0.9.6 (versionCode 22), local mislabeled v1.2.0 tag removed

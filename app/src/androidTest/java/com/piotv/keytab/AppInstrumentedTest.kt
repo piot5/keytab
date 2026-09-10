@@ -17,8 +17,13 @@ class AppInstrumentedTest {
 
     @Test
     fun packageName_isCorrect() {
+        // Debug-Builds tragen das applicationIdSuffix ".debug":
+        // beide Varianten sind zulässig.
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.piotv.keytab", context.packageName)
+        assertTrue(
+            "Unerwarteter packageName: ${context.packageName}",
+            context.packageName in listOf("com.piotv.keytab", "com.piotv.keytab.debug")
+        )
     }
 
     @Test

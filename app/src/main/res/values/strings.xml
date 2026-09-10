@@ -9,8 +9,8 @@
     <string name="clip_add">＋ Add</string>
     <string name="clip_hint_empty">No entries yet — copy something, then tap 📋.</string>
     <string name="clip_pick_title">Clipboard history</string>
-    <string name="editor_save">💾 Save</string>
-    <string name="editor_load">📂 Load</string>
+    <string name="editor_save">⤓ Save</string>
+    <string name="editor_load">⤒ Load</string>
     <string name="editor_hint">Type here …</string>
     <string name="new_tab">＋</string>
     <string name="up_dir">▲</string>
@@ -99,7 +99,24 @@
     <string name="ime_tab_clip_short">Clip</string>
     <string name="ime_tab_term_short">Terminal</string>
     <!-- Editor: Ordnerauswahl beim Laden -->
-    <string name="editor_load_title">📂 Load file</string>
+    <string name="editor_load_title">⤒ Load file</string>
+    <string name="theme_section_theme">Theme</string>
+    <string name="theme_section_gradient">Gradient</string>
+    <string name="theme_section_colors">Colors</string>
+    <string name="theme_section_preview">Preview</string>
+    <string name="theme_pick_sun">Sun (Light)</string>
+    <string name="theme_pick_moon">Moon (Dark)</string>
+    <string name="theme_color_bg">Background</string>
+    <string name="theme_color_hl">Highlight</string>
+    <string name="theme_color_text">Text color</string>
+    <string name="settings_gradient_color1">Color 1 (top)</string>
+    <string name="settings_gradient_color2">Color 2 (bottom)</string>
+    <string name="gradient_mode_top_down">Top→Bottom</string>
+    <string name="gradient_mode_invert">Inverted</string>
+    <string name="gradient_mode_radial">Radial</string>
+    <string name="theme_reset">Reset</string>
+    <string name="theme_done">Done</string>
+    <string name="theme_preview_word">word suggestion</string>
     <string name="editor_pick_parent">▲ …</string>
     <string name="editor_pick_empty">Empty folder</string>
     <string name="terminal_send">Send</string>

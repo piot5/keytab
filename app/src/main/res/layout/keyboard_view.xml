@@ -129,7 +129,7 @@
                 android:textSize="14sp"
                 android:gravity="center"
                 android:paddingTop="0dp"
-                android:text="📋" />
+                android:text="▤" />
 
             <TextView
                 android:id="@+id/editor_file"

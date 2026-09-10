@@ -65,10 +65,12 @@ class KeyTabImeService : InputMethodService() {
     private var shifted = false
     private var capsLock = false
     private var lastShiftTap = 0L
-    private var keyboardRoot: View? = null
+    internal var keyboardRoot: View? = null
     private var showSymbols = false
     // Long-Press-Popup: Zustand/Fenster liegen in der eigenen Klasse
     private val letterPopup = LetterPopup(this)
+    // Theme-Einstellungen (Long-Press auf Mond/Sonne)
+    private var themeSettingsPanel: ThemeSettingsPanel? = null
     private val longPressHandler = Handler(Looper.getMainLooper())
     private val mainHandler = Handler(Looper.getMainLooper())
     private val ioExecutor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -146,6 +148,8 @@ class KeyTabImeService : InputMethodService() {
         themeBtn?.setTextColor(ContextCompat.getColor(cfgCtx, R.color.key_text))
         themeBtn?.typeface = Typeface.DEFAULT_BOLD
         themeBtn?.textSize = 14f
+        // Theme-Verlauf + Farb-Overrides (aus den Theme-Einstellungen) anwenden
+        applyThemeInPlace(root, cfgCtx)
         // Optionale Zahlenreihe aus den Einstellungen
         root.findViewById<View>(R.id.num_row)?.visibility =
             if (baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
@@ -316,7 +320,7 @@ class KeyTabImeService : InputMethodService() {
     }
 
     /** Dark-Mode-Override; ohne gesetzte Pref gilt der System-Modus. */
-    private fun isDarkMode(): Boolean {
+    internal fun isDarkMode(): Boolean {
         val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
         if (prefs.contains(KEY_DARK)) return prefs.getBoolean(KEY_DARK, false)
         val mask = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
@@ -331,6 +335,126 @@ class KeyTabImeService : InputMethodService() {
         // Icon spiegeln den NEUEN Zustand: Dark aktiv = ☾, Light aktiv = ☀
         newRoot.findViewById<Button>(R.id.key_theme)?.text = if (isDarkMode()) MOON_SYMBOL else SUN_SYMBOL
         setInputView(newRoot)
+    }
+
+    /**
+     * Mond/Sonne-Taste: Tippen = Dark/Light umschalten (wie zuvor),
+     * Long-Press = Theme-Einstellungen öffnen.
+     */
+    private fun setupThemeButton(btn: Button) {
+        var pendingLongPress: Runnable? = null
+        var longPressFired = false
+        btn.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    longPressFired = false
+                    btn.isPressed = true
+                    pendingLongPress = Runnable {
+                        longPressFired = true
+                        haptic()
+                        showThemeSettings(btn)
+                    }
+                    longPressHandler.postDelayed(pendingLongPress!!, LONG_PRESS_TIMEOUT)
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    btn.isPressed = false
+                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
+                    if (!longPressFired) {
+                        letterPopup.dismiss()
+                        haptic()
+                        toggleDarkMode()
+                    }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    btn.isPressed = false
+                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    /** Theme-Einstellungs-Panel (Mond/Sonne, Verläufe, Farben+Alpha) öffnen. */
+    fun showThemeSettings(anchor: View) {
+        themeSettingsPanel?.dismiss()
+        val panel = ThemeSettingsPanel(
+            this,
+            onSwitchTheme = { dark ->
+                baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+                    .edit().putBoolean(KEY_DARK, dark).apply()
+                val newRoot = onCreateInputView()
+                newRoot.findViewById<Button>(R.id.key_theme)?.text =
+                    if (isDarkMode()) MOON_SYMBOL else SUN_SYMBOL
+                setInputView(newRoot)
+                // Panel am neuen Theme-Button wieder öffnen (neues Fenster/Token)
+                newRoot.findViewById<Button>(R.id.key_theme)?.let { showThemeSettings(it) }
+            },
+            onLiveApply = { applyThemeInPlace(keyboardRoot, keyboardRoot?.context) }
+        )
+        themeSettingsPanel = panel
+        panel.show(anchor)
+    }
+
+    /** Default-Farbe einer Theme-Art (aus colors.xml, thema-richtig aufgelöst). */
+    fun defaultThemeColor(dark: Boolean, kind: String): Int {
+        val conf = android.content.res.Configuration(baseContext.resources.configuration)
+        conf.uiMode = (conf.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK.inv()) or
+            (if (dark) android.content.res.Configuration.UI_MODE_NIGHT_YES
+            else android.content.res.Configuration.UI_MODE_NIGHT_NO)
+        val ctx = baseContext.createConfigurationContext(conf)
+        val res = when (kind) {
+            ThemePrefs.KIND_HL -> R.color.key_pressed
+            ThemePrefs.KIND_TEXT -> R.color.key_text
+            else -> R.color.kbd_bg
+        }
+        return ContextCompat.getColor(ctx, res)
+    }
+
+    /**
+     * Theme-Verlauf + Farb-Overrides (Background/Highlight/Text, mit Alpha) auf
+     * den View-Baum anwenden. Läuft beim Aufbau UND live (Slider im Panel).
+     * Default-Werte werden über die aufgelösten Ressourcen erkannt und 1:1
+     * ersetzt; alles andere bleibt unangetastet.
+     */
+    private fun applyThemeInPlace(root: View?, ctx: android.content.Context?) {
+        val v = root ?: return
+        val context = ctx ?: v.context
+        val prefs = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+        val dark = isDarkMode()
+        val defKbdBg = ContextCompat.getColor(context, R.color.kbd_bg)
+        val defKeyBg = ContextCompat.getColor(context, R.color.key_bg)
+        val defPressed = ContextCompat.getColor(context, R.color.key_pressed)
+        val defText = ContextCompat.getColor(context, R.color.key_text)
+        val bg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_BG, defKbdBg)
+        val keyBg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_BG, defKeyBg)
+        val hl = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_HL, defPressed)
+        val text = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_TEXT, defText)
+        // Root: Verlauf wenn konfiguriert, sonst Background-Farbe
+        ThemePrefs.gradientDrawable(prefs,
+            context.resources.displayMetrics.widthPixels)?.let { v.background = it }
+            ?: run { v.background = android.graphics.drawable.ColorDrawable(bg) }
+        forEachView(v) { view ->
+            val d = view.background
+            if (d is android.graphics.drawable.ColorDrawable) {
+                val c = d.color
+                when (c) {
+                    defKeyBg -> view.background =
+                        android.graphics.drawable.ColorDrawable(keyBg)
+                    defKbdBg -> view.background =
+                        android.graphics.drawable.ColorDrawable(bg)
+                    defPressed -> view.background =
+                        android.graphics.drawable.ColorDrawable(hl)
+                }
+            }
+            if (view is TextView && view.currentTextColor == defText) {
+                view.setTextColor(text)
+            }
+        }
+        // Theme-Button-Farbe explizit (wurde im Aufbau separat gesetzt)
+        v.findViewById<Button>(R.id.key_theme)?.setTextColor(text)
     }
 
     private fun updateShiftVisual(root: View?) {
@@ -364,6 +488,7 @@ class KeyTabImeService : InputMethodService() {
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 letterPopup.dismiss()
+                themeSettingsPanel?.dismiss()
                 val pos = tab.position
                 // Tab 0=abc, 1=Notes, 2=Files, 3=Terminal
                 // Notes/Terminal zeigen die Tastatur + Eingabezeile über der Tastatur
@@ -447,11 +572,7 @@ class KeyTabImeService : InputMethodService() {
                     letterPopup.dismiss()
                     commitText(".")
                 }
-                btn.id == R.id.key_theme -> btn.setOnClickListener {
-                    letterPopup.dismiss()
-                    haptic()
-                    toggleDarkMode()
-                }
+                btn.id == R.id.key_theme -> setupThemeButton(btn)
                 btn.id == R.id.key_settings -> btn.setOnClickListener {
                     letterPopup.dismiss()
                     haptic()
@@ -761,6 +882,7 @@ class KeyTabImeService : InputMethodService() {
                 .edit().putString(MainActivity.KEY_USER_DICT, raw).apply()
         }
         letterPopup.dismiss()
+        themeSettingsPanel?.dismiss()
         longPressHandler.removeCallbacksAndMessages(null)
         super.onDestroy()
         ioExecutor.shutdownNow()

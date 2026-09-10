@@ -1,0 +1,6 @@
+v0.9.5 (versionCode 21):
+- Long-press on moon/sun opens theme settings: sun/moon choice with gradient in icon
+- Gradient presets, custom gradient colors (top/bottom), modes: top-down / inverted / radial
+- Color + alpha sliders for background, highlight and text color (per dark/light theme)
+- Live preview, reset to defaults
+- New monochrome icons: Save (⤓), Load (⤒), Clipboard (▤)

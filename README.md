@@ -38,7 +38,9 @@ Install: open the APK in a file manager (allow "install unknown apps"), then ena
 
 **Multi-language** -- modular latin-script support (7 languages: de, en, es, fr, it, pt, nl). Each language ships its own frequency corpus and language-specific accent popups (long-press). Switch instantly in settings; the suggestion engine reloads on the fly.
 
-**Notes tab** -- editor and clipboard merged into one tab. The "Load" button opens a folder browser (IME dialog with proper window token). The clipboard holds up to 50 persistent entries; the 📋 button opens a picker dialog to insert any entry directly into the target field.
+**Notes tab** -- editor and clipboard merged into one tab. The "Load" button opens a folder browser (IME dialog with proper window token). The clipboard holds up to 50 persistent entries; the clipboard button opens a picker dialog to insert any entry directly into the target field.
+
+**Theme customization** -- long-press the tab/☾ (or ☀) key opens a dedicated *Theme settings* page (also reachable from the app settings): choose dark or light, pick a gradient preset or build your own (color 1 → color 2, top→bottom / inverted / radial), and set the background, key/highlight and text colors **per theme** with a live **color wheel** (hue/saturation), brightness and alpha sliders. Keys, tabs (abc/Notes/Files/Terminal), popups and the suggestion bar all recolor while the default look stays identical to stock until you set something.
 
 **Terminal tab** -- optional interactive shell in the keyboard, togglable in settings. Black background with standard prompt `user@host:~$` and cd tracking.
 
@@ -62,6 +64,9 @@ panels for UI, pure modules for logic (Android-free and unit-testable):
 | `KeyScaleLogic` | Pure scaling math (stepped grades 1.30×/1.15×, shrink 0.85×/0.925×) |
 | `LanguageModule` | Multi-language registry (7 latin scripts) + per-language accents |
 | `TextEditLogic` | Pure, Android-free text logic |
+| `ThemeSettingsActivity` | Settings page: dark/light, gradients, per-theme colors (color wheel) |
+| `ColorWheelView` | HSV color wheel (hue/saturation) + brightness/alpha |
+| `ThemePrefs` | Theme pref keys, presets, version counter for IME rebuild |
 
 All panels share a background executor for file I/O and a main handler for UI updates; stale results are discarded on navigation.
 
@@ -136,9 +141,12 @@ Or copy the APK, open it in a file manager, and confirm the package installer di
 ```
 app/src/main/java/com/piotv/keytab/
 ├── MainActivity.kt                  # Settings: enable keyboard, theme, language, toggles
+├── ThemeSettingsActivity.kt         # Theme settings: color wheel, gradients, per-theme colors
+├── ColorWheelView.kt                # HSV color wheel widget
 ├── file/FileManagerFragment.kt      # File manager in the app (with DiffUtil)
 └── ime/
     ├── KeyTabImeService.kt          # Keyboard core: keys, shift, popups, tabs
+    ├── ThemePrefs.kt                # Theme keys/presets + rebuild version
     ├── FileManagerPanel.kt          # IME file manager
     ├── EditorPanel.kt               # Notes editor with folder browser
     ├── ClipboardPanel.kt            # Clipboard history (picker dialog)
@@ -165,6 +173,15 @@ app/src/main/assets/
 └── nl_freq_top6000.txt              # Dutch corpus (CC-BY-SA-4.0)
 ```
 ## Changelog
+
+### 0.9.5
+
+- **Theme settings as its own page**: long-press the ☾/☀ key (or use the "Theme settings" button in the app) opens a full settings screen instead of a popup. Every change applies instantly on the next keyboard focus.
+- **Color wheel**: pick any color for background, key/pressed-highlight, text — and the two gradient colors — via an HSV color wheel with brightness and alpha sliders (per dark/light theme).
+- **Gradient presets**: Grau, Nacht, Ozean, Wald, Abend, Lila — plus custom colors and modes (top→bottom, inverted, radial).
+- **Everything recolors**: letter keys (incl. pressed state), the tab bar (abc/Notes/Files/Term), the suggestion strip and popups follow the chosen colors.
+- **Icons**: monochrome SW pairs for save (⤓), load (⤒) and clipboard (▤), grouped tightly left in the editor row.
+- Default look is unchanged (= 0.9.4) until you set a color.
 
 ### 0.9.4
 

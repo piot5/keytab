@@ -1,6 +1,7 @@
-v0.9.5 (versionCode 21):
-- Long-press on moon/sun opens theme settings: sun/moon choice with gradient in icon
-- Gradient presets, custom gradient colors (top/bottom), modes: top-down / inverted / radial
-- Color + alpha sliders for background, highlight and text color (per dark/light theme)
-- Live preview, reset to defaults
-- New monochrome icons: Save (⤓), Load (⤒), Clipboard (▤)
+# v0.9.5 (versionCode 21):
+# - Theme-Settings als 2. Einstellungsseite (Long-Press auf Mond/Sonne oder in der App)
+# - Farbwahlrad (Hue/Sättigung) + Helligkeit + Alpha für Background/Highlight/Schrift/Verlauf
+# - Verlauf-Presets, Modus (Oben→Unten / Umgekehrt / Radial)
+# - Tabs (ABC/Notes/Files/Terminal) und Tasten färben mit (Pressed-Highlight)
+# - Monochrome Icons: Save (⤓), Load (⤒), Clipboard (▤), dicht gruppiert
+# - Standard-Look bleibt 0.9.4, bis Farben gesetzt werden

@@ -8,13 +8,11 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
-import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.piotv.keytab.ime.KeyTabImeService
 import com.piotv.keytab.ime.ThemePrefs
 
 /**
@@ -55,7 +53,7 @@ class ThemeSettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        prefs = getSharedPreferences(MainActivity.PREFS, Context.MODE_PRIVATE)
+        prefs = getSharedPreferences(ThemePrefs.PREFS, Context.MODE_PRIVATE)
         editingDark = ThemePrefs.isDarkMode(this)
         val scroll = android.widget.ScrollView(this)
         scroll.layoutParams = LinearLayout.LayoutParams(
@@ -150,7 +148,7 @@ class ThemeSettingsActivity : AppCompatActivity() {
 
     private fun switchTheme(dark: Boolean) {
         if (editingDark == dark) return
-        prefs.edit().putBoolean("dark_mode", dark).apply()
+        prefs.edit().putBoolean(ThemePrefs.KEY_DARK, dark).apply()
         ThemePrefs.bumpVersion(prefs)
         editingDark = dark
         refreshThemeIcons()

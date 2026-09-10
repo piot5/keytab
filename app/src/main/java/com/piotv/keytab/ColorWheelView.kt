@@ -91,10 +91,11 @@ class ColorWheelView @JvmOverloads constructor(
         paint.shader = RadialGradient(cx, cy, radius,
             Color.WHITE, Color.TRANSPARENT, Shader.TileMode.CLAMP)
         canvas.drawCircle(cx, cy, radius, paint)
-        // Helligkeit: schwarzes Overlay
+        // Helligkeit: gleichmäßiges schwarzes Overlay (nicht radial – sonst
+        // wäre der Rand dunkler als das Zentrum bei niedrigem Value)
         val dim = (255 * (1f - hsv[2])).toInt()
-        paint.shader = RadialGradient(cx, cy, radius,
-            Color.TRANSPARENT, (dim shl 24) or 0x000000, Shader.TileMode.CLAMP)
+        paint.shader = null
+        paint.color = (dim shl 24) or 0x000000
         canvas.drawCircle(cx, cy, radius, paint)
         // Marker
         val angle = Math.toRadians(hsv[0].toDouble())

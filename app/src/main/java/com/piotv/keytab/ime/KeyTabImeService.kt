@@ -304,12 +304,15 @@ class KeyTabImeService : InputMethodService() {
      */
     private var appliedThemeVersion = 0
     private fun maybeRebuildForThemeChange() {
+        // Nur wenn die Tastatur schon aufgebaut ist: Beim allerersten Öffnen ist
+        // keyboardRoot noch null und onCreateInputView läuft ohnehin gleich an.
+        if (keyboardRoot == null) return
         val prefs = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
         val version = ThemePrefs.themeVersion(prefs)
         if (version == appliedThemeVersion) return
         appliedThemeVersion = version
-        // Nur bei tatsächlichen Overrides neu aufbauen; die Version sagt nicht,
-        // OB overrides gesetzt sind – onCreateInputView wendet sie eh korrekt an.
+        // Theme-Version hat sich geändert → Tastatur mit übersteuertem Theme neu
+        // aufbauen (Trailing-Text korrekt beim neuen wirkenden Modus).
         val newRoot = onCreateInputView()
         newRoot.findViewById<Button>(R.id.key_theme)?.text =
             if (isDarkMode()) MOON_SYMBOL else SUN_SYMBOL
@@ -447,11 +450,13 @@ class KeyTabImeService : InputMethodService() {
                     keyBackground(),
                     (4 * dip).toInt(), (3 * dip).toInt(), (4 * dip).toInt(), (3 * dip).toInt())
                 defSugState -> {
+                    // Vorschlagsleiste: key_bg + flacher 3dp-Streifen oben (primär)
+                    val strip = android.graphics.drawable.GradientDrawable().apply {
+                        setColor(defPrimary)
+                    }
                     val sugLayer = android.graphics.drawable.LayerDrawable(
                         arrayOf<android.graphics.drawable.Drawable>(
-                            android.graphics.drawable.ColorDrawable(keyBg),
-                            rounded(defPrimary) // grüner Top-Streifen (3dp) bleibt
-                        ))
+                            android.graphics.drawable.ColorDrawable(keyBg), strip))
                     sugLayer.setLayerGravity(1, android.view.Gravity.TOP)
                     sugLayer.setLayerHeight(1, (3 * dip).toInt())
                     view.background = sugLayer

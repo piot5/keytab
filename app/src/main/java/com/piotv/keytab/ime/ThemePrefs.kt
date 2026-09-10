@@ -15,6 +15,8 @@ import com.piotv.keytab.R
 object ThemePrefs {
 
     // ---------- Pref-Keys ----------
+    const val PREFS = "keytab_prefs"
+    const val KEY_DARK = "dark_mode"
     const val KEY_GRADIENT_COLOR1 = "gradient_color1"
     const val KEY_GRADIENT_COLOR2 = "gradient_color2"
     const val KEY_GRADIENT_MODE = "gradient_mode"
@@ -37,8 +39,8 @@ object ThemePrefs {
 
     /** Dark-Mode-Override (Pref) bzw. System-Modus – identisch zum IME. */
     fun isDarkMode(context: android.content.Context): Boolean {
-        val prefs = context.getSharedPreferences("keytab_prefs", 0)
-        if (prefs.contains("dark_mode")) return prefs.getBoolean("dark_mode", false)
+        val prefs = context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+        if (prefs.contains(KEY_DARK)) return prefs.getBoolean(KEY_DARK, false)
         val mask = context.resources.configuration.uiMode and
             android.content.res.Configuration.UI_MODE_NIGHT_MASK
         return mask == android.content.res.Configuration.UI_MODE_NIGHT_YES

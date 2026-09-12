@@ -1,6 +1,6 @@
 # KeyTab – Refactoring-Plan: Modularisierung & Separation of Concerns
 
-Stand: 2026-09-12 · Status: **Plan (nicht umgesetzt)** · Ziel: wartbare, testbare
+Stand: 2026-09-12 · Status: **Phase 0–2 + 4 umgesetzt; Phase 3 als Nächstes** · Ziel: wartbare, testbare
 Module ohne Verhaltensänderung (reine Struktur-Refactors).
 
 ---
@@ -141,16 +141,19 @@ Jede Phase: **klein, unabhängig, buildbar** — nach jeder Phase
       `RepeatScheduler` (Zeitlogik testbar)
 - [ ] Long-Press/Touch-Logik bleibt 1:1 (nur Umzug, kein Rewrite!)
 
-### Phase 4 – Feature-Controller (1 Tag)
-- [ ] `GamingHighlighter`: `updateGamingKeys`/`restoreGamingKeys`/
-      `gamingCompletionEffect` aus dem Service (View-Manipulation) —
-      `GamingLogic` bleibt pure Entscheidungslogik
-- [ ] `SuggestionController`: `setupSuggestions`/`updateSuggestions`/
-      `applySuggestion`/`updateDynamicKeys`
-- [ ] `TabController`: `setupTabs` inkl. Panel-Visibility + PanelHeights-Aufruf
-- [ ] `ThemeController`: `toggleDarkMode`, `setupThemeButton`,
-      `maybeRebuildForThemeChange`
-- Ergebnis: `KeyTabImeService` < 200 Zeilen (Lifecycle + onCreateInputView-Gerüst)
+### Phase 4 – Feature-Controller (1 Tag) ✅ umgesetzt
+- [x] `SuggestionController`: `setupSuggestions`/`updateSuggestions`/
+      `applySuggestion`/`updateDynamicKeys` + `updateGamingKeys`/
+      `restoreGamingKeys`/`gamingCompletionEffect` (Gaming-Highlight-State)
+- [x] `TabController`: `setupTabs` inkl. Panel-Visibility + PanelHeights-Aufruf
+      + `toggleSymbols`; tote `editorActive`/`terminalActive`-Felder entfernt
+- [x] `ThemeController`: `toggleDarkMode`, `setupThemeButton`,
+      `showThemeSettings`, `maybeRebuildForThemeChange`
+- [x] `KeyboardHost`-Interface: schmale Service-Schnittstelle für Controller
+      (wird in Phase 6 auch von Panels verwendet)
+- [x] Shift-Reset-Pattern (`if (shifted && !capsLock) …`) → `consumeSingleShift()`
+- Ergebnis: `KeyTabImeService` 871 → 573 Zeilen (−34 %);
+  Ziel < 200 Zeilen nach Phase 3 (KeyboardBinder)
 
 
 ### Phase 5 – ThemeSettingsActivity (½–1 Tag)

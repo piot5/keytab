@@ -21,10 +21,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.MainActivity
 import com.piotv.keytab.R
 import java.util.concurrent.ExecutorService
@@ -39,7 +37,7 @@ import java.util.concurrent.Executors
  * - [ClipboardPanel]    – Ablage (Clipboard-Historie)
  * - [TextEditLogic]     – reine, testbare Textlogik
  */
-class KeyTabImeService : InputMethodService() {
+class KeyTabImeService : InputMethodService(), KeyboardHost {
 
     private companion object {
         const val LONG_PRESS_TIMEOUT = 400L
@@ -48,41 +46,44 @@ class KeyTabImeService : InputMethodService() {
         const val WORD_DELETE_ACCEL = 0.85f
         const val WORD_DELETE_MIN_MS = 30L
         const val SHIFT_DOUBLE_TAP_MS = 300L
-        const val KEY_DARK = "dark_mode"
-        // Monochrome (schwarz/weiß) Theme-Symbole – einheitlich farbig via key_text,
-        // im Kontrast zu den bunten Emojis (🌙/☀)
-        const val SUN_SYMBOL = "\u2600\uFE0E"  // ☀ (Text-Präsentation)
-        const val MOON_SYMBOL = "\u263E\uFE0E" // ☾ (Text-Präsentation)
     }
 
     // ---------- Module ----------
     private val suggestionViews = arrayOfNulls<TextView>(3)
-    private var keyScaler: DynamicKeyScaler? = null
-    private var predictionManager: WordPredictionManager? = null
+    override var keyScaler: DynamicKeyScaler? = null
+        private set
+    override var predictionManager: WordPredictionManager? = null
+        private set
+
+    // Phase-4-Controller (Service delegiert Theme/Tabs/Suggestions hierher)
+    private val themeController = ThemeController(this)
+    private val tabController = TabController(this)
+    private val suggestionController = SuggestionController(this)
+
+    /** KeyboardHost: Basis-Kontext für Prefs/Resources/Assets (gleiche Instanz wie baseContext). */
+    override val context: Context get() = baseContext
 
     private var shifted = false
     private var capsLock = false
     private var lastShiftTap = 0L
-    internal var keyboardRoot: View? = null
-    private var showSymbols = false
-    // Long-Press-Popup: Zustand/Fenster liegen in der eigenen Klasse
-    private val letterPopup = LetterPopup(this)
-    private val longPressHandler = Handler(Looper.getMainLooper())
+    override var keyboardRoot: View? = null
+        internal set
+    override val letterPopup = LetterPopup(this)
+    override val longPressHandler = Handler(Looper.getMainLooper())
     private val mainHandler = Handler(Looper.getMainLooper())
     private val ioExecutor: ExecutorService = Executors.newSingleThreadExecutor()
-    private var editorActive = false
-    private var terminalActive = false
-    private val baseLetters = mutableMapOf<Button, Char>()
-    /** Gaming-Modus: momentan hervorgehobene Tasten + deren Originale-Background. */
-    private val gamingHighlighted = mutableListOf<Pair<Button, android.graphics.drawable.Drawable>>()
+    override val baseLetters = mutableMapOf<Button, Char>()
 
     /** Eingabe-Routing (Phase 2): wohin Text fließt (App/Editor/Terminal). */
-    private var inputRouter: InputRouter? = null
+    override var inputRouter: InputRouter? = null
+        private set
 
-    private var fileManagerPanel: FileManagerPanel? = null
+    override var fileManagerPanel: FileManagerPanel? = null
+        private set
     private var editorPanel: EditorPanel? = null
     private var terminalPanel: TerminalPanel? = null
-    private var clipboardPanel: ClipboardPanel? = null
+    override var clipboardPanel: ClipboardPanel? = null
+        private set
 
     /** Aktive Sprache (aus Einstellungen, default Deutsch). */
     private var activeLanguage: KeyboardLanguage = Languages.de
@@ -113,7 +114,7 @@ class KeyTabImeService : InputMethodService() {
         keyboardRoot = null
         suggestionViews.fill(null)
         baseLetters.clear()
-        gamingHighlighted.clear()
+        suggestionController.clearGaming()
     }
 
     override fun onCreateInputView(): View {
@@ -144,7 +145,7 @@ class KeyTabImeService : InputMethodService() {
         // Theme-Umschalter-Icon passend zum aktiven Modus – monochrom (☾ Dark / ☀ Light),
         // kräftige Schrift in key_text (sw) und kleiner als zuvor
         val themeBtn = root.findViewById<Button>(R.id.key_theme)
-        themeBtn?.text = if (isDarkMode()) MOON_SYMBOL else SUN_SYMBOL
+        themeBtn?.text = if (isDarkMode()) ThemeController.MOON_SYMBOL else ThemeController.SUN_SYMBOL
         // Farbe über den THEMA-übersteuerten Kontext (cfgCtx) auflösen, NICHT baseContext:
         // sonst gilt die System-Night-Farbe (weiß) trotz Light-Override → weiß auf weiß
         themeBtn?.setTextColor(ContextCompat.getColor(cfgCtx, R.color.key_text))
@@ -191,7 +192,7 @@ class KeyTabImeService : InputMethodService() {
                     this@KeyTabImeService.commitToApp(text)
             }
         ).also { pm ->
-            pm.setOnEngineReady { updateSuggestions() }
+            pm.setOnEngineReady { suggestionController.update() }
         }
         keyScaler = DynamicKeyScaler(baseLetters)
         // Skalierung darf über das Raster hinausragen: Clipping der gesamten
@@ -205,147 +206,22 @@ class KeyTabImeService : InputMethodService() {
                 editorPanel?.insert(it) ?: commitToApp(it)
             }
         }
-        setupTabs(root)
+        tabController.setup(root)
         hookKeyboardButtons(root)
         applyLetterCase(root)
         // Suggestion-Views holen, Module starten (Engine lazy, Skaler aufbauen)
-        setupSuggestions(root)
+        suggestionController.setup(root, suggestionViews, activeLanguage)
         return root
     }
 
-    // ===================== Wortvorhersage (Module) =====================
-
-    private fun setupSuggestions(root: View) {
-        suggestionViews[0] = root.findViewById(R.id.sug_1)
-        suggestionViews[1] = root.findViewById(R.id.sug_2)
-        suggestionViews[2] = root.findViewById(R.id.sug_3)
-        for (i in 0..2) {
-            suggestionViews[i]?.setOnClickListener {
-                val word = it?.tag as? String ?: return@setOnClickListener
-                applySuggestion(word)
-            }
-        }
-        // Engine der aktiven Sprache laden (async, bei Wechsel: Reload)
-        predictionManager?.loadEngine(activeLanguage)
-        // Nachhalten der Tasten-Nachbarschaft für den dynamischen Skaler
-        keyScaler?.rebuildNeighbors()
-        // Platzhalter: Leiste von Anfang an sichtbar (fixer Platz → kein Auf-/Zupoppen)
-        val enabled = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
-            .getBoolean(com.piotv.keytab.Prefs.KEY_SUGGESTIONS, true)
-        root.findViewById<View>(R.id.suggestion_bar)?.visibility =
-            if (enabled) View.VISIBLE else View.GONE
-    }
-
-    /** Vorschläge berechnen (Manager) + Tasten skalieren. */
-    private fun updateSuggestions() {
-        val bar = keyboardRoot?.findViewById<View>(R.id.suggestion_bar) ?: return
-        val suggestionEnabled = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
-            .getBoolean(com.piotv.keytab.Prefs.KEY_SUGGESTIONS, true)
-        predictionManager?.updateSuggestions(bar, suggestionEnabled)
-        updateDynamicKeys()
-    }
-
-    /** Dynamische Tastengröße (Skaler-Modul). */
-    private fun updateDynamicKeys() {
-        val prefs = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
-        val enabled = prefs.getBoolean(
-            com.piotv.keytab.Prefs.KEY_DYNAMIC_KEYS, true)
-        val pm = predictionManager
-        keyScaler?.apply(
-            pm?.currentSuggestions ?: emptyList(),
-            pm?.currentTypedWord?.length ?: 0,
-            enabled
-        )
-        updateGamingKeys()
-    }
-
-    /**
-     * Gaming-Modus: die wahrscheinlichste nächste Taste bekommt die Gaming-Farbe
-     * (Pref [ThemePrefs.KEY_GAMING]); wenn das getippte Wort dem Top-Vorschlag
-     * entspricht (Wahrscheinlichkeit erreicht), gibt es einen Puls-Effekt
-     * ([ThemePrefs.KEY_GAMING_EFFECT]). Ohne Modus werden Highlights zurückgesetzt.
-     */
-    private fun updateGamingKeys() {
-        val prefs = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
-        if (!ThemePrefs.gamingMode(prefs)) { restoreGamingKeys(); return }
-        val pm = predictionManager
-        val sugs = pm?.currentSuggestions ?: emptyList()
-        val typed = pm?.currentTypedWord ?: ""
-        val next = GamingLogic.nextChar(sugs, typed.length)
-        restoreGamingKeys()
-        if (next != null) {
-            val gamingColor = ThemePrefs.getColor(prefs, isDarkMode(), ThemePrefs.KIND_GAMING,
-                ThemePrefs.defaultColor(baseContext, isDarkMode(), ThemePrefs.KIND_GAMING))
-            val dip = resources.displayMetrics.density
-            for ((btn, c) in baseLetters) {
-                if (c.lowercaseChar() == next) {
-                    gamingHighlighted.add(btn to btn.background)
-                    btn.background = android.graphics.drawable.GradientDrawable().apply {
-                        cornerRadius = 8f * dip
-                        setColor(gamingColor)
-                    }
-                }
-            }
-            if (ThemePrefs.gamingEffect(prefs) && GamingLogic.completed(sugs, typed)) {
-                gamingCompletionEffect(
-                    baseLetters.filter { it.value.lowercaseChar() == next }.keys.toList(),
-                    gamingColor)
-            }
-        }
-    }
-
-    /** Gaming-Highlights zurücksetzen (Original-Backgrounds wiederherstellen). */
-    private fun restoreGamingKeys() {
-        for ((btn, bg) in gamingHighlighted) {
-            if (btn.isAttachedToWindow) btn.background = bg
-        }
-        gamingHighlighted.clear()
-    }
-
-    /** Zufriedenstellender Effekt: Farblitz + Scale-Puls + Haptik. */
-    private fun gamingCompletionEffect(buttons: List<Button>, color: Int) {
-        if (buttons.isEmpty()) return
-        haptic()
-        val dip = resources.displayMetrics.density
-        for (b in buttons) {
-            val saved = gamingHighlighted.firstOrNull { it.first === b }?.second ?: b.background
-            val flash = android.graphics.drawable.GradientDrawable().apply {
-                cornerRadius = 8f * dip
-                setColor(android.graphics.Color.argb(230,
-                    android.graphics.Color.red(color), android.graphics.Color.green(color),
-                    android.graphics.Color.blue(color)))
-            }
-            b.background = flash
-            b.animate().scaleX(1.3f).scaleY(1.3f).setDuration(130).withEndAction {
-                b.animate().scaleX(1f).scaleY(1f).setDuration(170).start()
-                b.background = saved
-            }.start()
-        }
-    }
-
-// keyNeighborLetters logic moved to DynamicKeyScaler
-
-    /** Pfad der Konfigurationsdatei (externes Files-Dir; dort direkt editierbar). */
     private fun configFile(): java.io.File {
         val dir = baseContext.getExternalFilesDir(null) ?: baseContext.filesDir
         return java.io.File(dir, KeyTabConfig.FILE_NAME)
     }
 
-    /** Vorschlag übernehmen (delegiert an Manager). */
-    private fun applySuggestion(word: String) {
-        haptic()
-        predictionManager?.applySuggestion(word)
-        if (shifted && !capsLock) {
-            shifted = false
-            updateShiftVisual(keyboardRoot)
-            applyLetterCase(keyboardRoot)
-        }
-        updateSuggestions()
-    }
-
     override fun onStartInput(attribute: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
-        maybeRebuildForThemeChange()
+        themeController.maybeRebuildForThemeChange()
         capsLock = false
         shifted = autoCapitalize(attribute)
         applyLetterCase(keyboardRoot)
@@ -357,35 +233,9 @@ class KeyTabImeService : InputMethodService() {
         // Theme-Änderungen (Farben/Alpha aus der Settings-Activity) übernehmen, auch
         // wenn dasselbe Textfeld weiterläuft – onStartInput feuert dann nicht erneut,
         // die Tastatur zeigte sonst die alten Farben (u. a. Alpha nicht angewendet).
-        maybeRebuildForThemeChange()
+        themeController.maybeRebuildForThemeChange()
     }
 
-    /**
-     * Tastatur neu aufbauen, wenn die Theme-Einstellungsseite Änderungen gemacht
-     * hat (Theme-Version erhöht). Ohne Änderung passiert nichts (0.9.4-Look
-     * bleibt unverändert erhalten).
-     */
-    private var appliedThemeVersion = 0
-    private fun maybeRebuildForThemeChange() {
-        // Nur wenn die Tastatur schon aufgebaut ist: Beim allerersten Öffnen ist
-        // keyboardRoot noch null und onCreateInputView läuft ohnehin gleich an.
-        if (keyboardRoot == null) return
-        val prefs = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
-        val version = ThemePrefs.themeVersion(prefs)
-        if (version == appliedThemeVersion) return
-        appliedThemeVersion = version
-        // Theme-Version hat sich geändert → Tastatur mit übersteuertem Theme neu
-        // aufbauen (Trailing-Text korrekt beim neuen wirkenden Modus).
-        val newRoot = onCreateInputView()
-        newRoot.findViewById<Button>(R.id.key_theme)?.text =
-            if (isDarkMode()) MOON_SYMBOL else SUN_SYMBOL
-        setInputView(newRoot)
-    }
-
-    /**
-     * Auto-Caps: bei Textfeldern mit CAP_SENTENCES-Flag bzw. initialCapsMode startet
-     * die Tastatur in Shift. Passwort-Felder und Nicht-Text (Zahlen etc.) nie.
-     */
     private fun autoCapitalize(attribute: android.view.inputmethod.EditorInfo?): Boolean {
         attribute ?: return false
         val inputType = attribute.inputType
@@ -399,164 +249,39 @@ class KeyTabImeService : InputMethodService() {
             attribute.initialCapsMode != 0
     }
 
-    private fun haptic() {
+    override fun haptic() {
         keyboardRoot?.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
     }
 
     /** Dark-Mode-Override; ohne gesetzte Pref gilt der System-Modus. */
-    internal fun isDarkMode(): Boolean {
+    override fun isDarkMode(): Boolean {
         val prefs = getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
-        if (prefs.contains(KEY_DARK)) return prefs.getBoolean(KEY_DARK, false)
+        if (prefs.contains(ThemePrefs.KEY_DARK)) return prefs.getBoolean(ThemePrefs.KEY_DARK, false)
         val mask = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
         return mask == android.content.res.Configuration.UI_MODE_NIGHT_YES
     }
 
-    private fun toggleDarkMode() {
-        val prefs = getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
-        prefs.edit().putBoolean(KEY_DARK, !isDarkMode()).apply()
-        // Input-View mit neuem Theme neu aufbauen; Icon passend setzen
-        val newRoot = onCreateInputView()
-        // Icon spiegeln den NEUEN Zustand: Dark aktiv = ☾, Light aktiv = ☀
-        newRoot.findViewById<Button>(R.id.key_theme)?.text = if (isDarkMode()) MOON_SYMBOL else SUN_SYMBOL
-        setInputView(newRoot)
-    }
+    // ---------- KeyboardHost-Implementation (Phase 4) ----------
 
-    /**
-     * Mond/Sonne-Taste: Tippen = Dark/Light umschalten (wie zuvor),
-     * Long-Press = Theme-Einstellungen öffnen.
-     */
-    private fun setupThemeButton(btn: Button) {
-        var pendingLongPress: Runnable? = null
-        var longPressFired = false
-        btn.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    longPressFired = false
-                    btn.isPressed = true
-                    pendingLongPress = Runnable {
-                        longPressFired = true
-                        haptic()
-                        showThemeSettings(btn)
-                    }
-                    longPressHandler.postDelayed(pendingLongPress!!, LONG_PRESS_TIMEOUT)
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    btn.isPressed = false
-                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
-                    if (!longPressFired) {
-                        letterPopup.dismiss()
-                        haptic()
-                        toggleDarkMode()
-                    }
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    btn.isPressed = false
-                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
-                    true
-                }
-                else -> false
-            }
+    /** Tastatur-View neu aufbauen (für Theme-Wechsel via [ThemeController]). */
+    override fun rebuildInputView(): View = onCreateInputView()
+
+    override fun isShifted(): Boolean = shifted
+    override fun isCapsLock(): Boolean = capsLock
+
+    /** Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt) + View aktualisieren. */
+    override fun consumeSingleShift() {
+        if (shifted && !capsLock) {
+            shifted = false
+            updateShiftVisual(keyboardRoot)
+            applyLetterCase(keyboardRoot)
         }
-    }
-
-    /** Theme-Einstellungs-Seite (2. Einstellungsseite der App) öffnen. */
-    fun showThemeSettings(anchor: View) {
-        startActivity(Intent(this, com.piotv.keytab.ThemeSettingsActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     private fun updateShiftVisual(root: View?) {
         val shift = root?.findViewById<Button>(R.id.key_shift) ?: return
         shift.alpha = if (shifted || capsLock) 1f else 0.6f
         shift.setTypeface(null, if (capsLock) Typeface.BOLD else Typeface.NORMAL)
-    }
-
-    private fun setupTabs(root: View) {
-        val tabs = root.findViewById<TabLayout>(R.id.ime_tabs) ?: return
-        // Beschriftungen explizit setzen (TabItem-Texte können beim
-        // Inflaten mit eigenem LayoutInflater verloren gehen)
-        // Tab 0=abc, 1=Notes (Editor + Ablage), 2=Files, 3=Terminal
-        tabs.getTabAt(0)?.text = getString(R.string.ime_tab_letters)
-        tabs.getTabAt(1)?.text = getString(R.string.ime_tab_editor)
-        tabs.getTabAt(2)?.text = getString(R.string.ime_tab_files)
-        tabs.getTabAt(3)?.text = getString(R.string.ime_tab_term_short)
-        val kb = root.findViewById<View>(R.id.kb_panel) ?: return
-        val sym = root.findViewById<View>(R.id.sym_panel) ?: return
-        val fm = root.findViewById<View>(R.id.file_panel) ?: return
-        val ed = root.findViewById<View>(R.id.editor_panel) ?: return
-        val term = root.findViewById<View>(R.id.term_panel) ?: return
-        val bottom = root.findViewById<View>(R.id.bottom_row) ?: return
-        // Terminal-Tab ist optional (Einstellungen-App): aus -> Tab entfernen
-        val termEnabled = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
-            .getBoolean(com.piotv.keytab.Prefs.KEY_TERM_TAB, true)
-        if (!termEnabled) {
-            tabs.getTabAt(3)?.let { tabs.removeTab(it) }
-            term.visibility = View.GONE
-        }
-        tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                letterPopup.dismiss()
-                val pos = tab.position
-                // Tab 0=abc, 1=Notes, 2=Files, 3=Terminal
-                // Notes/Terminal zeigen die Tastatur + Eingabezeile über der Tastatur
-                val keyboardVisible = pos == 0 || pos == 1 || pos == 3
-                editorActive = pos == 1
-                terminalActive = pos == 3
-                // Eingabe-Routing: aktives Ziel an den Tab koppeln
-                inputRouter?.kind = when (pos) {
-                    1 -> InputKind.EDITOR
-                    3 -> InputKind.TERMINAL
-                    else -> InputKind.APP
-                }
-                kb.visibility = if (keyboardVisible && !showSymbols) View.VISIBLE else View.GONE
-                sym.visibility = if (keyboardVisible && showSymbols) View.VISIBLE else View.GONE
-                ed.visibility = if (pos == 1) View.VISIBLE else View.GONE
-                term.visibility = if (pos == 3) View.VISIBLE else View.GONE
-                fm.visibility = if (pos == 2) View.VISIBLE else View.GONE
-                // In ALLEN Tabs die ENTER-Taste erreichbar lassen – mit konstanter Größe und
-                // Position. Dafür werden die übrigen Tasten auf INVISIBLE (Platz bleibt)
-                // statt GONE gesetzt, damit Enter rechtsbündig und identisch bleibt.
-                bottom.visibility = View.VISIBLE
-                root.findViewById<View>(R.id.key_toggle)?.visibility =
-                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
-                root.findViewById<View>(R.id.key_tab)?.visibility =
-                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
-                root.findViewById<View>(R.id.key_space)?.visibility =
-                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
-                root.findViewById<View>(R.id.key_dot)?.visibility =
-                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
-                // Enter-Taste ist in ALLEN Tabs erreichbar — explizit VISIBLE
-                // setzen (liegt außerhalb kb_panel → von kb_panel-GONE nicht
-                // verdeckt; wird sonst durch XML-Default erst sichtbar).
-                root.findViewById<View>(R.id.key_enter)?.visibility = View.VISIBLE
-                // Del-Taste ist Teil der Buchstaben-Tastatur (in kb_panel).
-                // Wird sichtbar, wenn die Tastatur angezeigt wird.
-                root.findViewById<View>(R.id.key_del)?.visibility =
-                    if (keyboardVisible && !showSymbols) View.VISIBLE else View.INVISIBLE
-                if (pos == 2) {
-                    // Files-Tab genauso hoch wie Notes-Tab: Das Datei-Panel nimmt die
-                    // Höhe von Editor-Panel + Buchstaben-Panel ein (gemessen, nicht
-                    // hartkodiert) → gleiche Gesamthöhe beim Tab-Wechsel.
-                    val h = PanelHeights.filesPanelHeight(ed, kb,
-                        root.resources.displayMetrics.widthPixels)
-                    if (h > 0 && fm.layoutParams.height != h) {
-                        fm.layoutParams = fm.layoutParams.apply { height = h }
-                    }
-                    fileManagerPanel?.show()
-                }
-                if (pos == 1) clipboardPanel?.onSelected()
-            }
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
-        })
-        kb.visibility = View.VISIBLE
-        sym.visibility = View.GONE
-        ed.visibility = View.GONE
-        fm.visibility = View.GONE
-        term.visibility = View.GONE
-        bottom.visibility = View.VISIBLE
     }
 
     private fun hookKeyboardButtons(root: View) {
@@ -570,7 +295,7 @@ class KeyTabImeService : InputMethodService() {
                 }
                 btn.id == R.id.key_toggle -> btn.setOnClickListener {
                     letterPopup.dismiss()
-                    toggleSymbols(root)
+                    tabController.toggleSymbols(root)
                 }
                 btn.id == R.id.key_shift -> btn.setOnClickListener {
                     letterPopup.dismiss()
@@ -606,7 +331,7 @@ class KeyTabImeService : InputMethodService() {
                     letterPopup.dismiss()
                     commitText(".")
                 }
-                btn.id == R.id.key_theme -> setupThemeButton(btn)
+                btn.id == R.id.key_theme -> themeController.setupButton(btn)
                 btn.id == R.id.key_settings -> btn.setOnClickListener {
                     letterPopup.dismiss()
                     haptic()
@@ -679,7 +404,7 @@ class KeyTabImeService : InputMethodService() {
                     haptic()
                     inputRouter?.deleteBackspace()
                     predictionManager?.deleteLast()
-                    updateSuggestions()
+                    suggestionController.update()
                     pendingLongPress = Runnable {
                         deleteLastWord()
                         // Beschleunigend: Intervall wird pro Repeat kleiner, bis Minimum
@@ -737,17 +462,6 @@ class KeyTabImeService : InputMethodService() {
         if (showExtras.isEmpty()) return
         letterPopup.show(anchor, showExtras) { ch -> commitText(ch.toString()) }
     }
-
-    private fun toggleSymbols(root: View) {
-        showSymbols = !showSymbols
-        root.findViewById<View>(R.id.kb_panel)?.visibility =
-            if (showSymbols) View.GONE else View.VISIBLE
-        root.findViewById<View>(R.id.sym_panel)?.visibility =
-            if (showSymbols) View.VISIBLE else View.GONE
-        root.findViewById<Button>(R.id.key_toggle)?.text =
-            if (showSymbols) getString(R.string.key_toggle_letters) else "?123"
-    }
-
     private fun applyLetterCase(view: View?) {
         if (view == null) return
         val secondary = androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary)
@@ -791,7 +505,7 @@ class KeyTabImeService : InputMethodService() {
         haptic()
         inputRouter?.deleteWord()
         predictionManager?.reset()
-        updateSuggestions()
+        suggestionController.update()
     }
 
     private fun commitText(text: String) {
@@ -802,12 +516,8 @@ class KeyTabImeService : InputMethodService() {
         if (text == " " && inputRouter?.isApp == true &&
             predictionManager?.autoCorrectBeforeSpace() == true
         ) {
-            if (shifted && !capsLock) {
-                shifted = false
-                updateShiftVisual(keyboardRoot)
-                applyLetterCase(keyboardRoot)
-            }
-            updateSuggestions()
+            consumeSingleShift()
+            suggestionController.update()
             return
         }
         inputRouter?.insert(text)
@@ -819,12 +529,8 @@ class KeyTabImeService : InputMethodService() {
         } else if ((predictionManager?.currentTypedWord?.isNotEmpty() == true) && !text[0].isLetter()) {
             predictionManager?.onWordCompleted()
         }
-        if (shifted && !capsLock) {
-            shifted = false
-            updateShiftVisual(keyboardRoot)
-            applyLetterCase(keyboardRoot)
-        }
-        updateSuggestions()
+        consumeSingleShift()
+        suggestionController.update()
     }
 
     /**
@@ -849,11 +555,7 @@ class KeyTabImeService : InputMethodService() {
     private fun commitToApp(text: String) {
         haptic()
         runCatching { currentInputConnection?.commitText(text, 1) }
-        if (shifted && !capsLock) {
-            shifted = false
-            updateShiftVisual(keyboardRoot)
-            applyLetterCase(keyboardRoot)
-        }
+        consumeSingleShift()
     }
 
     override fun onDestroy() {

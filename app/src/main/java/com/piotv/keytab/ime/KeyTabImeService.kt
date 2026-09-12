@@ -48,13 +48,11 @@ class KeyTabImeService : InputMethodService() {
         const val WORD_DELETE_ACCEL = 0.85f
         const val WORD_DELETE_MIN_MS = 30L
         const val SHIFT_DOUBLE_TAP_MS = 300L
-        const val PREFS = "keytab_prefs"
         const val KEY_DARK = "dark_mode"
         // Monochrome (schwarz/weiß) Theme-Symbole – einheitlich farbig via key_text,
         // im Kontrast zu den bunten Emojis (🌙/☀)
         const val SUN_SYMBOL = "\u2600\uFE0E"  // ☀ (Text-Präsentation)
         const val MOON_SYMBOL = "\u263E\uFE0E" // ☾ (Text-Präsentation)
-        const val KEY_USER_DICT = "user_dict"
     }
 
     // ---------- Module ----------
@@ -151,12 +149,12 @@ class KeyTabImeService : InputMethodService() {
         themeBtn?.textSize = 14f
         // Theme-Verlauf + Farb-Overrides (aus den Theme-Einstellungen) anwenden
         ThemeApplier.apply(
-            baseContext.getSharedPreferences(PREFS, MODE_PRIVATE),
+            baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE),
             isDarkMode(), root, cfgCtx)
         // Optionale Zahlenreihe aus den Einstellungen
         root.findViewById<View>(R.id.num_row)?.visibility =
-            if (baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
-                    .getBoolean(com.piotv.keytab.MainActivity.KEY_NUM_ROW, false)) View.VISIBLE else View.GONE
+            if (baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
+                    .getBoolean(com.piotv.keytab.Prefs.KEY_NUM_ROW, false)) View.VISIBLE else View.GONE
                                 fileManagerPanel = FileManagerPanel(this, root, ioExecutor, mainHandler) { commitText(it) }
         editorPanel = EditorPanel(this, root, ioExecutor, mainHandler)
         terminalPanel = TerminalPanel(this, root, mainHandler)
@@ -245,8 +243,8 @@ class KeyTabImeService : InputMethodService() {
         // Nachhalten der Tasten-Nachbarschaft für den dynamischen Skaler
         keyScaler?.rebuildNeighbors()
         // Platzhalter: Leiste von Anfang an sichtbar (fixer Platz → kein Auf-/Zupoppen)
-        val enabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
-            .getBoolean(com.piotv.keytab.MainActivity.KEY_SUGGESTIONS, true)
+        val enabled = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
+            .getBoolean(com.piotv.keytab.Prefs.KEY_SUGGESTIONS, true)
         root.findViewById<View>(R.id.suggestion_bar)?.visibility =
             if (enabled) View.VISIBLE else View.GONE
     }
@@ -254,17 +252,17 @@ class KeyTabImeService : InputMethodService() {
     /** Vorschläge berechnen (Manager) + Tasten skalieren. */
     private fun updateSuggestions() {
         val bar = keyboardRoot?.findViewById<View>(R.id.suggestion_bar) ?: return
-        val suggestionEnabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
-            .getBoolean(com.piotv.keytab.MainActivity.KEY_SUGGESTIONS, true)
+        val suggestionEnabled = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
+            .getBoolean(com.piotv.keytab.Prefs.KEY_SUGGESTIONS, true)
         predictionManager?.updateSuggestions(bar, suggestionEnabled)
         updateDynamicKeys()
     }
 
     /** Dynamische Tastengröße (Skaler-Modul). */
     private fun updateDynamicKeys() {
-        val prefs = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+        val prefs = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
         val enabled = prefs.getBoolean(
-            com.piotv.keytab.MainActivity.KEY_DYNAMIC_KEYS, true)
+            com.piotv.keytab.Prefs.KEY_DYNAMIC_KEYS, true)
         val pm = predictionManager
         keyScaler?.apply(
             pm?.currentSuggestions ?: emptyList(),
@@ -281,7 +279,7 @@ class KeyTabImeService : InputMethodService() {
      * ([ThemePrefs.KEY_GAMING_EFFECT]). Ohne Modus werden Highlights zurückgesetzt.
      */
     private fun updateGamingKeys() {
-        val prefs = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+        val prefs = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
         if (!ThemePrefs.gamingMode(prefs)) { restoreGamingKeys(); return }
         val pm = predictionManager
         val sugs = pm?.currentSuggestions ?: emptyList()
@@ -385,7 +383,7 @@ class KeyTabImeService : InputMethodService() {
         // Nur wenn die Tastatur schon aufgebaut ist: Beim allerersten Öffnen ist
         // keyboardRoot noch null und onCreateInputView läuft ohnehin gleich an.
         if (keyboardRoot == null) return
-        val prefs = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+        val prefs = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
         val version = ThemePrefs.themeVersion(prefs)
         if (version == appliedThemeVersion) return
         appliedThemeVersion = version
@@ -420,14 +418,14 @@ class KeyTabImeService : InputMethodService() {
 
     /** Dark-Mode-Override; ohne gesetzte Pref gilt der System-Modus. */
     internal fun isDarkMode(): Boolean {
-        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        val prefs = getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
         if (prefs.contains(KEY_DARK)) return prefs.getBoolean(KEY_DARK, false)
         val mask = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
         return mask == android.content.res.Configuration.UI_MODE_NIGHT_YES
     }
 
     private fun toggleDarkMode() {
-        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        val prefs = getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
         prefs.edit().putBoolean(KEY_DARK, !isDarkMode()).apply()
         // Input-View mit neuem Theme neu aufbauen; Icon passend setzen
         val newRoot = onCreateInputView()
@@ -504,8 +502,8 @@ class KeyTabImeService : InputMethodService() {
         val term = root.findViewById<View>(R.id.term_panel) ?: return
         val bottom = root.findViewById<View>(R.id.bottom_row) ?: return
         // Terminal-Tab ist optional (Einstellungen-App): aus -> Tab entfernen
-        val termEnabled = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
-            .getBoolean(com.piotv.keytab.MainActivity.KEY_TERM_TAB, true)
+        val termEnabled = baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
+            .getBoolean(com.piotv.keytab.Prefs.KEY_TERM_TAB, true)
         if (!termEnabled) {
             tabs.getTabAt(3)?.let { tabs.removeTab(it) }
             term.visibility = View.GONE
@@ -896,8 +894,8 @@ class KeyTabImeService : InputMethodService() {
     override fun onDestroy() {
         predictionManager?.engine?.let {
             val raw = it.serializeUserDict()
-            baseContext.getSharedPreferences(MainActivity.PREFS, Context.MODE_PRIVATE)
-                .edit().putString(MainActivity.KEY_USER_DICT, raw).apply()
+            baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, Context.MODE_PRIVATE)
+                .edit().putString(com.piotv.keytab.Prefs.KEY_USER_DICT, raw).apply()
         }
         letterPopup.dismiss()
         longPressHandler.removeCallbacksAndMessages(null)

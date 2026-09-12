@@ -32,19 +32,13 @@ class MainActivity : AppCompatActivity() {
         }
 
     companion object {
-        const val PREFS = "keytab_prefs"
-        const val KEY_NUM_ROW = "num_row"
-        const val KEY_TERM_TAB = "term_tab_enabled"
-        const val KEY_SUGGESTIONS = "suggestions_enabled"
-        const val KEY_AUTOCORRECT = "autocorrect_enabled"
-        const val KEY_DYNAMIC_KEYS = "dynamic_keys_enabled"
-        const val KEY_LANGUAGE = "language"
-        const val KEY_USER_DICT = "user_dict"
+        /** Alias-Kompatibilität: `MainActivity.PREFS` == `Prefs.FILE` (alter Aufrufer). */
+        const val PREFS = Prefs.FILE
 
         /** Aktive Sprache aus den Einstellungen (Default Deutsch). */
         fun activeLanguage(context: Context): KeyboardLanguage {
-            val code = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getString(KEY_LANGUAGE, "de")
+            val code = context.getSharedPreferences(Prefs.FILE, Context.MODE_PRIVATE)
+                .getString(Prefs.KEY_LANGUAGE, "de")
             return Languages.byCode(code)
         }
     }
@@ -77,53 +71,53 @@ class MainActivity : AppCompatActivity() {
         langSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, pos: Int, id: Long) {
                 val lang = Languages.all.getOrNull(pos) ?: return
-                val prev = prefs.getString(KEY_LANGUAGE, "de")
+                val prev = prefs.getString(Prefs.KEY_LANGUAGE, "de")
                 if (prev == lang.code) return
-                prefs.edit().putString(KEY_LANGUAGE, lang.code).apply()
+                prefs.edit().putString(Prefs.KEY_LANGUAGE, lang.code).apply()
                 Toast.makeText(this@MainActivity,
                     getString(R.string.language_changed_to, lang.displayName), Toast.LENGTH_SHORT).show()
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
         }
-        swNumRow.isChecked = prefs.getBoolean(KEY_NUM_ROW, false)
+        swNumRow.isChecked = prefs.getBoolean(Prefs.KEY_NUM_ROW, false)
         swNumRow.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(KEY_NUM_ROW, checked).apply()
+            prefs.edit().putBoolean(Prefs.KEY_NUM_ROW, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_num_row_on
             else R.string.settings_num_row_off, Toast.LENGTH_SHORT).show()
         }
 
         // Terminal-Tab in der Tastatur ein-/ausblenden (wirkt beim nächsten Öffnen)
         val swTermTab = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_term_tab)
-        swTermTab.isChecked = prefs.getBoolean(KEY_TERM_TAB, true)
+        swTermTab.isChecked = prefs.getBoolean(Prefs.KEY_TERM_TAB, true)
         swTermTab.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(KEY_TERM_TAB, checked).apply()
+            prefs.edit().putBoolean(Prefs.KEY_TERM_TAB, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_term_on
             else R.string.settings_term_off, Toast.LENGTH_SHORT).show()
         }
 
         // Wortvorhersage ein-/ausblenden (wirkt beim nächsten Öffnen der Tastatur)
         val swSuggestions = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_suggestions)
-        swSuggestions.isChecked = prefs.getBoolean(KEY_SUGGESTIONS, true)
+        swSuggestions.isChecked = prefs.getBoolean(Prefs.KEY_SUGGESTIONS, true)
         swSuggestions.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(KEY_SUGGESTIONS, checked).apply()
+            prefs.edit().putBoolean(Prefs.KEY_SUGGESTIONS, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_suggestions_on
             else R.string.settings_suggestions_off, Toast.LENGTH_SHORT).show()
         }
 
         // Aktive Autokorrektur ein-/ausschalten (wirkt sofort)
         val swAutoCorrect = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_autocorrect)
-        swAutoCorrect.isChecked = prefs.getBoolean(KEY_AUTOCORRECT, true)
+        swAutoCorrect.isChecked = prefs.getBoolean(Prefs.KEY_AUTOCORRECT, true)
         swAutoCorrect.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(KEY_AUTOCORRECT, checked).apply()
+            prefs.edit().putBoolean(Prefs.KEY_AUTOCORRECT, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_autocorrect_on
             else R.string.settings_autocorrect_off, Toast.LENGTH_SHORT).show()
         }
 
         // Dynamische Tastengröße ein-/ausblenden (wirkt beim nächsten Öffnen)
         val swDynamic = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_dynamic_keys)
-        swDynamic.isChecked = prefs.getBoolean(KEY_DYNAMIC_KEYS, true)
+        swDynamic.isChecked = prefs.getBoolean(Prefs.KEY_DYNAMIC_KEYS, true)
         swDynamic.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(KEY_DYNAMIC_KEYS, checked).apply()
+            prefs.edit().putBoolean(Prefs.KEY_DYNAMIC_KEYS, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_dynamic_keys_on
             else R.string.settings_dynamic_keys_off, Toast.LENGTH_SHORT).show()
         }

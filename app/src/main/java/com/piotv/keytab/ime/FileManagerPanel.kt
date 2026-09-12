@@ -49,7 +49,6 @@ class FileManagerPanel(
 
     private companion object {
         const val MAX_CLIP_CONTENT_BYTES = 1_000_000
-        const val PREFS = "keytab_prefs"
         const val KEY_DIR = "fm_dir"
         const val KEY_BACKSTACK = "fm_backstack"
     }
@@ -189,7 +188,7 @@ class FileManagerPanel(
      *  über Tastatur-Neustarts bzw. App-Neustarts hinweg erhalten bleibt. */
     private fun persistDir() {
         val dir = currentDir ?: return
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        context.getSharedPreferences(com.piotv.keytab.Prefs.FILE, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_DIR, dir.absolutePath)
             .putString(KEY_BACKSTACK, backStack.joinToString("\n") { it.absolutePath })
@@ -198,7 +197,7 @@ class FileManagerPanel(
 
     /** Stellt das zuletzt besuchte Verzeichnis + BackStack wieder her (falls vorhanden/lesbar). */
     private fun restoreSaved() {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences(com.piotv.keytab.Prefs.FILE, Context.MODE_PRIVATE)
         prefs.getString(KEY_DIR, null)?.let { p ->
             File(p).takeIf { it.isDirectory && it.canRead() }?.let { currentDir = it }
         }

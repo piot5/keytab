@@ -15,7 +15,7 @@ import com.piotv.keytab.R
 object ThemePrefs {
 
     // ---------- Pref-Keys ----------
-    const val PREFS = "keytab_prefs"
+    const val PREFS = com.piotv.keytab.Prefs.FILE
     const val KEY_DARK = "dark_mode"
     const val KEY_GRADIENT_COLOR1 = "gradient_color1"
     const val KEY_GRADIENT_COLOR2 = "gradient_color2"

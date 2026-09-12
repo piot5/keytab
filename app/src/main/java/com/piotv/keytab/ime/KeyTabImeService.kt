@@ -527,6 +527,14 @@ class KeyTabImeService : InputMethodService() {
                     if (keyboardVisible) View.VISIBLE else View.INVISIBLE
                 root.findViewById<View>(R.id.key_dot)?.visibility =
                     if (keyboardVisible) View.VISIBLE else View.INVISIBLE
+                // Enter-Taste ist in ALLEN Tabs erreichbar — explizit VISIBLE
+                // setzen (liegt außerhalb kb_panel → von kb_panel-GONE nicht
+                // verdeckt; wird sonst durch XML-Default erst sichtbar).
+                root.findViewById<View>(R.id.key_enter)?.visibility = View.VISIBLE
+                // Del-Taste ist Teil der Buchstaben-Tastatur (in kb_panel).
+                // Wird sichtbar, wenn die Tastatur angezeigt wird.
+                root.findViewById<View>(R.id.key_del)?.visibility =
+                    if (keyboardVisible && !showSymbols) View.VISIBLE else View.INVISIBLE
                 if (pos == 2) {
                     // Files-Tab genauso hoch wie Notes-Tab: Das Datei-Panel nimmt die
                     // Höhe von Editor-Panel + Buchstaben-Panel ein (gemessen, nicht
@@ -585,6 +593,10 @@ class KeyTabImeService : InputMethodService() {
                     updateShiftVisual(root)
                     applyLetterCase(root)
                 }
+                // Del-Taste (⌫): Touch-Listener für Einzellöschung + Long-Press
+                // Wort-Löschung + Auto-Repeat. Wurde in der Phase-2-Refactorung
+                // versehentlich aus der when-Anweisung entfernt → Taste tot.
+                btn.id == R.id.key_del -> setupDelButton(btn)
                 btn.id == R.id.key_tab -> btn.setOnClickListener {
                     letterPopup.dismiss()
                     haptic()

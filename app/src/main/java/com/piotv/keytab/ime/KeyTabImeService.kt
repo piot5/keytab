@@ -76,6 +76,9 @@ class KeyTabImeService : InputMethodService() {
     /** Gaming-Modus: momentan hervorgehobene Tasten + deren Originale-Background. */
     private val gamingHighlighted = mutableListOf<Pair<Button, android.graphics.drawable.Drawable>>()
 
+    /** Eingabe-Routing (Phase 2): wohin Text fließt (App/Editor/Terminal). */
+    private var inputRouter: InputRouter? = null
+
     private var fileManagerPanel: FileManagerPanel? = null
     private var editorPanel: EditorPanel? = null
     private var terminalPanel: TerminalPanel? = null
@@ -155,53 +158,37 @@ class KeyTabImeService : InputMethodService() {
         root.findViewById<View>(R.id.num_row)?.visibility =
             if (baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
                     .getBoolean(com.piotv.keytab.Prefs.KEY_NUM_ROW, false)) View.VISIBLE else View.GONE
-                                fileManagerPanel = FileManagerPanel(this, root, ioExecutor, mainHandler) { commitText(it) }
-        editorPanel = EditorPanel(this, root, ioExecutor, mainHandler)
-        terminalPanel = TerminalPanel(this, root, mainHandler)
-        clipboardPanel = ClipboardPanel(this, ioExecutor, mainHandler,
+                                val fileManager = FileManagerPanel(this, root, ioExecutor, mainHandler) { commitText(it) }
+        val editor = EditorPanel(this, root, ioExecutor, mainHandler)
+        val terminal = TerminalPanel(this, root, mainHandler)
+        val clipboard = ClipboardPanel(this, ioExecutor, mainHandler,
             onCommit = { commitToApp(it) },
             canAutoCapture = { isInputViewShown })
+        fileManagerPanel = fileManager
+        editorPanel = editor
+        terminalPanel = terminal
+        clipboardPanel = clipboard
+        // Eingabe-Routing (Phase 2): Ziele App/Editor/Terminal hinter einem Router;
+        // die editorActive/terminalActive-Verzweigungsketten entfallen damit.
+        val router = InputRouter(
+            AppInputTarget(
+                connection = { currentInputConnection },
+                sendKey = { sendDownUpKeyEvents(it) }),
+            EditorInputTarget(editor),
+            TerminalInputTarget(terminal))
+        inputRouter = router
         // Aktive Sprache aus den Einstellungen übernehmen (wirkt beim nächsten Öffnen)
         activeLanguage = com.piotv.keytab.MainActivity.activeLanguage(baseContext)
         // Module einhängen
         predictionManager = WordPredictionManager(
             baseContext, ioExecutor, mainHandler, suggestionViews,
             inputOps = object : WordPredictionManager.InputOperations {
-                override fun deleteBefore(count: Int) {
-                    if (editorActive) editorPanel?.deleteBefore(count)
-                    else if (terminalActive) terminalPanel?.deleteBefore(count)
-                    else currentInputConnection?.deleteSurroundingText(count, 0)
-                }
-                override fun deleteBeforeKeys(count: Int) {
-                    if (editorActive) { editorPanel?.deleteBefore(count); return }
-                    if (terminalActive) { terminalPanel?.deleteBefore(count); return }
-                    // KEYCODE_DEL-Key-Events: funktioniert auch in Feldern, die
-                    // deleteSurroundingText ignorieren (z. B. Termux, WebView)
-                    repeat(count.coerceAtLeast(0)) { sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL) }
-                }
-                override fun textBefore(count: Int): String {
-                    if (editorActive) {
-                        val ctx = editorPanel?.cursorContext() ?: return ""
-                        val (t, cursor) = ctx
-                        val start = (cursor - count).coerceAtLeast(0)
-                        return t.substring(start, cursor).toString()
-                    }
-                    if (terminalActive) {
-                        val ctx = terminalPanel?.cursorContext() ?: return ""
-                        val (t, cursor) = ctx
-                        val start = (cursor - count).coerceAtLeast(0)
-                        return t.substring(start, cursor).toString()
-                    }
-                    return currentInputConnection?.getTextBeforeCursor(count, 0)?.toString() ?: ""
-                }
-                override fun insert(text: String) {
-                    if (editorActive) editorPanel?.insert(text)
-                    else if (terminalActive) terminalPanel?.insert(text)
-                    else currentInputConnection?.commitText(text, 1)
-                }
-                override fun commitToApp(text: String) {
-                    currentInputConnection?.commitText(text, 1)
-                }
+                override fun deleteBefore(count: Int) = router.deleteBefore(count)
+                override fun deleteBeforeKeys(count: Int) = router.deleteBeforeKeys(count)
+                override fun textBefore(count: Int): String = router.textBefore(count)
+                override fun insert(text: String) = router.insert(text)
+                override fun commitToApp(text: String) =
+                    this@KeyTabImeService.commitToApp(text)
             }
         ).also { pm ->
             pm.setOnEngineReady { updateSuggestions() }
@@ -517,6 +504,12 @@ class KeyTabImeService : InputMethodService() {
                 val keyboardVisible = pos == 0 || pos == 1 || pos == 3
                 editorActive = pos == 1
                 terminalActive = pos == 3
+                // Eingabe-Routing: aktives Ziel an den Tab koppeln
+                inputRouter?.kind = when (pos) {
+                    1 -> InputKind.EDITOR
+                    3 -> InputKind.TERMINAL
+                    else -> InputKind.APP
+                }
                 kb.visibility = if (keyboardVisible && !showSymbols) View.VISIBLE else View.GONE
                 sym.visibility = if (keyboardVisible && showSymbols) View.VISIBLE else View.GONE
                 ed.visibility = if (pos == 1) View.VISIBLE else View.GONE
@@ -592,13 +585,10 @@ class KeyTabImeService : InputMethodService() {
                     updateShiftVisual(root)
                     applyLetterCase(root)
                 }
-                btn.id == R.id.key_del -> setupDelButton(btn)
                 btn.id == R.id.key_tab -> btn.setOnClickListener {
                     letterPopup.dismiss()
                     haptic()
-                    if (editorActive) editorPanel?.insert("\t")
-                    else if (terminalActive) terminalPanel?.insert("\t")
-                    else sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
+                    inputRouter?.insert("\t")
                 }
                 btn.id == R.id.key_dot -> btn.setOnClickListener {
                     letterPopup.dismiss()
@@ -614,9 +604,7 @@ class KeyTabImeService : InputMethodService() {
                 btn.id == R.id.key_enter -> btn.setOnClickListener {
                     letterPopup.dismiss()
                     haptic()
-                    if (terminalActive) terminalPanel?.send()
-                    else if (editorActive) editorPanel?.insert("\n")
-                    else sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
+                    inputRouter?.onEnter()
                 }
                 btn.id == R.id.key_space -> btn.setOnClickListener {
                     letterPopup.dismiss()
@@ -677,9 +665,7 @@ class KeyTabImeService : InputMethodService() {
                 MotionEvent.ACTION_DOWN -> {
                     btn.isPressed = true
                     haptic()
-                    if (editorActive) editorPanel?.delete(word = false)
-                    else if (terminalActive) terminalPanel?.delete(word = false)
-                    else sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+                    inputRouter?.deleteBackspace()
                     predictionManager?.deleteLast()
                     updateSuggestions()
                     pendingLongPress = Runnable {
@@ -791,22 +777,7 @@ class KeyTabImeService : InputMethodService() {
 
     private fun deleteLastWord() {
         haptic()
-        if (editorActive) {
-            editorPanel?.delete(word = true)
-            return
-        }
-        if (terminalActive) {
-            terminalPanel?.delete(word = true)
-            return
-        }
-        val ic = currentInputConnection ?: return
-        val text = ic.getTextBeforeCursor(200, 0)?.toString() ?: ""
-        val toDelete = TextEditLogic.wordDeleteCount(text, text.length)
-        if (toDelete > 0) {
-            ic.deleteSurroundingText(toDelete, 0)
-        } else {
-            ic.deleteSurroundingText(1, 0)
-        }
+        inputRouter?.deleteWord()
         predictionManager?.reset()
         updateSuggestions()
     }
@@ -816,7 +787,7 @@ class KeyTabImeService : InputMethodService() {
         // Aktive Autokorrektur (v0.9.1): Space nach unbekanntem Wort → Wort
         // ersetzen, wenn ein klarer Wörterbuch-Kandidat existiert (nur App-Felder;
         // Editor/Terminal buchen ihren Text selbst).
-        if (text == " " && !editorActive && !terminalActive &&
+        if (text == " " && inputRouter?.isApp == true &&
             predictionManager?.autoCorrectBeforeSpace() == true
         ) {
             if (shifted && !capsLock) {
@@ -827,13 +798,7 @@ class KeyTabImeService : InputMethodService() {
             updateSuggestions()
             return
         }
-        if (editorActive) {
-            editorPanel?.insert(text)
-        } else if (terminalActive) {
-            terminalPanel?.insert(text)
-        } else {
-            runCatching { currentInputConnection?.commitText(text, 1) }
-        }
+        inputRouter?.insert(text)
         // Wortvorhersage-Buchführung: Buchstaben sammeln, Abschluss lernen
         if (text.length == 1 && text[0].isLetter()) {
             predictionManager?.onCharacter(text)

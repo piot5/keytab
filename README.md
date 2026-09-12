@@ -40,7 +40,7 @@ Install: open the APK in a file manager (allow "install unknown apps"), then ena
 
 **Notes tab** -- editor and clipboard merged into one tab. The "Load" button opens a folder browser (IME dialog with proper window token). The clipboard holds up to 50 persistent entries; the clipboard button opens a picker dialog to insert any entry directly into the target field.
 
-**Theme customization** -- long-press the tab/☾ (or ☀) key opens a dedicated *Theme settings* page (also reachable from the app settings): choose dark or light, pick a gradient preset or build your own (color 1 → color 2, top→bottom / inverted / radial), and set the background, key/highlight and text colors **per theme** with a live **color wheel** (hue/saturation), brightness and alpha sliders. Keys, tabs (abc/Notes/Files/Terminal), popups and the suggestion bar all recolor while the default look stays identical to stock until you set something.
+**Theme customization** -- long-press the tab/☾ (or ☀) key opens a dedicated *Theme settings* page (also reachable from the app settings): choose dark or light, pick a gradient preset or build your own (color 1 → color 2, top→bottom / inverted / radial), and set the background, key, highlight and text colors **separately and per theme** with a live **color wheel** (hue/saturation), brightness and alpha sliders. Keys, tabs (abc/Notes/Files/Terminal), popups and the suggestion bar all recolor while the default look stays identical to stock until you set something. The built-in dark theme uses a darker gray palette (`#1a1a1a` background, `#2e2e2e` keys).
 
 **Terminal tab** -- optional interactive shell in the keyboard, togglable in settings. Black background with standard prompt `user@host:~$` and cd tracking.
 
@@ -181,10 +181,15 @@ app/src/main/assets/
 
 ### 0.9.6
 
+- **Theme**: dark theme default palette darkened to a deeper gray (`kbd_bg #1a1a1a`, `key_bg #2e2e2e`, `key_pressed #444444`).
+- **Theme editor**: key background is now a separate color target ("Taste") — background, key, highlight and text are adjustable independently per theme (previously the key color was coupled to the background override). Fix: the Taste color now reliably recolors **every** key (abc letters, shift/del/enter/space/symbol keys, first highlighted suggestion) — the previous `constantState` drawable matching never fired for inflated key drawables, so those keys kept their default color; matching is now by drawable type (Button + StateListDrawable) plus explicit IDs for the suggestion views.
+- **Completion coloring (new section „Vervollständigung" in theme settings)**: toggleable next-key coloring — the most likely next key glows in an adjustable "Färbung" color; when the typed word reaches the top suggestion (likelihood reached) a satisfying pulse effect (color flash + scale pulse + haptic) fires. Pure logic in `GamingLogic` (unit-tested).
+- **Tab bar fully themed**: the abc/Notes/Files/Terminal tab cells are now filled completely (flat background, no inset border) instead of leaving a gray rim, and Material's own `colorSurface` gray on the `TabLayout` is replaced — the gray no longer shows through behind/around the tab buttons.
+- **Alpha/transparency consistency**: the two top rows (tab row + suggestion strip) used to stack their own `kbd_bg` backgrounds on top of the keyboard background (and the tab bar's own surface color), so with a semi-transparent background/key color they looked solid while the letter rows looked translucent. These container backgrounds are now transparent — the themed background comes from the keyboard root only, so alpha (and a configured gradient) behaves identically in every row.
 - **Refactor**: theme application moved into `ThemeApplier` (recursive view-tree recolor, gradients, per-theme colors) — `KeyTabImeService` slims down.
 - **CI**: instrumented tests now run on an API-34 emulator (ReactiveCircus runner, KVM-enabled; `testInstrumentationRunner` declared).
 - **Fix**: quoting bug in `install_keytab.sh` — APK staging + Shizuku/rish copy + `pm install` is now clean and robust.
-- **Quality**: test counts synchronized (65 unit tests across 6 suites), instrumented-test package assertion tolerates the `.debug` suffix.
+- **Quality**: test counts synchronized (75 unit tests across 8 suites, incl. `ThemeApplierTest` for recolor/alpha/transparency behavior), instrumented-test package assertion tolerates the `.debug` suffix.
 - **Housekeeping**: version bumped to 0.9.6/versionCode 22, local mislabeled `v1.2.0` tag removed, `themedv0.9.5` branch kept (unmerged).
 
 ### 0.9.5

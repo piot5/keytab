@@ -1,26 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- FlorisBoard "Night" – Keys sind #424242 auf #212121 Grund -->
+    <!-- FlorisBoard "Night" – Keys sind #2e2e2e auf #1a1a1a Grund (dunkleres Grau) -->
     <color name="primary">#4caf50</color>
     <color name="on_primary">#f0f0f0</color>
-    <color name="background">#212121</color>
-    <color name="surface">#424242</color>
-    <color name="surface_variant">#616161</color>
+    <color name="background">#1a1a1a</color>
+    <color name="surface">#2e2e2e</color>
+    <color name="surface_variant">#444444</color>
     <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#A0A0A0</color>
-    <color name="kbd_bg">#212121</color>
-    <color name="key_bg">#424242</color>
-    <color name="key_pressed">#616161</color>
+    <color name="text_secondary">#8f8f8f</color>
+    <color name="kbd_bg">#1a1a1a</color>
+    <color name="key_bg">#2e2e2e</color>
+    <color name="key_pressed">#444444</color>
     <color name="key_text">#FFFFFF</color>
-    <color name="key_outline">#B0BEC5</color>
-    <color name="tab_bg">#212121</color>
+    <color name="key_outline">#5c5c5c</color>
+    <color name="tab_bg">#1a1a1a</color>
     <color name="tab_text">#FFFFFF</color>
     <color name="tab_text_selected">#FFFFFF</color>
     <color name="tab_indicator">#4caf50</color>
-    <color name="list_bg">#151515</color>
-    <color name="editor_bg">#616161</color>
-    <color name="popup_bg">#757575</color>
-    <color name="popup_focus_bg">#bdbdbd</color>
+    <color name="list_bg">#101010</color>
+    <!-- Notes-Tab-Hintergrund IMMER gleich dem Files-Hintergrund (list_bg #101010):
+         beide Tabs zeigen dieselbe dunkle Fläche (User-Wunsch Dark-Theme). -->
+    <color name="editor_bg">#101010</color>
+    <color name="popup_bg">#4e4e4e</color>
+    <color name="popup_focus_bg">#707070</color>
     <color name="popup_text">#FFFFFF</color>
-    <color name="divider">#333333</color>
+    <color name="divider">#262626</color>
 </resources>

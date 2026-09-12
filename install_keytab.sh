@@ -34,7 +34,9 @@ mkdir -p "$STAGING"
 cp -f "$APK_PATH" "$STAGING/$APK_NAME"
 
 sh ~/bin/rsh "cp -f '$STAGING/$APK_NAME' /data/local/tmp/$APK_NAME"
-sh ~/bin/rsh "pm install -r /data/local/tmp/$APK_NAME"
+# -d erlaubt Version-Downgrades (debuggable Pakete), z.B. 0.9.7 → 0.9.6;
+# ohne -d scheitert pm install mit INSTALL_FAILED_VERSION_DOWNGRADE stillschweigend.
+sh ~/bin/rsh "pm install -d -r /data/local/tmp/$APK_NAME"
 
 # Aufräumen (best effort)
 rm -f "$STAGING/$APK_NAME"

@@ -107,14 +107,17 @@
     <string name="theme_pick_sun">Sun (Light)</string>
     <string name="theme_pick_moon">Moon (Dark)</string>
     <string name="theme_color_bg">Background</string>
+    <string name="theme_color_key">Taste</string>
     <string name="theme_color_hl">Highlight</string>
     <string name="theme_color_text">Text color</string>
+    <string name="theme_color_gaming">Färbung</string>
     <string name="settings_gradient_color1">Color 1 (top)</string>
     <string name="settings_gradient_color2">Color 2 (bottom)</string>
     <string name="gradient_mode_top_down">Top→Bottom</string>
     <string name="gradient_mode_invert">Inverted</string>
     <string name="gradient_mode_radial">Radial</string>
-    <string name="theme_reset">Reset</string>
+    <string name="theme_export">Export Theme</string>
+    <string name="theme_export_toast">Theme-Farben exportiert nach: %s</string>
     <string name="theme_done">Done</string>
     <string name="theme_preview_word">word suggestion</string>
     <string name="theme_settings_title">🎨 Theme settings</string>
@@ -122,6 +125,11 @@
     <string name="theme_longpress_hint">Long-press ☀/☾ on the keyboard opens this page too. Default look = 0.9.4 (no gradient/colors until you set them).</string>
     <string name="theme_brightness">Brightness</string>
     <string name="theme_alpha">Alpha</string>
+    <string name="theme_section_gaming">Vervollständigung</string>
+    <string name="theme_gaming_toggle">🎯 Nächste Taste einfärben</string>
+    <string name="theme_gaming_effect">✨ Effekt bei Vervollständigung</string>
+    <string name="theme_gaming_hint">Die wahrscheinlichste nächste Taste bekommt die gewählte Färbung; sobald das getippte Wort dem Top-Vorschlag entspricht, gibt es einen Puls-Effekt.</string>
+    <string name="theme_reset">Reset</string>
     <string name="theme_gradient_hint">Farbe 1 / Farbe 2 und deren Alpha stellst du im Farbwahlrad unten ein (Ziel „Farbe 1/2").</string>
     <string name="editor_pick_parent">▲ …</string>
     <string name="editor_pick_empty">Empty folder</string>

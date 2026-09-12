@@ -15,8 +15,8 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@color/kbd_bg"
-        android:paddingStart="2dp"
-        android:paddingEnd="2dp"
+        android:paddingStart="0dp"
+        android:paddingEnd="0dp"
         android:paddingTop="0dp">
 
         <Button
@@ -49,7 +49,19 @@
             app:tabIndicatorHeight="0dp"
             app:tabSelectedTextColor="@color/text_primary"
             app:tabTextColor="@color/tab_text"
-            app:tabBackground="@drawable/tab_bg_inset">
+            app:tabBackground="@android:color/transparent">
+            <!-- tabBackground MUSS transparent sein (nicht tab_bg_flat!):
+                 Material's TabLayout.onDraw zeichnet dieses Drawable als
+                 baseBackgroundDrawable UNTER jedem TabView – zusätzlich und
+                 unabhängig von View.background. Ein opakes tab_bg_flat dort
+                 ließ die obere Zeile (ABC/Notes/Files) immer in der Basisfarbe
+                 bleiben: Der Theme-Verlauf schien nicht durch, und der Alpha-
+                 Regler der Tastenfarbe wirkte dort nicht. Die sichtbare
+                 Zellen-Farbe kommt ausschließlich vom ime_tabs-Block in
+                 ThemeApplier.apply(): TabLayout + SlidingTabIndicator werden
+                 TRANSPARENT, jeder TabView bekommt flatKeyState() (flach, eckig,
+                 Theme-Farbe inkl. Alpha), das Ripple-Foreground wird gelöscht. -->
+
 
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
@@ -235,7 +247,9 @@
         android:id="@+id/kb_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp">
+        android:layout_marginTop="3dp">
+        <!-- marginTop 3dp (vorher 6dp): geringer Abstand zwischen Tab-Leiste und
+             der ersten Zeile im abc-Tab (Wortvorhersage bzw. Q-Reihe). -->
 
         <!-- Buchstaben-Tastatur -->
         <LinearLayout
@@ -253,7 +267,11 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:visibility="gone"
+                android:layout_marginBottom="4dp"
                 android:background="@color/kbd_bg">
+                <!-- marginBottom 4dp: größerer Abstand zwischen Wortvorhersage und
+                     Q-Reihe (vorher nur 2dp über den Key-Margin). Wirkt nur, wenn
+                     die Wortvorhersage sichtbar ist → gezielt dieser Abstand. -->
 
                 <TextView
                     android:id="@+id/sug_1"
@@ -401,15 +419,16 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Dateimanager -->
+        <!-- Dateimanager: feste Höhe → Unterkante bündig mit der Enter-Zeile -->
         <LinearLayout
             android:id="@+id/file_panel"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="164dp"
             android:orientation="vertical"
             android:visibility="gone">
 
-            <!-- Header-Zeile: "<" (zurück zum letzten Ordner) + Pfad + "▲" (nach oben) -->
+            <!-- Header: kompakte Buttons – konsistent zum Editor-Header (minWidth 48dp, 13sp).
+                 Zurück/Hoch getauscht (▲ zurück, ‹ hoch) – visuell linksgebündelt. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -421,23 +440,45 @@
                     android:id="@+id/btn_back_dir"
                     style="@style/KeyDark"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/btn_back_label"
+                    android:layout_weight="0"
+                    android:minWidth="48dp"
+                    android:layout_marginStart="1dp"
+                    android:layout_marginEnd="1dp"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="0dp"
+                    android:text="@string/btn_up_label"
                     android:visibility="gone" />
 
                 <Button
                     android:id="@+id/btn_up_dir"
                     style="@style/KeyDark"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/btn_up_label"
+                    android:layout_weight="0"
+                    android:minWidth="48dp"
+                    android:layout_marginStart="1dp"
+                    android:layout_marginEnd="1dp"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="0dp"
+                    android:text="@string/btn_back_label"
                     android:visibility="gone" />
 
                 <Button
                     android:id="@+id/btn_paste_dir"
                     style="@style/KeyDark"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="24dp"
+                    android:layout_margin="1dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:textSize="12sp"
                     android:text="@string/fm_paste"
                     android:visibility="gone" />
 
@@ -448,22 +489,24 @@
                     android:layout_weight="1"
                     android:singleLine="true"
                     android:ellipsize="start"
+                    android:textSize="12sp"
                     android:textColor="@color/text_primary"
-                    android:padding="6dp" />
+                    android:padding="4dp" />
             </LinearLayout>
 
             <ListView
                 android:id="@+id/file_list"
                 android:layout_width="match_parent"
-                android:layout_height="250dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:background="@color/list_bg" />
 
             <TextView
                 android:id="@+id/file_hint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="6dp"
-                android:textSize="13sp"
+                android:padding="4dp"
+                android:textSize="12sp"
                 android:textColor="@color/text_secondary" />
         </LinearLayout>
     </FrameLayout>
@@ -472,8 +515,10 @@
     <LinearLayout
         android:id="@+id/bottom_row"
         style="@style/KeyRow"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="0dp"
         android:layout_marginBottom="4dp">
+        <!-- marginTop 0dp (vorher 4dp): geringer Abstand über der Enter-Zeile
+             (Y-Reihe-Key-Margin 2dp + Key-Margin 2dp = 4dp statt vorher 8dp). -->
         <Button style="@style/KeyDark" android:id="@+id/key_toggle" android:text="\?123"
             android:textSize="16sp" />
         <Button style="@style/KeyDark" android:id="@+id/key_tab" android:text="⇥"

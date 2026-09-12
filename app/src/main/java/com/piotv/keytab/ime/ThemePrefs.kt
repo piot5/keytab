@@ -26,9 +26,22 @@ object ThemePrefs {
 
     private const val PREFIX_DARK = "theme_dark_"
     private const val PREFIX_LIGHT = "theme_light_"
+    /** Default-Verlaufs-Farbe (wenn nicht gesetzt). */
+    private const val INT_DEF_GRADIENT = 0xFF000000.toInt()
     const val KIND_BG = "bg"
+    const val KIND_KEY = "key"
     const val KIND_HL = "hl"
     const val KIND_TEXT = "text"
+    const val KIND_GAMING = "gaming"
+
+    // ---------- Gaming-Modus (Theme-Einstellungen) ----------
+    /** Färbung der wahrscheinlichsten nächsten Taste (Gaming-Look). */
+    const val KEY_GAMING = "gaming_mode"
+    /** Zufriedenstellender Puls-Effekt, wenn die Wahrscheinlichkeit erreicht ist. */
+    const val KEY_GAMING_EFFECT = "gaming_effect"
+
+    fun gamingMode(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_GAMING, false)
+    fun gamingEffect(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_GAMING_EFFECT, true)
 
     /** Zähler: ändert sich bei jeder Theme-Änderung → IME baut die Tastatur neu. */
     const val KEY_THEME_VERSION = "theme_version"
@@ -54,8 +67,10 @@ object ThemePrefs {
             else android.content.res.Configuration.UI_MODE_NIGHT_NO)
         val ctx = context.createConfigurationContext(conf)
         val res = when (kind) {
+            KIND_KEY -> R.color.key_bg
             KIND_HL -> R.color.key_pressed
             KIND_TEXT -> R.color.key_text
+            KIND_GAMING -> R.color.primary
             else -> R.color.kbd_bg
         }
         return androidx.core.content.ContextCompat.getColor(ctx, res)
@@ -74,11 +89,39 @@ object ThemePrefs {
         prefs.edit().putInt(colorKey(dark, kind), value).apply()
     }
 
+    /** Alle aktuell gespeicherten Theme-Farben (beide Modi) + Verlauf als JSON. */
+    fun exportColors(prefs: SharedPreferences): String {
+        val b = org.json.JSONObject()
+        for (dark in listOf(true, false)) {
+            val prefix = if (dark) "dark" else "light"
+            val m = org.json.JSONObject()
+            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_GAMING)) {
+                val key = colorKey(dark, kind)
+                if (prefs.contains(key)) m.put(kind, prefs.getInt(key, 0))
+            }
+            b.put(prefix, m)
+        }
+        val g = org.json.JSONObject()
+        g.put("color1", prefs.getInt(KEY_GRADIENT_COLOR1, INT_DEF_GRADIENT))
+        g.put("color2", prefs.getInt(KEY_GRADIENT_COLOR2, INT_DEF_GRADIENT))
+        g.put("mode", prefs.getInt(KEY_GRADIENT_MODE, 0))
+        b.put("gradient", g)
+        val gm = org.json.JSONObject()
+        gm.put("enabled", prefs.getBoolean(KEY_GAMING, false))
+        gm.put("effect", prefs.getBoolean(KEY_GAMING_EFFECT, true))
+        b.put("gaming", gm)
+        b.put("version", themeVersion(prefs))
+        return b.toString(2)
+    }
+
     /** Alle Farb-Overrides + Verlauf zurücksetzen (Standard-Theme). */
     fun resetAll(prefs: SharedPreferences) {
-        prefs.edit().remove(colorKey(true, KIND_BG)).remove(colorKey(true, KIND_HL))
-            .remove(colorKey(true, KIND_TEXT)).remove(colorKey(false, KIND_BG))
-            .remove(colorKey(false, KIND_HL)).remove(colorKey(false, KIND_TEXT))
+        prefs.edit().remove(colorKey(true, KIND_BG)).remove(colorKey(true, KIND_KEY))
+            .remove(colorKey(true, KIND_HL)).remove(colorKey(true, KIND_TEXT))
+            .remove(colorKey(true, KIND_GAMING)).remove(colorKey(false, KIND_BG))
+            .remove(colorKey(false, KIND_KEY)).remove(colorKey(false, KIND_HL))
+            .remove(colorKey(false, KIND_TEXT)).remove(colorKey(false, KIND_GAMING))
+            .remove(KEY_GAMING).remove(KEY_GAMING_EFFECT)
             .remove(KEY_GRADIENT_COLOR1).remove(KEY_GRADIENT_COLOR2)
             .remove(KEY_GRADIENT_MODE).apply()
     }

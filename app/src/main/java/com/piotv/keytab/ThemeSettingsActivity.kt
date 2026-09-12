@@ -37,6 +37,7 @@ class ThemeSettingsActivity : AppCompatActivity() {
     private var alphaSlider: SeekBar? = null
     private var alphaLabel: TextView? = null
     private var modeButtons: List<Pair<String, Button>> = emptyList()
+    private var gamingButtons: List<Pair<String, Button>> = emptyList()
 
     // Live-Vorschau
     private var previewRow: LinearLayout? = null
@@ -74,6 +75,7 @@ class ThemeSettingsActivity : AppCompatActivity() {
         buildGradientSection(col)
         sectionLabel(col, getString(R.string.theme_section_colors))
         colorSection(col)
+        gamingSection(col)
         sectionLabel(col, getString(R.string.theme_section_preview))
         col.addView(buildPreview(), rowParams())
         col.addView(actionRow(), rowParams())
@@ -257,6 +259,49 @@ class ThemeSettingsActivity : AppCompatActivity() {
         }
     }
 
+    // ---------- Gaming-Modus (Tasten-Färbung + Vervollständigungs-Effekt) ----------
+
+    /** Toggle-Zeile: Nächste-Taste-Färbung + Effekt bei erreichter Wahrscheinlichkeit. */
+    private fun gamingSection(col: LinearLayout) {
+        sectionLabel(col, getString(R.string.theme_section_gaming))
+        val toggles = listOf(
+            ThemePrefs.KEY_GAMING to getString(R.string.theme_gaming_toggle),
+            ThemePrefs.KEY_GAMING_EFFECT to getString(R.string.theme_gaming_effect))
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        gamingButtons = toggles.map { (key, label) ->
+            val b = Button(this).apply {
+                text = label
+                textSize = 12f
+                isAllCaps = false
+                minimumHeight = 0
+                setPadding((8 * dip).toInt(), (4 * dip).toInt(), (8 * dip).toInt(), (4 * dip).toInt())
+                setOnClickListener {
+                    prefs.edit().putBoolean(key, !gamingPref(prefs, key)).apply()
+                    ThemePrefs.bumpVersion(prefs)
+                    refreshGamingButtons()
+                }
+            }
+            row.addView(b, LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = (4 * dip).toInt() })
+            key to b
+        }
+        col.addView(row, rowParams())
+        miniLabel(col, getString(R.string.theme_gaming_hint))
+        refreshGamingButtons()
+    }
+
+    /** Pref-Wert mit dem jeweiligen Default (Färbung aus, Effekt an). */
+    private fun gamingPref(prefs: android.content.SharedPreferences, key: String): Boolean =
+        prefs.getBoolean(key, key == ThemePrefs.KEY_GAMING_EFFECT)
+
+    private fun refreshGamingButtons() {
+        gamingButtons.forEach { (key, b) ->
+            val active = gamingPref(prefs, key)
+            b.setTypeface(null, if (active) Typeface.BOLD else Typeface.NORMAL)
+            b.alpha = if (active) 1f else 0.65f
+        }
+    }
+
     // ---------- Farben (Farbwahlrad: Background/Highlight/Text/Verlauf) ----------
 
     /** Farb-Sektion: Ziel-Auswahl + Farbwahlrad + Helligkeit + Alpha. */
@@ -264,8 +309,10 @@ class ThemeSettingsActivity : AppCompatActivity() {
         sectionLabel(col, getString(R.string.theme_section_colors))
         val targets = listOf(
             ThemePrefs.KIND_BG to getString(R.string.theme_color_bg),
+            ThemePrefs.KIND_KEY to getString(R.string.theme_color_key),
             ThemePrefs.KIND_HL to getString(R.string.theme_color_hl),
             ThemePrefs.KIND_TEXT to getString(R.string.theme_color_text),
+            ThemePrefs.KIND_GAMING to getString(R.string.theme_color_gaming),
             "grad1" to getString(R.string.settings_gradient_color1),
             "grad2" to getString(R.string.settings_gradient_color2)
         )
@@ -439,7 +486,7 @@ class ThemeSettingsActivity : AppCompatActivity() {
             resources.displayMetrics.widthPixels)?.let { row.background = it }
             ?: run { row.background = android.graphics.drawable.ColorDrawable(bg) }
         previewKey?.background = android.graphics.drawable.GradientDrawable().apply {
-            cornerRadius = 6f * dip; setColor(currentColor(ThemePrefs.KIND_BG))
+            cornerRadius = 6f * dip; setColor(currentColor(ThemePrefs.KIND_KEY))
         }
         previewKey?.setTextColor(text)
         previewSug?.setTextColor(text)
@@ -459,8 +506,21 @@ class ThemeSettingsActivity : AppCompatActivity() {
                 refreshAllUi()
             }
         }
-        row.addView(reset, LinearLayout.LayoutParams(0,
-            LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        val export = Button(this).apply {
+            text = getString(R.string.theme_export)
+            isAllCaps = false
+            setOnClickListener {
+                val json = ThemePrefs.exportColors(prefs)
+                val file = java.io.File(getExternalFilesDir(null), "theme-export.json")
+                try { file.writeText(json) } catch (e: Exception) { e.printStackTrace() }
+                val ctx = this@ThemeSettingsActivity
+                android.widget.Toast.makeText(ctx,
+                    String.format(getString(R.string.theme_export_toast), file.absolutePath),
+                    android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+        listOf(reset, export).forEach { row.addView(it, LinearLayout.LayoutParams(0,
+            LinearLayout.LayoutParams.WRAP_CONTENT, 1f)) }
         return row
     }
 

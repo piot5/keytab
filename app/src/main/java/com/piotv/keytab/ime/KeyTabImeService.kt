@@ -75,6 +75,8 @@ class KeyTabImeService : InputMethodService() {
     private var editorActive = false
     private var terminalActive = false
     private val baseLetters = mutableMapOf<Button, Char>()
+    /** Gaming-Modus: momentan hervorgehobene Tasten + deren Originale-Background. */
+    private val gamingHighlighted = mutableListOf<Pair<Button, android.graphics.drawable.Drawable>>()
 
     private var fileManagerPanel: FileManagerPanel? = null
     private var editorPanel: EditorPanel? = null
@@ -110,6 +112,7 @@ class KeyTabImeService : InputMethodService() {
         keyboardRoot = null
         suggestionViews.fill(null)
         baseLetters.clear()
+        gamingHighlighted.clear()
     }
 
     override fun onCreateInputView(): View {
@@ -268,6 +271,71 @@ class KeyTabImeService : InputMethodService() {
             pm?.currentTypedWord?.length ?: 0,
             enabled
         )
+        updateGamingKeys()
+    }
+
+    /**
+     * Gaming-Modus: die wahrscheinlichste nächste Taste bekommt die Gaming-Farbe
+     * (Pref [ThemePrefs.KEY_GAMING]); wenn das getippte Wort dem Top-Vorschlag
+     * entspricht (Wahrscheinlichkeit erreicht), gibt es einen Puls-Effekt
+     * ([ThemePrefs.KEY_GAMING_EFFECT]). Ohne Modus werden Highlights zurückgesetzt.
+     */
+    private fun updateGamingKeys() {
+        val prefs = baseContext.getSharedPreferences(PREFS, MODE_PRIVATE)
+        if (!ThemePrefs.gamingMode(prefs)) { restoreGamingKeys(); return }
+        val pm = predictionManager
+        val sugs = pm?.currentSuggestions ?: emptyList()
+        val typed = pm?.currentTypedWord ?: ""
+        val next = GamingLogic.nextChar(sugs, typed.length)
+        restoreGamingKeys()
+        if (next != null) {
+            val gamingColor = ThemePrefs.getColor(prefs, isDarkMode(), ThemePrefs.KIND_GAMING,
+                ThemePrefs.defaultColor(baseContext, isDarkMode(), ThemePrefs.KIND_GAMING))
+            val dip = resources.displayMetrics.density
+            for ((btn, c) in baseLetters) {
+                if (c.lowercaseChar() == next) {
+                    gamingHighlighted.add(btn to btn.background)
+                    btn.background = android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius = 8f * dip
+                        setColor(gamingColor)
+                    }
+                }
+            }
+            if (ThemePrefs.gamingEffect(prefs) && GamingLogic.completed(sugs, typed)) {
+                gamingCompletionEffect(
+                    baseLetters.filter { it.value.lowercaseChar() == next }.keys.toList(),
+                    gamingColor)
+            }
+        }
+    }
+
+    /** Gaming-Highlights zurücksetzen (Original-Backgrounds wiederherstellen). */
+    private fun restoreGamingKeys() {
+        for ((btn, bg) in gamingHighlighted) {
+            if (btn.isAttachedToWindow) btn.background = bg
+        }
+        gamingHighlighted.clear()
+    }
+
+    /** Zufriedenstellender Effekt: Farblitz + Scale-Puls + Haptik. */
+    private fun gamingCompletionEffect(buttons: List<Button>, color: Int) {
+        if (buttons.isEmpty()) return
+        haptic()
+        val dip = resources.displayMetrics.density
+        for (b in buttons) {
+            val saved = gamingHighlighted.firstOrNull { it.first === b }?.second ?: b.background
+            val flash = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 8f * dip
+                setColor(android.graphics.Color.argb(230,
+                    android.graphics.Color.red(color), android.graphics.Color.green(color),
+                    android.graphics.Color.blue(color)))
+            }
+            b.background = flash
+            b.animate().scaleX(1.3f).scaleY(1.3f).setDuration(130).withEndAction {
+                b.animate().scaleX(1f).scaleY(1f).setDuration(170).start()
+                b.background = saved
+            }.start()
+        }
     }
 
 // keyNeighborLetters logic moved to DynamicKeyScaler
@@ -297,6 +365,14 @@ class KeyTabImeService : InputMethodService() {
         shifted = autoCapitalize(attribute)
         applyLetterCase(keyboardRoot)
         updateShiftVisual(keyboardRoot)
+    }
+
+    override fun onStartInputView(editorInfo: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
+        super.onStartInputView(editorInfo, restarting)
+        // Theme-Änderungen (Farben/Alpha aus der Settings-Activity) übernehmen, auch
+        // wenn dasselbe Textfeld weiterläuft – onStartInput feuert dann nicht erneut,
+        // die Tastatur zeigte sonst die alten Farben (u. a. Alpha nicht angewendet).
+        maybeRebuildForThemeChange()
     }
 
     /**
@@ -460,7 +536,17 @@ class KeyTabImeService : InputMethodService() {
                     if (keyboardVisible) View.VISIBLE else View.INVISIBLE
                 root.findViewById<View>(R.id.key_dot)?.visibility =
                     if (keyboardVisible) View.VISIBLE else View.INVISIBLE
-                if (pos == 2) fileManagerPanel?.show()
+                if (pos == 2) {
+                    // Files-Tab genauso hoch wie Notes-Tab: Das Datei-Panel nimmt die
+                    // Höhe von Editor-Panel + Buchstaben-Panel ein (gemessen, nicht
+                    // hartkodiert) → gleiche Gesamthöhe beim Tab-Wechsel.
+                    val h = PanelHeights.filesPanelHeight(ed, kb,
+                        root.resources.displayMetrics.widthPixels)
+                    if (h > 0 && fm.layoutParams.height != h) {
+                        fm.layoutParams = fm.layoutParams.apply { height = h }
+                    }
+                    fileManagerPanel?.show()
+                }
                 if (pos == 1) clipboardPanel?.onSelected()
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}

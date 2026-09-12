@@ -149,7 +149,7 @@ internal class SuggestionController(private val host: KeyboardHost) {
             }.start()
         }
     }
-}
+
     /** Vorschlag übernehmen (delegiert an Manager) + Shift zurücksetzen. */
     fun applySuggestion(word: String) {
         host.haptic()
@@ -159,3 +159,4 @@ internal class SuggestionController(private val host: KeyboardHost) {
         }
         update()
     }
+}

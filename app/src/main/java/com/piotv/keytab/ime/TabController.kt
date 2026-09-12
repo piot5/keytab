@@ -1,6 +1,7 @@
 package com.piotv.keytab.ime
 
 import android.view.View
+import android.widget.Button
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
 
@@ -51,6 +52,11 @@ internal class TabController(private val host: KeyboardHost) {
         // Terminal-Tab ist optional (Einstellungen-App): aus -> Tab entfernen
         val termEnabled = host.context.getSharedPreferences(
             com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
+            .getBoolean(com.piotv.keytab.Prefs.KEY_TERM_TAB, true)
+        if (!termEnabled) {
+            tabs.getTabAt(3)?.let { tabs.removeTab(it) }
+            term.visibility = View.GONE
+        }
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 host.letterPopup.dismiss()
@@ -124,8 +130,3 @@ internal class TabController(private val host: KeyboardHost) {
             if (showSymbols) host.context.getString(R.string.key_toggle_letters) else "?123"
     }
 }
-            .getBoolean(com.piotv.keytab.Prefs.KEY_TERM_TAB, true)
-        if (!termEnabled) {
-            tabs.getTabAt(3)?.let { tabs.removeTab(it) }
-            term.visibility = View.GONE
-        }

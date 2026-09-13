@@ -40,8 +40,8 @@ interface KeyboardHost {
     /** Dynamischer Tasten-Skaler. */
     val keyScaler: DynamicKeyScaler?
 
-    /** Buchstaben-Tasten → Basiszeichen (für Gaming-Highlights). */
-    val baseLetters: Map<Button, Char>
+    /** Buchstaben-Tasten → Basiszeichen (für Gaming-Highlights + LetterCase). */
+    val baseLetters: MutableMap<Button, Char>
 
     /** Dateimanager-Panel (für show() beim Files-Tab). */
     val fileManagerPanel: FileManagerPanel?
@@ -75,4 +75,35 @@ interface KeyboardHost {
 
     /** Haptisches Feedback auf dem Tastatur-Root. */
     fun haptic()
+
+    // ---------- Text-Eingabe (Delegate für KeyboardBinder) ----------
+
+    /** Text an das aktive Eingabeziel senden (App/Editor/Terminal via Router). */
+    fun commitText(text: String)
+
+    /** Wort vor dem Cursor löschen + Vorhersage reset (Del-LongPress-Repeat). */
+    fun deleteLastWord()
+
+    /** App-Einstellungen öffnen (Settings-Taste). */
+    fun openSettings()
+
+    // ---------- Shift-State (an ShiftController gebunden, Phase 3) ----------
+
+    /**
+     * Shift-Taste getippt. [now] = Zeitstempel (elapsedRealtime).
+     * @return neuer Zustand (shifted/capsLock) – Aufrufer wendet Visual + LetterCase an.
+     */
+    fun tapShift(now: Long): ShiftController.ShiftState
+
+    /** Feld-Start: CapsLock aus, ggf. Auto-Caps. */
+    fun resetShiftForInput(autoCapitalize: Boolean)
+
+    /** Buchstaben-Groß-/Kleinschreibung + Rand-Hinweise auf den View anwenden. */
+    fun applyLetterCase(root: View?)
+
+    /** Shift-Taste visuell aktualisieren (Alpha/Bold nach Zustand). */
+    fun updateShiftVisual(root: View?)
+
+    /** Kombinierte Long-Press-Zuordnungen der aktiven Sprache (Akzente + Interpunktion). */
+    val letterExtras: Map<Char, List<String>>
 }

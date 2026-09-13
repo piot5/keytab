@@ -7,23 +7,14 @@ import android.graphics.Typeface
 import android.inputmethodservice.InputMethodService
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
-import android.text.InputType
-import android.text.SpannableStringBuilder
-import android.text.Spanned
-import android.text.style.ForegroundColorSpan
-import android.text.style.RelativeSizeSpan
 
 import android.view.ContextThemeWrapper
 import android.view.HapticFeedbackConstants
-import android.view.KeyEvent
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import com.piotv.keytab.MainActivity
 import com.piotv.keytab.R
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -59,13 +50,14 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
     private val themeController = ThemeController(this)
     private val tabController = TabController(this)
     private val suggestionController = SuggestionController(this)
+    // Phase-3-Controller: Tasten-Event-Binding (Touch/Long-Press/Del-Repeat)
+    private lateinit var keyboardBinder: KeyboardBinder
 
     /** KeyboardHost: Basis-Kontext für Prefs/Resources/Assets (gleiche Instanz wie baseContext). */
     override val context: Context get() = baseContext
 
-    private var shifted = false
-    private var capsLock = false
-    private var lastShiftTap = 0L
+    /** Shift-/CapsLock-Zustandsmaschine (Phase 2 extrahiert, Phase 3 angebunden). */
+    private val shiftController = ShiftController(SHIFT_DOUBLE_TAP_MS)
     override var keyboardRoot: View? = null
         internal set
     override val letterPopup = LetterPopup(this)
@@ -96,7 +88,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
     private var config: KeyTabConfig = KeyTabConfig()
 
     /** Kombinierte Long-Press-Zuordnungen der aktiven Sprache (Akzente + Interpunktion). */
-    private val letterExtras: Map<Char, List<String>>
+    override val letterExtras: Map<Char, List<String>>
         get() = activeLanguage.letterExtras(Languages.basePunctuation)
 
     /**
@@ -207,8 +199,9 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
             }
         }
         tabController.setup(root)
-        hookKeyboardButtons(root)
-        applyLetterCase(root)
+        keyboardBinder = KeyboardBinder(this, LONG_PRESS_TIMEOUT, tabController, themeController, suggestionController)
+        keyboardBinder.hook(root)
+        keyboardBinder.applyLetterCase(root)
         // Suggestion-Views holen, Module starten (Engine lazy, Skaler aufbauen)
         suggestionController.setup(root, suggestionViews, activeLanguage)
         return root
@@ -222,10 +215,9 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
     override fun onStartInput(attribute: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
         themeController.maybeRebuildForThemeChange()
-        capsLock = false
-        shifted = autoCapitalize(attribute)
-        applyLetterCase(keyboardRoot)
-        updateShiftVisual(keyboardRoot)
+        shiftController.resetForInput(autoCapitalize(attribute))
+        keyboardBinder.applyLetterCase(keyboardRoot)
+        keyboardBinder.updateShiftVisual(keyboardRoot)
     }
 
     override fun onStartInputView(editorInfo: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
@@ -236,18 +228,8 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         themeController.maybeRebuildForThemeChange()
     }
 
-    private fun autoCapitalize(attribute: android.view.inputmethod.EditorInfo?): Boolean {
-        attribute ?: return false
-        val inputType = attribute.inputType
-        if (inputType and InputType.TYPE_MASK_CLASS != InputType.TYPE_CLASS_TEXT) return false
-        val variation = inputType and InputType.TYPE_MASK_VARIATION
-        if (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
-            variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
-            variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
-        ) return false
-        return inputType and InputType.TYPE_TEXT_FLAG_CAP_SENTENCES != 0 ||
-            attribute.initialCapsMode != 0
-    }
+    private fun autoCapitalize(attribute: android.view.inputmethod.EditorInfo?): Boolean =
+        CapsLogic.wantsCapitalization(attribute)
 
     override fun haptic() {
         keyboardRoot?.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -261,254 +243,42 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         return mask == android.content.res.Configuration.UI_MODE_NIGHT_YES
     }
 
-    // ---------- KeyboardHost-Implementation (Phase 4) ----------
+    // ---------- KeyboardHost-Implementation (Phase 3+4) ----------
 
     /** Tastatur-View neu aufbauen (für Theme-Wechsel via [ThemeController]). */
     override fun rebuildInputView(): View = onCreateInputView()
 
-    override fun isShifted(): Boolean = shifted
-    override fun isCapsLock(): Boolean = capsLock
+    override fun isShifted(): Boolean = shiftController.isUpper()
+    override fun isCapsLock(): Boolean = shiftController.state().capsLock
 
     /** Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt) + View aktualisieren. */
     override fun consumeSingleShift() {
-        if (shifted && !capsLock) {
-            shifted = false
-            updateShiftVisual(keyboardRoot)
-            applyLetterCase(keyboardRoot)
+        shiftController.consume()
+        if (!shiftController.isUpper()) {
+            keyboardBinder.updateShiftVisual(keyboardRoot)
+            keyboardBinder.applyLetterCase(keyboardRoot)
         }
     }
 
-    private fun updateShiftVisual(root: View?) {
-        val shift = root?.findViewById<Button>(R.id.key_shift) ?: return
-        shift.alpha = if (shifted || capsLock) 1f else 0.6f
-        shift.setTypeface(null, if (capsLock) Typeface.BOLD else Typeface.NORMAL)
+    // ---------- Shift-State-Delegate (Phase 3, an ShiftController gebunden) ----------
+
+    override fun tapShift(now: Long): ShiftController.ShiftState = shiftController.tapShift(now)
+
+    override fun resetShiftForInput(autoCapitalize: Boolean) {
+        shiftController.resetForInput(autoCapitalize)
     }
 
-    private fun hookKeyboardButtons(root: View) {
-        ThemeApplier.forEachView(root) { v ->
-            val btn = v as? Button ?: return@forEachView
-            when {
-                btn.tag == "letter" -> setupLetterButton(btn)
-                btn.tag == "sym" -> btn.setOnClickListener {
-                    letterPopup.dismiss()
-                    commitText(btn.text.toString())
-                }
-                btn.id == R.id.key_toggle -> btn.setOnClickListener {
-                    letterPopup.dismiss()
-                    tabController.toggleSymbols(root)
-                }
-                btn.id == R.id.key_shift -> btn.setOnClickListener {
-                    letterPopup.dismiss()
-                    haptic()
-                    val now = SystemClock.elapsedRealtime()
-                    if (now - lastShiftTap <= SHIFT_DOUBLE_TAP_MS) {
-                        // Doppel-Tipp = Caps Lock
-                        capsLock = true
-                        shifted = true
-                        lastShiftTap = 0L
-                    } else if (capsLock) {
-                        // einzelner Tipp verlässt Caps Lock
-                        capsLock = false
-                        shifted = false
-                        lastShiftTap = now
-                    } else {
-                        shifted = !shifted
-                        lastShiftTap = now
-                    }
-                    updateShiftVisual(root)
-                    applyLetterCase(root)
-                }
-                // Del-Taste (⌫): Touch-Listener für Einzellöschung + Long-Press
-                // Wort-Löschung + Auto-Repeat. Wurde in der Phase-2-Refactorung
-                // versehentlich aus der when-Anweisung entfernt → Taste tot.
-                btn.id == R.id.key_del -> setupDelButton(btn)
-                btn.id == R.id.key_tab -> btn.setOnClickListener {
-                    letterPopup.dismiss()
-                    haptic()
-                    inputRouter?.insert("\t")
-                }
-                btn.id == R.id.key_dot -> btn.setOnClickListener {
-                    letterPopup.dismiss()
-                    commitText(".")
-                }
-                btn.id == R.id.key_theme -> themeController.setupButton(btn)
-                btn.id == R.id.key_settings -> btn.setOnClickListener {
-                    letterPopup.dismiss()
-                    haptic()
-                    startActivity(Intent(this, com.piotv.keytab.MainActivity::class.java)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                }
-                btn.id == R.id.key_enter -> btn.setOnClickListener {
-                    letterPopup.dismiss()
-                    haptic()
-                    inputRouter?.onEnter()
-                }
-                btn.id == R.id.key_space -> btn.setOnClickListener {
-                    letterPopup.dismiss()
-                    commitText(" ")
-                }
-            }
-        }
+    override fun applyLetterCase(root: View?) {
+        keyboardBinder.applyLetterCase(root)
     }
 
-    private fun setupLetterButton(btn: Button) {
-        baseLetters[btn] = btn.text?.toString()?.firstOrNull() ?: ' '
-        var pendingLongPress: Runnable? = null
-        var longPressFired = false
-        btn.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    longPressFired = false
-                    btn.isPressed = true
-                    pendingLongPress = Runnable {
-                        longPressFired = true
-                        showLetterExtras(btn)
-                    }
-                    longPressHandler.postDelayed(pendingLongPress!!, LONG_PRESS_TIMEOUT)
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    if (longPressFired) letterPopup.highlightCellUnder(event) { haptic() }
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    btn.isPressed = false
-                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
-                    if (longPressFired) {
-                        // Drag-Auswahl: markierte Zelle committen, sonst nichts
-                        val picked = letterPopup.pickedChar()
-                        letterPopup.dismiss()
-                        if (picked != null) commitText(picked.toString())
-                    } else {
-                        commitText(tapLetter(btn))
-                    }
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    btn.isPressed = false
-                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
-                    true
-                }
-                else -> false
-            }
-        }
+    override fun updateShiftVisual(root: View?) {
+        keyboardBinder.updateShiftVisual(root)
     }
 
-    private fun setupDelButton(btn: Button) {
-        var pendingLongPress: Runnable? = null
-        var repeater: Runnable? = null
-        btn.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    btn.isPressed = true
-                    haptic()
-                    inputRouter?.deleteBackspace()
-                    predictionManager?.deleteLast()
-                    suggestionController.update()
-                    pendingLongPress = Runnable {
-                        deleteLastWord()
-                        // Beschleunigend: Intervall wird pro Repeat kleiner, bis Minimum
-                        var interval = WORD_DELETE_START_MS
-                        repeater = object : Runnable {
-                            override fun run() {
-                                deleteLastWord()
-                                interval = (interval * WORD_DELETE_ACCEL).toLong().coerceAtLeast(WORD_DELETE_MIN_MS)
-                                longPressHandler.postDelayed(this, interval)
-                            }
-                        }
-                        longPressHandler.postDelayed(repeater!!, interval)
-                    }
-                    longPressHandler.postDelayed(pendingLongPress!!, LONG_PRESS_TIMEOUT)
-                    true
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    btn.isPressed = false
-                    pendingLongPress?.let { longPressHandler.removeCallbacks(it) }
-                    repeater?.let { longPressHandler.removeCallbacks(it) }
-                    if (event.action == MotionEvent.ACTION_UP) {
-                        // falls Wort-Löschung schon lief, nichts mehr tun; kurzer Tap = einzelnes DEL (oben schon gesendet)
-                    }
-                    true
-                }
-                else -> false
-            }
-        }
-    }
+    // ---------- Text-Eingabe-Delegate (Phase 3, für KeyboardBinder) ----------
 
-    /**
-     * Hauptbuchstabe einer Buchstaben-Taste für den Tap (Shift/Caps beachten).
-     * WICHTIG: nicht btn.text lesen — dort stehen inzwischen auch die
-     * Sonderzeichen-Hinweise an den Rändern (applyLetterCase).
-     */
-    private fun tapLetter(btn: Button): String {
-        val base = baseLetters[btn] ?: btn.text?.toString()?.firstOrNull() ?: return ""
-        val upper = shifted || capsLock
-        val ch = when {
-            upper && base == 'ß' -> 'ẞ'
-            upper -> base.uppercaseChar()
-            else -> base.lowercaseChar()
-        }
-        return ch.toString()
-    }
-
-    private fun showLetterExtras(anchor: Button) {
-        // Basis IMMER aus baseLetters (nicht btn.text — dort stehen inzwischen
-        // auch die Sonderzeichen-Hinweise an den Rändern)
-        val base = baseLetters[anchor] ?: return
-        val upper = shifted || capsLock
-        val showExtras = letterExtras[if (upper) base.uppercaseChar() else base]
-            ?: letterExtras[base]
-            ?: emptyList()
-        if (showExtras.isEmpty()) return
-        letterPopup.show(anchor, showExtras) { ch -> commitText(ch.toString()) }
-    }
-    private fun applyLetterCase(view: View?) {
-        if (view == null) return
-        val secondary = androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary)
-        ThemeApplier.forEachView(view) { v ->
-            val btn = v as? Button ?: return@forEachView
-            if (btn.tag != "letter") return@forEachView
-            val base = baseLetters[btn]
-                ?: btn.text?.toString()?.firstOrNull()
-                ?: return@forEachView
-            val upper = shifted || capsLock
-            // ß hat kein echtes Großbuchstaben per uppercaseChar → ẞ als Sonderfall
-            val letter = when {
-                upper && base == 'ß' -> 'ẞ'
-                upper -> base.uppercaseChar()
-                else -> base.lowercaseChar()
-            }
-            val extras = when {
-                upper && base == 'ß' -> emptyList()
-                // Interpunktion-Extras gibt es nur am lowercase-Key → Shift fällt darauf zurück
-                upper -> (letterExtras[base.uppercaseChar()] ?: letterExtras[base]).orEmpty()
-                else -> letterExtras[base].orEmpty()
-            }
-            val sb = SpannableStringBuilder(letter.toString())
-            // Hauptbuchstabe: etwas kleiner + leicht angehoben
-            sb.setSpan(RelativeSizeSpan(0.85f), 0, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            sb.setSpan(LiftSpan(-0.2f), 0, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            if (extras.isNotEmpty()) {
-                // FlorisBoard-Style: Hinweis-Zeichen klein + abgedunkelt deutlich
-                // rechts-UNTEN (LiftSpan senkt die Basislinie stark ab)
-                val start = sb.length
-                sb.append("\u00A0" + extras.first()) // geschütztes Leerzeichen: Trennung zum Hauptzeichen
-                sb.setSpan(RelativeSizeSpan(0.5f), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                sb.setSpan(ForegroundColorSpan(secondary), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                sb.setSpan(LiftSpan(0.55f), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            }
-            btn.text = sb
-        }
-    }
-
-    private fun deleteLastWord() {
-        haptic()
-        inputRouter?.deleteWord()
-        predictionManager?.reset()
-        suggestionController.update()
-    }
-
-    private fun commitText(text: String) {
+    override fun commitText(text: String) {
         haptic()
         // Aktive Autokorrektur (v0.9.1): Space nach unbekanntem Wort → Wort
         // ersetzen, wenn ein klarer Wörterbuch-Kandidat existiert (nur App-Felder;
@@ -533,10 +303,17 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         suggestionController.update()
     }
 
-    /**
-     * Deaktiviert Clipping für [v] und alle Eltern: vergrößerte/bewegte Tasten
-     * dürfen über die Raster- und Containergrenzen hinausragen.
-     */
+    override fun deleteLastWord() {
+        haptic()
+        inputRouter?.deleteWord()
+        predictionManager?.reset()
+        suggestionController.update()
+    }
+
+    override fun openSettings() {
+        startActivity(Intent(this, com.piotv.keytab.MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
     private fun disableClipping(v: View?) {
         var cur: View? = v
         while (cur != null) {

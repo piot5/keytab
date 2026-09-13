@@ -12,7 +12,7 @@ package com.piotv.keytab.ime
  * Sichtbare Ausgabe (Alpha/Bold) macht der Aufrufer über die State-Getter.
  * [SHIFT_DOUBLE_TAP_MS] ist konfigurierbar (Testbarkeit) statt hartkodiert.
  */
-internal class ShiftController(
+class ShiftController(
     private val doubleTapMs: Long
 ) {
     class ShiftState(

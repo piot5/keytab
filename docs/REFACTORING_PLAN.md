@@ -1,6 +1,6 @@
 # KeyTab – Refactoring-Plan: Modularisierung & Separation of Concerns
 
-Stand: 2026-09-12 · Status: **Phase 0–2 + 4 umgesetzt; Phase 3 als Nächstes** · Ziel: wartbare, testbare
+Stand: 2026-09-13 · Status: **Phase 0–4 umgesetzt; Phase 6 als Nächstes** · Ziel: wartbare, testbare
 Module ohne Verhaltensänderung (reine Struktur-Refactors).
 
 ---
@@ -134,12 +134,15 @@ Jede Phase: **klein, unabhängig, buildbar** — nach jeder Phase
       `deleteLastWord`, `WordPredictionManager.InputOperations`
 - [ ] Service delegiert nur noch; `applyLetterCase`/`updateShiftVisual` ziehen um
 
-### Phase 3 – Tasten-Events: KeyboardBinder (1 Tag)
-- [ ] `hookKeyboardButtons`, `setupLetterButton`, `setupDelButton` →
-      `KeyboardBinder(host, letterPopup, callbacks)`
-- [ ] Del-Repeat-Beschleunigung (`WORD_DELETE_*`) als pure Klasse
-      `RepeatScheduler` (Zeitlogik testbar)
-- [ ] Long-Press/Touch-Logik bleibt 1:1 (nur Umzug, kein Rewrite!)
+### Phase 3 – Tasten-Events: KeyboardBinder (1 Tag) ✅ umgesetzt
+- [x] `KeyboardBinder`: `hookKeyboardButtons`/`setupLetterButton`/`setupDelButton`/
+      `tapLetter`/`showLetterExtras`/`applyLetterCase`/`updateShiftVisual` aus dem Service
+- [x] `RepeatScheduler`: pure Del-Repeat-Zeitlogik (Android-frei, JUnit-testbar)
+- [x] `ShiftController` (Phase 2) angebunden: Service delegiert Shift-State,
+      `autoCapitalize` nutzt `CapsLogic` (Phase 2)
+- [x] `KeyboardHost` erweitert: `commitText`/`deleteLastWord`/`openSettings`/
+      `tapShift`/`resetShiftForInput`/`applyLetterCase`/`updateShiftVisual`/`letterExtras`
+- Ergebnis: `KeyTabImeService` 573 → 361 Zeilen (−37 %); kumuliert 871 → 361 (−58 %)
 
 ### Phase 4 – Feature-Controller (1 Tag) ✅ umgesetzt
 - [x] `SuggestionController`: `setupSuggestions`/`updateSuggestions`/

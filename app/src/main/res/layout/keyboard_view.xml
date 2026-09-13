@@ -81,6 +81,11 @@
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="@string/ime_tab_clip_short" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="@string/ime_tab_term_short" />
         </com.google.android.material.tabs.TabLayout>
 
@@ -148,9 +153,57 @@
                 android:paddingTop="0dp"
                 android:text="@string/editor_save" />
 
-            <!-- Clipboard: Klick = Inhalt ins Editorfeld, Long-Press = Picker -->
+            <!-- ↑ Editor-Inhalt direkt ins App-Feld darüber einfügen -->
             <Button
-                android:id="@+id/btn_editor_clip"
+                android:id="@+id/btn_editor_send_up"
+                style="@style/KeyDark"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:minWidth="40dp"
+                android:layout_marginStart="1dp"
+                android:layout_marginEnd="1dp"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="0dp"
+                android:text="@string/editor_send_up" />
+
+            <!-- ✕ Editor leeren -->
+            <Button
+                android:id="@+id/btn_editor_clear"
+                style="@style/KeyDark"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:minWidth="40dp"
+                android:layout_marginStart="1dp"
+                android:layout_marginEnd="1dp"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="0dp"
+                android:text="@string/editor_clear" />
+
+            <!-- ⎘ Editor-Inhalt ins System-Clipboard kopieren -->
+            <Button
+                android:id="@+id/btn_editor_copy"
+                style="@style/KeyDark"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:minWidth="40dp"
+                android:layout_marginStart="1dp"
+                android:layout_marginEnd="1dp"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="0dp"
+                android:text="@string/editor_copy" />
+
+            <!-- ↻ Datei neu laden -->
+            <Button
+                android:id="@+id/btn_editor_reload"
                 style="@style/KeyDark"
                 android:layout_width="wrap_content"
                 android:layout_weight="0"
@@ -162,7 +215,7 @@
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
                 android:paddingTop="0dp"
-                android:text="▤" />
+                android:text="@string/editor_reload" />
 
             <TextView
                 android:id="@+id/editor_file"
@@ -186,6 +239,54 @@
             android:textColor="@color/text_primary"
             android:hint="@string/editor_hint"
             android:padding="8dp" />
+    </LinearLayout>
+
+    <!-- Clipboard-Panel (nur im Clip-Tab sichtbar):
+         Historie der kopierten Texte, tippen = in Zielfeld einfügen -->
+    <LinearLayout
+        android:id="@+id/clip_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@color/key_bg">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/clip_tab_hint"
+                android:textSize="11sp"
+                android:textColor="@color/text_secondary"
+                android:padding="4dp" />
+
+            <Button
+                android:id="@+id/btn_clip_clear"
+                style="@style/KeyDark"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:minWidth="48dp"
+                android:layout_marginStart="1dp"
+                android:layout_marginEnd="1dp"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="0dp"
+                android:text="@string/clip_clear" />
+        </LinearLayout>
+
+        <ListView
+            android:id="@+id/clip_list"
+            android:layout_width="match_parent"
+            android:layout_height="130dp"
+            android:background="@color/list_bg" />
     </LinearLayout>
 
     <!-- Terminal ÜBER den Buchstaben (nur im Terminal-Tab sichtbar):

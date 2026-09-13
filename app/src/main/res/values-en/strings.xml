@@ -5,7 +5,7 @@
     <string name="tab_keyboard">abc</string>
     <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Files</string>
-            <string name="ime_tab_editor">Notes</string>
+            <string name="ime_tab_editor">Editor</string>
     <string name="editor_hint">Type text here …</string>
     <string name="editor_save">💾 Save</string>
     <string name="editor_load">📂 Load</string>
@@ -78,7 +78,7 @@
     <string name="config_exists">Datei existiert bereits — Werte direkt editieren, wirkt beim nächsten Öffnen der Tastatur</string>
     <string name="terminal_start_failed">Could not start shell.</string>
     <string name="terminal_shell_dead">Shell is not running.</string>
-    <string name="ime_tab_editor_short">Notes</string>
+    <string name="ime_tab_editor_short">Editor</string>
     <string name="ime_tab_clip_short">Clip</string>
     <string name="ime_tab_term_short">Terminal</string>
     <!-- Editor: Ordnerauswahl beim Laden -->

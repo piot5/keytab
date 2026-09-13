@@ -16,36 +16,38 @@ import java.io.File
 import java.util.concurrent.Executor
 
 /**
- * Editor-Panel der IME (Notes-Tab): Eingabefeld + Speichern/Laden.
+ * Editor-Panel der IME (Editor-Tab): Eingabefeld + Speichern/Laden + Funktionen.
  * "Load" öffnet einen Ordner-Browser (Dialog mit ListView): Ordner antippen =
  * hineinnavigieren, "▲ …" = nach oben, Datei antippen = laden. Save schreibt
  * in die zuletzt geladene/gewählte Datei (Default: keytab_editor.txt).
  * Datei-I/O läuft auf [ioExecutor], UI-Updates kehren über [mainHandler] zurück.
+ *
+ * Toolbar: ⤓Save · ⤒Load · ↑Send-to-App · ✕Clear · ⎘Copy · ↻Reload
+ * - ↑ sendet den Editor-Inhalt direkt ins Zielfeld der App darüber (InputConnection)
+ * - ✕ leert das Editorfeld
+ * - ⎘ kopiert den Editor-Inhalt ins System-Clipboard
+ * - ↻ lädt die Datei neu in den Editor
  */
 class EditorPanel(
     private val context: Context,
     private val rootView: View,
     private val ioExecutor: Executor,
-    private val mainHandler: Handler
+    private val mainHandler: Handler,
+    private val sendToApp: (String) -> Unit = {}
 ) {
 
                         private val input: EditText? = rootView.findViewById(R.id.editor_input)
     private val fileLabel: TextView? = rootView.findViewById(R.id.editor_file)
     private var editorFile: File = defaultFile()
 
-    /** Callback, der den Clipboard-Picker öffnet (wird vom Service nach dem Panel verknüpft). */
-    private var clipboardPicker: (() -> Unit)? = null
-
     init {
         fileLabel?.text = editorFile.name
         setupSave(rootView)
         setupLoad(rootView)
-        setupClipPaste(rootView)
-    }
-
-    /** Verknüpft den 📋-Button mit dem Clipboard-Picker des Services. */
-    fun setClipboardPicker(picker: (() -> Unit)?) {
-        clipboardPicker = picker
+        setupSendUp(rootView)
+        setupClear(rootView)
+        setupCopy(rootView)
+        setupReload(rootView)
     }
 
     /** Text + Cursorposition (für die Wortvorhersage), null wenn nicht bereit. */
@@ -96,31 +98,46 @@ class EditorPanel(
         }
     }
 
-        /**
-     * 📋-Taste (neben Save/Load): Klick = Clipboard-Inhalt direkt ins
-     * Editorfeld laden. Long-Press = Picker aller Clipboard-Einträge.
-     */
-    private fun setupClipPaste(root: View) {
-        root.findViewById<Button>(R.id.btn_editor_clip)?.apply {
-            setOnClickListener {
-                val text = currentClipboardText()
-                if (text.isNullOrEmpty()) {
-                    Toast.makeText(context, R.string.editor_clip_empty, Toast.LENGTH_SHORT).show()
-                } else {
-                    insert(text)
-                    Toast.makeText(context, R.string.editor_clip_pasted, Toast.LENGTH_SHORT).show()
-                }
-            }
-            setOnLongClickListener {
-                clipboardPicker?.invoke() ?: insert(currentClipboardText())
-                true
+    /** ↑: Editor-Inhalt direkt ins Zielfeld der App darüber einfügen. */
+    private fun setupSendUp(root: View) {
+        root.findViewById<Button>(R.id.btn_editor_send_up)?.setOnClickListener {
+            val text = input?.text?.toString() ?: ""
+            if (text.isEmpty()) {
+                Toast.makeText(context, R.string.editor_empty_nothing, Toast.LENGTH_SHORT).show()
+            } else {
+                sendToApp(text)
+                Toast.makeText(context, R.string.editor_sent_to_app, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun currentClipboardText(): String {
-        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-        return cm?.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString() ?: ""
+    /** ✕: Editorfeld leeren. */
+    private fun setupClear(root: View) {
+        root.findViewById<Button>(R.id.btn_editor_clear)?.setOnClickListener {
+            input?.setText("")
+            Toast.makeText(context, R.string.editor_cleared, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** ⎘: Editor-Inhalt ins System-Clipboard kopieren. */
+    private fun setupCopy(root: View) {
+        root.findViewById<Button>(R.id.btn_editor_copy)?.setOnClickListener {
+            val text = input?.text?.toString() ?: ""
+            if (text.isEmpty()) {
+                Toast.makeText(context, R.string.editor_empty_nothing, Toast.LENGTH_SHORT).show()
+            } else {
+                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                cm?.setPrimaryClip(android.content.ClipData.newPlainText("KeyTab", text))
+                Toast.makeText(context, R.string.editor_copied, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    /** ↻: Aktuelle Datei neu in den Editor laden. */
+    private fun setupReload(root: View) {
+        root.findViewById<Button>(R.id.btn_editor_reload)?.setOnClickListener {
+            loadFile(editorFile)
+        }
     }
 
     private fun setupSave(root: View) {
@@ -233,9 +250,9 @@ class EditorPanel(
 
 
     private fun defaultFile(): File {
-        val pub = Environment.getExternalStorageDirectory()
-        val dir = if (pub != null && pub.isDirectory && pub.canWrite()) pub
-        else context.getExternalFilesDir(null) ?: context.filesDir
+        // Default-Startverzeichnis = externes Files-Dir der App (keine Storage-
+        // Berechtigung nötig, immer beschreibbar). Fallback: internes Files-Dir.
+        val dir = context.getExternalFilesDir(null) ?: context.filesDir
         return File(dir, "keytab_editor.txt")
     }
 }

@@ -95,6 +95,15 @@ class MainActivity : AppCompatActivity() {
             else R.string.settings_term_off, Toast.LENGTH_SHORT).show()
         }
 
+        // Clipboard-Tab in der Tastatur ein-/ausblenden (wirkt beim nächsten Öffnen)
+        val swClipTab = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_clip_tab)
+        swClipTab.isChecked = prefs.getBoolean(Prefs.KEY_CLIP_TAB, true)
+        swClipTab.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(Prefs.KEY_CLIP_TAB, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_clip_tab_on
+            else R.string.settings_clip_tab_off, Toast.LENGTH_SHORT).show()
+        }
+
         // Wortvorhersage ein-/ausblenden (wirkt beim nächsten Öffnen der Tastatur)
         val swSuggestions = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_suggestions)
         swSuggestions.isChecked = prefs.getBoolean(Prefs.KEY_SUGGESTIONS, true)

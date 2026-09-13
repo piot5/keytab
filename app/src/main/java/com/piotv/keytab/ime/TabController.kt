@@ -6,23 +6,23 @@ import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
 
 /**
- * Tab-Controller – Tab-Umschaltung (ABC/Notes/Files/Terminal), Panel-Visibility,
- * PanelHeights-Berechnung und Symbol-Layer-Toggle.
+ * Tab-Controller – Tab-Umschaltung (ABC/Editor/Files/Clip/Terminal),
+ * Panel-Visibility, PanelHeights-Berechnung und Symbol-Layer-Toggle.
  *
- * Refactoring (docs/REFACTORING_PLAN.md Phase 4): aus [KeyTabImeService]
- * extrahiert. Der Service ruft [setup] beim View-Aufbau und [toggleSymbols]
- * beim Drücken der ?123-Taste.
- *
- * Die toten `editorActive`/`terminalActive`-Felder des Service entfallen hier
- * komplett – das Eingabe-Routing läuft seit Phase 2 über [InputRouter].
- * `showSymbols` lebt nun hier (statt als Service-Feld).
- *
- * Verhalten bleibt bit-identisch („Umziehen statt Umschreiben").
+ * Clip und Terminal sind optionale Tabs (Einstellungen-App). Da optionale Tabs
+ * entfernt werden, können Positionen nicht hartkodiert werden — stattdessen
+ * wird eine [kinds]-Liste nach dem Entfernen aufgebaut.
  */
 internal class TabController(private val host: KeyboardHost) {
 
+    /** Art eines Tabs (für Position→Verhalten-Mapping nach optionalem Entfernen). */
+    private enum class TabKind { ABC, EDITOR, FILES, CLIP, TERMINAL }
+
     /** Symbol-Layer sichtbar? (Toggle über ?123-Taste). */
     private var showSymbols = false
+
+    /** Position → TabKind (nach optionalem Entfernen von Clip/Terminal). */
+    private var kinds: List<TabKind> = listOf(TabKind.ABC, TabKind.EDITOR, TabKind.FILES)
 
     /** Symbol-Status zurücksetzen (beim Rebuild der Tastatur). */
     fun resetSymbols() {
@@ -30,54 +30,63 @@ internal class TabController(private val host: KeyboardHost) {
     }
 
     /**
-     * Tab-Leiste einrichten: Beschriftungen, Terminal-Tab ggf. entfernen,
+     * Tab-Leiste einrichten: Beschriftungen, Clip/Terminal-Tab ggf. entfernen,
      * Tab-Selection-Listener mit Panel-Visibility + PanelHeights.
      *
-     * Tab 0=abc, 1=Notes (Editor + Ablage), 2=Files, 3=Terminal.
+     * XML-Reihenfolge: 0=abc, 1=Editor, 2=Files, 3=Clip, 4=Terminal.
+     * Optionale Tabs werden von hinten entfernt (Terminal vor Clip), damit die
+     * Indizes der Pflicht-Tabs (0–2) stabil bleiben.
      */
     fun setup(root: View) {
         val tabs = root.findViewById<TabLayout>(R.id.ime_tabs) ?: return
-        // Beschriftungen explizit setzen (TabItem-Texte können beim
-        // Inflaten mit eigenem LayoutInflater verloren gehen)
         tabs.getTabAt(0)?.text = host.context.getString(R.string.ime_tab_letters)
         tabs.getTabAt(1)?.text = host.context.getString(R.string.ime_tab_editor)
         tabs.getTabAt(2)?.text = host.context.getString(R.string.ime_tab_files)
-        tabs.getTabAt(3)?.text = host.context.getString(R.string.ime_tab_term_short)
+        tabs.getTabAt(3)?.text = host.context.getString(R.string.ime_tab_clip_short)
+        tabs.getTabAt(4)?.text = host.context.getString(R.string.ime_tab_term_short)
         val kb = root.findViewById<View>(R.id.kb_panel) ?: return
         val sym = root.findViewById<View>(R.id.sym_panel) ?: return
         val fm = root.findViewById<View>(R.id.file_panel) ?: return
         val ed = root.findViewById<View>(R.id.editor_panel) ?: return
+        val clip = root.findViewById<View>(R.id.clip_panel) ?: return
         val term = root.findViewById<View>(R.id.term_panel) ?: return
         val bottom = root.findViewById<View>(R.id.bottom_row) ?: return
-        // Terminal-Tab ist optional (Einstellungen-App): aus -> Tab entfernen
-        val termEnabled = host.context.getSharedPreferences(
+        val prefs = host.context.getSharedPreferences(
             com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
-            .getBoolean(com.piotv.keytab.Prefs.KEY_TERM_TAB, true)
+        val clipEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_CLIP_TAB, true)
+        val termEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_TERM_TAB, true)
+        // Von hinten entfernen (Terminal bei 4, Clip bei 3) → Pflicht-Tabs stabil
         if (!termEnabled) {
-            tabs.getTabAt(3)?.let { tabs.removeTab(it) }
+            tabs.getTabAt(4)?.let { tabs.removeTab(it) }
             term.visibility = View.GONE
+        }
+        if (!clipEnabled) {
+            tabs.getTabAt(3)?.let { tabs.removeTab(it) }
+            clip.visibility = View.GONE
+        }
+        kinds = buildList {
+            add(TabKind.ABC); add(TabKind.EDITOR); add(TabKind.FILES)
+            if (clipEnabled) add(TabKind.CLIP)
+            if (termEnabled) add(TabKind.TERMINAL)
         }
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 host.letterPopup.dismiss()
                 val pos = tab.position
-                // Tab 0=abc, 1=Notes, 2=Files, 3=Terminal
-                // Notes/Terminal zeigen die Tastatur + Eingabezeile über der Tastatur
-                val keyboardVisible = pos == 0 || pos == 1 || pos == 3
-                // Eingabe-Routing: aktives Ziel an den Tab koppeln
-                host.inputRouter?.kind = when (pos) {
-                    1 -> InputKind.EDITOR
-                    3 -> InputKind.TERMINAL
+                val kind = kinds.getOrNull(pos) ?: TabKind.ABC
+                val keyboardVisible = kind == TabKind.ABC ||
+                    kind == TabKind.EDITOR || kind == TabKind.TERMINAL
+                host.inputRouter?.kind = when (kind) {
+                    TabKind.EDITOR -> InputKind.EDITOR
+                    TabKind.TERMINAL -> InputKind.TERMINAL
                     else -> InputKind.APP
                 }
                 kb.visibility = if (keyboardVisible && !showSymbols) View.VISIBLE else View.GONE
                 sym.visibility = if (keyboardVisible && showSymbols) View.VISIBLE else View.GONE
-                ed.visibility = if (pos == 1) View.VISIBLE else View.GONE
-                term.visibility = if (pos == 3) View.VISIBLE else View.GONE
-                fm.visibility = if (pos == 2) View.VISIBLE else View.GONE
-                // In ALLEN Tabs die ENTER-Taste erreichbar lassen – mit konstanter Größe und
-                // Position. Dafür werden die übrigen Tasten auf INVISIBLE (Platz bleibt)
-                // statt GONE gesetzt, damit Enter rechtsbündig und identisch bleibt.
+                ed.visibility = if (kind == TabKind.EDITOR) View.VISIBLE else View.GONE
+                term.visibility = if (kind == TabKind.TERMINAL) View.VISIBLE else View.GONE
+                fm.visibility = if (kind == TabKind.FILES) View.VISIBLE else View.GONE
+                clip.visibility = if (kind == TabKind.CLIP) View.VISIBLE else View.GONE
                 bottom.visibility = View.VISIBLE
                 root.findViewById<View>(R.id.key_toggle)?.visibility =
                     if (keyboardVisible) View.VISIBLE else View.INVISIBLE
@@ -87,18 +96,10 @@ internal class TabController(private val host: KeyboardHost) {
                     if (keyboardVisible) View.VISIBLE else View.INVISIBLE
                 root.findViewById<View>(R.id.key_dot)?.visibility =
                     if (keyboardVisible) View.VISIBLE else View.INVISIBLE
-                // Enter-Taste ist in ALLEN Tabs erreichbar — explizit VISIBLE
-                // setzen (liegt außerhalb kb_panel → von kb_panel-GONE nicht
-                // verdeckt; wird sonst durch XML-Default erst sichtbar).
                 root.findViewById<View>(R.id.key_enter)?.visibility = View.VISIBLE
-                // Del-Taste ist Teil der Buchstaben-Tastatur (in kb_panel).
-                // Wird sichtbar, wenn die Tastatur angezeigt wird.
                 root.findViewById<View>(R.id.key_del)?.visibility =
                     if (keyboardVisible && !showSymbols) View.VISIBLE else View.INVISIBLE
-                if (pos == 2) {
-                    // Files-Tab genauso hoch wie Notes-Tab: Das Datei-Panel nimmt die
-                    // Höhe von Editor-Panel + Buchstaben-Panel ein (gemessen, nicht
-                    // hartkodiert) → gleiche Gesamthöhe beim Tab-Wechsel.
+                if (kind == TabKind.FILES) {
                     val h = PanelHeights.filesPanelHeight(ed, kb,
                         root.resources.displayMetrics.widthPixels)
                     if (h > 0 && fm.layoutParams.height != h) {
@@ -106,7 +107,16 @@ internal class TabController(private val host: KeyboardHost) {
                     }
                     host.fileManagerPanel?.show()
                 }
-                if (pos == 1) host.clipboardPanel?.onSelected()
+                if (kind == TabKind.CLIP) {
+                    val h = PanelHeights.filesPanelHeight(ed, kb,
+                        root.resources.displayMetrics.widthPixels)
+                    if (h > 0 && clip.layoutParams.height != h) {
+                        clip.layoutParams = clip.layoutParams.apply { height = h }
+                    }
+                    host.clipboardPanel?.onSelected()
+                    host.clipboardPanel?.refreshList(root)
+                }
+                if (kind == TabKind.EDITOR) host.clipboardPanel?.onSelected()
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
@@ -115,6 +125,7 @@ internal class TabController(private val host: KeyboardHost) {
         sym.visibility = View.GONE
         ed.visibility = View.GONE
         fm.visibility = View.GONE
+        clip.visibility = View.GONE
         term.visibility = View.GONE
         bottom.visibility = View.VISIBLE
     }

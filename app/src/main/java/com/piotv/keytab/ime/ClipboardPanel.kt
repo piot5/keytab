@@ -66,6 +66,24 @@ class ClipboardPanel(
         // UI-Refresh übernimmt der Picker-Dialog beim Öffnen (lazy)
     }
 
+    /** Clipboard-Historie in den ListView des Clip-Tabs rendern. */
+    fun refreshList(root: View) {
+        val list = root.findViewById<ListView>(R.id.clip_list) ?: return
+        val items = history.map { TextEditLogic.clipDisplayText(it) }
+        if (items.isEmpty()) {
+            Toast.makeText(context, context.getString(R.string.clip_hint_empty), Toast.LENGTH_SHORT).show()
+        }
+        list.adapter = themedAdapter(context, items)
+        list.setOnItemClickListener { _, _, position, _ ->
+            history.getOrNull(position)?.let { onCommit(it) }
+        }
+        // Clear-Button
+        root.findViewById<Button>(R.id.btn_clip_clear)?.setOnClickListener {
+            clear()
+            refreshList(root)
+        }
+    }
+
     fun clear() {
         history.clear()
         persistAsync()

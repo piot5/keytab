@@ -80,6 +80,12 @@
             android:layout_marginTop="8dp"
             android:text="@string/settings_term_tab" />
         <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_clip_tab"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_clip_tab" />
+        <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/sw_suggestions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

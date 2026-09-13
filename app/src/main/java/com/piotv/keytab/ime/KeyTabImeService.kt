@@ -152,7 +152,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
             if (baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
                     .getBoolean(com.piotv.keytab.Prefs.KEY_NUM_ROW, false)) View.VISIBLE else View.GONE
                                 val fileManager = FileManagerPanel(this, root, ioExecutor, mainHandler) { commitText(it) }
-        val editor = EditorPanel(this, root, ioExecutor, mainHandler)
+        val editor = EditorPanel(this, root, ioExecutor, mainHandler) { commitToApp(it) }
         val terminal = TerminalPanel(this, root, mainHandler)
         val clipboard = ClipboardPanel(this, ioExecutor, mainHandler,
             onCommit = { commitToApp(it) },
@@ -192,12 +192,6 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         // Container-Grenzen abgeschnitten).
         disableClipping(root)
 
-        // 📋-Button öffnet den Clipboard-Picker; gewählter Eintrag → Editorfeld einfügen
-        editorPanel?.setClipboardPicker {
-            clipboardPanel?.showPicker(keyboardRoot?.windowToken) {
-                editorPanel?.insert(it) ?: commitToApp(it)
-            }
-        }
         tabController.setup(root)
         keyboardBinder = KeyboardBinder(this, LONG_PRESS_TIMEOUT, tabController, themeController, suggestionController)
         keyboardBinder.hook(root)

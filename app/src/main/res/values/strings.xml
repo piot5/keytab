@@ -5,7 +5,7 @@
     <string name="tab_keyboard">abc</string>
             <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Files</string>
-    <string name="ime_tab_editor">Notes</string>
+    <string name="ime_tab_editor">Editor</string>
     <string name="clip_add">＋ Add</string>
     <string name="clip_hint_empty">No entries yet — copy something, then tap 📋.</string>
     <string name="clip_pick_title">Clipboard history</string>
@@ -95,9 +95,22 @@
     <string name="config_exists">file already exists — edit values directly, effective on next keyboard open</string>
     <string name="terminal_start_failed">Could not start shell.</string>
     <string name="terminal_shell_dead">Shell is not running.</string>
-    <string name="ime_tab_editor_short">Notes</string>
+    <string name="ime_tab_editor_short">Editor</string>
     <string name="ime_tab_clip_short">Clip</string>
     <string name="ime_tab_term_short">Terminal</string>
+    <string name="settings_clip_tab">📋 Clipboard tab</string>
+    <string name="settings_clip_tab_on">Clipboard tab enabled</string>
+    <string name="settings_clip_tab_off">Clipboard tab disabled</string>
+    <string name="clip_clear">🗑 Clear</string>
+    <string name="clip_tab_hint">Copied text appears here — tap to insert</string>
+    <string name="editor_send_up">↑</string>
+    <string name="editor_clear">✕</string>
+    <string name="editor_copy">⎘</string>
+    <string name="editor_reload">↻</string>
+    <string name="editor_sent_to_app">Inserted into app</string>
+    <string name="editor_cleared">Editor cleared</string>
+    <string name="editor_copied">Copied to clipboard</string>
+    <string name="editor_empty_nothing">Editor is empty</string>
     <!-- Editor: Ordnerauswahl beim Laden -->
     <string name="editor_load_title">⤒ Load file</string>
     <string name="theme_section_theme">Theme</string>

@@ -69,97 +69,81 @@ com.piotv.keytab
 │   ├── KeyTabImeService      # dünn: nur Lifecycle + Delegation (< 200 Zeilen)
 │   ├── KeyboardBinder.kt     # NEU: Tasten-Events (Click/Touch/Long-Press/Del-Repeat)
 │   ├── ShiftController.kt    # NEU: Shift/CapsLock-State + applyLetterCase
-│   ├── InputRouter.kt        # NEU: commitText/delete-Routing (App|Editor|Terminal)
-│   ├── SuggestionController.kt # NEU: Wiring Engine↔Views↔Scaler
-│   ├── GamingHighlighter.kt  # NEU: View-Highlighting/-Effekte (nutzt GamingLogic)
-│   ├── TabController.kt      # NEU: Tab-Listener + Panel-Sichtbarkeit
-│   ├── ThemeController.kt    # NEU: Dark-Toggle, Rebuild bei themeVersion-Change
-│   ├── panels/               # EditorPanel, FileManagerPanel, TerminalPanel, ClipboardPanel
-│   ├── suggest/              # SuggestionEngine, WordPredictionManager, DynamicKeyScaler
-│   └── theme/                # ThemePrefs→core, ThemeApplier, LiftSpan
-└── file/
-    └── FileManagerFragment
+│   ├── SuggestionController  # NEU: Suggestion-Wiring
+│   ├── TabController         # NEU: Tab-Umschaltung
+│   ├── ThemeController       # NEU: Theme-Aufbau + Rebuild
+│   ├── KeyboardHost          # NEU: schmale Service-Schnittstelle
+│   ├── RepeatScheduler       # NEU: Del-Repeat-Beschleunigung
+│   └── LiftSpan              # NEU: aus Service extrahiert
+├── panels/                   # Panel-Klassen (nach Phase 6)
+│   ├── FileManagerPanel
+│   ├── EditorPanel
+│   ├── TerminalPanel
+│   └── ClipboardPanel
+└── panels/view/              # (optional, falls Panel-View-Logik wächst)
 ```
-
-**Zentrale Interfaces (Dependency Inversion):**
-
-```kotlin
-/** Schmale Schnittstelle Service→Module (ersetzt Übergabe des ganzen Service). */
-interface KeyboardHost {
-    val context: Context
-    val prefs: Prefs
-    fun commit(text: String)          // ins aktive Ziel (App/Editor/Terminal)
-    fun haptic()
-    fun isDarkMode(): Boolean
-}
-
-/** Wohin Text fließt – eine Implementierung, drei Ziele. */
-interface InputTarget {
-    fun insert(text: String)
-    fun delete(chars: Int)
-    fun deleteLastWord()
-    fun textBefore(count: Int): String
-}
-// Implementierungen: AppTarget (InputConnection), EditorTarget, TerminalTarget
-// → entfernt ALLE `if (editorActive) ... else if (terminalActive) ...`-Ketten
-```
-
 
 ---
 
-## 3. Umsetzungsphasen
+## 3. Phasen
 
-Jede Phase: **klein, unabhängig, buildbar** — nach jeder Phase
-`./gradlew testDebugUnitTest assembleDebug` + manuelle Smoke-Tests
-(Tippen, Shift, Long-Press, Tabs, Theme, Gaming, Editor/Files/Terminal).
+| Phase | Beschreibung | Status |
+|-------|--------------|--------|
+| 0 | Sicherheitssnapshot (Safety-Net) | ✅ `8d7b9be` |
+| 1 | `LiftSpan` extrahieren + zentrale Prefs | ✅ `a0b318e` + `622ed47` |
+| 2 | `ShiftController` + `CapsLogic` + `InputRouter` | ✅ `31a4055` |
+| 3 | `KeyboardBinder` + `RepeatScheduler` extrahieren | ✅ `94ee7ae` |
+| 4 | `ThemeController` + `TabController` + `SuggestionController` | ✅ `8c29848` |
+| 5 | `ThemeSettingsActivity` (Farb-/Prefs-Logik auslagern) | ⬜ |
+| 6 | Panels auf schmale Interfaces (`KeyboardHost`) | ⬜ |
+| 7 (optional) | Modernisierung (Coroutines, Multi-Modul) | ⬜ |
 
-### Phase 0 – Sicherheitsnetz (½ Tag)
-- [ ] Bestands-Tests grün dokumentieren (Baseline: 8 Test-Dateien)
-- [ ] Fehlende Tests für extrahierbare Logik ergänzen, **bevor** sie umzieht:
-      Shift-Zustandsübergänge (neu als pure Klasse testbar), `autoCapitalize`
-      (rein: EditorInfo → Boolean), Tab-Visibility-Matrix (pos → Sichtbarkeiten)
-- [ ] Git-Tag `pre-refactor` als Rollback-Punkt
+### Phase 0 – Safety Net (Snapshot vor Refactor)
 
-### Phase 1 – Low-Hanging Fruit (½ Tag, ~0 Risiko)
-- [ ] `core/Prefs.kt`: alle Pref-Keys + Zugriff zentral
-      (eliminiert Duplikate `PREFS`/`KEY_USER_DICT` aus Service & MainActivity)
-- [ ] `LiftSpan` → eigene Datei `ime/theme/LiftSpan.kt`
-- [ ] Dead Code entfernen (Kommentar-Leichen wie „keyNeighborLetters moved")
+- [x] `git checkout -b refactor/soc` + `git commit -m "pre-refactor: snapshot vor SoC-Refactor"`
+- [x] Build + Tests grün vor Commit
+- [x] Commit: `8d7b9be`
 
-### Phase 2 – ShiftController + InputRouter (1 Tag, Kern-Entkopplung)
-- [ ] `ShiftController(shifted, capsLock, lastShiftTap, onShiftChanged)` —
-      State-Machine pur, View-Update via Callback → unit-testbar ohne Robolectric
-- [ ] `InputRouter` mit `InputTarget`-Implementierungen → ersetzt
-      `editorActive`/`terminalActive`-Verzweigungen in `commitText`,
-      `deleteLastWord`, `WordPredictionManager.InputOperations`
-- [ ] Service delegiert nur noch; `applyLetterCase`/`updateShiftVisual` ziehen um
+### Phase 1 – Zentrale Prefs + LiftSpan (½ Tag)
 
-### Phase 3 – Tasten-Events: KeyboardBinder (1 Tag) ✅ umgesetzt
-- [x] `KeyboardBinder`: `hookKeyboardButtons`/`setupLetterButton`/`setupDelButton`/
-      `tapLetter`/`showLetterExtras`/`applyLetterCase`/`updateShiftVisual` aus dem Service
-- [x] `RepeatScheduler`: pure Del-Repeat-Zeitlogik (Android-frei, JUnit-testbar)
-- [x] `ShiftController` (Phase 2) angebunden: Service delegiert Shift-State,
-      `autoCapitalize` nutzt `CapsLogic` (Phase 2)
-- [x] `KeyboardHost` erweitert: `commitText`/`deleteLastWord`/`openSettings`/
-      `tapShift`/`resetShiftForInput`/`applyLetterCase`/`updateShiftVisual`/`letterExtras`
-- Ergebnis: `KeyTabImeService` 573 → 361 Zeilen (−37 %); kumuliert 871 → 361 (−58 %)
+- [x] `LiftSpan` in eigene Datei extrahiert (`ime/LiftSpan.kt`, 1 Zeile)
+- [x] `Prefs` als zentrales `object` mit `FILE`- und `KEY_*`-Konstanten
+- [x] `PREFS`-Duplikate in `MainActivity` und `KeyTabImeService` entfernt
+- [x] Ergebnis: `MainActivity` nutzt jetzt `Prefs.FILE`, Drift eliminiert
 
-### Phase 4 – Feature-Controller (1 Tag) ✅ umgesetzt
-- [x] `SuggestionController`: `setupSuggestions`/`updateSuggestions`/
-      `applySuggestion`/`updateDynamicKeys` + `updateGamingKeys`/
-      `restoreGamingKeys`/`gamingCompletionEffect` (Gaming-Highlight-State)
-- [x] `TabController`: `setupTabs` inkl. Panel-Visibility + PanelHeights-Aufruf
-      + `toggleSymbols`; tote `editorActive`/`terminalActive`-Felder entfernt
-- [x] `ThemeController`: `toggleDarkMode`, `setupThemeButton`,
-      `showThemeSettings`, `maybeRebuildForThemeChange`
+### Phase 2 – ShiftController + InputRouter (1 Tag)
+
+- [x] `ShiftController` extrahiert (Zustandsmaschine: `tapShift`, `consume`, `resetForInput`)
+- [x] `CapsLogic` entkoppelt
+- [x] `InputRouter` extrahiert (Zielauswahl: App/Editor/Terminal)
+- [x] Ergebnis: Service delegiert Shift/Routing an Module
+
+### Phase 3 – KeyboardBinder + RepeatScheduler (1 Tag)
+
+- [x] `KeyboardBinder` extrahiert: `hookKeyboardButtons`, `setupLetterButton`, `setupDelButton`,
+  Touch-/Long-Press-Logik, `updateShiftVisual`, `applyLetterCase`
+- [x] `RepeatScheduler` extrahiert: beschleunigendes Wort-Löschen
+- [x] `consumeSingleShift()`-Muster im Service → Delegation
+- [x] `isInitialized`-Guards im Service (`::keyboardBinder.isInitialized`)
+- [x] Ergebnis: `KeyTabImeService` 871 → 573 Zeilen (−34 %);
+  Ziel < 200 Zeilen nach Phase 3 (KeyboardBinder)
+
+
+### Phase 4 – ThemeController + TabController + SuggestionController + KeyboardHost (1 Tag)
+
+- [x] `ThemeController` extrahiert: Theme-Aufbau, Theme-Update, `applyLetterCase`
+- [x] `TabController` extrahiert: Tab-Setup + Tab-Wechsel-Logik
+- [x] `SuggestionController` extrahiert: `setupSuggestions`, `updateSuggestions`,
+  `applySuggestion`, `updateDynamicKeys`, Gaming-Highlighting
 - [x] `KeyboardHost`-Interface: schmale Service-Schnittstelle für Controller
       (wird in Phase 6 auch von Panels verwendet)
 - [x] Shift-Reset-Pattern (`if (shifted && !capsLock) …`) → `consumeSingleShift()`
-- Ergebnis: `KeyTabImeService` 871 → 573 Zeilen (−34 %);
+- [x] Ergebnis: `KeyTabImeService` 871 → 573 Zeilen (−34 %);
   Ziel < 200 Zeilen nach Phase 3 (KeyboardBinder)
 
 
 ### Phase 5 – ThemeSettingsActivity (½–1 Tag)
+
 - [ ] Farb-/Prefs-Logik (`writeToTarget`, `currentColor`, `gradientShader`,
       `gamingPref`) → `ThemeSettingsModel` (nutzt `core/Prefs`)
 - [ ] Section-Builder (`buildTop`, `gradientSection`, `gamingSection`,
@@ -167,10 +151,12 @@ Jede Phase: **klein, unabhängig, buildbar** — nach jeder Phase
       (Compose-Migration: separat entscheiden, nicht Teil dieses Refactorings)
 
 ### Phase 6 – Panels auf schmale Interfaces (½ Tag)
+
 - [ ] `EditorPanel(this, ...)` → `EditorPanel(host: KeyboardHost, ...)`
       (analog Files/Terminal/Clipboard) → kein Panel kennt mehr den Service
 
 ### Phase 7 (optional, separat entscheiden) – Modernisierung
+
 - [ ] Executor/Handler → Kotlin Coroutines (`lifecycleScope`, `Dispatchers.IO`)
 - [ ] Gradle-Multi-Modul (`:core` als JVM-Modul) — lohnt erst, wenn `core/`
       stabil ist; einzelnes app-Modul bleibt vorerst OK
@@ -217,3 +203,132 @@ Jede Phase: **klein, unabhängig, buildbar** — nach jeder Phase
   Block und profitiert von `InputRouter` aus Phase 2)
 - Abbruchkriterium: Nach jeder Phase ist das Projekt release-fähig —
   das Refactoring kann jederzeit pausiert werden.
+
+---
+
+## 7. Agent-Chaos: Ist-Zustand & Rescue-Plan (2026-09-13)
+
+> **Hinweis:** Dieser Abschnitt dokumentiert den Zustand nach einem fehlgeschlagenen
+> Agent-Refactoring. Der Agent hat **ohne Commit** gearbeitet und dabei mehrere
+> Dateien in einen inkonsistenten Zustand gebracht. Der letzte gute Stand ist
+> Commit `57323e3` (feat: Editor-Tab rename + Clip-Tab + Editor-Toolbar ...).
+
+### 7.1 Versionswiderspruch (kritisch)
+
+| Quelle | Version | versionCode |
+|--------|---------|-------------|
+| `app/build.gradle.kts` (commit-t) | 0.9.6 | 22 |
+| `app/build.gradle` (**untracked!**) | 0.9.5 | 30 |
+| Installierte APK (vermutlich) | ? | ? |
+
+Die Datei `app/build.gradle` (ohne `.kts`) **blockiert jeden Gradle-Build** — Gradle
+bevorzugt `.gradle` gegenüber `.gradle.kts` und würde hier scheitern (unvollständig,
+keine Plugins). **Sofortmaßnahme:** Datei löschen.
+
+### 7.2 Working Tree: 9 geänderte Dateien + 4 untracked
+
+**Geändert (working tree):**
+
+| Datei | Problem |
+|-------|---------|
+| `EditorPanel.kt` | **Doppeltes `loadFile`** — kollidierende Methoden, kaputte Klammerung, fehlende String-Resourcen (`editor_loaded`, `editor_load_failed`, etc.) |
+| `FileManagerPanel.kt` | `MAX_CLIP_CONTENT_BYTES` Konstante gelöscht, aber Zeile 140 referenziert sie weiter → **Kompilierfehler** |
+| `SuggestionController.kt` | Gaming-Farbe jetzt `KIND_HL` statt `KIND_GAMING` (in ThemeSettingsActivity schon entfernt, aber `KIND_GAMING` noch in ThemePrefs!) |
+| `ThemeApplier.kt` | `sugLayer()` nutzt jetzt `hl` statt `defPrimary` (mit `SuggestionController` synchron) |
+| `Prefs.kt` (root) | Key `clip_tab_enabled` → `clipboard_tab_enabled` umbenannt (Break für alte Prefs?) |
+| `ColorWheelView.kt` | `event.action` → `event.actionMasked` (Multi-Touch-Ready, aber ungetested) |
+| `ThemeSettingsActivity.kt` | `KIND_GAMING` aus Farbpalette entfernt |
+| `keyboard_view.xml` | ~141 Zeilen neu (Editor-Toolbar-Sektion), aber **doppeltes `editor_input` EditText** in altem Bereich? |
+| `strings.xml` | Emoji-Änderungen ⤓→💾, ⤒→📂 |
+
+**Untracked:**
+- `app/build.gradle` — **schädlich**, muss gelöscht werden
+- `app/src/main/java/.../ime/Prefs.kt` — Dublette (2 Zeilen Code), muss gelöscht werden
+- `values-de/`, `values-ja/`, `values-ja-rJP/` — unvollständige Locales (je 1 Zeile)
+
+### 7.3 Kompilierbare Fehlerliste (Build bricht)
+
+1. ❌ `FileManagerPanel.kt:140` — `MAX_CLIP_CONTENT_BYTES` nicht definiert
+2. ❌ `EditorPanel.kt:281+` — doppelte `loadFile`-Definition (Scope-Problem)
+3. ❌ `EditorPanel.kt` — `editor_loaded`, `editor_load_failed` etc. nicht in `strings.xml`
+4. ❌ `app/build.gradle` blockiert Gradle komplett
+
+### 7.4 Rescue-Phasen (neu)
+
+#### Phase R1 – Sofort-Bereinigung (½ Stunde)
+
+- [x] `git checkout -- .` (Working Tree zurücksetzen)
+- [x] Untracked schädliche Dateien löschen:
+  - `app/build.gradle` (blockiert Gradle)
+  - `app/src/main/java/com/piotv/keytab/ime/Prefs.kt` (Dublette)
+- [x] Unvollständige Locale-Dateien löschen:
+  - `values-de/strings.xml`
+  - `values-ja/strings.xml`
+  - `values-ja-rJP/strings.xml`
+- [ ] Build prüfen: `bash build_keytab.sh debug`
+
+#### Phase R2 – Feature-Übernahme aus Chaos (1–2 Tage)
+
+Gezielt die brauchbaren Änderungen aus dem Chaos re-commiten:
+
+1. **Editor-Toolbar** (`keyboard_view.xml` + `EditorPanel.kt`):
+   - Neue Toolbar-Sektion (Load/Save/Send/Clear/Copy/Reload) übernehmen
+   - Doppelte `loadFile`-Methode bereinigen (nur die ZIP-fähige behalten)
+   - Fehlende String-Ressourcen in `strings.xml` eintragen
+   - `editor_send_up_up` String fixen
+
+2. **Gaming-Highlight vereinheitlichen**:
+   - `SuggestionController.kt`: `KIND_GAMING` → `KIND_HL` (bereits gemacht)
+   - `ThemeApplier.kt`: `sugLayer()` nutzt `hl` (bereits gemacht)
+   - `ThemeSettingsActivity.kt`: `KIND_GAMING` aus Palette entfernt (bereits gemacht)
+   - `ThemePrefs.kt`: `KIND_GAMING`-Konstante entfernen (nach Phase R2)
+
+3. **ColorWheelView Multi-Touch**:
+   - `event.action` → `event.actionMasked` (bereits gemacht, testen!)
+
+4. **Prefs-Key-Umbenennung**:
+   - `clip_tab_enabled` → `clipboard_tab_enabled` (bereits gemacht)
+   - Migration für bestehende User-Prefs? (Default `false` → kein Break, aber prüfen)
+
+5. **String-Emoji-Änderungen**:
+   - `editor_save`: ⤓ → 💾
+   - `editor_load`: ⤒ → 📂
+   - Locale-Dateien entsprechend ergänzen (de, en, ja)
+
+#### Phase R3 – Konsistenz-Check (½ Tag)
+
+- [ ] `ThemePrefs.kt`: `KIND_GAMING`-Referenzen entfernen (nach R2)
+- [ ] `MAX_CLIP_CONTENT_BYTES` in `FileManagerPanel.kt` wieder einfügen (oder Referenz entfernen)
+- [ ] Doppelte `editor_input`-Definition in `keyboard_view.xml` prüfen
+- [ ] Build + Unit-Tests + Smoke-Test auf Gerät
+- [ ] Commit: `fix: Agent-Chaos bereinigt, Editor-Toolbar + Gaming-HL vereinheitlicht`
+
+### 7.5 Best Practices für Agent-Refactoring (neu)
+
+1. **Immer Commits machen** — Agent-Arbeit muss in sauberen Commits enden,
+   nie im Working Tree verlassen werden.
+2. **Branch pro Agent-Lauf** — `agent/<feature>-<datum>` isoliert den Chaos.
+3. **Build-Check nach jedem Agent-Schritt** — `bash build_keytab.sh debug`
+   muss grün sein, bevor der Agent weiter macht.
+4. **Keine untracked Dateien** — Alles muss committed oder gelöscht sein.
+5. **Version nur in `build.gradle.kts`** — `build.gradle` (ohne .kts) ist
+   ein Artefakt und muss gelöscht werden.
+6. **String-Ressourcen immer prüfen** — Neue `R.string.*`-Referenzen müssen
+   in `values/strings.xml` (und idealerweise `values-en/`) definiert sein.
+7. **Konstanten-Drift vermeiden** — Löschte Konstanten müssen global
+   gesucht werden (`grep -rn 'KONSTANTE' app/src/`).
+
+---
+
+## 8. Aktuelle ToDo-Liste (Stand 2026-09-13)
+
+- [x] **R1**: Working Tree bereinigen (untracked löschen, geänderte Dateien zurücksetzen)
+- [ ] **R2**: Editor-Toolbar aus Chaos übernehmen (mit String-Ressourcen)
+- [ ] **R2**: Gaming-Highlight vereinheitlichen (`KIND_GAMING` → `KIND_HL`)
+- [ ] **R2**: `MAX_CLIP_CONTENT_BYTES` in `FileManagerPanel.kt` wieder einfügen
+- [ ] **R2**: String-Emoji-Änderungen in Locale-Dateien ergänzen
+- [ ] **R3**: `ThemePrefs.kt` von `KIND_GAMING`-Referenzen befreien
+- [ ] **R3**: Doppelte `editor_input` in `keyboard_view.xml` prüfen
+- [ ] **R3**: Build + Tests + Smoke-Test
+- [ ] **R3**: Commit der Bereinigung
+- [ ] Dann: Phase 5 (ThemeSettingsActivity) fortsetzen

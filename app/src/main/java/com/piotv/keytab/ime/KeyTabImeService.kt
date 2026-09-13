@@ -216,8 +216,13 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         super.onStartInput(attribute, restarting)
         themeController.maybeRebuildForThemeChange()
         shiftController.resetForInput(autoCapitalize(attribute))
-        keyboardBinder.applyLetterCase(keyboardRoot)
-        keyboardBinder.updateShiftVisual(keyboardRoot)
+        // onStartInput kann VOR onCreateInputView feuern (IME-Start, bevor die
+        // Tastatur das erste Mal angezeigt wird) → keyboardBinder ist dann noch
+        // nicht initialisiert. Guard verhindert UninitializedPropertyAccessException.
+        if (::keyboardBinder.isInitialized) {
+            keyboardBinder.applyLetterCase(keyboardRoot)
+            keyboardBinder.updateShiftVisual(keyboardRoot)
+        }
     }
 
     override fun onStartInputView(editorInfo: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
@@ -254,7 +259,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
     /** Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt) + View aktualisieren. */
     override fun consumeSingleShift() {
         shiftController.consume()
-        if (!shiftController.isUpper()) {
+        if (!shiftController.isUpper() && ::keyboardBinder.isInitialized) {
             keyboardBinder.updateShiftVisual(keyboardRoot)
             keyboardBinder.applyLetterCase(keyboardRoot)
         }
@@ -269,11 +274,11 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
     }
 
     override fun applyLetterCase(root: View?) {
-        keyboardBinder.applyLetterCase(root)
+        if (::keyboardBinder.isInitialized) keyboardBinder.applyLetterCase(root)
     }
 
     override fun updateShiftVisual(root: View?) {
-        keyboardBinder.updateShiftVisual(root)
+        if (::keyboardBinder.isInitialized) keyboardBinder.updateShiftVisual(root)
     }
 
     // ---------- Text-Eingabe-Delegate (Phase 3, für KeyboardBinder) ----------

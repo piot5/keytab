@@ -49,8 +49,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/release/app-release.apk "KeyTab-${GITHUB_REF_NAME#v}.apk"
-          gh release create "$GITHUB_REF_NAME" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "KeyTab ${GITHUB_REF_NAME}" \
-            --notes "${{ steps.notes.outputs.body }}" \
-            "KeyTab-${GITHUB_REF_NAME#v}.apk"
+          # Idempotent: existiert das Release schon (Tag neu gepusht), Asset nur ersetzen
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber "KeyTab-${GITHUB_REF_NAME#v}.apk"
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "KeyTab ${GITHUB_REF_NAME}" \
+              --notes "${{ steps.notes.outputs.body }}" \
+              "KeyTab-${GITHUB_REF_NAME#v}.apk"
+          fi

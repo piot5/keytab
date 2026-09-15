@@ -19,30 +19,26 @@ import java.io.File
 class FileManagerModelTest {
 
     private val store = mutableMapOf<String, String>()
-    private val model = FileManagerModel(
-        prefs = { k, d -> store[k] ?: d },
-        put = { k, v -> store[k] = v },
-        dirs = { d -> dirCache[d] },
-        rootOverride = rootDir
-    )
 
-    private companion object {
-        // Stub-Verzeichnisstruktur: /root/[a-dir, b-dir, c.txt]
-        val rootDir = File("/test_fm_root")
-        val aDir = File("/test_fm_root/a-dir")
-        val bDir = File("/test_fm_root/b-dir")
-        val cFile = File("/test_fm_root/c.txt")
-        val sub = File("/test_fm_root/a-dir/sub")
+    // Stub-Verzeichnis im Temp-Verzeichnis (NICHT am Filesystem-Root — dort
+    // kann der CI-Runner als unprivilegierter User keine Verzeichnisse anlegen).
+    private lateinit var rootDir: File
+    private lateinit var aDir: File
+    private lateinit var bDir: File
+    private lateinit var cFile: File
+    private lateinit var sub: File
+    private lateinit var dirCache: Map<File, List<File>>
 
-        val dirCache = mapOf(
-            rootDir to listOf(aDir, bDir, cFile),
-            aDir to listOf(sub),
-            bDir to emptyList(),
-        )
-    }
+    private lateinit var model: FileManagerModel
 
     @org.junit.Before
     fun setUpFixture() {
+        val tmp = java.nio.file.Files.createTempDirectory("test_fm_root").toFile()
+        rootDir = tmp
+        aDir = File(tmp, "a-dir")
+        bDir = File(tmp, "b-dir")
+        cFile = File(tmp, "c.txt")
+        sub = File(aDir, "sub")
         // Stub-Verzeichnis physisch anlegen: `FileManagerModel.navigate` prüft
         // `isDirectory && canRead()` — ohne echtes Verzeichnis wird ignoriert.
         rootDir.mkdirs()
@@ -50,6 +46,17 @@ class FileManagerModelTest {
         bDir.mkdirs()
         sub.mkdirs()
         if (!cFile.exists()) cFile.createNewFile()
+        dirCache = mapOf(
+            rootDir to listOf(aDir, bDir, cFile),
+            aDir to listOf(sub),
+            bDir to emptyList(),
+        )
+        model = FileManagerModel(
+            prefs = { k, d -> store[k] ?: d },
+            put = { k, v -> store[k] = v },
+            dirs = { d -> dirCache[d] },
+            rootOverride = rootDir
+        )
     }
 
     private fun modelWithRoot(): FileManagerModel {

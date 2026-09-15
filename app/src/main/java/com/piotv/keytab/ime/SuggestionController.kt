@@ -9,25 +9,26 @@ import com.piotv.keytab.R
 
 /**
  * Suggestion-Controller – Vorschlagsleiste, dynamische Tastengröße und
- * Gaming-Highlights.
+ * Likely-Highlights.
  *
  * Refactoring (docs/REFACTORING_PLAN.md Phase 4): aus [KeyTabImeService]
  * extrahiert. Kapselt:
  * - [setup]               – Vorschlag-Views binden, Engine laden, Skaler aufbauen
- * - [update]              – Vorschläge berechnen + Tasten skalieren + Gaming
+ * - [update]              – Vorschläge berechnen + Tasten skalieren + Likely-
+ *                           Highlighting
  * - [applySuggestion]     – Vorschlag übernehmen (via Manager) + Shift reset
- * - Gaming-Highlight-State ([gamingHighlighted])
+ * - Likely-Highlight-State ([likelyHighlighted])
  *
  * Verhalten bleibt bit-identisch („Umziehen statt Umschreiben").
  */
 internal class SuggestionController(private val host: KeyboardHost) {
 
-    /** Gaming-Modus: momentan hervorgehobene Tasten + deren Originale-Background. */
-    private val gamingHighlighted = mutableListOf<Pair<Button, android.graphics.drawable.Drawable>>()
+    /** Likely Highlighting: momentan hervorgehobene Tasten + deren Original-Background. */
+    private val likelyHighlighted = mutableListOf<Pair<Button, android.graphics.drawable.Drawable>>()
 
-    /** Gaming-Highlights freigeben (beim Rebuild/Release der Tastatur). */
-    fun clearGaming() {
-        gamingHighlighted.clear()
+    /** Likely-Highlights freigeben (beim Rebuild/Release der Tastatur). */
+    fun clearLikelyHighlights() {
+        likelyHighlighted.clear()
     }
 
     /**
@@ -60,7 +61,7 @@ internal class SuggestionController(private val host: KeyboardHost) {
             if (enabled) View.VISIBLE else View.GONE
     }
 
-    /** Vorschläge berechnen (Manager) + Tasten skalieren + Gaming-Highlights. */
+    /** Vorschläge berechnen (Manager) + Tasten skalieren + Likely-Highlights. */
     fun update() {
         val bar = host.keyboardRoot?.findViewById<View>(R.id.suggestion_bar) ?: return
         val suggestionEnabled = host.context.getSharedPreferences(
@@ -71,7 +72,7 @@ internal class SuggestionController(private val host: KeyboardHost) {
     }
 
 
-    /** Dynamische Tastengröße (Skaler-Modul) + Gaming-Highlights. */
+    /** Dynamische Tastengröße (Skaler-Modul) + Likely-Highlights. */
     private fun updateDynamicKeys() {
         val prefs = host.context.getSharedPreferences(
             com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
@@ -83,60 +84,61 @@ internal class SuggestionController(private val host: KeyboardHost) {
             pm?.currentTypedWord?.length ?: 0,
             enabled
         )
-        updateGamingKeys()
+        updateLikelyKeys()
     }
 
     /**
-     * Gaming-Modus: die wahrscheinlichste nächste Taste bekommt die Gaming-Farbe
-     * (Pref [ThemePrefs.KEY_GAMING]); wenn das getippte Wort dem Top-Vorschlag
-     * entspricht (Wahrscheinlichkeit erreicht), gibt es einen Puls-Effekt
-     * ([ThemePrefs.KEY_GAMING_EFFECT]). Ohne Modus werden Highlights zurückgesetzt.
+     * Likely Highlighting: die wahrscheinlichste nächste Taste bekommt die
+     * Hervorhebungs-Farbe (Pref [ThemePrefs.KEY_LIKELY]); wenn das getippte Wort
+     * dem Top-Vorschlag entspricht (Wahrscheinlichkeit erreicht), gibt es einen
+     * Puls-Effekt ([ThemePrefs.KEY_LIKELY_EFFECT]). Ohne Modus werden die
+     * Highlights zurückgesetzt.
      */
-    private fun updateGamingKeys() {
+    private fun updateLikelyKeys() {
         val prefs = host.context.getSharedPreferences(
             com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
-        if (!ThemePrefs.gamingMode(prefs)) { restoreGamingKeys(); return }
+        if (!ThemePrefs.likelyHighlighting(prefs)) { restoreLikelyKeys(); return }
         val pm = host.predictionManager
         val sugs = pm?.currentSuggestions ?: emptyList()
         val typed = pm?.currentTypedWord ?: ""
-        val next = GamingLogic.nextChar(sugs, typed.length)
-        restoreGamingKeys()
+        val next = LikelyHighlightLogic.nextChar(sugs, typed.length)
+        restoreLikelyKeys()
         if (next != null) {
-            val gamingColor = ThemePrefs.getColor(prefs, host.isDarkMode(), ThemePrefs.KIND_GAMING,
-                ThemePrefs.defaultColor(host.context, host.isDarkMode(), ThemePrefs.KIND_GAMING))
+            val likelyColor = ThemePrefs.getColor(prefs, host.isDarkMode(), ThemePrefs.KIND_LIKELY,
+                ThemePrefs.defaultColor(host.context, host.isDarkMode(), ThemePrefs.KIND_LIKELY))
             val dip = host.context.resources.displayMetrics.density
             for ((btn, c) in host.baseLetters) {
                 if (c.lowercaseChar() == next) {
-                    gamingHighlighted.add(btn to btn.background)
+                    likelyHighlighted.add(btn to btn.background)
                     btn.background = GradientDrawable().apply {
                         cornerRadius = 8f * dip
-                        setColor(gamingColor)
+                        setColor(likelyColor)
                     }
                 }
             }
-            if (ThemePrefs.gamingEffect(prefs) && GamingLogic.completed(sugs, typed)) {
-                gamingCompletionEffect(
+            if (ThemePrefs.likelyEffect(prefs) && LikelyHighlightLogic.completed(sugs, typed)) {
+                likelyCompletionEffect(
                     host.baseLetters.filter { it.value.lowercaseChar() == next }.keys.toList(),
-                    gamingColor)
+                    likelyColor)
             }
         }
     }
 
-    /** Gaming-Highlights zurücksetzen (Original-Backgrounds wiederherstellen). */
-    private fun restoreGamingKeys() {
-        for ((btn, bg) in gamingHighlighted) {
+    /** Likely-Highlights zurücksetzen (Original-Backgrounds wiederherstellen). */
+    private fun restoreLikelyKeys() {
+        for ((btn, bg) in likelyHighlighted) {
             if (btn.isAttachedToWindow) btn.background = bg
         }
-        gamingHighlighted.clear()
+        likelyHighlighted.clear()
     }
 
     /** Zufriedenstellender Effekt: Farblitz + Scale-Puls + Haptik. */
-    private fun gamingCompletionEffect(buttons: List<Button>, color: Int) {
+    private fun likelyCompletionEffect(buttons: List<Button>, color: Int) {
         if (buttons.isEmpty()) return
         host.haptic()
         val dip = host.context.resources.displayMetrics.density
         for (b in buttons) {
-            val saved = gamingHighlighted.firstOrNull { it.first === b }?.second ?: b.background
+            val saved = likelyHighlighted.firstOrNull { it.first === b }?.second ?: b.background
             val flash = GradientDrawable().apply {
                 cornerRadius = 8f * dip
                 setColor(Color.argb(230,

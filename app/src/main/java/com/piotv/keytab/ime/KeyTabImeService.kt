@@ -36,7 +36,8 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         const val WORD_DELETE_START_MS = 250L
         const val WORD_DELETE_ACCEL = 0.85f
         const val WORD_DELETE_MIN_MS = 30L
-        const val SHIFT_DOUBLE_TAP_MS = 300L
+                const val SHIFT_DOUBLE_TAP_MS = 300L
+        const val ANIMATION_START_DELAY_MS = 48L
     }
 
     // ---------- Module ----------
@@ -106,7 +107,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         keyboardRoot = null
         suggestionViews.fill(null)
         baseLetters.clear()
-        suggestionController.clearGaming()
+        suggestionController.clearLikelyHighlights()
     }
 
     override fun onCreateInputView(): View {
@@ -147,6 +148,8 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         ThemeApplier.apply(
             baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE),
             isDarkMode(), root, cfgCtx)
+        // Obere Ecken runden (12dp) — muss nach ThemeApplier sein
+        KeyAnimations.applyRoundedCorners(root)
         // Optionale Zahlenreihe aus den Einstellungen
         root.findViewById<View>(R.id.num_row)?.visibility =
             if (baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
@@ -187,6 +190,11 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
             pm.setOnEngineReady { suggestionController.update() }
         }
         keyScaler = DynamicKeyScaler(baseLetters)
+        // Generelles Tasten-Animationssystem (v0.9.7): LayoutTransition auf
+        // dem abc-Container — jede Platzänderung (Extra-Keys-Zeile ein/aus,
+        // Nummernreihe, Panels) animiert automatisch; vorhandene Tasten
+        // rutschen weich in ihre neue Position.
+        root.findViewById<ViewGroup?>(R.id.kb_panel)?.let { KeyAnimations.applyLayoutTransition(it) }
         // Skalierung darf über das Raster hinausragen: Clipping der gesamten
         // View-Hierarchie deaktivieren (sonst werden vergrößerte Tasten an den
         // Container-Grenzen abgeschnitten).

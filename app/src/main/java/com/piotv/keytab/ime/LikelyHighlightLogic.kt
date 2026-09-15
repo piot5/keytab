@@ -1,16 +1,16 @@
 package com.piotv.keytab.ime
 
 /**
- * Reine Logik für den Gaming-Modus (Android-frei, unit-testbar):
+ * Reine Logik für Likely Highlighting (Android-frei, unit-testbar):
  *
  * - [nextChar]: das wahrscheinlichste nächste Zeichen (Top-Vorschlag an der
- *   Position des bereits getippten Worts) – genau das Zeichen bekommt die
- *   Gaming-Färbung.
+ *   Position des bereits getippten Worts) – genau dieses Zeichen bekommt die
+ *   Hervorhebung.
  * - [completed]: „Vervollständigung erreicht" – das getippte Wort entspricht
  *   exakt dem Top-Vorschlag (case-insensitiv) → Trigger für den
  *   Zufriedenstellungs-Effekt (Puls + Haptik).
  */
-object GamingLogic {
+object LikelyHighlightLogic {
 
     /** Wahrscheinlichstes nächstes Zeichen oder null (kein Vorschlag/Ende). */
     fun nextChar(suggestions: List<SuggestionEngine.Suggestion>, typedLength: Int): Char? =

@@ -40,7 +40,7 @@ interface KeyboardHost {
     /** Dynamischer Tasten-Skaler. */
     val keyScaler: DynamicKeyScaler?
 
-    /** Buchstaben-Tasten → Basiszeichen (für Gaming-Highlights + LetterCase). */
+    /** Buchstaben-Tasten → Basiszeichen (für Likely-Highlights + LetterCase). */
     val baseLetters: MutableMap<Button, Char>
 
     /** Dateimanager-Panel (für show() beim Files-Tab). */

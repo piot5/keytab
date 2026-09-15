@@ -97,7 +97,7 @@
     <string name="terminal_shell_dead">Shell is not running.</string>
     <string name="ime_tab_editor_short">Editor</string>
     <string name="ime_tab_clip_short">Clip</string>
-    <string name="ime_tab_term_short">Terminal</string>
+    <string name="ime_tab_term_short">Term</string>
     <string name="settings_clip_tab">📋 Clipboard tab</string>
     <string name="settings_clip_tab_on">Clipboard tab enabled</string>
     <string name="settings_clip_tab_off">Clipboard tab disabled</string>
@@ -123,7 +123,7 @@
     <string name="theme_color_key">Taste</string>
     <string name="theme_color_hl">Highlight</string>
     <string name="theme_color_text">Text color</string>
-    <string name="theme_color_gaming">Färbung</string>
+    <string name="theme_color_gaming">Hervorhebung</string>
     <string name="settings_gradient_color1">Color 1 (top)</string>
     <string name="settings_gradient_color2">Color 2 (bottom)</string>
     <string name="gradient_mode_top_down">Top→Bottom</string>
@@ -138,10 +138,10 @@
     <string name="theme_longpress_hint">Long-press ☀/☾ on the keyboard opens this page too. Default look = 0.9.4 (no gradient/colors until you set them).</string>
     <string name="theme_brightness">Brightness</string>
     <string name="theme_alpha">Alpha</string>
-    <string name="theme_section_gaming">Vervollständigung</string>
-    <string name="theme_gaming_toggle">🎯 Nächste Taste einfärben</string>
+    <string name="theme_section_gaming">Likely Highlighting</string>
+    <string name="theme_gaming_toggle">🎯 Nächste Taste hervorheben</string>
     <string name="theme_gaming_effect">✨ Effekt bei Vervollständigung</string>
-    <string name="theme_gaming_hint">Die wahrscheinlichste nächste Taste bekommt die gewählte Färbung; sobald das getippte Wort dem Top-Vorschlag entspricht, gibt es einen Puls-Effekt.</string>
+    <string name="theme_gaming_hint">Die wahrscheinlichste nächste Taste wird hervorgehoben; sobald das getippte Wort dem Top-Vorschlag entspricht, gibt es einen Puls-Effekt.</string>
     <string name="theme_reset">Reset</string>
     <string name="theme_gradient_hint">Farbe 1 / Farbe 2 und deren Alpha stellst du im Farbwahlrad unten ein (Ziel „Farbe 1/2").</string>
     <string name="editor_pick_parent">▲ …</string>

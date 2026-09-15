@@ -7,7 +7,7 @@ import java.io.File
  *
  * Einfaches "schlüssel = wert"-Format, direkt auf dem Gerät editierbar:
  *   <externes Files-Dir>/keytab_config.txt
- * (über die KeyTab-App: „Config schreiben/aktualisieren“ erzeugt eine
+ * (über die KeyTab-App: „Config schreiben/aktualisieren" erzeugt eine
  *  vorbefüllte Datei mit allen Keys und dem Pfad als Toast/Hinweis.)
  *
  * Bekannte Keys (unbekannte Keys und ungültige Werte werden ignoriert,

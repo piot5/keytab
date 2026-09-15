@@ -97,7 +97,7 @@
             android:layout_marginTop="0dp"
             android:layout_gravity="center_vertical"
             android:background="@color/key_bg"
-            android:textSize="20sp"
+            android:textSize="16sp"
             android:paddingStart="0dp"
             android:paddingEnd="0dp"
             android:insetTop="0dp"
@@ -310,9 +310,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="monospace"
-                android:textSize="12sp"
+                android:textSize="10sp"
                 android:textColor="@color/term_text"
-                android:padding="6dp"
+                android:padding="4dp"
                 android:textIsSelectable="false" />
         </ScrollView>
 
@@ -331,15 +331,24 @@
                 android:singleLine="true"
                 android:inputType="textNoSuggestions"
                 android:background="@color/term_bg"
+                android:fontFamily="monospace"
+                android:textSize="11sp"
                 android:textColor="@color/term_text"
                 android:hint="@string/terminal_hint"
-                android:padding="8dp" />
+                android:textColorHint="@color/term_prompt"
+                android:padding="6dp" />
 
             <Button
                 android:id="@+id/btn_term_send"
                 style="@style/KeyDark"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:minWidth="56dp"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="0dp"
                 android:text="@string/terminal_send" />
         </LinearLayout>
     </LinearLayout>

@@ -137,15 +137,15 @@ class ThemeApplierTest {
         prefs.edit().clear().apply()
         ThemePrefs.setColor(prefs, true, ThemePrefs.KIND_KEY, 0x80FF0000.toInt())
         ThemePrefs.setColor(prefs, false, ThemePrefs.KIND_BG, 0xFF00FF00.toInt())
-        ThemePrefs.setColor(prefs, true, ThemePrefs.KIND_GAMING, 0xFFFF0000.toInt())
-        prefs.edit().putBoolean(ThemePrefs.KEY_GAMING, true).apply()
+        ThemePrefs.setColor(prefs, true, ThemePrefs.KIND_LIKELY, 0xFFFF0000.toInt())
+        prefs.edit().putBoolean(ThemePrefs.KEY_LIKELY, true).apply()
 
         val json = ThemePrefs.exportColors(prefs)
         org.json.JSONObject(json).apply {
             assertEquals(0x80FF0000.toInt(), getJSONObject("dark").getInt(ThemePrefs.KIND_KEY))
             assertEquals(0xFF00FF00.toInt(), getJSONObject("light").getInt(ThemePrefs.KIND_BG))
-            assertTrue(getJSONObject("gaming").getBoolean("enabled"))
-            assertEquals(0xFFFF0000.toInt(), getJSONObject("dark").getInt(ThemePrefs.KIND_GAMING))
+            assertTrue(getJSONObject("likely").getBoolean("enabled"))
+            assertEquals(0xFFFF0000.toInt(), getJSONObject("dark").getInt(ThemePrefs.KIND_LIKELY))
             assertTrue(has("version"))
         }
     }

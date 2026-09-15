@@ -15,6 +15,11 @@ import com.piotv.keytab.R
  */
 internal class TabController(private val host: KeyboardHost) {
 
+    /** Schriftgröße der Tab-Beschriftungen (muss zu `KeyTabSmallTabText` passen). */
+    private companion object {
+        const val TAB_TEXT_SIZE_SP = 9f
+    }
+
     /** Art eines Tabs (für Position→Verhalten-Mapping nach optionalem Entfernen). */
     private enum class TabKind { ABC, EDITOR, FILES, CLIP, TERMINAL }
 
@@ -37,6 +42,25 @@ internal class TabController(private val host: KeyboardHost) {
      * Optionale Tabs werden von hinten entfernt (Terminal vor Clip), damit die
      * Indizes der Pflicht-Tabs (0–2) stabil bleiben.
      */
+    /**
+     * Einheitliche Tab-Beschriftungsgröße erzwingen.
+     *
+     * Material's `TabLayout` verkleinert/vergrößert Labels je Zelle automatisch
+     * (AppearanceHelper/autoSize im TabView), sodass das längste Label
+     * („Terminal") optisch größer wirkte als „abc"/"Clip". Deshalb setzen wir
+     * nach dem Text-Setzen die Größe für ALLE Zellen gemeinsam auf [sizeSp].
+     */
+    private fun applyUniformTabTextSize(tabs: TabLayout, sizeSp: Float) {
+        val view = tabs.getChildAt(0) as? android.view.ViewGroup ?: return
+        for (i in 0 until view.childCount) {
+            val cell = view.getChildAt(i) as? android.view.ViewGroup ?: continue
+            for (j in 0 until cell.childCount) {
+                val tv = cell.getChildAt(j) as? android.widget.TextView ?: continue
+                tv.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sizeSp)
+            }
+        }
+    }
+
     fun setup(root: View) {
         val tabs = root.findViewById<TabLayout>(R.id.ime_tabs) ?: return
         tabs.getTabAt(0)?.text = host.context.getString(R.string.ime_tab_letters)
@@ -44,6 +68,8 @@ internal class TabController(private val host: KeyboardHost) {
         tabs.getTabAt(2)?.text = host.context.getString(R.string.ime_tab_files)
         tabs.getTabAt(3)?.text = host.context.getString(R.string.ime_tab_clip_short)
         tabs.getTabAt(4)?.text = host.context.getString(R.string.ime_tab_term_short)
+        // Alle Labels gleich groß (Material auto-sizt sonst je Zelle unterschiedlich)
+        applyUniformTabTextSize(tabs, TAB_TEXT_SIZE_SP)
         val kb = root.findViewById<View>(R.id.kb_panel) ?: return
         val sym = root.findViewById<View>(R.id.sym_panel) ?: return
         val fm = root.findViewById<View>(R.id.file_panel) ?: return

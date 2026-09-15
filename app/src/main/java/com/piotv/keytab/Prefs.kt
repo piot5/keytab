@@ -12,6 +12,9 @@ package com.piotv.keytab
  *
  * Theme-spezifische Keys bleiben in [com.piotv.keytab.ime.ThemePrefs]
  * (dark_mode, gradient_*, theme_dark_*, theme_light_*, gaming_*, theme_version).
+ * Hinweis: Die Pref-Strings `gaming_*` bleiben aus Kompatibilität erhalten —
+ * im Code/UI heißen die Felder inzwischen „Likely Highlighting"
+ * ([com.piotv.keytab.ime.ThemePrefs.KEY_LIKELY]).
  */
 object Prefs {
 

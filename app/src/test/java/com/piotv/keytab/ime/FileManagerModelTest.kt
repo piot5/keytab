@@ -22,7 +22,8 @@ class FileManagerModelTest {
     private val model = FileManagerModel(
         prefs = { k, d -> store[k] ?: d },
         put = { k, v -> store[k] = v },
-        dirs = { d -> dirCache[d] }
+        dirs = { d -> dirCache[d] },
+        rootOverride = rootDir
     )
 
     private companion object {
@@ -40,12 +41,24 @@ class FileManagerModelTest {
         )
     }
 
+    @org.junit.Before
+    fun setUpFixture() {
+        // Stub-Verzeichnis physisch anlegen: `FileManagerModel.navigate` prüft
+        // `isDirectory && canRead()` — ohne echtes Verzeichnis wird ignoriert.
+        rootDir.mkdirs()
+        aDir.mkdirs()
+        bDir.mkdirs()
+        sub.mkdirs()
+        if (!cFile.exists()) cFile.createNewFile()
+    }
+
     private fun modelWithRoot(): FileManagerModel {
-        // root über Env "FM_ROOT" steuern (siehe Model.lazy)
+        // root explizit übergeben (Env ist zur Laufzeit nicht patchbar)
         return FileManagerModel(
             prefs = { k, d -> store[k] ?: d },
             put = { k, v -> store[k] = v },
-            dirs = { d -> dirCache[d] }
+            dirs = { d -> dirCache[d] },
+            rootOverride = rootDir
         )
     }
 
@@ -54,13 +67,14 @@ class FileManagerModelTest {
         val m = FileManagerModel(
             prefs = { _, _ -> null },
             put = { _, _ -> },
-            dirs = { dirCache[it] })
-        // root aus Env, fallback "/"
-        assertEquals("Root nicht initialisiert", m.dir)
+            dirs = { dirCache[it] },
+            rootOverride = rootDir)
+        // Ohne Treffer in den prefs startet das Model im Root
+        assertEquals("Startverzeichnis muss das (Stub-)Root sein", rootDir, m.dir)
     }
 
     @Test
-    fun `navigate in Unterverzeichnis, BackStack wächst`() {
+    fun `navigate in Unterverzeichnis, BackStack waechst`() {
         val m = modelWithRoot().apply { }
         m.navigate(aDir)
         assertEquals(aDir, m.dir)
@@ -98,14 +112,14 @@ class FileManagerModelTest {
     }
 
     @Test
-    fun `counts liefert Ordner-/Dateianzahl`() {
+    fun `counts liefert Ordner- und Dateianzahl`() {
         val (dirs, files) = model.counts()
         assertEquals(2, dirs)
         assertEquals(1, files)
     }
 
     @Test
-    fun `persist + restore erhält dir und BackStack`() {
+    fun `persist + restore setzt dir und BackStack`() {
         val m = modelWithRoot()
         m.navigate(aDir)
         m.persist()
@@ -113,7 +127,8 @@ class FileManagerModelTest {
         val restored = FileManagerModel(
             prefs = { k, d -> store[k] ?: d },
             put = { k, v -> store[k] = v },
-            dirs = { dirCache[it] })
+            dirs = { dirCache[it] },
+            rootOverride = rootDir)
         restored.restore()
         assertEquals(aDir, restored.dir)
         assertEquals(1, restored.stack.size)
@@ -121,14 +136,15 @@ class FileManagerModelTest {
     }
 
     @Test
-    fun `restore ignoriert ungültige Pfade`() {
+    fun `restore ignoriert ungueltige Pfade`() {
         store["fm_dir"] = "/nicht/existierend"
         store["fm_backstack"] = "/auch/nicht"
         val m = FileManagerModel(
             prefs = { k, d -> store[k] ?: d },
             put = { _, _ -> },
-            dirs = { dirCache[it] })
-        // root fallback (nicht "/nicht/existierend")
+            dirs = { dirCache[it] },
+            rootOverride = rootDir)
+        // ungültige Pfade werden verworfen → Fallback auf den Root
         assertEquals(rootDir, m.dir)
         assertFalse(m.canGoBack)
     }
@@ -141,9 +157,18 @@ class FileManagerModelTest {
     }
 
     @Test
-    fun `canGoUp false für Root`() {
+    fun `canGoUp spiegelt Existenz eines Elternverzeichnisses`() {
         val m = modelWithRoot()
-        assertEquals(false, m.canGoUp)
+        // /test_fm_root hat "/" als Parent → Up ist möglich.
+        assertEquals(rootDir.parentFile != null, m.canGoUp)
+
+        // Gegenprobe: im Dateisystem-Root ("/") gibt es kein Parent mehr.
+        val atRoot = FileManagerModel(
+            prefs = { _, _ -> null },
+            put = { _, _ -> },
+            dirs = { dirCache[it] },
+            rootOverride = File("/"))
+        assertEquals(false, atRoot.canGoUp)
     }
 
     @Test

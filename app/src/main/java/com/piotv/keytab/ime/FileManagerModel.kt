@@ -15,10 +15,17 @@ import java.io.File
 class FileManagerModel(
     private val prefs: (String, String?) -> String?,
     private val put: (String, String) -> Unit,
-    private val dirs: (File) -> List<File>?
+    private val dirs: (File) -> List<File>?,
+    /**
+     * Optionaler Root für Tests. Ohne Angabe wird der Root wie bisher aus
+     * `FM_ROOT` / `FM_ALT_ROOT` (Env) bzw. "/" bestimmt. Die Env-Variablen sind
+     * zur Laufzeit nicht veränderbar — für Unit-Tests ist dieser Parameter der
+     * einzige saubere Weg, ein Stub-Verzeichnis vorzugeben.
+     */
+    rootOverride: File? = null
 ) {
     /** Wurzel-Verzeichnis: externer Speicher, sonst Download, sonst "/". */
-    val root: File by lazy {
+    val root: File = rootOverride ?: run {
         val pub = System.getenv("FM_ROOT")?.let { File(it) }
         if (pub?.isDirectory == true && pub.canRead()) pub else {
             System.getenv("FM_ALT_ROOT")?.let { File(it) }

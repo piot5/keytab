@@ -9,46 +9,28 @@ import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
-import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.piotv.keytab.ime.ThemePrefs
+import com.piotv.keytab.sections.ColorSection
+import com.piotv.keytab.sections.LikelyHighlightSection
+import com.piotv.keytab.sections.GradientSection
+import com.piotv.keytab.sections.PreviewSection
+import com.piotv.keytab.sections.TopSection
 
-/**
- * Zweite Einstellungsseite: Theme-Einstellungen (geöffnet per Long-Press auf
- * Mond/Sonne oder über die Haupteinstellungen). Auswahl Dark (☾) / Light (☀)
- * mit Verlauf im Icon, Verlauf-Presets + eigene Farben und Modus, Farb- und
- * Alpha-Regler für Background/Highlight/Schriftfarbe (je Theme getrennt),
- * Live-Vorschau und Reset. Änderungen zählen die Theme-Version hoch → die
- * Tastatur baut beim nächsten Aufbau automatisch neu.
- */
 class ThemeSettingsActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
     private var editingDark = false
-
-    private var themeIconDark: TextView? = null
-    private var themeIconLight: TextView? = null
     private var selectedTarget = ThemePrefs.KIND_BG
     private var targetButtons: List<Pair<String, Button>> = emptyList()
-    private var colorWheel: ColorWheelView? = null
-    private var brightnessBar: SeekBar? = null
-    private var alphaSlider: SeekBar? = null
-    private var alphaLabel: TextView? = null
-    private var modeButtons: List<Pair<String, Button>> = emptyList()
-    private var gamingButtons: List<Pair<String, Button>> = emptyList()
 
-    // Live-Vorschau
-    private var previewRow: LinearLayout? = null
-    private var previewKey: TextView? = null
-    private var previewSug: TextView? = null
-    private var previewHl: View? = null
-
-    private companion object {
-        const val SUN_SYMBOL = "\u2600\uFE0E"  // ☀
-        const val MOON_SYMBOL = "\u263E\uFE0E" // ☾
-    }
+    private lateinit var topSection: TopSection
+    private lateinit var gradientSection: GradientSection
+    private lateinit var colorSection: ColorSection
+    private lateinit var likelySection: LikelyHighlightSection
+    private lateinit var previewSection: PreviewSection
 
     private val dip: Float by lazy { resources.displayMetrics.density }
 
@@ -56,6 +38,13 @@ class ThemeSettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         prefs = getSharedPreferences(ThemePrefs.PREFS, Context.MODE_PRIVATE)
         editingDark = ThemePrefs.isDarkMode(this)
+
+        topSection = TopSection(this, prefs) { refreshAllUi() }
+        gradientSection = GradientSection(this, prefs) { }
+        colorSection = ColorSection(this, prefs, { selectedTarget }) { updatePreview(); refreshTargetButtons() }
+        likelySection = LikelyHighlightSection(this, prefs) { updatePreview() }
+        previewSection = PreviewSection(this, prefs, { target -> currentColor(target) }) { }
+
         val scroll = android.widget.ScrollView(this)
         scroll.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT)
@@ -71,427 +60,96 @@ class ThemeSettingsActivity : AppCompatActivity() {
             textSize = 22f
             setTypeface(null, Typeface.BOLD)
         })
-        buildTop(col)
-        buildGradientSection(col)
+
+        topSection.build(col)
+        gradientSection.build(col)
         sectionLabel(col, getString(R.string.theme_section_colors))
-        colorSection(col)
-        gamingSection(col)
+        colorSection.build(col)
+        buildTargetButtons(col)
+        likelySection.build(col)
         sectionLabel(col, getString(R.string.theme_section_preview))
-        col.addView(buildPreview(), rowParams())
+        previewSection.build(col)
         col.addView(actionRow(), rowParams())
+
         setContentView(scroll)
         updatePreview()
         refreshThemeIcons()
+        refreshTargetButtons()
+        colorSection.updateControls(selectedTarget)
     }
 
-    // ---------- Theme-Auswahl ----------
-
-    private fun buildTop(col: LinearLayout) {
-        sectionLabel(col, getString(R.string.theme_section_theme))
-        val row = LinearLayout(this).apply {
+    private fun buildTargetButtons(col: LinearLayout) {
+        val targetRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        row.addView(themeIcon(SUN_SYMBOL, getString(R.string.theme_pick_sun), dark = false))
-        row.addView(themeIcon(MOON_SYMBOL, getString(R.string.theme_pick_moon), dark = true))
-        col.addView(row, rowParams())
-        col.addView(TextView(this).apply {
-            textSize = 11f
-            setTextColor(ContextCompat.getColor(this@ThemeSettingsActivity, R.color.text_secondary))
-            text = getString(R.string.theme_longpress_hint)
-        })
-    }
-
-    /** Großes ☀/☾-Icon mit Verlauf im Icon; Klick wechselt Dark/Light. */
-    private fun themeIcon(symbol: String, label: String, dark: Boolean): View {
-        val textCol = ContextCompat.getColor(this, R.color.popup_text)
-        val cell = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding((16 * dip).toInt(), (8 * dip).toInt(), (16 * dip).toInt(), (8 * dip).toInt())
-            setOnClickListener { switchTheme(dark) }
-        }
-        val icon = TextView(this).apply {
-            text = symbol
-            textSize = 36f
-            gravity = Gravity.CENTER
-            includeFontPadding = false
-            setTextColor(textCol)
-            post {
-                paint.shader = gradientShader(width, height,
-                    ThemePrefs.gradientColor1(prefs), ThemePrefs.gradientColor2(prefs),
-                    ThemePrefs.gradientMode(prefs))
-                invalidate()
-            }
-        }
-        cell.addView(icon, LinearLayout.LayoutParams((48 * dip).toInt(), (48 * dip).toInt()))
-        cell.addView(TextView(this).apply {
-            text = label
-            textSize = 12f
-            gravity = Gravity.CENTER
-            setTextColor(textCol)
-        })
-        if (dark) themeIconDark = icon else themeIconLight = icon
-        return cell
-    }
-
-    private fun refreshThemeIcons() {
-        val active = if (editingDark) themeIconDark else themeIconLight
-        val inactive = if (editingDark) themeIconLight else themeIconDark
-        active?.setTypeface(null, Typeface.BOLD)
-        active?.alpha = 1f
-        inactiveIcon(inactive)
-    }
-
-    private fun inactiveIcon(icon: TextView?) {
-        icon?.setTypeface(null, Typeface.NORMAL)
-        icon?.alpha = 0.5f
-    }
-
-    private fun switchTheme(dark: Boolean) {
-        if (editingDark == dark) return
-        prefs.edit().putBoolean(ThemePrefs.KEY_DARK, dark).apply()
-        ThemePrefs.bumpVersion(prefs)
-        editingDark = dark
-        refreshThemeIcons()
-        refreshAllUi()
-    }
-
-    /** Verlauf-Shader passend zum Modus; null wenn Größe fehlt. */
-    private fun gradientShader(w: Int, h: Int, c1: Int, c2: Int, mode: String) = when (mode) {
-        ThemePrefs.GRADIENT_INVERT ->
-            android.graphics.LinearGradient(0f, 0f, 0f, h.toFloat(), c2, c1,
-                android.graphics.Shader.TileMode.CLAMP)
-        ThemePrefs.GRADIENT_RADIAL ->
-            android.graphics.RadialGradient(w / 2f, h / 2f, maxOf(w, h) / 2f, c1, c2,
-                android.graphics.Shader.TileMode.CLAMP)
-        else -> android.graphics.LinearGradient(0f, 0f, 0f, h.toFloat(), c1, c2,
-            android.graphics.Shader.TileMode.CLAMP)
-    }
-
-    // ---------- Verlauf ----------
-
-    private fun buildGradientSection(col: LinearLayout) {
-        sectionLabel(col, getString(R.string.theme_section_gradient))
-        col.addView(presetRow(), rowParams())
-        col.addView(modeRow(), rowParams())
-        miniLabel(col, getString(R.string.theme_gradient_hint))
-    }
-
-    /** Preset-Verläufe als Mini-Swatches; Klick übernimmt Farben + Modus. */
-    private fun presetRow(): View {
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        ThemePrefs.GRADIENTS.forEach { p ->
-            row.addView(View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    (46 * dip).toInt(), (28 * dip).toInt()
-                ).apply { marginEnd = (6 * dip).toInt() }
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    cornerRadius = 6f * dip
-                    orientation = when (p.mode) {
-                        ThemePrefs.GRADIENT_INVERT ->
-                            android.graphics.drawable.GradientDrawable.Orientation.BOTTOM_TOP
-                        else ->
-                            android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM
-                    }
-                    if (p.mode == ThemePrefs.GRADIENT_RADIAL) {
-                        setGradientType(android.graphics.drawable.GradientDrawable.RADIAL_GRADIENT)
-                        setGradientCenter(0.5f, 0.5f)
-                        setGradientRadius(26 * dip)
-                    }
-                    colors = intArrayOf(p.c1, p.c2)
-                }
-                setOnClickListener {
-                    prefs.edit()
-                        .putInt(ThemePrefs.KEY_GRADIENT_COLOR1, p.c1)
-                        .putInt(ThemePrefs.KEY_GRADIENT_COLOR2, p.c2)
-                        .putString(ThemePrefs.KEY_GRADIENT_MODE, p.mode).apply()
-                    ThemePrefs.bumpVersion(prefs)
-                    refreshTargetButtons()
-                    loadTargetIntoWheel()
-                    updatePreview()
-                }
-            })
-        }
-        return row
-    }
-
-    /** Modus-Umschalter (Oben→Unten / Umgekehrt / Radial) als Segmente. */
-    private fun modeRow(): View {
-        val modes = listOf(
-            ThemePrefs.GRADIENT_TOP_DOWN to getString(R.string.gradient_mode_top_down),
-            ThemePrefs.GRADIENT_INVERT to getString(R.string.gradient_mode_invert),
-            ThemePrefs.GRADIENT_RADIAL to getString(R.string.gradient_mode_radial)
-        )
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        modeButtons = modes.map { (mode, label) ->
-            val b = Button(this).apply {
+        targetButtons = listOf(
+            ThemePrefs.KIND_BG to "BG",
+            ThemePrefs.KIND_KEY to "Key",
+            ThemePrefs.KIND_TEXT to "Text",
+            ThemePrefs.KIND_HL to "HL"
+        ).map { (target, label) ->
+            val btn = Button(this).apply {
                 text = label
-                textSize = 12f
                 isAllCaps = false
-                minimumHeight = 0
-                setPadding((8 * dip).toInt(), (4 * dip).toInt(), (8 * dip).toInt(), (4 * dip).toInt())
+                minWidth = 0
+                minimumWidth = 0
+                setPadding(0, 0, 0, 0)
                 setOnClickListener {
-                    prefs.edit().putString(ThemePrefs.KEY_GRADIENT_MODE, mode).apply()
-                    ThemePrefs.bumpVersion(prefs)
-                    refreshModeButtons()
-                    updatePreview()
+                    selectedTarget = target
+                    refreshTargetButtons()
+                    colorSection.updateControls(target)
                 }
             }
-            row.addView(b, LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+            target to btn
+        }
+        targetButtons.forEach { (_, btn) ->
+            targetRow.addView(btn, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
                 marginEnd = (4 * dip).toInt()
-            })
-            mode to b
-        }
-        refreshModeButtons()
-        return row
-    }
-
-    private fun refreshModeButtons() {
-        val active = ThemePrefs.gradientMode(prefs)
-        modeButtons.forEach { (mode, b) ->
-            b.setTypeface(null, if (mode == active) Typeface.BOLD else Typeface.NORMAL)
-            b.alpha = if (mode == active) 1f else 0.65f
-        }
-    }
-
-    // ---------- Gaming-Modus (Tasten-Färbung + Vervollständigungs-Effekt) ----------
-
-    /** Toggle-Zeile: Nächste-Taste-Färbung + Effekt bei erreichter Wahrscheinlichkeit. */
-    private fun gamingSection(col: LinearLayout) {
-        sectionLabel(col, getString(R.string.theme_section_gaming))
-        val toggles = listOf(
-            ThemePrefs.KEY_GAMING to getString(R.string.theme_gaming_toggle),
-            ThemePrefs.KEY_GAMING_EFFECT to getString(R.string.theme_gaming_effect))
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        gamingButtons = toggles.map { (key, label) ->
-            val b = Button(this).apply {
-                text = label
-                textSize = 12f
-                isAllCaps = false
-                minimumHeight = 0
-                setPadding((8 * dip).toInt(), (4 * dip).toInt(), (8 * dip).toInt(), (4 * dip).toInt())
-                setOnClickListener {
-                    prefs.edit().putBoolean(key, !gamingPref(prefs, key)).apply()
-                    ThemePrefs.bumpVersion(prefs)
-                    refreshGamingButtons()
-                }
-            }
-            row.addView(b, LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = (4 * dip).toInt() })
-            key to b
-        }
-        col.addView(row, rowParams())
-        miniLabel(col, getString(R.string.theme_gaming_hint))
-        refreshGamingButtons()
-    }
-
-    /** Pref-Wert mit dem jeweiligen Default (Färbung aus, Effekt an). */
-    private fun gamingPref(prefs: android.content.SharedPreferences, key: String): Boolean =
-        prefs.getBoolean(key, key == ThemePrefs.KEY_GAMING_EFFECT)
-
-    private fun refreshGamingButtons() {
-        gamingButtons.forEach { (key, b) ->
-            val active = gamingPref(prefs, key)
-            b.setTypeface(null, if (active) Typeface.BOLD else Typeface.NORMAL)
-            b.alpha = if (active) 1f else 0.65f
-        }
-    }
-
-    // ---------- Farben (Farbwahlrad: Background/Highlight/Text/Verlauf) ----------
-
-    /** Farb-Sektion: Ziel-Auswahl + Farbwahlrad + Helligkeit + Alpha. */
-    private fun colorSection(col: LinearLayout) {
-        sectionLabel(col, getString(R.string.theme_section_colors))
-        val targets = listOf(
-            ThemePrefs.KIND_BG to getString(R.string.theme_color_bg),
-            ThemePrefs.KIND_KEY to getString(R.string.theme_color_key),
-            ThemePrefs.KIND_HL to getString(R.string.theme_color_hl),
-            ThemePrefs.KIND_TEXT to getString(R.string.theme_color_text),
-            ThemePrefs.KIND_GAMING to getString(R.string.theme_color_gaming),
-            "grad1" to getString(R.string.settings_gradient_color1),
-            "grad2" to getString(R.string.settings_gradient_color2)
-        )
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        targetButtons = targets.map { (key, label) ->
-            val b = Button(this).apply {
-                text = label
-                textSize = 11f
-                isAllCaps = false
-                minimumHeight = 0
-                setPadding((6 * dip).toInt(), (4 * dip).toInt(), (6 * dip).toInt(), (4 * dip).toInt())
-                setOnClickListener {
-                    selectedTarget = key
-                    refreshTargetButtons()
-                    loadTargetIntoWheel()
-                }
-            }
-            row.addView(b, LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                marginEnd = (3 * dip).toInt()
-            })
-            key to b
-        }
-        col.addView(row, rowParams())
-
-        colorWheel = ColorWheelView(this).apply {
-            onColorPicked = { argb ->
-                writeToTarget(argb)
-                updatePreview()
-            }
-        }
-        col.addView(colorWheel, rowParams((210 * dip).toInt()))
-
-        miniLabel(col, getString(R.string.theme_brightness))
-        brightnessBar = SeekBar(this).apply {
-            max = 100
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(s: SeekBar?, value: Int, fromUser: Boolean) {
-                    if (fromUser) colorWheel?.setBrightness(value / 100f)
-                }
-                override fun onStartTrackingTouch(s: SeekBar?) {}
-                override fun onStopTrackingTouch(s: SeekBar?) {}
+                width = (56 * dip).toInt()
+                height = (32 * dip).toInt()
             })
         }
-        col.addView(brightnessBar, rowParams())
-
-        val alphaHead = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        alphaHead.addView(TextView(this).apply {
-            text = getString(R.string.theme_alpha)
-            textSize = 12f
-            setTextColor(ContextCompat.getColor(this@ThemeSettingsActivity, R.color.text_secondary))
-            layoutParams = LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        })
-        val alphaText = TextView(this).apply {
-            textSize = 12f
-            setTextColor(ContextCompat.getColor(this@ThemeSettingsActivity, R.color.text_secondary))
-            text = "100 %"
-        }
-        alphaLabel = alphaText
-        alphaHead.addView(alphaText)
-        col.addView(alphaHead)
-        alphaSlider = SeekBar(this).apply {
-            max = 100
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(s: SeekBar?, value: Int, fromUser: Boolean) {
-                    if (fromUser) colorWheel?.setAlphaValue(value * 255 / 100)
-                }
-                override fun onStartTrackingTouch(s: SeekBar?) {}
-                override fun onStopTrackingTouch(s: SeekBar?) {}
-            })
-        }
-        col.addView(alphaSlider, rowParams())
-
-        refreshTargetButtons()
-        loadTargetIntoWheel()
+        col.addView(targetRow, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = (8 * dip).toInt() })
     }
-
-    /** Farb-Override in das gewählte Ziel schreiben + Theme-Version hochzählen. */
-    private fun writeToTarget(argb: Int) {
-        when (selectedTarget) {
-            "grad1" -> prefs.edit().putInt(ThemePrefs.KEY_GRADIENT_COLOR1, argb).apply()
-            "grad2" -> prefs.edit().putInt(ThemePrefs.KEY_GRADIENT_COLOR2, argb).apply()
-            else -> ThemePrefs.setColor(prefs, editingDark, selectedTarget, argb)
-        }
-        ThemePrefs.bumpVersion(prefs)
-        alphaLabel?.text = (Color.alpha(argb) * 100 / 255).toString() + " %"
-    }
-
-    /** Aktuelle Farbe des gewählten Ziels (Pref oder Default). */
-    private fun currentTargetColor(): Int = when (selectedTarget) {
-        "grad1" -> ThemePrefs.gradientColor1(prefs)
-        "grad2" -> ThemePrefs.gradientColor2(prefs)
-        else -> currentColor(selectedTarget)
-    }
-
-    /** Rad + Slider auf das gewählte Ziel laden. */
-    private fun loadTargetIntoWheel() {
-        val argb = currentTargetColor()
-        colorWheel?.setArgb(argb)
-        val hsv = FloatArray(3)
-        android.graphics.Color.RGBToHSV(
-            android.graphics.Color.red(argb), android.graphics.Color.green(argb),
-            android.graphics.Color.blue(argb), hsv)
-        brightnessBar?.progress = (hsv[2] * 100).toInt()
-        alphaSlider?.progress = android.graphics.Color.alpha(argb) * 100 / 255
-        alphaLabel?.text = (android.graphics.Color.alpha(argb) * 100 / 255).toString() + " %"
-        refreshTargetButtons()
-    }
-
-    private fun refreshTargetButtons() {
-        targetButtons.forEach { (key, b) ->
-            b.setTypeface(null, if (key == selectedTarget) Typeface.BOLD else Typeface.NORMAL)
-            b.alpha = if (key == selectedTarget) 1f else 0.65f
-        }
-    }
-
-    /** Aktuelle Farbe (Pref oder Theme-Default) für eine Farb-Art. */
-    private fun currentColor(kind: String): Int =
-        ThemePrefs.getColor(prefs, editingDark, kind,
-            ThemePrefs.defaultColor(this, editingDark, kind))
 
     private fun refreshAllUi() {
+        editingDark = ThemePrefs.isDarkMode(this)
+        refreshThemeIcons()
         refreshTargetButtons()
-        loadTargetIntoWheel()
+        colorSection.updateControls(selectedTarget)
+        likelySection.updateButtons()
+        gradientSection.updateGradient()
         updatePreview()
     }
 
-    // ---------- Vorschau & Aktionen ----------
-
-    /** Beispielzeile: Taste „A", Vorschlagswort, Highlight-Block. */
-    private fun buildPreview(): View {
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding((10 * dip).toInt(), (8 * dip).toInt(), (10 * dip).toInt(), (8 * dip).toInt())
-        }
-        val key = TextView(this).apply {
-            text = "A"
-            textSize = 18f
-            gravity = Gravity.CENTER
-        }
-        row.addView(key, LinearLayout.LayoutParams((44 * dip).toInt(), (44 * dip).toInt())
-            .apply { marginEnd = (10 * dip).toInt() })
-        val sug = TextView(this).apply {
-            text = getString(R.string.theme_preview_word)
-            textSize = 15f
-        }
-        row.addView(sug, LinearLayout.LayoutParams(0,
-            LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        val hl = View(this)
-        row.addView(hl, LinearLayout.LayoutParams((28 * dip).toInt(), (28 * dip).toInt())
-            .apply { marginStart = (10 * dip).toInt() })
-        previewRow = row
-        previewKey = key
-        previewSug = sug
-        previewHl = hl
-        return row
+    private fun refreshThemeIcons() {
+        topSection.updateThemeIcons(editingDark)
     }
 
-    /** Vorschau-Farben + Verlauf-Hintergrund aktualisieren. */
     private fun updatePreview() {
-        val row = previewRow ?: return
-        val bg = currentColor(ThemePrefs.KIND_BG)
-        val hl = currentColor(ThemePrefs.KIND_HL)
-        val text = currentColor(ThemePrefs.KIND_TEXT)
-        ThemePrefs.gradientDrawable(prefs,
-            resources.displayMetrics.widthPixels)?.let { row.background = it }
-            ?: run { row.background = android.graphics.drawable.ColorDrawable(bg) }
-        previewKey?.background = android.graphics.drawable.GradientDrawable().apply {
-            cornerRadius = 6f * dip; setColor(currentColor(ThemePrefs.KIND_KEY))
-        }
-        previewKey?.setTextColor(text)
-        previewSug?.setTextColor(text)
-        previewHl?.background = android.graphics.drawable.GradientDrawable().apply {
-            cornerRadius = 4f * dip; setColor(hl)
+        previewSection.updatePreview()
+    }
+
+    private fun currentColor(target: String): Int {
+        return ThemePrefs.getColor(prefs, editingDark, target, Color.GRAY)
+    }
+
+    private fun refreshTargetButtons() {
+        targetButtons.forEach { (target, btn) ->
+            val color = currentColor(target)
+            btn.background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 4f * dip
+                setColor(color)
+            }
+            val luminance = (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255
+            btn.setTextColor(if (luminance > 0.5) Color.BLACK else Color.WHITE)
         }
     }
 
@@ -531,15 +189,6 @@ class ThemeSettingsActivity : AppCompatActivity() {
             setTypeface(null, Typeface.BOLD)
             setTextColor(ContextCompat.getColor(this@ThemeSettingsActivity, R.color.text_primary))
             setPadding(0, (18 * dip).toInt(), 0, (4 * dip).toInt())
-        })
-    }
-
-    private fun miniLabel(col: LinearLayout, text: String) {
-        col.addView(TextView(this).apply {
-            this.text = text
-            textSize = 12f
-            setTextColor(ContextCompat.getColor(this@ThemeSettingsActivity, R.color.text_secondary))
-            setPadding(0, (6 * dip).toInt(), 0, (2 * dip).toInt())
         })
     }
 

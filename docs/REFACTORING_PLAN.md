@@ -344,8 +344,8 @@ com.piotv.keytab
 ## 7. Aktuelle ToDo-Liste (Stand 2026-09-15)
 
 ### Sofort (diese Woche)
-- [ ] **R1 abschließen:** 15+ geänderte Dateien reviewen & committen (inkl. GamingLogic-Entscheidung)
-- [ ] **R3:** Konsistenz-Check + Build + Unit-Tests + Smoke-Test auf Gerät
+- [x] **R1 abschließen:** Chaos committe (739dc66): Gaming → LikelyHighlighting (Feature umbenannt, nicht entfernt), KeyAnimations + sections/ + 3 neue Test-Dateien committed
+- [x] **R3:** Konsistenz-Check (keine KIND_GAMING/GamingLogic-Reste) + Build SUCCESSFUL + 116 Unit-Tests, 0 Failures + Install auf Gerät 0.9.6-debug ok
 - [ ] Editor-Robustheit: Nicht-UTF-8-Dateien (latin-1) & große Dateien im Editor-Tab testen
 
 ### Kurzfristig (nächste 2 Wochen)

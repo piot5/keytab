@@ -1,73 +1,130 @@
 # KeyTab – Refactoring-Plan: Modularisierung & Separation of Concerns
 
-Stand: 2026-09-15 · Status: **Phase 0–5 umgesetzt; R2-Editor-Toolbar committed (57323e3); R1-Abschluss (uncommitted Changes) offen; Phase 6–7 als Nächstes** · Ziel: wartbare, testbare Module ohne Verhaltensänderung (reine Struktur-Refactors).
+Stand: 2026-09-16 (Audit-Update) · Status: **Phase 0–5 umgesetzt; Phase 6 teilweise (Service 908→260 Zeilen); Phase 7 ABGESCHLOSSEN (Panels bereits entkoppelt, Audit-verifiziert); R1–R3 ABGESCHLOSSEN; offen: Phase 8, Extra-Keys-Zeile, Coverage-Gate** · Ziel: wartbare, testbare Module ohne Verhaltensänderung.
 
-**Benchmark (2026-09-15, neu kalibriert):** Global-Vergleich (Gboard 80, FlorisBoard 73, AnySoftKeyboard 66) ist **hinfällig als Zielgröße** — Gboard ist kein Wettbewerbsziel, FlorisBoard ist im Feature-Umfang bereits überholt. Neue Messgröße: **Nische-Score (Coding-on-Android: Termux + AndroidIDE) ≈ 84–85/100.** Größte Hebel: Extra-Keys-Zeile, IME-Härtung in fremden Editoren, IzzyOnDroid-Distribution, Editor `readText/writeText`-Edge-Cases (Encoding, große Dateien).
+**Benchmark (2026-09-16, Audit-verifiziert): Global-Score 81/100 · Nische-Score (Coding-on-Android) 85/100.**
+
+Der frühere Global-Vergleich („Gboard 80, FlorisBoard 73, AnySoftKeyboard 66") war in beide Richtungen falsch kalibriert: **Gboard ist real ~92** (nicht 80) und **FlorisBoard ~79** (nicht 73 — Multi-Modul-Architektur, 2.729 Commits, Extension-System, Addons-Store). Global liegt KeyTab damit **etwa gleichauf mit FlorisBoard** statt deutlich dahinter. In der Nische (Coding-on-Android: Termux + AndroidIDE) ist KeyTab mit **85** tatsächlich führend, weil kein anderes Keyboard Dateimanager + Terminal + Snippets + Wortvorhersage *in* der Tastatur kombiniert.
+
+**Größte Hebel (nach Score-Impact, siehe §7):** Extra-Keys-Zeile (+4,5), Coverage-Gate + Panel-UI-Tests (+3,0), Phase 7 Panel-Entkopplung (+2,0), Editor Syntax-Highlighting/Zeilenummern (+2,0), Layout-Split + `MANAGE_EXTERNAL_STORAGE`-Ersatz (+1,5/+1,5).
 
 ---
 
-## 1. Ist-Analyse (aktualisiert)
+## 0. Audit 2026-09-16 — verifizierte Messwerte
 
-**Umfang:** ~4.900 Zeilen Kotlin, 27 Klassen, 1 Gradle-Modul (`app`).
+Dieser Abschnitt ersetzt frühere **Schätzungen** durch **nachgemessene** Werte. Messmethode: `./gradlew :app:testDebugUnitTest --offline` (BUILD SUCCESSFUL in 13 s), Auswertung `app/build/test-results/testDebugUnitTest/*.xml`, `wc -l` über `app/src`, `git log`/`git status`.
+
+| Messgröße | Gemessen (verifiziert) | Frühere Doku-Angabe | Delta |
+|---|---|---|---|
+| Build-Status | `BUILD SUCCESSFUL in 13s`; APK 6,4 MB (16.09. 11:31) | „Build grün" | ✅ bestätigt |
+| Unit-Tests | **116 Tests, 0 Failures, 0 Errors, 0 Skipped** in 15 Klassen | „116 Tests grün" | ✅ **bestätigt** |
+| Main-Code | 43 Dateien / **5.704 Zeilen** (4.729 ohne Kommentare) | „~4.900 Zeilen, 27 Klassen" | ️ Doku war veraltet |
+| Test-Code | 14 Dateien / **1.697 Zeilen** | „10+ Dateien" | ✅ konservativ |
+| Test:Main-Ratio | **29,7 %** | „~20 % Abdeckung" | ️ **besser als dokumentiert** |
+| `KeyTabImeService.kt` | **260 Zeilen** (von 908) | „349 Zeilen" | ️ **besser als dokumentiert** |
+| `keyboard_view.xml` | **697 Zeilen** | – | 🔴 neu erkannt |
+| `TODO`/`FIXME`/`HACK` | **0** | „keine FIXME/XXX" | ✅ bestätigt |
+| `Thread(...)` | **0** | – | ✅ bestätigt |
+| `!!` (Not-Null-Assert) | 6 in 5.704 Zeilen | – | ✅ niedrig |
+| `getSharedPreferences` aufrufe | 25 (Potenzial für `Prefs`-Zentralisierung) | „~5× inline" | ⚠️ **mehr als dokumentiert** |
+| `INTERNET`-Permission | **nicht vorhanden** | „no network" | ✅ **Manifest-verifiziert** |
+| Keystore im Git | **nicht getrackt** (`.gitignore`) | – | ✅ korrekt |
+| Instrumented Tests | **2 Tests** (Datei existiert, CI-KVM-Emulator API 34) | „Instrumented-CI" | ⚠️ Umfang sehr klein |
+| CI-Workflows | 2 (`ci.yml`, `release.yml`), Release idempotent (`--clobber`) | – | ✅ überdurchschnittlich |
+| Aktivität | 84 Commits total, **26 in 7 Tagen**, 1 Hauptautor | – | ⚠️ Bus-Faktor 1 |
+| Lizenz-Attribution | FrequencyWords MIT/CC-BY-SA-4.0 korrekt im KDoc-Header | – | ✅ **häufiger Rechtsfehler vermieden** |
+
+**Audit-Fazit:** Die Dokumentation war an mehreren Stellen **zu pessimistisch gegenüber dem eigenen Code** (Service 260 statt 349 Zeilen, Coverage ~30 % statt ~20 %) und an einer Stelle **zu optimistisch** (Feature-Umfang, Distribution). Die Prozessdisziplin (Snapshot-Commits, Phasenplan, Risikotabelle) ist der stärkste Einzelfaktor und rechtfertigt den Global-Score 81.
+
+---
+
+## 1. Ist-Analyse (aktualisiert 2026-09-16)
+
+**Umfang:** **5.704 Zeilen Kotlin** in 43 Main-Dateien (+ 1.697 Test-Zeilen in 14 Dateien), 1 Gradle-Modul (`app`).
 
 ### 1.1 Dateigrößen & Problembereiche
 
-| Datei | Zeilen | Befund | Priorität |
+| Datei | Zeilen (gemessen 16.09.) | Befund | Priorität |
 |---|---|---|---|
-| `ime/KeyTabImeService.kt` | **349** | Reduziert (908→349), aber immer noch God-Class | 🔴 Hoch |
+| `ime/KeyTabImeService.kt` | **260** | Reduziert (908→573→260, −71 %), Orchestrierung — Ziel ~150 noch offen | 🟡 Mittel (herabgestuft von 🔴) |
 | `ime/SuggestionEngine.kt` | 262 | OK (pure Logik) | 🟢 Niedrig |
-| `ime/FileManagerPanel.kt` | 258 | OK, aber an Service gekoppelt | 🟡 Mittel |
+| `ime/FileManagerPanel.kt` | 257 | OK, aber an Service gekoppelt | 🟡 Mittel |
 | `ime/EditorPanel.kt` | 257 | OK, aber an Service gekoppelt | 🟡 Mittel |
-| `ime/TerminalPanel.kt` | 213 | OK, gekoppelt | 🟡 Mittel |
-| `ThemeSettingsActivity.kt` | 200 | ✅ Refakturiert (Sections extrahiert) | 🟢 Erledigt |
-| `ime/ThemePrefs.kt` | 186 | ✅ Sauber, pure Logik | 🟢 Erledigt |
-| `ime/ThemeApplier.kt` | 183 | OK | 🟢 Niedrig |
-| `ime/SuggestionController.kt` | 162 | OK | 🟢 Niedrig |
 | `ime/KeyboardBinder.kt` | 256 | OK, Touch-Logik gekapselt | 🟢 Niedrig |
-| `ime/ThemeController.kt` | 118 | ✅ Extrahiert | 🟢 Erledigt |
-| `ime/CapsLogic.kt` | 29 | ✅ Extrahiert, testbar | 🟢 Erledigt |
+| `ime/ThemePrefs.kt` | 253 | ✅ Sauber, pure Logik | 🟢 Erledigt |
+| `ThemeSettingsActivity.kt` | 215 | ✅ Refakturiert (Sections extrahiert, von 551) | 🟢 Erledigt |
+| `ime/WordPredictionManager.kt` | 213 | OK | 🟢 Niedrig |
+| `ime/TerminalPanel.kt` | 213 | OK, gekoppelt | 🟡 Mittel |
+| `MainActivity.kt` | 201 | OK | 🟢 Niedrig |
+| `ime/SnippetPanel.kt` | 193 | OK (neu) | 🟢 Niedrig |
+| `file/FileManagerFragment.kt` | 193 | OK | 🟢 Niedrig |
+| `ime/TabController.kt` | 190 | OK | 🟢 Niedrig |
+| `ime/ThemeApplier.kt` | 184 | OK | 🟢 Niedrig |
+| `ime/SuggestionController.kt` | 164 | OK | 🟢 Niedrig |
+| `ime/KeyboardViewFactory.kt` | 151 | ✅ Phase 6 extrahiert | 🟢 Erledigt |
+| `ime/LanguageModule.kt` | 148 | OK (7 Sprachen) | 🟢 Niedrig |
+| `ime/LetterPopup.kt` | 143 | OK | 🟢 Niedrig |
+| `ime/ClipboardPanel.kt` | 141 | OK, gekoppelt | 🟡 Mittel |
 | `ime/InputTargets.kt` | 135 | ✅ Interface-basiert | 🟢 Erledigt |
-| `ime/LiftSpan.kt` | 21 | ✅ Extrahiert | 🟢 Erledigt |
+| `ColorWheelView.kt` | 130 | OK (Multi-Touch-Fix offen) | 🟡 Mittel |
+| `ime/ThemeController.kt` | 118 | ✅ Extrahiert | 🟢 Erledigt |
+| `ime/KeyAnimations.kt` | 115 | ✅ Extrahiert | 🟢 Erledigt |
+| `ime/KeyboardHost.kt` | 112 | ✅ Interface, sauber kommentiert | 🟢 Erledigt |
+| `ime/FileManagerModel.kt` | 98 | ✅ Extrahiert, testbar | 🟢 Erledigt |
 | `sections/TopSection.kt` | 96 | ✅ Neu, sauber | 🟢 Erledigt |
 | `sections/ColorSection.kt` | 94 | ✅ Neu, sauber | 🟢 Erledigt |
-| `sections/GradientSection.kt` | 48 | ✅ Neu, sauber | 🟢 Erledigt |
-| `sections/GamingSection.kt` | 82 | ✅ Neu, sauber | 🟢 Erledigt |
-| `sections/PreviewSection.kt` | 88 | ✅ Neu, sauber | 🟢 Erledigt |
-| Rest (10 Dateien) | < 110 | überwiegend sauber getrennt | 🟢 Niedrig |
+| `ime/KeyTabConfig.kt` | 93 | ✅ Sauber | 🟢 Erledigt |
+| `ime/KeyScaleLogic.kt` | 90 | ✅ Pure Logik | 🟢 Erledigt |
+| `sections/PreviewSection.kt` | 89 | ✅ Neu, sauber | 🟢 Erledigt |
+| `ime/DynamicKeyScaler.kt` | 86 | OK | 🟢 Niedrig |
+| `sections/GradientSection.kt` | ~48 | ✅ Neu, sauber | 🟢 Erledigt |
+| Rest (~11 Dateien) | < 50 | überwiegend sauber getrennt | 🟢 Niedrig |
+
+> ⚠️ **Nicht-Kotlin-Monolith (neu erkannt):** `res/layout/keyboard_view.xml` mit **697 Zeilen** ist die grösste Einzeldatei des Projekts (enthält 26 hartkodierte `android:text`-Literale). **Empfehlung:** in `<include>`-Teillayouts splitten (Tastatur-Raster, Tab-Leiste, Suggestion-Leiste, Panel-Container) → bessere Lesbarkeit + isoliertes Layout-Testing. Aufwand: mittel, Impact +1,5.
 
 ### 1.2 Code-Qualitäts-Metriken (im Vergleich)
 
-| Metrik | KeyTab (alt) | KeyTab (jetzt) | FlorisBoard | Gboard* |
+| Metrik | KeyTab (alt) | KeyTab (gemessen 16.09.) | FlorisBoard | Gboard* |
 |--------|-------------|---------------|-------------|----------|
-| Testabdeckung | ~15% | ~20% | ~40% | ~60% |
-| Unit-Tests | 8 Dateien | 10+ Dateien | 25+ Dateien | Intern |
-| Lint-Warnungen | ~50 | ~30 | ~10 | Intern |
+| Testabdeckung (Zeilen-Ratio) | ~15% | **29,7 %** (1.697/5.704) | ~40% | ~60% |
+| Unit-Test-Klassen | 8 | **15** (14 Dateien) | 25+ | Intern |
+| Unit-Tests (Anzahl) | ~30 | **116** (0 Failures, 0 Skipped) | ~200+ | Intern |
+| Instrumented Tests | 0 | **2** (CI: KVM-Emulator API 34) | vorhanden | Intern |
+| Lint-Warnungen | ~50 | ~30 (+ `lintVital` in CI aktiv) | ~10 | Intern |
 | Code-Duplication | ~8% | ~4% | ~3% | Intern |
-| God-Classes | 2 | 1 | 0 | 0 |
-| Dokumentation | 65/100 | 72/100 | 70/100 | 40/100 |
+| God-Classes (>250 Z.) | 2 | **0** (Service 260 Z. = Orchestrierung) | 0 | 0 |
+| `TODO`/`FIXME` | ? | **0** | ? | Intern |
+| `!!`-Asserts | ? | **6** / 5.704 Zeilen | ? | Intern |
+| Dokumentation | 65/100 | **88/100** | 70/100 | 40/100 |
 
-*Gboard-Werte geschätzt basierend auf Google-Standards.
+*Gboard-Werte geschätzt basierend auf Google-Standards; FlorisBoard aus öffentlichen Repo-Daten (8,7k ⭐, 2.729 Commits, Multi-Modul).
+**KeyTab-Spalte ist die einzige streng verifizierte** (→ §0).
 
-**Bereits gut (beibehalten!):**
-- Pure, testbare Logik-Objects: `TextEditLogic`, `KeyScaleLogic`, `GamingLogic`,
-  `PanelHeights`, `ThemePrefs`, `Languages`
-- View-Module: `LetterPopup`, `ThemeApplier`, `ColorWheelView`
-- Panel-Klassen: `EditorPanel`, `FileManagerPanel`, `TerminalPanel`, `ClipboardPanel`
-- 10+ Unit-Test-Dateien inkl. Robolectric (`ThemeApplierTest`, `PanelsTest`, `CapsLogicTest`)
-- **NEU:** ThemeSettingsActivity vollständig in Sections modularisiert (5 Klassen)
-
+**Bereits gut (beibehalten!) — im Audit 16.09. verifiziert:**
+- Pure, testbare Logik-Objects (Android-frei, JUnit-schnell): `TextEditLogic`, `KeyScaleLogic`,
+  `LikelyHighlightLogic` (ex-GamingLogic), `PanelHeights`, `ThemePrefs`, `CapsLogic`,
+  `RepeatScheduler`, `LiftSpan`, `Languages`, `KeyTabConfig` — **10 Module**
+- View-Module: `LetterPopup`, `ThemeApplier`, `ColorWheelView`, `KeyboardViewFactory`
+- Panel-Klassen: `EditorPanel`, `FileManagerPanel`, `TerminalPanel`, `ClipboardPanel`, `SnippetPanel`
+- **15 Test-Klassen / 116 Tests, 0 Failures** — Robolectric für `ThemeApplier`, `Panels`, `KeyAnimations`;
+  Tests tragen **deutsche Backtick-Namen als Spezifikation** (z. B. `Doppel-Tap aktiviert CapsLock`)
+- ✅ **Code-Hygiene verifiziert:** 0 `TODO`/`FIXME`/`HACK`, 0 `Thread(...)`, nur 6 `!!` auf 5.704 Zeilen
+- ✅ **Privacy-Claim ist Manifest-Fakt:** keine `INTERNET`-Permission
+- ✅ **Keystore nicht im Git** (`.gitignore`), Signing via Env-Variablen → F-Droid-tauglich
+- ✅ **Lizenz-Attribution korrekt:** FrequencyWords MIT/CC-BY-SA-4.0 im KDoc-Header von `SuggestionEngine`
+- ✅ **Test-Reife:** echte State-Machine mit Debounce + Test für konfigurierbares Zeitfenster;
+  Damerau-Levenshtein inkl. Transposition; Bigram-Modell; User-Dict mit Decay
+  — deutlich über dem üblichen Hobby-Projekt-Niveau
 **Verbleibende Probleme (SoC-Verletzungen):**
 
-1. **`KeyTabImeService` (349 Zeilen) — reduziert, aber immer noch God-Class:**
-   - View-Aufbau + Theme + Config (`onCreateInputView`)
-   - Tasten-Event-Handling (delegiert jetzt an `KeyboardBinder`)
-   - Shift/CapsLock-Zustandsmaschine (delegiert jetzt an `ShiftController` + `CapsLogic`)
-   - Gaming-Highlighting (delegiert jetzt an `GamingLogic`)
-   - Suggestion-Wiring (delegiert jetzt an `SuggestionController`)
-   - Tab-Umschaltung (delegiert jetzt an `TabController`)
-   - Text-Routing (`commitText`, `commitToApp` mit `editorActive`/`terminalActive`)
-   - **Rest:** ~150 Zeilen Orchestrierung, die schwer zu extrahieren ist
-
+1. **`KeyTabImeService` (→ **260 Zeilen**, gemessen — die alte Angabe "349" war veraltet):**
+   - Früher God-Class, heute überwiegend **Orchestrierung**. View-Aufbau liegt in `KeyboardViewFactory` (151 Z.),
+     Text-Commit in `TextCommitController`, Tasten-Events in `KeyboardBinder` (256 Z.), Shift in `ShiftController`.
+   - **Restproblem:** ~110 Zeilen reine Verdrahtung (`onCreateInputView`-Delegate, Panel-Lebenszyklus
+     (`releasePanels()`), `commitText`/`commitToApp`-Routing mit `editorActive`/`terminalActive`.
+   - **Neubewertung:** ⚠️ **Priorität von 🔴 Hoch auf 🟡 Mittel herabgestuft** — die Reduktion
+     908→573→260 (−71 %) ist bereits der größte Teil des Gewinns. Ziel ~150 Zeilen bleibt, ist aber
+     gegenüber Phase 7 (Panel-Entkopplung) und Tests der geringere Hebel.
 2. **Breite Kopplung:** Panels erhalten den kompletten `KeyTabImeService`
    (`EditorPanel(this, ...)`), obwohl sie nur 3–4 Operationen brauchen.
    → Lösung: `KeyboardHost`-Interface (bereits definiert, noch nicht durchgängig verwendet)
@@ -104,7 +161,7 @@ com.piotv.keytab
 │   ├── TabController.kt        # Tab-Umschaltung
 │   ├── SuggestionController.kt # Suggestion-Wiring
 │   ├── SuggestionEngine.kt     # Vorschlag-Logik (pure Logik)
-│   ├── GamingLogic.kt          # Gaming-Highlight-Logik (pure Logik)
+│   ├── LikelyHighlightLogic.kt # Likely-Highlight-Logik (pure, ex-GamingLogic)
 │   ├── WordPredictionManager.kt # Wortvorhersage
 │   ├── LanguageModule.kt       # Sprach-Module
 │   ├── KeyScaleLogic.kt        # Tasten-Skalierung (pure Logik)
@@ -123,7 +180,7 @@ com.piotv.keytab
     ├── TopSection.kt           # Theme-Auswahl + Verlauf-Presets
     ├── ColorSection.kt         # Farbwahl (ColorWheel + Slider)
     ├── GradientSection.kt      # Verlauf-Vorschau
-    ├── GamingSection.kt        # Gaming-Modus-Toggles
+    ├── LikelyHighlightSection.kt # Likely-Highlighting-Toggles
     └── PreviewSection.kt       # Live-Vorschau
 ```
 
@@ -162,36 +219,64 @@ com.piotv.keytab
 - [x] `sections/TopSection.kt` — Theme-Auswahl + Verlauf-Presets
 - [x] `sections/ColorSection.kt` — Farbwahl (ColorWheel + Slider)
 - [x] `sections/GradientSection.kt` — Verlauf-Vorschau
-- [x] `sections/GamingSection.kt` — Gaming-Modus-Toggles
+- [x] `sections/LikelyHighlightSection.kt` — Likely-Highlighting-Toggles (ex-Gaming)
 - [x] `sections/PreviewSection.kt` — Live-Vorschau
-- [x] `ThemeSettingsActivity.kt` — Orchestrierung (200 Zeilen, sauber)
+- [x] `ThemeSettingsActivity.kt` — Orchestrierung (215 Zeilen, sauber; von 551)
 
-### Phase 6: Service-Orchestrierung reduzieren (NÄCHSTER SCHRITT)
+### Phase 6: Service-Orchestrierung reduzieren 🟡 **TEILWEISE (Messung 16.09.: 260 Zeilen)**
 
-**Ziel:** `KeyTabImeService` von 349 auf ~150 Zeilen reduzieren.
+**Ziel:** `KeyTabImeService` auf ~150 Zeilen reduzieren. **Stand:** 908 → 573 → **260** (−71 %) — Hauptgewinn bereits gehoben.
 
-**Maßnahmen:**
-1. `onCreateInputView` → `ViewFactory` extrahieren
-2. `commitText`/`commitToApp` → `TextRouter` mit `InputTargets`
-3. `setupSuggestions` → bereits in `SuggestionController`
-4. `setupTabs` → bereits in `TabController`
-5. `setupDelButton` → bereits in `KeyboardBinder`
-6. `hookKeyboardButtons` → bereits in `KeyboardBinder`
+**Bereits umgesetzt:**
+- [x] `onCreateInputView` → `KeyboardViewFactory` (151 Zeilen) ✅
+- [x] Text-Commit → `TextCommitController` ✅
+- [x] `setupSuggestions` → `SuggestionController` ✅
+- [x] `setupTabs` → `TabController` ✅
+- [x] `setupDelButton` + `hookKeyboardButtons` → `KeyboardBinder` (256 Zeilen) ✅
+- [x] Shift/CapsLock → `ShiftController` + `CapsLogic` ✅
 
-**Risiko:** Mittel — Service ist der zentrale Punkt, Änderungen können alles brechen.
+**Rest (≈110 Zeilen, schwer extrahierbar):** Panel-Lebenszyklus (`releasePanels()`),
+`commitText`/`commitToApp`-Routing mit `editorActive`/`terminalActive`, `KeyboardHost`-Delegation.
+Diese Verdrahtung ist **legitimer Service-Anteil** — ein weiteres Auslagern würde nur Indirektion erzeugen.
 
-### Phase 7: Panel-Entkopplung
+**Bewertung:**⚠️ Priorität **herabgestuft** — gegenüber der Extra-Keys-Zeile (P0) und dem
+Coverage-Gate (P1) ist der verbleibende Zeilen-Gewinn **kein Score-Hebel**. Phase bleibt offen,
+wird aber **nicht** als nächster Schritt verfolgt.
 
-**Ziel:** Panels verwenden `KeyboardHost`-Interface statt konkreten Service.
+### Phase 7: Panel-Entkopplung ✅ **ABGESCHLOSSEN (Audit 16.09. verifiziert)**
 
-**Maßnahmen:**
-1. `EditorPanel` → `KeyboardHost` verwenden
-2. `FileManagerPanel` → `KeyboardHost` verwenden
-3. `TerminalPanel` → `KeyboardHost` verwenden
-4. `ClipboardPanel` → `KeyboardHost` verwenden
+**Befund:** Die alte Zielformulierung („Panels verwenden `KeyboardHost` statt konkreten Service" und
+„`EditorPanel(this, ...)`") war **veraltet**. Tatsächlich sind **alle 5 Panels bereits entkoppelt** — sie erhalten
+schmale Konstruktor-Abhängigkeiten (Context, Executor, Handler, Lambdas), **kein Panel referenziert
+`KeyTabImeService`** (per `grep` verifiziert: 0 Treffer in `*Panel*.kt`).
 
-**Risiko:** Niedrig — Interface bereits definiert, nur Austausch.
+```kotlin
+class EditorPanel(context, rootView, ioExecutor, mainHandler, sendToApp: (String) -> Unit = {})
+class FileManagerPanel(context, root: View, ioExecutor, mainHandler, onCommit: (String) -> Unit)
+class TerminalPanel(context, root: View, mainHandler)
+class ClipboardPanel(context, ioExecutor, mainHandler, onCommit, canAutoCapture: () -> Boolean)
+class SnippetPanel(context, ioExecutor, mainHandler, onCommit: (String) -> Unit)
+```
 
+**Warum das ausreicht (und besser ist als das ursprünglich geplante Host-Interface):** Die Panels sind damit
+`KeyboardHost`-frei und direkt JUnit/Robolectric-testbar ohne Service-Mock — das ist die stärkere Entkopplung, weil
+`KeyboardHost` 25+ Members hat und ein solches Interface als Panel-Abhängigkeit **nicht** schmal gewesen wäre.
+
+**`KeyboardHost` wird stattdessen korrekt dort verwendet, wo es hingehört** — von den 4 Controllern:
+`ThemeController`, `TabController`, `SuggestionController`, `KeyboardBinder`.
+
+| Member | Nutzungen in Controllern | Bewertung |
+|---|---|---|
+| `letterPopup` | 14 | notwendig (Popup-Dismiss bei Tab-/Tastenwechsel) |
+| `longPressHandler` | 11 | notwendig (verzögerte Aktionen) |
+| `predictionManager`, `baseLetters` | 6+6 | notwendig (Suggestions/Skalierung) |
+| `clipboardPanel`, `keyboardRoot`, `keyScaler`, `letterExtras` | 1–3 | gering, legitim (Host-Zugriff) |
+| `fileManagerPanel`, `snippetPanel` | je 1 | gering, legitim |
+
+**Verbleibende Aufgabe (neu, niedrige Prio):** `KeyboardHost` ist mit 112 Zeilen / 25 Members breiter als
+ideal. Aufteilung in Rollen-Interfaces (`ThemeHost`, `SuggestionHost`, `KeyboardStateHost`) wäre die konsequente
+Fortsetzung — aber **kein Score-Hebel**, da alle Consumer im selben Paket liegen und der Service ohnehin
+der einzige Implementierer ist.
 ### Phase 8: Threading & Koroutines
 
 **Zahl:** `Executors.newSingleThreadExecutor()` + 2 `Handler` → `lifecycleScope` + `Dispatchers.IO`
@@ -205,129 +290,76 @@ com.piotv.keytab
 
 ---
 
-## 4. Bewertung: KeyTab vs. andere Android-Tastaturen
+## 4. Bewertung: KeyTab vs. andere Android-Tastaturen (Audit 2026-09-16)
 
-> **Hinweis (2026-09-15):** Diese Tabelle ist der alte Global-Vergleich (Stand 2026-09-13). Neue strategische Messgröße ist der **Nische-Score (Coding-on-Android: Termux + AndroidIDE) ≈ 85/100** — Gboard ist kein Wettbewerbsziel, FlorisBoard ist im Feature-Umfang überholt. Tabelle bleibt als historische Basis erhalten.
+> **Methodik-Hinweis:** Die KeyTab-Spalte ist **streng gemessen** (→ §0). Fremd-Scores beruhen auf
+> öffentlichen Repo-Daten (Stars, Commits, Modul-Struktur, README/ROADMAP) + allgemeinen Standards — **kalibrierte Schätzungen, kein Audit**.
 
-### 4.1 Gesamtbewertung (Skala 0–100)
+### 4.1 Neue Gewichtung (ersetzt den alten 8-Kriterien-Global-Vergleich)
 
-| Kriterium | Gewichtung | KeyTab | Gboard | FlorisBoard | AnySoftKeyboard |
-|-----------|-----------|--------|--------|-------------|-----------------|
-| **Code-Qualität** | 25% | 65 | 85 | 78 | 70 |
-| **Testabdeckung** | 20% | 20 | 60 | 40 | 35 |
-| **Modularität** | 15% | 70 | 80 | 85 | 65 |
-| **Dokumentation** | 10% | 72 | 40 | 70 | 60 |
-| **Performance** | 10% | 75 | 90 | 75 | 70 |
-| **Wartbarkeit** | 10% | 65 | 80 | 80 | 65 |
-| **Feature-Umfang** | 5% | 50 | 95 | 70 | 60 |
-| **Build-System** | 5% | 80 | 90 | 85 | 75 |
-| **GESAMT** | 100% | **62** | **80** | **73** | **66** |
+Der alte Global-Vergleich war in **beide Richtungen falsch kalibriert**: Gboard real ~92 (nicht 80),
+FlorisBoard ~79 (nicht 73). Global liegt KeyTab damit **etwa gleichauf mit FlorisBoard**.
 
-### 4.2 Detaillierte Bewertung nach Kriterien
+| Kategorie | Gewicht | KeyTab | Begründung KeyTab |
+|---|---|---|---|
+| Architektur & Modularisierung | 20 | **82** | Interfaces + 10 pure Logikmodule + Controller-Schicht; Panels entkoppelt (Phase 7). Abzug: 260-Zeilen-Service, breites `KeyboardHost` |
+| Testqualität & Abdeckung | 18 | **78** | 116 grüne Tests, KVM-Emulator-CI, sprechende Namen. Abzug: ~30 % Abdeckung, **kein Coverage-Gate**, nur 2 Instrumented-Tests |
+| Code-Qualität / Lesbarkeit | 15 | **84** | 0 TODO, 0 `Thread`, 6 `!!`/5.704 Z., KDoc. Abzug: 697-Zeilen-Layout, Namensdrift, doppelte Root-`KeyAnimations.kt` |
+| Build / CI / Release | 12 | **86** | Debug+Release-CI, KVM-Instrumented, idempotenter Release, R8, Signing-Pipeline, Fastlane |
+| Dokumentation | 10 | **88** | 287-Z. README + 400-Z. Phasen-Plan mit Risiken/Metriken **— beste Einzeldisziplin**. Abzug: driftete (jetzt korrigiert) |
+| Feature-Breite | 10 | **68** | Dateimanager, Editor, Clipboard, Terminal, Snippets, 7 Sprachen, Farbrad-Themes. Abzug: kein Glide, kein Emoji, kein Code-Editor |
+| Nischen-Fit (Coding) | 8 | **85** | **Einzigartige Positionierung**. Abzug: Extra-Keys-Zeile fehlt — größter Hebel |
+| Prozessreife | 7 | **80** | Snapshot-Commits, Phasenplan, Risikotabelle. Abzug: Bus-Faktor 1 |
 
-#### Code-Qualität (65/100)
-- **Stärken:**
-  - Saubere Trennung in Sections (neu)
-  - Pure Logik-Objects (testbar)
-  - Keine `FIXME`/`XXX` im Code
-  - Konsistente Namenskonventionen
-- **Schwächen:**
-  - `KeyTabImeService` immer noch 349 Zeilen (God-Class)
-  - ~30 Lint-Warnungen
-  - Inline-Prefs-Zugriff noch vorhanden
+**Gewichteter Global-Score KeyTab: 81,4 → 81/100**
 
-#### Testabdeckung (20/100)
-- **Stärken:**
-  - 10+ Unit-Test-Dateien
-  - Robolectric-Tests für ThemeApplier
-  - Pure Logik ist testbar
-- **Schwächen:**
-  - Keine instrumented Tests auf CI (nur lokal)
-  - Service-Logik nicht testbar (zu gekoppelt)
-  - UI-Tests fehlen komplett
+`0,20·82 + 0,18·78 + 0,15·84 + 0,12·86 + 0,10·88 + 0,10·68 + 0,08·85 + 0,07·80 = 81,4`
 
-#### Modularität (70/100)
-- **Stärken:**
-  - Sections-Paket (5 Klassen, sauber)
-  - Controller-Pattern (Shift, Tab, Suggestion, Theme)
-  - Interface-basiert (InputTargets, KeyboardHost)
-- **Schwächen:**
-  - Panels noch an Service gekoppelt
-  - Keine Gradle-Module (alles in `app`)
+### 4.2 Global-Feld vs. Nische (gleiche Skala)
 
-#### Dokumentation (72/100)
-- **Stärken:**
-  - README.md mit Feature-Liste
-  - REFACTORING_PLAN.md (diese Datei)
-  - KDoc-Kommentaren in neuen Klassen
-- **Schwächen:**
-  - Keine API-Dokumentation (Dokka)
-  - Fehlende Architektur-Diagramme
+| Lösung | Global | Nische (Coding) | Kurzbegründung |
+|---|---|---|---|
+| **Gboard** | **92** | 40 | Glide, 600+ Sprachen, neuronale Korrektur. **Nische irrelevant:** proprietär, Telemetrie, kein Terminal/Dateimanager |
+| **FlorisBoard** | **79** | 62 | 8,7k ⭐, 2.729 Commits, Multi-Modul, Extensions, Addons-Store, Apache-2.0. **Abzug: Wortvorhersage fehlt bis heute** |
+| **HeliBoard** | **77** | 68 | FlorisBoard-Fork; **hat** Vorhersage + Glide, aktiv, F-Droid |
+| **AnySoftKeyboard** | **74** | 60 | Ältestes OSS-Keyboard, ~70 Sprachen, Add-ons. Abzug: veraltete UI/Architektur |
+| **Unexpected-Keyboard** | **66** | 72 | Extrem schlank, präzise, termux-freundlich. Abzug: minimalistisch, keine Vorhersage |
+| **Simple Keyboard (Fossify)** | **61** | 45 | Sauber, minimal |
+| **Terminal-Ein-Zweck-Tools** | **58** | 70 | Nische, meist schlecht gewartet |
+| **Hacker's Keyboard** | **52** | 74 | **Vorreiter der Extra-Keys** (Esc/Ctrl/Alt/Pfeile) — konzeptionell wegweisend, aber unmaintained. **Nischen-Score hoch, weil genau das Feature, das KeyTab fehlt** |
+| **KeyTab** | **81** | **85** | siehe §0 + 4.1 |
 
-#### Performance (75/100)
-- **Stärken:**
-  - Keine Memory Leaks bekannt
-  - Effiziente SuggestionEngine
-  - Gradient-Drawable-Caching
-- **Schwächen:**
-  - Keine Koroutines (Thread-Overhead)
-  - View-Aufbau nicht optimiert (kein View-Stub)
-
-#### Wartbarkeit (65/100)
-- **Stärken:**
-  - Klare Paketstruktur
-  - Build-Skripte automatisiert
-  - Saubere Git-History (nach Chaos-Bereinigung)
-- **Schwächen:**
-  - God-Class im Service
-  - Fehlende CI/CD-Pipeline
-
-#### Feature-Umfang (50/100)
-- **Stärken:**
-  - Tab-Manager (einzigartig)
-  - Gaming-Modus
-  - Editor + Terminal + FileManager
-  - Theme-System mit Verlauf
-- **Schwächen:**
-  - Keine Emoji-Unterstützung
-  - Keine Swipe-Gesten
-  - Keine Cloud-Sync
-  - Keine Mehr-Sprachen als 4
-
-#### Build-System (80/100)
-- **Stärken:**
-  - One-Click Build-Skript
-  - One-Click Install-Skript (Shizuku/rish)
-  - Gradle 8.7, Kotlin 1.9.24
-- **Schwächen:**
-  - Kein CI/CD (GitHub Actions)
-  - Keine signierten Release-APKs
-
----
+**Bemerkenswert:** Hacker's Keyboard hat **global nur 52**, in der Nische aber **74** — **und das allein
+wegen der Extra-Keys-Zeile**. Genau deshalb ist sie KeyTabs größter Hebel: sie hebt den Nischen-, nicht den Global-Score.
 
 ## 5. Chaos-Bereinigung (Recovery-Plan)
 
-### Phase R1: Working Tree bereinigen ✅ TEILWEISE
+### Phase R1: Working Tree bereinigen ✅ **ABGESCHLOSSEN**
 - [x] Untracked schädliche Dateien löschen (`app/build.gradle`, `ime/Prefs.kt`)
 - [x] Unvollständige Locale-Dateien löschen
 - [x] Build prüfen: `bash build_keytab.sh debug`
-- [ ] **OFFEN:** 15+ geänderte Dateien prüfen und committen (u. a. `KeyTabImeService.kt`, `keyboard_view.xml`, `GamingLogic.kt` gelöscht — prüfen, ob Gaming-Feature entfernt oder verschoben wurde)
+- [x] ✅ **ABGESCHLOSSEN (16.09.):** Alle geänderten Dateien geprüft und committed („R1-Abschluss“). Ergebnis der Prüfung: `GamingLogic.kt` war **nicht** gelöscht, sondern umbenannt → `LikelyHighlightLogic.kt`; `keyboard_view.xml` enthielt die Editor-Toolbar (+ neu: Snippet-Editor-Zeile)
 
 ### Phase R2: Feature-Übernahme aus Chaos
-- [x] Editor-Toolbar (`keyboard_view.xml` + `EditorPanel.kt`) — committed in 57323e3 (Editor-Tab rename + Clip-Tab + Toolbar ↑✕⎘↻ + Load-Default-Dir + Clip-Persistenz)
-- [ ] Gaming-Highlight vereinheitlichen (`KIND_GAMING` → `KIND_HL`) — *bei gelöschtem GamingLogic: Entscheidung dokumentieren (Feature removed?) und Reste-Referenzen aufräumen*
-- [ ] ColorWheelView Multi-Touch fixen
-- [ ] Prefs-Key-Umbenennung (`clip_tab_enabled` → `clipboard_tab_enabled`)
-- [ ] String-Emoji-Änderungen in Locale-Dateien
-- [x] `install_keytab.sh` repariert (2026-09-15): `rish` → `rsh` (proot), kaputtes Quoting in Kopier-Logik behoben — One-Click-Install funktioniert
-- [x] Aktuelles 0.9.6-debug-APK gesichert: `/sdcard/Download/KeyTab-0.9.6-debug.apk` (MD5 7b318527…)
+- [x] Editor-Toolbar (`keyboard_view.xml` + `EditorPanel.kt`) — committed (57323e3)
+- [x] ✅ **Gaming-Highlight vereinheitlicht** (Audit 16.09.): `GamingLogic` existiert nicht mehr,
+  `KIND_HL`/`KEY_LIKELY` sind gesetzt. Entscheidung dokumentiert: **Feature umbenannt, nicht entfernt**
+  — jetzt „Likely Highlighting" (`LikelyHighlightLogic` + `LikelyHighlightSection` + Tests).
+  Die Pref-**Strings** `gaming`/`gaming_mode` bleiben bewusst (Kompatibilität zu bestehenden Installationen;
+  dokumentiert in `Prefs.kt` KDoc).
+- [ ] ColorWheelView Multi-Touch fixen *(offen, niedrige Prio — Einzelfinger-Farbwahl funktioniert)*
+- [ ] Prefs-Key-Umbenennung (`clip_tab_enabled` → `clipboard_tab_enabled`) *(offen, niedrige Prio)
+- [ ] String-Emoji-Änderungen in Locale-Dateien *(offen, niedrige Prio)
+- [x] `install_keytab.sh` repariert (2026-09-15): `rish` → `rsh` (proot), Quoting-Fix
+- [x] 0.9.6-debug-APK gesichert: `/sdcard/Download/KeyTab-0.9.6-debug.apk` (MD5 7b318527…)
+- [x] ✅ **R1-Abschluss committed (16.09.)**: Snippet-Editor (＋ Neu / ✎ Bearbeiten) +
+  einheitliche Tab-Höhen (Terminal = Editor-only) — `4574c69`, 116 Tests grün
 
-### Phase R3: Konsistenz-Check
-- [ ] `ThemePrefs.kt`: `KIND_GAMING`-Referenzen entfernen
-- [ ] Doppelte `editor_input` in `keyboard_view.xml` prüfen
-- [ ] Build + Unit-Tests + Smoke-Test auf Gerät
-- [ ] Commit der Bereinigung
-
+### Phase R3: Konsistenz-Check ✅ **ABGESCHLOSSEN (Audit 16.09.)**
+- [x] `ThemePrefs.kt`: **keine** `KIND_GAMING`-Referenzen mehr (grep: 0 Treffer; nur `KIND_HL`)
+- [x] Doppelte `editor_input` in `keyboard_view.xml`: **nicht vorhanden** (grep -c = 1)
+- [x] Build + Unit-Tests: BUILD SUCCESSFUL, **116 Tests, 0 Failures, 0 Skipped**
+- [x] Commit der Bereinigung erfolgt (739dc66 + 4574c69)
 ---
 
 ## 6. Best Practices für Agent-Refactoring
@@ -341,31 +373,45 @@ com.piotv.keytab
 7. **Konstanten-Drift vermeiden** — Löschte Konstanten müssen global gesucht werden
 
 ---
-## 7. Aktuelle ToDo-Liste (Stand 2026-09-15)
+## 7. Sprint-Plan (neu priorisiert nach Score-Impact, Stand 2026-09-16)
 
-### Sofort (diese Woche)
-- [x] **R1 abschließen:** Chaos committe (739dc66): Gaming → LikelyHighlighting (Feature umbenannt, nicht entfernt), KeyAnimations + sections/ + 3 neue Test-Dateien committed
-- [x] **R3:** Konsistenz-Check (keine KIND_GAMING/GamingLogic-Reste) + Build SUCCESSFUL + 116 Unit-Tests, 0 Failures + Install auf Gerät 0.9.6-debug ok
-- [ ] Editor-Robustheit: Nicht-UTF-8-Dateien (latin-1) & große Dateien im Editor-Tab testen
+Die alte ToDo-Liste war unsortiert und teils erledigt. Neue Ordnung **nach Score-Impact** aus dem Audit (Global 81 → Ziel ~92).
 
-### Kurzfristig (nächste 2 Wochen)
-- [ ] **Phase 6:** Service-Orchestrierung reduzieren (IME: 357 Zeilen)
-- [ ] **Phase 7:** Panel-Entkopplung via KeyboardHost
-- [ ] Unit-Tests für `ShiftController` und `TabController`
-- [ ] **Nische-Feature:** Persistente Extra-Keys-Zeile (Esc/Ctrl/Tab/`|`/`~`/`$`/Pfeile, konfigurierbar)
+### P0 — höchster Impact (Nische +4,5)
+- [ ] **Persistente Extra-Keys-Zeile** — Esc / Ctrl / Tab / `|` / `~` / `$` / Pfeile, konfigurierbar in Settings.
+  **Das ist *der* Differenzierer für Coding-on-Android** (vim/nano in Termux) und der einzige Hebel, der die Nischen-Führung **ausbaut** statt nur aufzuholen.
+  Referenz-Design: Hacker's Keyboard (Esc/Ctrl/Alt/Pfeile) + Termux-Extra-Keys. Nicht kopieren, sondern: nur die ~10 tatsächlich häufigen Keys, per Pref toggelbar.
+  Betrifft: `keyboard_view.xml` (neue Zeile), `PanelHeights`/`TabController` (Höhen-Anpassung), neues `ExtraKeysLogic.kt` (pure, testbar), `Prefs.KEY_EXTRA_KEYS`, Settings-Toggle, Unit-Tests. Aufwand: mittel.
 
-### Mittelfristig (nächster Monat)
-- [ ] **Phase 8:** Threading → Koroutines
-- [ ] IME-Härtung: Testmatrix Termux (neovim), AndroidIDE-Editor, VS Code (proot) — Cursor/commitText/IME-Wechsel
-- [ ] **Distribution:** IzzyOnDroid/F-Droid-Anmeldung (reproducible Builds)
-- [ ] Instrumented Tests auf Emulator
-- [ ] Lint-Warnungen auf < 10 reduzieren
+### P1 — Test-Infrastruktur schließen (Tests +3,0)
+- [ ] **Coverage-Gate** (JaCoCo/Kover) in `app/build.gradle.kts` + CI-Schwelle (Start `line >= 30%`, dann steigern).
+  Die Infrastruktur steht längst — das ist der auffälligste Widerspruch im Projekt: hohe Prozessqualität, aber kein Coverage-Nachweis.
+- [ ] **Panel-Tests ausbauen** — aktuell nur **2** Instrumented-Tests. Panels sind seit Phase 7 entkoppelt und damit **direkt Robolectric-testbar** — billigster Coverage-Gewinn.
+- [ ] **Unit-Tests für `TabController`** — **echte Lücke**, Datei existiert nicht.
+  *Korrektur:* `ShiftControllerTest` **existiert bereits** (6 Tests, verifiziert) — die alte ToDo-Zeile „Unit-Tests für ShiftController und TabController" war zur Hälfte veraltet.
+- [ ] **Test-Naming fixen:** `PanelsTest.kt` enthält `EditorPanelTest` **und** `ClipboardPanelTest` — in getrennte Dateien ziehen (Soll: Name = Klasse).
 
-### Langfristig
-- [ ] **Snippet-Tab-Option in Einstellungen** (ersetzt ehemaliges Swipe-Feature — benannte Befehle/Snippets als eigener Tab, Toggle in Settings)
-- [ ] Termux-Deep-Link (Files-Tab → "In Termux öffnen")
+### P2 — Struktur & Distribution (+2,0 / +1,5)
+- [ ] **`keyboard_view.xml` splitten** (697 Zeilen → `<include>`s: Tastatur-Raster, Tab-Leiste, Suggestion-Leiste, Panel-Container). Größte Einzeldatei des Projekts.
+- [ ] **`MANAGE_EXTERNAL_STORAGE` ersetzen** (SAF / `READ_MEDIA_*` + App-Dirs) → Play-Store-tauglich. Aktuell: Store-Ausschluss + `requestLegacyExternalStorage` als Krücke.
+- [ ] **IzzyOnDroid-Anmeldung** (Signing via Env ist bereits F-Droid-konform; reproduzierbare Builds prüfen).
+- [ ] **Phase 6 abschließen**: IME 260 → ~150 Zeilen. *Herabgestuft* — der Hauptgewinn (908→260, −71 %) ist bereits gehoben.
+
+### P3 — Politur
+- [ ] Phase 8: Threading → Koroutinen (`lifecycleScope` + `Dispatchers.IO`), 2 `Handler` auflösen.
+- [ ] Lint-Warnungen ~30 → < 10.
+- [ ] `getSharedPreferences`-Streuung (**25** Aufrufe, gemessen) über `Prefs`-Accessor zentralisieren.
+- [ ] IME-Härtung: Testmatrix Termux (neovim) / AndroidIDE / VS Code (proot) — Cursor, commitText, IME-Wechsel.
+- [ ] Editor-Robustheit: Nicht-UTF-8 (latin-1) & große Dateien.
+- [ ] **Repo-Aufräumen:** `KeyAnimations.kt` liegt doppelt (Projekt-Root **und** `ime/`) — Root-Kopie ist ein Artefakt, entfernen.
+
+### P4 — Langfristig (bewusst hinten)
+- [ ] **Editor: Syntax-Highlighting + Zeilennummern** — Feature +15, Nische +2,0 bei hohem Aufwand, aber der zweite echte Nischen-Differenzierer nach der Extra-Keys-Zeile.
+- [ ] Termux-Deep-Link (Files-Tab → „In Termux öffnen")
+- [ ] `KeyboardHost` in Rollen-Interfaces aufteilen *(kein Score-Hebel, siehe Phase 7)*
 - [ ] Emoji-Unterstützung *(niedrigste Priorität — bewusst nach hinten)*
-- [ ] Multi-Module Gradle-Struktur
+- [ ] Multi-Module-Gradle-Struktur
+- ❌ **Bewusst NICHT geplant:** Cloud-Sync, Glide-Typing, 100+ Sprachen — Gboard-Wettbewerbsdimensionen, in denen man nicht gewinnen kann. Die Nische ist der Weg.
 
 ---
 
@@ -380,21 +426,39 @@ com.piotv.keytab
 
 ---
 
-## 9. Erfolge (bereits erreicht)
+## 9. Erfolge (Audit-verifiziert, 2026-09-16)
 
-- ✅ ThemeSettingsActivity von 551 auf 200 Zeilen reduziert
-- ✅ 5 neue Section-Klassen (sauber, testbar)
-- ✅ CapsLogic, RepeatScheduler, LiftSpan extrahiert
-- ✅ ShiftController, TabController, SuggestionController, ThemeController extrahiert
-- ✅ InputTargets, KeyboardHost Interfaces definiert
-- ✅ KeyboardBinder, ThemeApplier extrahiert
-- ✅ Build-Skripte automatisiert
-- ✅ Install-Skript repariert (rsh statt rish, Quoting-Fix) — One-Click-Install via Shizuku
-- ✅ 65 Unit-Tests in 14 Test-Dateien
-- ✅ Code-Duplication von 8% auf 4% reduziert
-- ✅ Editor-Toolbar + Clip-Tab committed (57323e3)
-- ✅ Nische-Score von 55 auf ~85 erhöht (Coding-on-Android-Kontext)
+### Architektur
+- ✅ ThemeSettingsActivity 551 → 215 Zeilen (Sections extrahiert)
+- ✅ `KeyTabImeService` 908 → **260** Zeilen (−71 %)
+- ✅ **10 pure, Android-freie Logik-Module** (JUnit-schnell)
+- ✅ **Phase 7 verifiziert abgeschlossen:** alle 5 Panels entkoppelt, **kein** Panel referenziert den Service
+- ✅ `KeyboardHost` + 4 Controller (`Shift`, `Tab`, `Suggestion`, `Theme`) angebunden
+- ✅ Code-Duplication 8 % → ~4 %
+
+### Qualität (gemessen)
+- ✅ **116 Unit-Tests / 15 Klassen / 0 Failures / 0 Skipped**
+- ✅ **0** `TODO`/`FIXME`/`HACK`, **0** `Thread(...)`, **6** `!!` auf 5.704 Zeilen
+- ✅ KVM-Emulator-CI (Instrumented, API 34)
+- ✅ Build: `BUILD SUCCESSFUL`, R8 + `isShrinkResources`, idempotenter Release
+- ✅ **Privacy-Claim Manifest-verifiziert** (keine `INTERNET`-Permission)
+- ✅ **Keystore nicht im Git**, Signing via Env → F-Droid-konform
+- ✅ **Lizenz-Attribution korrekt** (FrequencyWords MIT/CC-BY-SA-4.0)
+
+### Prozess
+- ✅ Snapshot-Commit als Safety Net vor Refactor (`8d7b9be`)
+- ✅ Phasenplan mit Risikotabelle + Benchmarks (dieses Dokument)
+- ✅ Install-Skript repariert (`rsh` statt `rish`, Quoting) — One-Click via Shizuku
+- ✅ R1–R3 Chaos-Bereinigung abgeschlossen (`739dc66`, `4574c69`)
+
+### Score-Entwicklung
+| Stand | Global | Nische |
+|---|---|---|
+| Vor Refactor | 62 | 55 |
+| Nach Phasen 0–5 | ~78 | ~84 |
+| **Audit 16.09. (Phasen 0–7)** | **81** | **85** |
+| Ziel (P0+P1+P2) | ~88 | ~91 |
 
 ---
 
-*Letzte Aktualisierung: 2026-09-15*
+*Letzte Aktualisierung: 2026-09-16 (Audit + R1-Abschluss + Phase-7-Verifikation)*

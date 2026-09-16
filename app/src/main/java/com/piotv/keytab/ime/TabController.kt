@@ -17,7 +17,7 @@ internal class TabController(private val host: KeyboardHost) {
 
     /** Schriftgröße der Tab-Beschriftungen (muss zu `KeyTabSmallTabText` passen). */
     private companion object {
-        const val TAB_TEXT_SIZE_SP = 9f
+        const val TAB_TEXT_SIZE_SP = 8f
     }
 
     /** Art eines Tabs (für Position→Verhalten-Mapping nach optionalem Entfernen). */
@@ -57,6 +57,8 @@ internal class TabController(private val host: KeyboardHost) {
             for (j in 0 until cell.childCount) {
                 val tv = cell.getChildAt(j) as? android.widget.TextView ?: continue
                 tv.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sizeSp)
+                // Einzeilig: "EDITOR" brach sonst in zwei Zeilen um (6 Tabs → schmale Zellen)
+                tv.maxLines = 1
             }
         }
     }
@@ -134,16 +136,24 @@ internal class TabController(private val host: KeyboardHost) {
                 root.findViewById<View>(R.id.key_enter)?.visibility = View.VISIBLE
                 root.findViewById<View>(R.id.key_del)?.visibility =
                     if (keyboardVisible && !showSymbols) View.VISIBLE else View.INVISIBLE
-                // Einheitliche Panel-Höhe: Files/Clip/Terminal/Snippet-Panel = Höhe von
-                // Editor-Panel + Buchstaben-Panel (gemessen) → alle Tabs gleich hoch.
-                if (kind == TabKind.FILES || kind == TabKind.CLIP ||
-                    kind == TabKind.TERMINAL || kind == TabKind.SNIPPET) {
+                // Einheitliche Tab-Höhen:
+                // - Files/Clip/Snippet: Panel = Editor + Buchstaben-Tastatur (Tastatur aus)
+                // - Terminal: Panel = nur Editor-Höhe (Tastatur bleibt für die
+                //   Eingabezeile sichtbar) → Gesamthöhe identisch zu den anderen Tabs.
+                if (kind == TabKind.FILES || kind == TabKind.CLIP || kind == TabKind.SNIPPET) {
                     val h = PanelHeights.filesPanelHeight(ed, kb,
                         root.resources.displayMetrics.widthPixels)
-                    for (p in listOf(fm, clip, term, snip)) {
+                    for (p in listOf(fm, clip, snip)) {
                         if (h > 0 && p.layoutParams.height != h) {
                             p.layoutParams = p.layoutParams.apply { height = h }
                         }
+                    }
+                }
+                if (kind == TabKind.TERMINAL) {
+                    val h = PanelHeights.terminalPanelHeight(ed,
+                        root.resources.displayMetrics.widthPixels)
+                    if (h > 0 && term.layoutParams.height != h) {
+                        term.layoutParams = term.layoutParams.apply { height = h }
                     }
                 }
                 if (kind == TabKind.FILES) host.fileManagerPanel?.show()

@@ -104,6 +104,14 @@
     <string name="settings_snippet_tab_on">Snippet tab enabled</string>
     <string name="settings_snippet_tab_off">Snippet tab disabled</string>
     <string name="snippet_hint_empty">Keine Snippets – keytab_snippets.txt im Files-Tab anlegen (Format: name = text)</string>
+    <string name="snip_add">＋ Neu</string>
+    <string name="snip_edit">✎ Bearbeiten</string>
+    <string name="snip_save">Speichern</string>
+    <string name="snip_cancel">Abbrechen</string>
+    <string name="snip_name_hint">Name</string>
+    <string name="snip_text_hint">Text / Befehl</string>
+    <string name="snip_added">Snippet hinzugefügt</string>
+    <string name="snip_saved">Snippets gespeichert</string>
     <string name="settings_clip_tab_on">Clipboard tab enabled</string>
     <string name="settings_clip_tab_off">Clipboard tab disabled</string>
     <string name="clip_clear">🗑 Clear</string>

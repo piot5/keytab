@@ -83,12 +83,13 @@ object KeyAnimations {
     }
 
     fun applyRoundedCorners(root: View) {
-        val density = root.resources.displayMetrics.density
         val currentBg = root.background
         val drawable = GradientDrawable().apply {
+            // Keine abgerundeten Ecken (User-Wunsch: obere Zeile eckig);
+            // die Funktion bleibt, um den Hintergrund (inkl. Verlauf) zu wrappen.
             cornerRadii = floatArrayOf(
-                12f * density, 12f * density,
-                12f * density, 12f * density,
+                0f, 0f,
+                0f, 0f,
                 0f, 0f,
                 0f, 0f)
             // Vorhandenen Hintergrund übernehmen — inklusive Verlauf!

@@ -2,19 +2,14 @@ package com.piotv.keytab.ime
 
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
-import android.graphics.Typeface
 import android.inputmethodservice.InputMethodService
 import android.os.Handler
 import android.os.Looper
 
-import android.view.ContextThemeWrapper
 import android.view.HapticFeedbackConstants
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import com.piotv.keytab.R
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -54,6 +49,29 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
     // Phase-3-Controller: Tasten-Event-Binding (Touch/Long-Press/Del-Repeat)
     private lateinit var keyboardBinder: KeyboardBinder
 
+    // Phase 6: Text-Commit-Orchestrierung + View-Aufbau ausgelagert
+    private val textCommit = TextCommitController(object : TextCommitController.Host {
+        override fun haptic() = this@KeyTabImeService.haptic()
+        override val inputRouter get() = this@KeyTabImeService.inputRouter
+        override val predictionManager get() = this@KeyTabImeService.predictionManager
+        override fun consumeSingleShift() = this@KeyTabImeService.consumeSingleShift()
+        override fun updateSuggestions() = suggestionController.update()
+    })
+    private val viewFactory = KeyboardViewFactory(object : KeyboardViewFactory.Deps {
+        override val imeContext: Context get() = baseContext
+        override fun isDarkMode() = this@KeyTabImeService.isDarkMode()
+        override fun configFile() = this@KeyTabImeService.configFile()
+        override fun commitText(text: String) = this@KeyTabImeService.commitText(text)
+        override fun commitToApp(text: String) = this@KeyTabImeService.commitToApp(text)
+        override val isInputViewShown: Boolean get() = this@KeyTabImeService.isInputViewShown
+        override fun currentInputConnection() = currentInputConnection
+        override fun sendKeyEvents(keyCode: Int) = sendDownUpKeyEvents(keyCode)
+        override val ioExecutor: java.util.concurrent.Executor get() = this@KeyTabImeService.ioExecutor
+        override val mainHandler: Handler get() = this@KeyTabImeService.mainHandler
+        override val suggestionViews: Array<TextView?> get() = this@KeyTabImeService.suggestionViews
+        override val baseLetters: MutableMap<Button, Char> get() = this@KeyTabImeService.baseLetters
+    })
+
     /** KeyboardHost: Basis-Kontext für Prefs/Resources/Assets (gleiche Instanz wie baseContext). */
     override val context: Context get() = baseContext
 
@@ -81,13 +99,6 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
     /** Aktive Sprache (aus Einstellungen, default Deutsch). */
     private var activeLanguage: KeyboardLanguage = Languages.de
 
-    /**
-     * Aktive Konfiguration (aus keytab_config.txt im externen Files-Dir,
-     * Defaults wenn fehlend). Wird bei jedem Aufbau der Tastatur neu geladen,
-     * damit Änderungen über die App ohne Neustart greifen.
-     */
-    private var config: KeyTabConfig = KeyTabConfig()
-
     /** Kombinierte Long-Press-Zuordnungen der aktiven Sprache (Akzente + Interpunktion). */
     override val letterExtras: Map<Char, List<String>>
         get() = activeLanguage.letterExtras(Languages.basePunctuation)
@@ -114,91 +125,24 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         // Vorherige Panels/Views freigeben (Leak-Fix): Rebuilds entstehen bei
         // Theme-Wechsel (toggleDarkMode) und Konfigurationsänderungen.
         releasePanels()
-        // Dark/Light-Override (Persistiert in SharedPreferences, Default = System)
-        val conf = Configuration(baseContext.resources.configuration)
-        conf.uiMode = (conf.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
-            if (isDarkMode()) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
-        val cfgCtx = baseContext.createConfigurationContext(conf)
-        val themedContext = ContextThemeWrapper(cfgCtx, R.style.Theme_KeyTab)
-        val inflater = themedContext.getSystemService(android.view.LayoutInflater::class.java)
-            ?: layoutInflater
-        val root = inflater.cloneInContext(themedContext)
-            .inflate(R.layout.keyboard_view, null)
-        keyboardRoot = root
-        // Konfiguration laden (Skalierung, Verschiebung, Seiten-Hinweise)
-        config = KeyTabConfig.load(configFile())
-        KeyScaleLogic.params = KeyScaleLogic.Params(
-            maxScale = config.maxScale,
-            midScale = config.midScale,
-            hotThreshold = config.hotThreshold,
-            midThreshold = config.midThreshold,
-            minNeighborScale = config.minNeighborScale,
-            midNeighborScale = config.midNeighborScale
-        )
-        // Theme-Umschalter-Icon passend zum aktiven Modus – monochrom (☾ Dark / ☀ Light),
-        // kräftige Schrift in key_text (sw) und kleiner als zuvor
-        val themeBtn = root.findViewById<Button>(R.id.key_theme)
-        themeBtn?.text = if (isDarkMode()) ThemeController.MOON_SYMBOL else ThemeController.SUN_SYMBOL
-        // Farbe über den THEMA-übersteuerten Kontext (cfgCtx) auflösen, NICHT baseContext:
-        // sonst gilt die System-Night-Farbe (weiß) trotz Light-Override → weiß auf weiß
-        themeBtn?.setTextColor(ContextCompat.getColor(cfgCtx, R.color.key_text))
-        themeBtn?.typeface = Typeface.DEFAULT_BOLD
-        themeBtn?.textSize = 14f
-        // Theme-Verlauf + Farb-Overrides (aus den Theme-Einstellungen) anwenden
-        ThemeApplier.apply(
-            baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE),
-            isDarkMode(), root, cfgCtx)
-        // Obere Ecken runden (12dp) — muss nach ThemeApplier sein
-        KeyAnimations.applyRoundedCorners(root)
-        // Optionale Zahlenreihe aus den Einstellungen
-        root.findViewById<View>(R.id.num_row)?.visibility =
-            if (baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
-                    .getBoolean(com.piotv.keytab.Prefs.KEY_NUM_ROW, false)) View.VISIBLE else View.GONE
-                                val fileManager = FileManagerPanel(this, root, ioExecutor, mainHandler) { commitText(it) }
-        val editor = EditorPanel(this, root, ioExecutor, mainHandler) { commitToApp(it) }
-        val terminal = TerminalPanel(this, root, mainHandler)
-        val clipboard = ClipboardPanel(this, ioExecutor, mainHandler,
-            onCommit = { commitToApp(it) },
-            canAutoCapture = { isInputViewShown })
-        fileManagerPanel = fileManager
-        editorPanel = editor
-        terminalPanel = terminal
-        clipboardPanel = clipboard
-        // Eingabe-Routing (Phase 2): Ziele App/Editor/Terminal hinter einem Router;
-        // die editorActive/terminalActive-Verzweigungsketten entfallen damit.
-        val router = InputRouter(
-            AppInputTarget(
-                connection = { currentInputConnection },
-                sendKey = { sendDownUpKeyEvents(it) }),
-            EditorInputTarget(editor),
-            TerminalInputTarget(terminal))
-        inputRouter = router
-        // Aktive Sprache aus den Einstellungen übernehmen (wirkt beim nächsten Öffnen)
-        activeLanguage = com.piotv.keytab.MainActivity.activeLanguage(baseContext)
-        // Module einhängen
-        predictionManager = WordPredictionManager(
-            baseContext, ioExecutor, mainHandler, suggestionViews,
-            inputOps = object : WordPredictionManager.InputOperations {
-                override fun deleteBefore(count: Int) = router.deleteBefore(count)
-                override fun deleteBeforeKeys(count: Int) = router.deleteBeforeKeys(count)
-                override fun textBefore(count: Int): String = router.textBefore(count)
-                override fun insert(text: String) = router.insert(text)
-                override fun commitToApp(text: String) =
-                    this@KeyTabImeService.commitToApp(text)
-            }
-        ).also { pm ->
+        // Phase 6: kompletter View-Aufbau (Themed-Context, Theme, Panels, Router,
+        // Prediction, Skaler) lebt in [KeyboardViewFactory]; der Service wiringt
+        // nur noch die Felder und hängt die Controller ein.
+        val result = viewFactory.create()
+        keyboardRoot = result.root
+        fileManagerPanel = result.fileManagerPanel
+        editorPanel = result.editorPanel
+        terminalPanel = result.terminalPanel
+        clipboardPanel = result.clipboardPanel
+        inputRouter = result.router
+        activeLanguage = result.language
+        predictionManager = result.predictionManager.also { pm ->
             pm.setOnEngineReady { suggestionController.update() }
         }
-        keyScaler = DynamicKeyScaler(baseLetters)
-        // Generelles Tasten-Animationssystem (v0.9.7): LayoutTransition auf
-        // dem abc-Container — jede Platzänderung (Extra-Keys-Zeile ein/aus,
-        // Nummernreihe, Panels) animiert automatisch; vorhandene Tasten
-        // rutschen weich in ihre neue Position.
-        root.findViewById<ViewGroup?>(R.id.kb_panel)?.let { KeyAnimations.applyLayoutTransition(it) }
-        // Skalierung darf über das Raster hinausragen: Clipping der gesamten
-        // View-Hierarchie deaktivieren (sonst werden vergrößerte Tasten an den
-        // Container-Grenzen abgeschnitten).
-        disableClipping(root)
+        keyScaler = result.keyScaler
+        val root = result.root
+        // Module einhängen
+        tabController.setup(root)
 
         tabController.setup(root)
         keyboardBinder = KeyboardBinder(this, LONG_PRESS_TIMEOUT, tabController, themeController, suggestionController)
@@ -285,62 +229,17 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
 
     // ---------- Text-Eingabe-Delegate (Phase 3, für KeyboardBinder) ----------
 
-    override fun commitText(text: String) {
-        haptic()
-        // Aktive Autokorrektur (v0.9.1): Space nach unbekanntem Wort → Wort
-        // ersetzen, wenn ein klarer Wörterbuch-Kandidat existiert (nur App-Felder;
-        // Editor/Terminal buchen ihren Text selbst).
-        if (text == " " && inputRouter?.isApp == true &&
-            predictionManager?.autoCorrectBeforeSpace() == true
-        ) {
-            consumeSingleShift()
-            suggestionController.update()
-            return
-        }
-        inputRouter?.insert(text)
-        // Wortvorhersage-Buchführung: Buchstaben sammeln, Abschluss lernen
-        if (text.length == 1 && text[0].isLetter()) {
-            predictionManager?.onCharacter(text)
-        } else if (text == " " || text == "." || text == "\n") {
-            predictionManager?.onWordCompleted()
-        } else if ((predictionManager?.currentTypedWord?.isNotEmpty() == true) && !text[0].isLetter()) {
-            predictionManager?.onWordCompleted()
-        }
-        consumeSingleShift()
-        suggestionController.update()
-    }
+    override fun commitText(text: String) = textCommit.commit(text)
 
-    override fun deleteLastWord() {
-        haptic()
-        inputRouter?.deleteWord()
-        predictionManager?.reset()
-        suggestionController.update()
-    }
+    override fun deleteLastWord() = textCommit.deleteLastWord()
 
     override fun openSettings() {
         startActivity(Intent(this, com.piotv.keytab.MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
-    private fun disableClipping(v: View?) {
-        var cur: View? = v
-        while (cur != null) {
-            if (cur is ViewGroup) {
-                cur.clipChildren = false
-                cur.clipToPadding = false
-            }
-            cur = cur.parent as? View
-        }
-    }
 
-    /**
-     * Clipboard-Einfügen IMMER direkt ins Zielfeld (InputConnection) – der Editor
-     * (Notes-Tab) fängt die Eingabe nicht ab. Nur der Editor-Load befüllt den Editor.
-     */
-    private fun commitToApp(text: String) {
-        haptic()
-        runCatching { currentInputConnection?.commitText(text, 1) }
-        consumeSingleShift()
-    }
+    private fun commitToApp(text: String) =
+        textCommit.commitToApp(text, currentInputConnection)
 
     override fun onDestroy() {
         predictionManager?.engine?.let {

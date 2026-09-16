@@ -20,6 +20,8 @@ object ThemePrefs {
     const val KEY_GRADIENT_COLOR1 = "gradient_color1"
     const val KEY_GRADIENT_COLOR2 = "gradient_color2"
     const val KEY_GRADIENT_MODE = "gradient_mode"
+    /** Expliciter Schalter: Standard-Verlauf deaktivieren (flat kbd_bg). */
+    const val KEY_GRADIENT_OFF = "gradient_off"
     const val GRADIENT_TOP_DOWN = "top_down"
     const val GRADIENT_INVERT = "invert"
     const val GRADIENT_RADIAL = "radial"
@@ -103,9 +105,11 @@ object ThemePrefs {
             b.put(prefix, m)
         }
         val g = org.json.JSONObject()
-        g.put("color1", prefs.getInt(KEY_GRADIENT_COLOR1, INT_DEF_GRADIENT))
-        g.put("color2", prefs.getInt(KEY_GRADIENT_COLOR2, INT_DEF_GRADIENT))
-        g.put("mode", prefs.getInt(KEY_GRADIENT_MODE, 0))
+        g.put("color1", gradientColor1(prefs))
+        g.put("color2", gradientColor2(prefs))
+        // KEY_GRADIENT_MODE ist ein STRING-Pref ("top_down"/"invert"/"radial") –
+        // getInt() warf hier eine ClassCastException → ExportButton crashte.
+        g.put("mode", gradientMode(prefs))
         b.put("gradient", g)
         val lk = org.json.JSONObject()
         lk.put("enabled", prefs.getBoolean(KEY_LIKELY, false))
@@ -128,14 +132,23 @@ object ThemePrefs {
     }
 
     // ---------- Verlauf ----------
-    /** Verlauf aktiv? (Beide Farben gesetzt) */
-    fun hasGradient(prefs: SharedPreferences): Boolean =
-        prefs.contains(KEY_GRADIENT_COLOR1) && prefs.contains(KEY_GRADIENT_COLOR2)
+    /**
+     * Verlauf aktiv? Explizit gesetzte Farben: beide müssen gesetzt sein.
+     * Ohne gesetzte Farben gilt der Standard-Verlauf („Nacht"-Preset,
+     * User-Standard 2026-09-16), außer [KEY_GRADIENT_OFF] ist gesetzt.
+     */
+    fun hasGradient(prefs: SharedPreferences): Boolean {
+        if (prefs.getBoolean(KEY_GRADIENT_OFF, false)) return false
+        return if (prefs.contains(KEY_GRADIENT_COLOR1) || prefs.contains(KEY_GRADIENT_COLOR2))
+            prefs.contains(KEY_GRADIENT_COLOR1) && prefs.contains(KEY_GRADIENT_COLOR2)
+        else true
+    }
 
-    fun gradientColor1(prefs: SharedPreferences, default: Int = 0xFFE0E0E0.toInt()): Int =
+    /** Standard = „Nacht"-Preset (User-Standard, vormals 0xFFE0E0E0/0xFFFFFFFF). */
+    fun gradientColor1(prefs: SharedPreferences, default: Int = 0xFF3A3A3A.toInt()): Int =
         prefs.getInt(KEY_GRADIENT_COLOR1, default)
 
-    fun gradientColor2(prefs: SharedPreferences, default: Int = 0xFFFFFFFF.toInt()): Int =
+    fun gradientColor2(prefs: SharedPreferences, default: Int = 0xFF121212.toInt()): Int =
         prefs.getInt(KEY_GRADIENT_COLOR2, default)
 
     fun gradientMode(prefs: SharedPreferences): String =

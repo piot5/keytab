@@ -214,6 +214,8 @@ class ThemeApplierTest {
         val root = inflateRoot(cfg)
         val prefs = app.getSharedPreferences(ThemePrefs.PREFS, android.content.Context.MODE_PRIVATE)
         prefs.edit().clear().apply()
+        // Standard-Nacht-Verlauf explizit deaktivieren → flat Background testen
+        prefs.edit().putBoolean(ThemePrefs.KEY_GRADIENT_OFF, true).apply()
         ThemePrefs.setColor(prefs, true, ThemePrefs.KIND_BG, 0x8000AA00.toInt())
         ThemePrefs.setColor(prefs, true, ThemePrefs.KIND_KEY, 0x80FF0000.toInt())
 

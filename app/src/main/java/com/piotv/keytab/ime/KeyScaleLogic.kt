@@ -17,7 +17,7 @@ package com.piotv.keytab.ime
 object KeyScaleLogic {
 
     /** Größte Vergrößerungsstufe (höchste Wahrscheinlichkeit). Default. */
-    const val MAX_SCALE = 1.30f
+    const val MAX_SCALE = 1.21f
 
     /** Zweite Vergrößerungsstufe. Default. */
     const val MID_SCALE = 1.15f
@@ -29,7 +29,7 @@ object KeyScaleLogic {
     const val HOT_THRESHOLD = 0.75
 
     /** Stärkste Verkleinerung direkt neben einer Stufe-3-Taste. Default. */
-    const val MIN_NEIGHBOR_SCALE = 0.85f
+    const val MIN_NEIGHBOR_SCALE = 0.812f
 
     /** Verkleinerung direkt neben einer Stufe-2-Taste. Default. */
     const val MID_NEIGHBOR_SCALE = 0.925f

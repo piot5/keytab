@@ -8,8 +8,8 @@
     <color name="surface_variant">#444444</color>
     <color name="text_primary">#FFFFFF</color>
     <color name="text_secondary">#8f8f8f</color>
-    <color name="kbd_bg">#1a1a1a</color>
-    <color name="key_bg">#2e2e2e</color>
+    <color name="kbd_bg">#121212</color>
+    <color name="key_bg">#1E858585</color>
     <color name="key_pressed">#444444</color>
     <color name="key_text">#FFFFFF</color>
     <color name="key_outline">#5c5c5c</color>

@@ -14,19 +14,19 @@ import java.io.File
  * Defaults greifen dann weiter):
  *
  *   # Skalierung der wahrscheinlichen Tasten
- *   max_scale           = 1.30   # größte Stufe
+ *   max_scale           = 1.21   # größte Stufe
  *   mid_scale           = 1.15   # zweite Stufe
  *   hot_threshold       = 0.75   # Schwelle Stufe 3 (relativ)
  *   mid_threshold       = 0.55   # Schwelle Stufe 2 (relativ)
- *   min_neighbor_scale  = 0.85   # Verkleinerung neben Stufe-3-Taste
+ *   min_neighbor_scale  = 0.812  # Verkleinerung neben Stufe-3-Taste
  *   mid_neighbor_scale  = 0.925  # Verkleinerung neben Stufe-2-Taste
  */
 data class KeyTabConfig(
-    val maxScale: Float = 1.30f,
+    val maxScale: Float = 1.21f,
     val midScale: Float = 1.15f,
     val hotThreshold: Double = 0.75,
     val midThreshold: Double = 0.55,
-    val minNeighborScale: Float = 0.85f,
+    val minNeighborScale: Float = 0.812f,
     val midNeighborScale: Float = 0.925f
 ) {
 

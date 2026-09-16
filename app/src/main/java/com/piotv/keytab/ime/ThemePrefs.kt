@@ -20,8 +20,8 @@ object ThemePrefs {
     const val KEY_GRADIENT_COLOR1 = "gradient_color1"
     const val KEY_GRADIENT_COLOR2 = "gradient_color2"
     const val KEY_GRADIENT_MODE = "gradient_mode"
-    /** Expliciter Schalter: Standard-Verlauf deaktivieren (flat kbd_bg). */
-    const val KEY_GRADIENT_OFF = "gradient_off"
+    const val KEY_GRADIENT_OFF = "gradient_off_dark"
+    const val KEY_GRADIENT_OFF_LIGHT = "gradient_off_light"
     const val GRADIENT_TOP_DOWN = "top_down"
     const val GRADIENT_INVERT = "invert"
     const val GRADIENT_RADIAL = "radial"
@@ -43,7 +43,7 @@ object ThemePrefs {
     /** Zufriedenstellender Puls-Effekt, wenn die Wahrscheinlichkeit erreicht ist. */
     const val KEY_LIKELY_EFFECT = "gaming_effect"
 
-    fun likelyHighlighting(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_LIKELY, false)
+    fun likelyHighlighting(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_LIKELY, true)
     fun likelyEffect(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_LIKELY_EFFECT, true)
 
     /** Zähler: ändert sich bei jeder Theme-Änderung → IME baut die Tastatur neu. */
@@ -105,19 +105,49 @@ object ThemePrefs {
             b.put(prefix, m)
         }
         val g = org.json.JSONObject()
-        g.put("color1", gradientColor1(prefs))
-        g.put("color2", gradientColor2(prefs))
+        if (prefs.contains(KEY_GRADIENT_COLOR1)) g.put("color1", prefs.getInt(KEY_GRADIENT_COLOR1, 0))
+        if (prefs.contains(KEY_GRADIENT_COLOR2)) g.put("color2", prefs.getInt(KEY_GRADIENT_COLOR2, 0))
         // KEY_GRADIENT_MODE ist ein STRING-Pref ("top_down"/"invert"/"radial") –
         // getInt() warf hier eine ClassCastException → ExportButton crashte.
         g.put("mode", gradientMode(prefs))
+        g.put("off_dark", isGradientOff(prefs, true))
+        g.put("off_light", isGradientOff(prefs, false))
         b.put("gradient", g)
         val lk = org.json.JSONObject()
-        lk.put("enabled", prefs.getBoolean(KEY_LIKELY, false))
-        lk.put("effect", prefs.getBoolean(KEY_LIKELY_EFFECT, true))
+        lk.put("enabled", likelyHighlighting(prefs))
+        lk.put("effect", likelyEffect(prefs))
         b.put("likely", lk)
         b.put("version", themeVersion(prefs))
         return b.toString(2)
     }
+
+    /**
+     * Import eines Theme-Exports (JSON, siehe [exportColors]): setzt alle
+     * enthaltenen Farb-Overrides, Verlauf (2 Farben + Modus + OFF-Schalter)
+     * und Likely-Highlighting. @return false bei ungültigem JSON.
+     */
+    fun importColors(prefs: SharedPreferences, json: String): Boolean = try {
+        val b = org.json.JSONObject(json)
+        for (dark in listOf(true, false)) {
+            val m = b.optJSONObject(if (dark) "dark" else "light") ?: continue
+            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY)) {
+                if (m.has(kind)) setColor(prefs, dark, kind, m.getInt(kind))
+            }
+        }
+        b.optJSONObject("gradient")?.let { g ->
+            if (g.has("color1")) prefs.edit().putInt(KEY_GRADIENT_COLOR1, g.getInt("color1")).apply()
+            if (g.has("color2")) prefs.edit().putInt(KEY_GRADIENT_COLOR2, g.getInt("color2")).apply()
+            if (g.has("mode")) prefs.edit().putString(KEY_GRADIENT_MODE, g.getString("mode")).apply()
+            if (g.has("off_dark")) setGradientOff(prefs, true, g.getBoolean("off_dark"))
+            if (g.has("off_light")) setGradientOff(prefs, false, g.getBoolean("off_light"))
+        }
+        b.optJSONObject("likely")?.let { lk ->
+            if (lk.has("enabled")) prefs.edit().putBoolean(KEY_LIKELY, lk.getBoolean("enabled")).apply()
+            if (lk.has("effect")) prefs.edit().putBoolean(KEY_LIKELY_EFFECT, lk.getBoolean("effect")).apply()
+        }
+        bumpVersion(prefs)
+        true
+    } catch (_: Exception) { false }
 
     /** Alle Farb-Overrides + Verlauf zurücksetzen (Standard-Theme). */
     fun resetAll(prefs: SharedPreferences) {
@@ -128,39 +158,62 @@ object ThemePrefs {
             .remove(colorKey(false, KIND_TEXT)).remove(colorKey(false, KIND_LIKELY))
             .remove(KEY_LIKELY).remove(KEY_LIKELY_EFFECT)
             .remove(KEY_GRADIENT_COLOR1).remove(KEY_GRADIENT_COLOR2)
-            .remove(KEY_GRADIENT_MODE).apply()
+            .remove(KEY_GRADIENT_MODE).remove(KEY_GRADIENT_OFF)
+            .remove(KEY_GRADIENT_OFF_LIGHT).apply()
     }
 
     // ---------- Verlauf ----------
+    /** Standard-Verlaufsfarben je Modus (User-Standard 2026-09-16):
+     *  dunkel = „Nacht"-Preset (3A3A3A→121212), hell = weiß→hellgrau. */
+    fun defaultGradientColor1(dark: Boolean): Int =
+        if (dark) 0xFF3A3A3A.toInt() else 0xFFFFFFFF.toInt()
+    fun defaultGradientColor2(dark: Boolean): Int =
+        if (dark) 0xFF121212.toInt() else 0xFFE0E0E0.toInt()
+
     /**
-     * Verlauf aktiv? Explizit gesetzte Farben: beide müssen gesetzt sein.
-     * Ohne gesetzte Farben gilt der Standard-Verlauf („Nacht"-Preset,
-     * User-Standard 2026-09-16), außer [KEY_GRADIENT_OFF] ist gesetzt.
+     * Hintergrund separat pro Modus setzbar: eine explizite BG-Farbe
+     * ([KIND_BG]) gewinnt gegen den Verlauf → flat Background.
      */
-    fun hasGradient(prefs: SharedPreferences): Boolean {
-        if (prefs.getBoolean(KEY_GRADIENT_OFF, false)) return false
-        return if (prefs.contains(KEY_GRADIENT_COLOR1) || prefs.contains(KEY_GRADIENT_COLOR2))
-            prefs.contains(KEY_GRADIENT_COLOR1) && prefs.contains(KEY_GRADIENT_COLOR2)
-        else true
+    fun hasExplicitBg(prefs: SharedPreferences, dark: Boolean): Boolean =
+        prefs.contains(colorKey(dark, KIND_BG))
+
+    /** Schalter: Verlauf für diesen Modus deaktivieren (flat kbd_bg-Default). */
+    fun gradientOffKey(dark: Boolean): String =
+        if (dark) KEY_GRADIENT_OFF else KEY_GRADIENT_OFF_LIGHT
+    fun isGradientOff(prefs: SharedPreferences, dark: Boolean): Boolean =
+        prefs.getBoolean(gradientOffKey(dark), false)
+    fun setGradientOff(prefs: SharedPreferences, dark: Boolean, off: Boolean) {
+        prefs.edit().putBoolean(gradientOffKey(dark), off).apply()
     }
 
-    /** Standard = „Nacht"-Preset (User-Standard, vormals 0xFFE0E0E0/0xFFFFFFFF). */
-    fun gradientColor1(prefs: SharedPreferences, default: Int = 0xFF3A3A3A.toInt()): Int =
-        prefs.getInt(KEY_GRADIENT_COLOR1, default)
+    /**
+     * Verlauf aktiv für [dark]? (Explizite BG-Farbe oder OFF-Schalter deaktivieren;
+     * sonst immer aktiv — mit gesetzten 2 Farben oder den Modus-Defaults.)
+     */
+    fun hasGradient(prefs: SharedPreferences, dark: Boolean): Boolean =
+        !hasExplicitBg(prefs, dark) && !isGradientOff(prefs, dark)
 
-    fun gradientColor2(prefs: SharedPreferences, default: Int = 0xFF121212.toInt()): Int =
-        prefs.getInt(KEY_GRADIENT_COLOR2, default)
+    /** Verlaufs-Farbe 1 (2-Farb-Verlauf; Default je Modus). */
+    fun gradientColor1(prefs: SharedPreferences, dark: Boolean): Int =
+        if (prefs.contains(KEY_GRADIENT_COLOR1)) prefs.getInt(KEY_GRADIENT_COLOR1, 0)
+        else defaultGradientColor1(dark)
+
+    /** Verlaufs-Farbe 2 (2-Farb-Verlauf; Default je Modus). */
+    fun gradientColor2(prefs: SharedPreferences, dark: Boolean): Int =
+        if (prefs.contains(KEY_GRADIENT_COLOR2)) prefs.getInt(KEY_GRADIENT_COLOR2, 0)
+        else defaultGradientColor2(dark)
 
     fun gradientMode(prefs: SharedPreferences): String =
         prefs.getString(KEY_GRADIENT_MODE, GRADIENT_TOP_DOWN) ?: GRADIENT_TOP_DOWN
 
     /**
-     * Verlauf-Drawable für den Tastatur-Hintergrund; null wenn nicht konfiguriert.
+     * Verlauf-Drawable für den Tastatur-Hintergrund; null wenn deaktiviert
+     * (explizite BG-Farbe oder OFF-Schalter für [dark]) — dann flat.
      * [widthPx] dient als Radial-Radius-Basis (Root ist beim ersten Aufruf noch
      * nicht gemessen → Display-Breite übergeben).
      */
-    fun gradientDrawable(prefs: SharedPreferences, widthPx: Int): GradientDrawable? {
-        if (!hasGradient(prefs)) return null
+    fun gradientDrawable(prefs: SharedPreferences, dark: Boolean, widthPx: Int): GradientDrawable? {
+        if (!hasGradient(prefs, dark)) return null
         val d = GradientDrawable()
         when (gradientMode(prefs)) {
             GRADIENT_INVERT -> d.orientation = GradientDrawable.Orientation.BOTTOM_TOP
@@ -171,7 +224,7 @@ object ThemePrefs {
             }
             else -> d.orientation = GradientDrawable.Orientation.TOP_BOTTOM
         }
-        d.colors = intArrayOf(gradientColor1(prefs), gradientColor2(prefs))
+        d.colors = intArrayOf(gradientColor1(prefs, dark), gradientColor2(prefs, dark))
         return d
     }
 

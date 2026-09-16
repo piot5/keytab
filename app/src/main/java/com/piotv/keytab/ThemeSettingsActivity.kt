@@ -177,7 +177,22 @@ class ThemeSettingsActivity : AppCompatActivity() {
                     android.widget.Toast.LENGTH_LONG).show()
             }
         }
-        listOf(reset, export).forEach { row.addView(it, LinearLayout.LayoutParams(0,
+        val import = Button(this).apply {
+            text = getString(R.string.theme_import)
+            isAllCaps = false
+            setOnClickListener {
+                val file = java.io.File(getExternalFilesDir(null), "theme-export.json")
+                val ctx = this@ThemeSettingsActivity
+                val ok = file.isFile && ThemePrefs.importColors(prefs, runCatching {
+                    file.readText()
+                }.getOrDefault(""))
+                android.widget.Toast.makeText(ctx, getString(
+                    if (ok) R.string.theme_import_ok else R.string.theme_import_fail),
+                    android.widget.Toast.LENGTH_LONG).show()
+                if (ok) refreshAllUi()
+            }
+        }
+        listOf(reset, export, import).forEach { row.addView(it, LinearLayout.LayoutParams(0,
             LinearLayout.LayoutParams.WRAP_CONTENT, 1f)) }
         return row
     }

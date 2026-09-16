@@ -131,6 +131,9 @@
     <string name="gradient_mode_radial">Radial</string>
     <string name="theme_export">Export Theme</string>
     <string name="theme_export_toast">Theme-Farben exportiert nach: %s</string>
+    <string name="theme_import">Import Theme</string>
+    <string name="theme_import_ok">Theme importiert (theme-export.json)</string>
+    <string name="theme_import_fail">Import fehlgeschlagen – theme-export.json nicht gefunden/ungültig</string>
     <string name="theme_done">Done</string>
     <string name="theme_preview_word">word suggestion</string>
     <string name="theme_settings_title">🎨 Theme settings</string>

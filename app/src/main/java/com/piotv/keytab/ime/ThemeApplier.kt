@@ -85,8 +85,9 @@ object ThemeApplier {
         val defTabState = ContextCompat.getDrawable(context, R.drawable.tab_bg_flat)?.constantState
         val defSugState = ContextCompat.getDrawable(context, R.drawable.sug_top_bg)?.constantState
 
-        // Root: Verlauf wenn konfiguriert, sonst Background-Farbe
-        ThemePrefs.gradientDrawable(prefs,
+        // Root: Verlauf wenn aktiv (Default je Modus), sonst Background-Farbe
+        // (explizite BG-Farbe oder Verlauf-OFF → flat, separat hell/dunkel)
+        ThemePrefs.gradientDrawable(prefs, dark,
             context.resources.displayMetrics.widthPixels)?.let { v.background = it }
             ?: run { v.background = ColorDrawable(bg) }
         forEachView(v) { view ->

@@ -37,12 +37,8 @@ class GradientSection(
     }
 
     fun updateGradient() {
-        if (ThemePrefs.hasGradient(prefs)) {
-            gradientPreview?.background = ThemePrefs.gradientDrawable(prefs, 1000)
-        } else {
-            gradientPreview?.background = GradientDrawable().apply {
-                setColor(Color.parseColor("#FF2196F3"))
-            }
-        }
+        // Vorschau mit den hellen Modus-Werten (Default-Verlauf oder Override)
+        gradientPreview?.background = ThemePrefs.gradientDrawable(prefs, false, 1000)
+            ?: GradientDrawable().apply { setColor(Color.parseColor("#FF2196F3")) }
     }
 }

@@ -69,7 +69,8 @@ class PreviewSection(
         val bg = getCurrentColor(ThemePrefs.KIND_BG)
         val hl = getCurrentColor(ThemePrefs.KIND_HL)
         val text = getCurrentColor(ThemePrefs.KIND_TEXT)
-        ThemePrefs.gradientDrawable(prefs, activity.resources.displayMetrics.widthPixels)?.let {
+        val dark = ThemePrefs.isDarkMode(activity)
+        ThemePrefs.gradientDrawable(prefs, dark, activity.resources.displayMetrics.widthPixels)?.let {
             row.background = it
         } ?: run {
             row.background = GradientDrawable().apply { setColor(bg) }

@@ -21,7 +21,7 @@ internal class TabController(private val host: KeyboardHost) {
     }
 
     /** Art eines Tabs (für Position→Verhalten-Mapping nach optionalem Entfernen). */
-    private enum class TabKind { ABC, EDITOR, FILES, CLIP, TERMINAL }
+    private enum class TabKind { ABC, EDITOR, FILES, CLIP, TERMINAL, SNIPPET }
 
     /** Symbol-Layer sichtbar? (Toggle über ?123-Taste). */
     private var showSymbols = false
@@ -68,6 +68,7 @@ internal class TabController(private val host: KeyboardHost) {
         tabs.getTabAt(2)?.text = host.context.getString(R.string.ime_tab_files)
         tabs.getTabAt(3)?.text = host.context.getString(R.string.ime_tab_clip_short)
         tabs.getTabAt(4)?.text = host.context.getString(R.string.ime_tab_term_short)
+        tabs.getTabAt(5)?.text = host.context.getString(R.string.ime_tab_snip_short)
         // Alle Labels gleich groß (Material auto-sizt sonst je Zelle unterschiedlich)
         applyUniformTabTextSize(tabs, TAB_TEXT_SIZE_SP)
         val kb = root.findViewById<View>(R.id.kb_panel) ?: return
@@ -76,12 +77,18 @@ internal class TabController(private val host: KeyboardHost) {
         val ed = root.findViewById<View>(R.id.editor_panel) ?: return
         val clip = root.findViewById<View>(R.id.clip_panel) ?: return
         val term = root.findViewById<View>(R.id.term_panel) ?: return
+        val snip = root.findViewById<View>(R.id.snippet_panel) ?: return
         val bottom = root.findViewById<View>(R.id.bottom_row) ?: return
         val prefs = host.context.getSharedPreferences(
             com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
         val clipEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_CLIP_TAB, true)
         val termEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_TERM_TAB, true)
-        // Von hinten entfernen (Terminal bei 4, Clip bei 3) → Pflicht-Tabs stabil
+        val snipEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_SNIPPET_TAB, true)
+        // Von hinten entfernen (Snippet bei 5, Terminal bei 4, Clip bei 3) → Pflicht-Tabs stabil
+        if (!snipEnabled) {
+            tabs.getTabAt(5)?.let { tabs.removeTab(it) }
+            snip.visibility = View.GONE
+        }
         if (!termEnabled) {
             tabs.getTabAt(4)?.let { tabs.removeTab(it) }
             term.visibility = View.GONE
@@ -94,6 +101,7 @@ internal class TabController(private val host: KeyboardHost) {
             add(TabKind.ABC); add(TabKind.EDITOR); add(TabKind.FILES)
             if (clipEnabled) add(TabKind.CLIP)
             if (termEnabled) add(TabKind.TERMINAL)
+            if (snipEnabled) add(TabKind.SNIPPET)
         }
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
@@ -113,6 +121,7 @@ internal class TabController(private val host: KeyboardHost) {
                 term.visibility = if (kind == TabKind.TERMINAL) View.VISIBLE else View.GONE
                 fm.visibility = if (kind == TabKind.FILES) View.VISIBLE else View.GONE
                 clip.visibility = if (kind == TabKind.CLIP) View.VISIBLE else View.GONE
+                snip.visibility = if (kind == TabKind.SNIPPET) View.VISIBLE else View.GONE
                 bottom.visibility = View.VISIBLE
                 root.findViewById<View>(R.id.key_toggle)?.visibility =
                     if (keyboardVisible) View.VISIBLE else View.INVISIBLE
@@ -125,23 +134,24 @@ internal class TabController(private val host: KeyboardHost) {
                 root.findViewById<View>(R.id.key_enter)?.visibility = View.VISIBLE
                 root.findViewById<View>(R.id.key_del)?.visibility =
                     if (keyboardVisible && !showSymbols) View.VISIBLE else View.INVISIBLE
-                if (kind == TabKind.FILES) {
+                // Einheitliche Panel-Höhe: Files/Clip/Terminal/Snippet-Panel = Höhe von
+                // Editor-Panel + Buchstaben-Panel (gemessen) → alle Tabs gleich hoch.
+                if (kind == TabKind.FILES || kind == TabKind.CLIP ||
+                    kind == TabKind.TERMINAL || kind == TabKind.SNIPPET) {
                     val h = PanelHeights.filesPanelHeight(ed, kb,
                         root.resources.displayMetrics.widthPixels)
-                    if (h > 0 && fm.layoutParams.height != h) {
-                        fm.layoutParams = fm.layoutParams.apply { height = h }
+                    for (p in listOf(fm, clip, term, snip)) {
+                        if (h > 0 && p.layoutParams.height != h) {
+                            p.layoutParams = p.layoutParams.apply { height = h }
+                        }
                     }
-                    host.fileManagerPanel?.show()
                 }
+                if (kind == TabKind.FILES) host.fileManagerPanel?.show()
                 if (kind == TabKind.CLIP) {
-                    val h = PanelHeights.filesPanelHeight(ed, kb,
-                        root.resources.displayMetrics.widthPixels)
-                    if (h > 0 && clip.layoutParams.height != h) {
-                        clip.layoutParams = clip.layoutParams.apply { height = h }
-                    }
                     host.clipboardPanel?.onSelected()
                     host.clipboardPanel?.refreshList(root)
                 }
+                if (kind == TabKind.SNIPPET) host.snippetPanel?.onSelected(root)
                 if (kind == TabKind.EDITOR) host.clipboardPanel?.onSelected()
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
@@ -153,6 +163,7 @@ internal class TabController(private val host: KeyboardHost) {
         fm.visibility = View.GONE
         clip.visibility = View.GONE
         term.visibility = View.GONE
+        snip.visibility = View.GONE
         bottom.visibility = View.VISIBLE
     }
 

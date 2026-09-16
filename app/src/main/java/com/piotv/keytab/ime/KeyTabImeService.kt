@@ -95,6 +95,8 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
     private var terminalPanel: TerminalPanel? = null
     override var clipboardPanel: ClipboardPanel? = null
         private set
+    override var snippetPanel: SnippetPanel? = null
+        private set
 
     /** Aktive Sprache (aus Einstellungen, default Deutsch). */
     private var activeLanguage: KeyboardLanguage = Languages.de
@@ -115,6 +117,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         editorPanel = null
         terminalPanel = null
         clipboardPanel = null
+        snippetPanel = null
         keyboardRoot = null
         suggestionViews.fill(null)
         baseLetters.clear()
@@ -134,6 +137,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         editorPanel = result.editorPanel
         terminalPanel = result.terminalPanel
         clipboardPanel = result.clipboardPanel
+        snippetPanel = result.snippetPanel
         inputRouter = result.router
         activeLanguage = result.language
         predictionManager = result.predictionManager.also { pm ->

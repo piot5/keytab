@@ -49,6 +49,7 @@ class KeyboardViewFactory(private val deps: Deps) {
         val editorPanel: EditorPanel,
         val terminalPanel: TerminalPanel,
         val clipboardPanel: ClipboardPanel,
+        val snippetPanel: SnippetPanel,
         val router: InputRouter,
         val predictionManager: WordPredictionManager,
         val keyScaler: DynamicKeyScaler,
@@ -102,6 +103,7 @@ class KeyboardViewFactory(private val deps: Deps) {
         val clipboard = ClipboardPanel(ctx, deps.ioExecutor, deps.mainHandler,
             onCommit = { deps.commitToApp(it) },
             canAutoCapture = { deps.isInputViewShown })
+        val snippets = SnippetPanel(ctx, deps.ioExecutor, deps.mainHandler) { deps.commitText(it) }
         // Eingabe-Routing (Phase 2): Ziele App/Editor/Terminal hinter einem Router;
         // die editorActive/terminalActive-Verzweigungsketten entfallen damit.
         val router = InputRouter(
@@ -132,7 +134,7 @@ class KeyboardViewFactory(private val deps: Deps) {
         // View-Hierarchie deaktivieren (sonst werden vergrößerte Tasten an den
         // Container-Grenzen abgeschnitten).
         disableClipping(root)
-        return Result(root, fileManager, editor, terminal, clipboard,
+        return Result(root, fileManager, editor, terminal, clipboard, snippets,
             router, predictionManager, keyScaler, language)
     }
 

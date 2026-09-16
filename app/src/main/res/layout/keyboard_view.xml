@@ -87,6 +87,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/ime_tab_term_short" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/ime_tab_snip_short" />
         </com.google.android.material.tabs.TabLayout>
 
         <Button
@@ -284,6 +289,34 @@
 
         <ListView
             android:id="@+id/clip_list"
+            android:layout_width="match_parent"
+            android:layout_height="130dp"
+            android:background="@color/list_bg" />
+    </LinearLayout>
+
+    <!-- Snippets ÜBER den Buchstaben (nur im Snip-Tab sichtbar):
+         benannte Befehle/Snippets aus keytab_snippets.txt (Format: name = text),
+         Tap = einfügen. Höhe wird beim Tab-Wechsel an Editor+Tastatur
+         angeglichen (PanelHeights), wie Files/Clip/Terminal. -->
+    <LinearLayout
+        android:id="@+id/snippet_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:textSize="10sp"
+            android:textColor="@color/text_secondary"
+            android:text="@string/snippet_hint_empty" />
+
+        <ListView
+            android:id="@+id/snippet_list"
             android:layout_width="match_parent"
             android:layout_height="130dp"
             android:background="@color/list_bg" />

@@ -104,6 +104,15 @@ class MainActivity : AppCompatActivity() {
             else R.string.settings_clip_tab_off, Toast.LENGTH_SHORT).show()
         }
 
+        // Snippet-Tab in der Tastatur ein-/ausblenden (wirkt beim nächsten Öffnen)
+        val swSnippetTab = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_snippet_tab)
+        swSnippetTab.isChecked = prefs.getBoolean(Prefs.KEY_SNIPPET_TAB, true)
+        swSnippetTab.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(Prefs.KEY_SNIPPET_TAB, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_snippet_tab_on
+            else R.string.settings_snippet_tab_off, Toast.LENGTH_SHORT).show()
+        }
+
         // Wortvorhersage ein-/ausblenden (wirkt beim nächsten Öffnen der Tastatur)
         val swSuggestions = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_suggestions)
         swSuggestions.isChecked = prefs.getBoolean(Prefs.KEY_SUGGESTIONS, true)

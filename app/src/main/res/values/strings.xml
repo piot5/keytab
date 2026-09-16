@@ -98,7 +98,12 @@
     <string name="ime_tab_editor_short">Editor</string>
     <string name="ime_tab_clip_short">Clip</string>
     <string name="ime_tab_term_short">Term</string>
+    <string name="ime_tab_snip_short">Snip</string>
     <string name="settings_clip_tab">📋 Clipboard tab</string>
+    <string name="settings_snippet_tab">⚡ Snippet tab</string>
+    <string name="settings_snippet_tab_on">Snippet tab enabled</string>
+    <string name="settings_snippet_tab_off">Snippet tab disabled</string>
+    <string name="snippet_hint_empty">Keine Snippets – keytab_snippets.txt im Files-Tab anlegen (Format: name = text)</string>
     <string name="settings_clip_tab_on">Clipboard tab enabled</string>
     <string name="settings_clip_tab_off">Clipboard tab disabled</string>
     <string name="clip_clear">🗑 Clear</string>

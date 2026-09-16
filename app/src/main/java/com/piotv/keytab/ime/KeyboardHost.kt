@@ -49,6 +49,9 @@ interface KeyboardHost {
     /** Clipboard-Panel (für onSelected() beim Notes-Tab). */
     val clipboardPanel: ClipboardPanel?
 
+    /** Snippet-Panel (für onSelected() beim Snip-Tab). */
+    val snippetPanel: SnippetPanel?
+
     // ---------- Theme ----------
 
     /** Dark-Mode aktiv? (Pref-Override oder System-Modus). */

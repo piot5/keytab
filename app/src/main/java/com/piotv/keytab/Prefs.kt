@@ -30,6 +30,9 @@ object Prefs {
     /** Clipboard-Tab sichtbar an/aus. */
     const val KEY_CLIP_TAB = "clip_tab_enabled"
 
+    /** Snippet-Tab sichtbar an/aus (benannte Befehle/Snippets). */
+    const val KEY_SNIPPET_TAB = "snippet_tab_enabled"
+
     /** Wortvorhersage-Leiste an/aus. */
     const val KEY_SUGGESTIONS = "suggestions_enabled"
 

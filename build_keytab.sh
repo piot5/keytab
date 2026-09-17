@@ -12,6 +12,11 @@ echo "🔨 Baue KeyTab ($BUILD_TYPE)..."
 cd "$PROJECT_DIR"
 
 if [ "$BUILD_TYPE" = "release" ]; then
+    # Signing-Credentials: keystore/keystore.properties (gitignored) ins Env laden,
+    # falls vorhanden — sonst meckert der Build laut (kein stilles Default-Passwort)
+    if [ -f "keystore/keystore.properties" ]; then
+        set -a; . ./keystore/keystore.properties; set +a
+    fi
     sh ./gradlew :app:assembleRelease
     APK_PATH="app/build/outputs/apk/release/app-release.apk"
 else

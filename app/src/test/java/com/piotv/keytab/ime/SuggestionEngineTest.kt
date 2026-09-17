@@ -177,5 +177,35 @@ class SuggestionEngineTest {
         // GROSSGESCHRIEBENES bekanntes Wort wird nicht angetastet
         assertEquals(null, e.autoCorrect("HAUS"))
     }
+
+    // ---------- Performance (Main-Thread-Budget) ----------
+
+    /** Synthetischer ~6.000-Wörter-Korpus (Größe wie die Asset-Frequenzlisten). */
+    private fun bigEngine(): SuggestionEngine = SuggestionEngine(
+        (0 until 6000).map { i ->
+            buildString {
+                append(('a' + (i % 26)))
+                append(('a' + ((i / 26) % 26)))
+                append(('a' + ((i / 676) % 26)))
+                append("bdfghjklmnprs"[i % 13])
+                append("eioau"[i % 5])
+            } to (100000 - i)
+        }
+    )
+
+    @Test
+    fun `autokorrektur und vorschlaege bleiben bei grossen korpussen schnell`() {
+        val e = bigEngine()
+        e.autoCorrect("habcd") // Warm-up: lazy Char-Index aufbauen
+        val start = System.nanoTime()
+        repeat(50) { run ->
+            // "habcd".."habch" ist nie Korpuswort (Position 4 = 'c') → voller Fuzzy-Pfad
+            e.autoCorrect("habc" + ('d' + (run % 5)))
+            e.suggest("habc", null)
+        }
+        val avgMs = (System.nanoTime() - start) / 1_000_000.0 / 50.0
+        // Main-Thread-Budget: ein Space-Tastendruck darf die Tastatur nicht blockieren
+        assertTrue("autoCorrect/suggest zu langsam: %.2f ms/Call".format(avgMs), avgMs < 50.0)
+    }
 }
 

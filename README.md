@@ -395,7 +395,7 @@ Explicitly *not* planned: cloud sync, glide typing, 100+ languages — those are
 Issues and pull requests are welcome. Before opening a PR:
 
 ```bash
-sh ./gradlew :app:testDebugUnitTest --offline   # 118 tests must stay green
+sh ./gradlew :app:testDebugUnitTest --offline   # 133 tests must stay green
 bash build_keytab.sh debug                      # must build
 ```
 

@@ -67,6 +67,35 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         baseFreq.entries.sortedByDescending { it.value }.map { it.key }
     }
 
+    /**
+     * Char-Index für Fuzzy-Matches (lazy, einmalig nach dem Korpus-Laden):
+     * Basiswörter gruppiert nach erstem bzw. zweitem Buchstaben. Statt bei
+     * jedem Space/Tastendruck alle ~6.000 Korpuswörter zu scannen, werden nur
+     * die zwei relevanten Buchstabengruppen betrachtet (~10× kleiner). Der
+     * Second-Char-Index bleibt nötig, damit Transpositionen wie "ahus" → "haus"
+     * weiterhin gefunden werden.
+     */
+    private val byFirstChar: Map<Char, List<String>> by lazy {
+        baseFreq.entries.groupBy({ it.key[0] }, { it.key })
+    }
+    private val bySecondChar: Map<Char, List<String>> by lazy {
+        baseFreq.entries.groupBy({ it.key[1] }, { it.key })
+    }
+
+    /**
+     * Kandidaten-Pool für Fuzzy-Matches: Basiswörter mit passendem erstem ODER
+     * zweitem Buchstaben (über den Char-Index) plus alle User-Wörter
+     * (≤ MAX_USER_WORDS, Direkt-Scan affordable). Dedupliziert.
+     */
+    private fun fuzzyCandidates(first: Char, second: Char?): List<String> {
+        val seen = HashSet<String>()
+        return buildList {
+            byFirstChar[first]?.forEach { w -> if (seen.add(w)) add(w) }
+            if (second != null) bySecondChar[second]?.forEach { w -> if (seen.add(w)) add(w) }
+            userFreq.keys.forEach { w -> if (seen.add(w)) add(w) }
+        }
+    }
+
     init {
         // Log-Skalierung glättet die Extreme der Subtitle-Korpus-Frequenzen
         var maxLog = 0.0
@@ -173,9 +202,9 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             if (maxDist > 0) {
                 val first = cur[0]
                 val second = cur.getOrNull(1)
-                val pool = baseFreq.keys.asSequence() + userFreq.keys.asSequence()
-                for (w in pool) {
-                    if (w[0] != first && w.getOrNull(1) != second) continue
+                for (w in fuzzyCandidates(first, second)) {
+                    // Längen-Differenz ist eine Untergrenze der Edit-Distanz
+                    if (Math.abs(w.length - cur.length) > maxDist) continue
                     val dist = editDistance(cur, w)
                     if (dist in 1..maxDist) consider(w, penalty = dist * 0.45)
                 }
@@ -217,11 +246,10 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         val second = cur.getOrNull(1)
         var best: String? = null
         var bestScore = -Double.MAX_VALUE
-        val pool = baseFreq.keys.asSequence() + userFreq.keys.asSequence()
-        for (w in pool) {
-            // Erster ODER zweiter Buchstabe muss übereinstimmen — begrenzt Wild-Corrections
-            if (w[0] != first && w.getOrNull(1) != second) continue
+        for (w in fuzzyCandidates(first, second)) {
             if (w == cur) continue
+            // Längen-Differenz ist eine Untergrenze der Edit-Distanz
+            if (Math.abs(w.length - cur.length) > maxDist) continue
             val dist = editDistance(cur, w)
             if (dist !in 1..maxDist) continue
             val s = baseScore(w) + (userFreq[w] ?: 0.0) * 1.2

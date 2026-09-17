@@ -31,7 +31,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         const val WORD_DELETE_START_MS = 250L
         const val WORD_DELETE_ACCEL = 0.85f
         const val WORD_DELETE_MIN_MS = 30L
-                const val SHIFT_DOUBLE_TAP_MS = 300L
+        const val SHIFT_DOUBLE_TAP_MS = 300L
         const val ANIMATION_START_DELAY_MS = 48L
     }
 

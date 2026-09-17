@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -24,19 +26,34 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // F-Droid/IzzyOnDroid-kompatibles Release-Signing via Umgebungsvariablen:
-            //   KEYTAB_KEYSTORE=/pfad/zur/release.jks (Standard: keystore/keytab-release.jks)
-            //   KEYTAB_KEYSTORE_PASSWORD / KEYTAB_KEY_ALIAS / KEYTAB_KEY_PASSWORD
-            val ksPath = System.getenv("KEYTAB_KEYSTORE")
-                ?: rootProject.file("keystore/keytab-release.jks").absolutePath
-            val ksPassword = System.getenv("KEYTAB_KEYSTORE_PASSWORD") ?: "keytab-release"
-            val keyAlias = System.getenv("KEYTAB_KEY_ALIAS") ?: "keytab"
-            val keyPassword = System.getenv("KEYTAB_KEY_PASSWORD") ?: "keytab-release"
-            signingConfig = signingConfigs.create("release") {
-                storeFile = file(ksPath)
-                storePassword = ksPassword
-                this.keyAlias = keyAlias
-                this.keyPassword = keyPassword
+            // F-Droid/IzzyOnDroid-kompatibles Release-Signing: Passwörter kommen NUR
+            // aus der Umgebung oder aus keystore/keystore.properties (gitignored) —
+            // keine Defaults im Buildfile. Ohne Credentials bleibt das Release-APK
+            // unsigniert (Debug-Builds sind davon unberührt).
+            val props = Properties().apply {
+                val f = rootProject.file("keystore/keystore.properties")
+                if (f.exists()) f.inputStream().use { load(it) }
+            }
+            fun credential(envKey: String, propKey: String): String? =
+                System.getenv(envKey) ?: props.getProperty(propKey)
+            val ksPassword = credential("KEYTAB_KEYSTORE_PASSWORD", "KEYTAB_KEYSTORE_PASSWORD")
+            val keyPassword = credential("KEYTAB_KEY_PASSWORD", "KEYTAB_KEY_PASSWORD")
+            if (ksPassword != null && keyPassword != null) {
+                signingConfig = signingConfigs.create("release") {
+                    storeFile = file(
+                        System.getenv("KEYTAB_KEYSTORE")
+                            ?: props.getProperty("KEYTAB_KEYSTORE")
+                            ?: rootProject.file("keystore/keytab-release.jks").absolutePath
+                    )
+                    storePassword = ksPassword
+                    this.keyAlias = credential("KEYTAB_KEY_ALIAS", "KEYTAB_KEY_ALIAS") ?: "keytab"
+                    this.keyPassword = keyPassword
+                }
+            } else {
+                logger.warn(
+                    "Release-Signing übersprungen: KEYTAB_KEYSTORE_PASSWORD/KEYTAB_KEY_PASSWORD " +
+                        "fehlen (Env oder keystore/keystore.properties). Release-APK bleibt unsigniert."
+                )
             }
         }
         debug {

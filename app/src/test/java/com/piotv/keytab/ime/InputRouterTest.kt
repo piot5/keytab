@@ -27,6 +27,7 @@ class InputRouterTest {
         override fun deleteBeforeKeys(count: Int) { ops += "delK:$count" }
         override fun textBefore(count: Int): String = before
         override fun onEnter() { ops += "enter" }
+        override fun onTab() { ops += "tab" }
     }
 
     private fun router(): Triple<InputRouter, FakeTarget, FakeTarget> {
@@ -70,6 +71,25 @@ class InputRouterTest {
         r.kind = InputKind.EDITOR
         r.onEnter()
         assertEquals(1, ed.ops.size)
+    }
+
+        @Test
+    fun `onTab delegiert an aktives Ziel`() {
+        val (r, app, ed) = router()
+        r.onTab()
+        assertEquals(listOf("tab"), app.ops)
+        r.kind = InputKind.EDITOR
+        r.onTab()
+        assertEquals(1, ed.ops.size)
+    }
+
+    @Test
+    fun `onTab nutzt nicht den insert-Pfad (Regression KEYCODE_TAB)`() {
+        val (r, app, _) = router()
+        r.onTab()
+        // Früher: insert("\t") – Termux/vim empfangen darauf kein Tastenereignis.
+        assertEquals(0, app.ops.count { it.startsWith("ins:") })
+        assertEquals(listOf("tab"), app.ops)
     }
 
         @Test

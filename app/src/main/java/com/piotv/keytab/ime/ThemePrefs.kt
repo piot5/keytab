@@ -36,6 +36,20 @@ object ThemePrefs {
     const val KIND_TEXT = "text"
     /** Farb-Art der Hervorhebung der wahrscheinlichsten nächsten Taste. */
     const val KIND_LIKELY = "gaming"
+    /** Farbe des Tippspur-Effekts (Trail der zuletzt geklickten Taste). */
+    const val KIND_TRAIL = "trail"
+    /** Gradient-Farbe 1 (über dem Farbkreis auswählbar). */
+    const val KIND_GRADIENT1 = "gradient1"
+    /** Gradient-Farb 2 (über dem Farbkreis auswählbar). */
+    const val KIND_GRADIENT2 = "gradient2"
+
+    // ---------- Trail-Effekt (Tippspur) ----------
+    /** Trail-Effekt an/aus. */
+    const val KEY_TRAIL = "trail_enabled"
+    /** Farbe des Trail-Effekts (ARGB). */
+    const val KEY_TRAIL_COLOR = "trail_color"
+    /** Anzahl der Decay-Stufen bevor die Spur komplett verschwindet (Default 5). */
+    const val KEY_TRAIL_STEPS = "trail_steps"
 
     // ---------- Likely Highlighting (Theme-Einstellungen) ----------
     /** Farbe der wahrscheinlichsten nächsten Taste („likely highlight"). */
@@ -43,8 +57,26 @@ object ThemePrefs {
     /** Zufriedenstellender Puls-Effekt, wenn die Wahrscheinlichkeit erreicht ist. */
     const val KEY_LIKELY_EFFECT = "gaming_effect"
 
-    fun likelyHighlighting(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_LIKELY, true)
+    fun likelyHighlighting(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_LIKELY, false)
     fun likelyEffect(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_LIKELY_EFFECT, true)
+
+    // ---------- Trail-Effekt (Tippspur) ----------
+    /** Trail-Effekt an/aus. Default: false (aus). */
+    fun trailEnabled(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_TRAIL, false)
+    /** Trail-Farbe (ARGB). Default: Blau #2196F3. */
+    fun trailColor(prefs: SharedPreferences): Int =
+        if (prefs.contains(KEY_TRAIL_COLOR)) prefs.getInt(KEY_TRAIL_COLOR, 0)
+        else 0xFF2196F3.toInt()
+    /** Anzahl Decay-Stufen. Default 5. */
+    fun trailSteps(prefs: SharedPreferences): Int = prefs.getInt(KEY_TRAIL_STEPS, 5)
+    /** Trail-Farbe mit aktuellem Alpha (Decay). */
+    fun trailColorWithAlpha(prefs: SharedPreferences, step: Int, maxSteps: Int): Int {
+        val base = trailColor(prefs)
+        if (step <= 0 || maxSteps <= 1) return base
+        // Alpha reduziert sich linear von 255 (Schritt 0) auf 0 (Schritt maxSteps)
+        val alpha = (255 * (maxSteps - step).toFloat() / maxSteps).toInt().coerceIn(0, 255)
+        return withAlpha(base, alpha)
+    }
 
     /** Zähler: ändert sich bei jeder Theme-Änderung → IME baut die Tastatur neu. */
     const val KEY_THEME_VERSION = "theme_version"
@@ -74,22 +106,33 @@ object ThemePrefs {
             KIND_HL -> R.color.key_pressed
             KIND_TEXT -> R.color.key_text
             KIND_LIKELY -> R.color.primary
+            KIND_TRAIL -> R.color.trail_color
             else -> R.color.kbd_bg
         }
         return androidx.core.content.ContextCompat.getColor(ctx, res)
     }
 
     /** Pref-Key für eine Theme-Farbe (dark/light × Art). */
-    fun colorKey(dark: Boolean, kind: String): String =
-        (if (dark) PREFIX_DARK else PREFIX_LIGHT) + kind
+    fun colorKey(dark: Boolean, kind: String): String = when (kind) {
+        KIND_GRADIENT1 -> KEY_GRADIENT_COLOR1
+        KIND_GRADIENT2 -> KEY_GRADIENT_COLOR2
+        else -> (if (dark) PREFIX_DARK else PREFIX_LIGHT) + kind
+    }
 
     /** Farbe lesen; [default] = aufgelöste Theme-Ressource (mit Alpha 0xFF). */
-    fun getColor(prefs: SharedPreferences, dark: Boolean, kind: String, default: Int): Int =
-        prefs.getInt(colorKey(dark, kind), default)
+    fun getColor(prefs: SharedPreferences, dark: Boolean, kind: String, default: Int): Int = when (kind) {
+        KIND_GRADIENT1 -> gradientColor1(prefs, dark)
+        KIND_GRADIENT2 -> gradientColor2(prefs, dark)
+        else -> prefs.getInt(colorKey(dark, kind), default)
+    }
 
-    /** Farbe schreiben (ARGB inkl. Alpha). */
+    /** Farbe schreiben (ARGB inkl. Alpha). Verlauf-Farbwahl aktiviert den Verlauf. */
     fun setColor(prefs: SharedPreferences, dark: Boolean, kind: String, value: Int) {
-        prefs.edit().putInt(colorKey(dark, kind), value).apply()
+        val edit = prefs.edit().putInt(colorKey(dark, kind), value)
+        if (kind == KIND_GRADIENT1 || kind == KIND_GRADIENT2) {
+            edit.remove(colorKey(dark, KIND_BG)).putBoolean(gradientOffKey(dark), false)
+        }
+        edit.apply()
     }
 
     /** Alle aktuell gespeicherten Theme-Farben (beide Modi) + Verlauf als JSON. */
@@ -98,7 +141,7 @@ object ThemePrefs {
         for (dark in listOf(true, false)) {
             val prefix = if (dark) "dark" else "light"
             val m = org.json.JSONObject()
-            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY)) {
+            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY, KIND_TRAIL)) {
                 val key = colorKey(dark, kind)
                 if (prefs.contains(key)) m.put(kind, prefs.getInt(key, 0))
             }
@@ -117,6 +160,11 @@ object ThemePrefs {
         lk.put("enabled", likelyHighlighting(prefs))
         lk.put("effect", likelyEffect(prefs))
         b.put("likely", lk)
+        val tr = org.json.JSONObject()
+        tr.put("enabled", trailEnabled(prefs))
+        tr.put("color", trailColor(prefs))
+        tr.put("steps", trailSteps(prefs))
+        b.put("trail", tr)
         b.put("version", themeVersion(prefs))
         return b.toString(2)
     }
@@ -130,7 +178,7 @@ object ThemePrefs {
         val b = org.json.JSONObject(json)
         for (dark in listOf(true, false)) {
             val m = b.optJSONObject(if (dark) "dark" else "light") ?: continue
-            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY)) {
+            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY, KIND_TRAIL)) {
                 if (m.has(kind)) setColor(prefs, dark, kind, m.getInt(kind))
             }
         }
@@ -145,6 +193,11 @@ object ThemePrefs {
             if (lk.has("enabled")) prefs.edit().putBoolean(KEY_LIKELY, lk.getBoolean("enabled")).apply()
             if (lk.has("effect")) prefs.edit().putBoolean(KEY_LIKELY_EFFECT, lk.getBoolean("effect")).apply()
         }
+        b.optJSONObject("trail")?.let { t ->
+            if (t.has("enabled")) prefs.edit().putBoolean(KEY_TRAIL, t.getBoolean("enabled")).apply()
+            if (t.has("color")) prefs.edit().putInt(KEY_TRAIL_COLOR, t.getInt("color")).apply()
+            if (t.has("steps")) prefs.edit().putInt(KEY_TRAIL_STEPS, t.getInt("steps")).apply()
+        }
         bumpVersion(prefs)
         true
     } catch (_: Exception) { false }
@@ -153,13 +206,17 @@ object ThemePrefs {
     fun resetAll(prefs: SharedPreferences) {
         prefs.edit().remove(colorKey(true, KIND_BG)).remove(colorKey(true, KIND_KEY))
             .remove(colorKey(true, KIND_HL)).remove(colorKey(true, KIND_TEXT))
-            .remove(colorKey(true, KIND_LIKELY)).remove(colorKey(false, KIND_BG))
-            .remove(colorKey(false, KIND_KEY)).remove(colorKey(false, KIND_HL))
-            .remove(colorKey(false, KIND_TEXT)).remove(colorKey(false, KIND_LIKELY))
+            .remove(colorKey(true, KIND_LIKELY)).remove(colorKey(true, KIND_TRAIL))
+            .remove(colorKey(false, KIND_BG)).remove(colorKey(false, KIND_KEY))
+            .remove(colorKey(false, KIND_HL)).remove(colorKey(false, KIND_TEXT))
+            .remove(colorKey(false, KIND_LIKELY)).remove(colorKey(false, KIND_TRAIL))
             .remove(KEY_LIKELY).remove(KEY_LIKELY_EFFECT)
+            .remove(KEY_TRAIL).remove(KEY_TRAIL_COLOR).remove(KEY_TRAIL_STEPS)
             .remove(KEY_GRADIENT_COLOR1).remove(KEY_GRADIENT_COLOR2)
             .remove(KEY_GRADIENT_MODE).remove(KEY_GRADIENT_OFF)
-            .remove(KEY_GRADIENT_OFF_LIGHT).apply()
+            .remove(KEY_GRADIENT_OFF_LIGHT)
+            .remove(com.piotv.keytab.Prefs.KEY_BG_IMAGE_URI)
+            .remove(com.piotv.keytab.Prefs.KEY_BG_IMAGE_FILL).apply()
     }
 
     // ---------- Verlauf ----------

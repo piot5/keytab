@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import com.piotv.keytab.ime.KeyboardLanguage
 import com.piotv.keytab.ime.Languages
+import com.piotv.keytab.ime.SettingsConfig
 
 /**
  * KeyTab – Einstellungsbildschirm: Tastatur aktivieren/wechseln, Theme.
@@ -25,6 +26,8 @@ import com.piotv.keytab.ime.Languages
  * auch Dateien (nicht nur Ordner) auflisten kann.
  */
 class MainActivity : AppCompatActivity() {
+
+    private var displayedSettings: Map<String, Any?>? = null
 
     private val permLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -45,6 +48,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SettingsConfig.importIfChanged(this)
         setContentView(R.layout.activity_main)
 
         // Versionszeile aus PackageManager
@@ -142,13 +146,14 @@ class MainActivity : AppCompatActivity() {
 
         // Konfigurationsdatei schreiben/aktualisieren (Werte direkt editierbar)
         findViewById<Button>(R.id.btn_update_config).setOnClickListener {
-            val dir = getExternalFilesDir(null) ?: filesDir
-            val f = java.io.File(dir, com.piotv.keytab.ime.KeyTabConfig.FILE_NAME)
-            val created = com.piotv.keytab.ime.KeyTabConfig.writeDefault(f, overwrite = false)
-            Toast.makeText(this,
-                getString(R.string.config_ready, f.absolutePath) +
-                    if (created) "" else "\n(" + getString(R.string.config_exists) + ")",
-                Toast.LENGTH_LONG).show()
+            try {
+                val file = SettingsConfig.fillMissing(this)
+                Toast.makeText(this, getString(R.string.config_ready, file.absolutePath),
+                    Toast.LENGTH_LONG).show()
+                recreate()
+            } catch (e: Exception) {
+                Toast.makeText(this, e.localizedMessage ?: e.toString(), Toast.LENGTH_LONG).show()
+            }
         }
 
         findViewById<Button>(R.id.btn_enable_keyboard).setOnClickListener {
@@ -191,6 +196,14 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             }
         }
+        displayedSettings = SettingsConfig.snapshot(prefs)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        SettingsConfig.importIfChanged(this)
+        val current = SettingsConfig.snapshot(getSharedPreferences(PREFS, Context.MODE_PRIVATE))
+        if (displayedSettings != current) recreate()
     }
 
     private fun neededPermissions(vararg perms: String): Array<String> {

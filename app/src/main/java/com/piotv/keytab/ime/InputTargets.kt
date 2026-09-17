@@ -31,6 +31,16 @@ interface InputTarget {
 
     /** Eingabe-Taste: Terminal=führe Zeile aus, Editor= Neue Zeile, App=KEYCODE_ENTER. */
     fun onEnter()
+
+    /**
+     * Tab-Taste: App-Feld=KEYCODE_TAB, Editor/Terminal=Tab-Zeichen einfügen.
+     *
+     * Wie bei [deleteBackspace] sendet das App-Feld einen **KeyEvent** statt Text,
+     * weil Termux/SSH-Programme (vim, nano, fzf, Tab-Completion) auf ein
+     * Tastenereignis warten und ein eingefügtes `\t`-Zeichen ignorieren
+     * (siehe KDoc von [AppInputTarget]).
+     */
+    fun onTab()
 }
 
 /** Aktives Ziel des Routers (App-Feld, Notes-Editor oder Terminal). */
@@ -67,6 +77,7 @@ class InputRouter(
             fun deleteBeforeKeys(count: Int) = active.deleteBeforeKeys(count)
     fun textBefore(count: Int): String = active.textBefore(count)
     fun onEnter() = active.onEnter()
+    fun onTab() = active.onTab()
 }
 
 /**
@@ -100,6 +111,9 @@ class AppInputTarget(
     override fun textBefore(count: Int): String =
         connection()?.getTextBeforeCursor(count, 0)?.toString() ?: ""
     override fun onEnter() = sendKey(android.view.KeyEvent.KEYCODE_ENTER)
+
+    /** KEYCODE_TAB statt `commitText("\t")` – nötig für Termux/SSH (vim, Completion). */
+    override fun onTab() = sendKey(android.view.KeyEvent.KEYCODE_TAB)
 }
 
 /** Ziel: Notes-Editor ([EditorPanel]). */
@@ -116,6 +130,7 @@ class EditorInputTarget(private val panel: EditorPanel) : InputTarget {
         return t.substring(start, cursor).toString()
     }
     override fun onEnter() = panel.insert("\n")
+    override fun onTab() = panel.insert("\t")
 }
 
 /** Ziel: Terminal-Shell ([TerminalPanel]). */
@@ -132,4 +147,7 @@ class TerminalInputTarget(private val panel: TerminalPanel) : InputTarget {
         return t.substring(start, cursor).toString()
     }
     override fun onEnter() = panel.send()
+
+    /** Tab-Zeichen in die Eingabezeile (das Panel puffert und sendet erst bei Enter). */
+    override fun onTab() = panel.insert("\t")
 }

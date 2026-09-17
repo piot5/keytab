@@ -34,7 +34,8 @@ internal class KeyboardBinder(
     private val longPressTimeout: Long,
     private val tabController: TabController,
     private val themeController: ThemeController,
-    private val suggestionController: SuggestionController
+    private val suggestionController: SuggestionController,
+    private val trailManager: TrailManager?
 ) {
 
     private companion object {
@@ -71,7 +72,7 @@ internal class KeyboardBinder(
                 btn.id == R.id.key_tab -> btn.setOnClickListener {
                     host.letterPopup.dismiss()
                     host.haptic()
-                    host.inputRouter?.insert("\t")
+                    host.inputRouter?.onTab()
                 }
                 btn.id == R.id.key_dot -> btn.setOnClickListener {
                     host.letterPopup.dismiss()
@@ -120,18 +121,28 @@ internal class KeyboardBinder(
                     btn.isPressed = false
                     pendingLongPress?.let { host.longPressHandler.removeCallbacks(it) }
                     if (longPressFired) {
-                        // Drag-Auswahl: markierte Zelle committen, sonst nichts
+                        // Drag-Auswahl: markierte Zelle committen, sonst Tooltip nur schließen
                         val picked = host.letterPopup.pickedChar()
                         host.letterPopup.dismiss()
-                        if (picked != null) host.commitText(picked.toString())
+                        host.letterPopup.clearPicked()
+                        if (picked != null) {
+                            host.commitText(picked.toString())
+                            trailManager?.snap(picked.lowercaseChar())
+                        }
                     } else {
-                        host.commitText(tapLetter(btn))
+                        val letter = tapLetter(btn)
+                        host.commitText(letter)
+                        trailManager?.snap(letter.first().lowercaseChar())
                     }
+                    btn.clearFocus()
                     true
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     btn.isPressed = false
                     pendingLongPress?.let { host.longPressHandler.removeCallbacks(it) }
+                    host.letterPopup.dismiss()
+                    host.letterPopup.clearPicked()
+                    btn.clearFocus()
                     true
                 }
                 else -> false

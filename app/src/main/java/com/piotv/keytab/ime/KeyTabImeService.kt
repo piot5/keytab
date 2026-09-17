@@ -124,7 +124,11 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         suggestionController.clearLikelyHighlights()
     }
 
+    private var appliedSettings: Map<String, Any?>? = null
+    private var appliedDarkMode: Boolean? = null
+
     override fun onCreateInputView(): View {
+        SettingsConfig.importIfChanged(this)
         // Vorherige Panels/Views freigeben (Leak-Fix): Rebuilds entstehen bei
         // Theme-Wechsel (toggleDarkMode) und Konfigurationsänderungen.
         releasePanels()
@@ -147,24 +151,37 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         val root = result.root
         // Module einhängen
         tabController.setup(root)
-
-        tabController.setup(root)
-        keyboardBinder = KeyboardBinder(this, LONG_PRESS_TIMEOUT, tabController, themeController, suggestionController)
+        // Trail-Manager erstellen (baseLetters noch leer, wird nach hook() aktualisiert)
+        val trailManager = TrailManager(
+            getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE),
+            baseLetters
+        )
+        keyboardBinder = KeyboardBinder(this, LONG_PRESS_TIMEOUT, tabController, themeController, suggestionController, trailManager)
         keyboardBinder.hook(root)
+        // Jetzt baseLetters gefüllt - TrailManager aktualisieren
+        trailManager.updateBaseLetters(baseLetters)
         keyboardBinder.applyLetterCase(root)
         // Suggestion-Views holen, Module starten (Engine lazy, Skaler aufbauen)
         suggestionController.setup(root, suggestionViews, activeLanguage)
+        appliedSettings = SettingsConfig.snapshot(getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE))
+        appliedDarkMode = isDarkMode()
         return root
     }
 
-    private fun configFile(): java.io.File {
-        val dir = baseContext.getExternalFilesDir(null) ?: baseContext.filesDir
-        return java.io.File(dir, KeyTabConfig.FILE_NAME)
+    private fun configFile(): java.io.File = SettingsConfig.configFile(this)
+
+    /** Covers every UI preference, not just color edits that bump theme_version. */
+    private fun refreshSettings() {
+        SettingsConfig.importIfChanged(this)
+        val snapshot = SettingsConfig.snapshot(getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE))
+        if (keyboardRoot != null && (snapshot != appliedSettings || appliedDarkMode != isDarkMode())) {
+            setInputView(onCreateInputView())
+        }
     }
 
     override fun onStartInput(attribute: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
-        themeController.maybeRebuildForThemeChange()
+        refreshSettings()
         shiftController.resetForInput(autoCapitalize(attribute))
         // onStartInput kann VOR onCreateInputView feuern (IME-Start, bevor die
         // Tastatur das erste Mal angezeigt wird) → keyboardBinder ist dann noch
@@ -180,7 +197,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         // Theme-Änderungen (Farben/Alpha aus der Settings-Activity) übernehmen, auch
         // wenn dasselbe Textfeld weiterläuft – onStartInput feuert dann nicht erneut,
         // die Tastatur zeigte sonst die alten Farben (u. a. Alpha nicht angewendet).
-        themeController.maybeRebuildForThemeChange()
+        refreshSettings()
     }
 
     private fun autoCapitalize(attribute: android.view.inputmethod.EditorInfo?): Boolean =

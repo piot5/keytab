@@ -25,4 +25,6 @@
     <color name="popup_focus_bg">#707070</color>
     <color name="popup_text">#FFFFFF</color>
     <color name="divider">#262626</color>
+    <!-- Trail-Effekt (Tippspur): Standardfarbe Blau -->
+    <color name="trail_color">#2196F3</color>
 </resources>

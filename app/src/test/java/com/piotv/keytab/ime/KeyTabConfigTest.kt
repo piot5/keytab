@@ -45,6 +45,21 @@ class KeyTabConfigTest {
     }
 
     @Test
+    fun parse_rejectsNonFiniteAndInvalidScaleValues() {
+        assertEquals(KeyTabConfig(), KeyTabConfig.parse(
+            "max_scale = NaN\nmid_scale = Infinity\nmin_neighbor_scale = -1\nhot_threshold = 2"))
+    }
+
+    @Test
+    fun entries_preserveColorsCommentsAndEmptyImage() {
+        val entries = KeyTabConfig.entries("theme_dark_bg = #80123456 # alpha\n" +
+            "bg_image_uri = # cleared\nnum_row = false # comment")
+        assertEquals("#80123456", entries["theme_dark_bg"])
+        assertEquals("", entries["bg_image_uri"])
+        assertEquals("false", entries["num_row"])
+    }
+
+    @Test
     fun serialize_roundTrip() {
         val cfg = KeyTabConfig(maxScale = 1.4f, midScale = 1.2f)
         val back = KeyTabConfig.parse(cfg.serialize())

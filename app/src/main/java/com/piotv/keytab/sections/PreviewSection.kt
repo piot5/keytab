@@ -75,6 +75,7 @@ class PreviewSection(
         } ?: run {
             row.background = GradientDrawable().apply { setColor(bg) }
         }
+        com.piotv.keytab.ime.BackgroundImage.apply(row, activity, row.background)
         previewKey?.background = GradientDrawable().apply {
             cornerRadius = 6f * dip
             setColor(getCurrentColor(ThemePrefs.KIND_KEY))

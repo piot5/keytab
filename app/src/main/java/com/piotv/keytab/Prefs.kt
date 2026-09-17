@@ -47,4 +47,13 @@ object Prefs {
 
     /** Serialisiertes Benutzer-Wörterbuch (Lernwörter, Klartext-Format). */
     const val KEY_USER_DICT = "user_dict"
+
+    /** Hintergrundbild-URI (Theming). */
+    const val KEY_BG_IMAGE_URI = "bg_image_uri"
+
+    /** Hintergrundbild-Fill-Modus: "fit" / "cover" / "stretch". */
+    const val KEY_BG_IMAGE_FILL = "bg_image_fill"
+    const val FILL_FIT = "fit"
+    const val FILL_COVER = "cover"
+    const val FILL_STRETCH = "stretch"
 }

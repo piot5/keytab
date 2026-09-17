@@ -181,5 +181,6 @@ object ThemeApplier {
             sug.background = if (id == R.id.sug_1) sugLayer() else ColorDrawable(keyBg)
             (sug as? TextView)?.setTextColor(text)
         }
+        BackgroundImage.apply(v, context, v.background ?: ColorDrawable(bg))
     }
 }

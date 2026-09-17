@@ -42,7 +42,7 @@ class ColorSection(
             max = 100
             progress = 50
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) { updateColorFromWheel() }
+                override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) { if (fromUser) colorWheel?.setBrightness(p / 100f) }
                 override fun onStartTrackingTouch(sb: SeekBar?) {}
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
@@ -56,7 +56,7 @@ class ColorSection(
             max = 255
             progress = 255
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) { updateColorFromWheel() }
+                override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) { if (fromUser) colorWheel?.setAlphaValue(p) }
                 override fun onStartTrackingTouch(sb: SeekBar?) {}
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
@@ -68,7 +68,7 @@ class ColorSection(
     }
 
     fun updateControls(target: String) {
-        val color = ThemePrefs.getColor(prefs, ThemePrefs.isDarkMode(activity), target, Color.GRAY)
+        val color = ThemePrefs.getColor(prefs, ThemePrefs.isDarkMode(activity), target, ThemePrefs.defaultColor(activity, ThemePrefs.isDarkMode(activity), target))
         val hsv = FloatArray(3)
         Color.colorToHSV(color, hsv)
         currentHue = hsv[0]

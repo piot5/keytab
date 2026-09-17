@@ -69,6 +69,8 @@ class TopSection(
                         .putInt(ThemePrefs.KEY_GRADIENT_COLOR1, preset.c1)
                         .putInt(ThemePrefs.KEY_GRADIENT_COLOR2, preset.c2)
                         .putString(ThemePrefs.KEY_GRADIENT_MODE, preset.mode)
+                        .remove(ThemePrefs.colorKey(ThemePrefs.isDarkMode(activity), ThemePrefs.KIND_BG))
+                        .putBoolean(ThemePrefs.gradientOffKey(ThemePrefs.isDarkMode(activity)), false)
                         .apply()
                     ThemePrefs.bumpVersion(prefs)
                     onThemeChanged()

@@ -79,6 +79,11 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/settings_term_tab" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/terminal_experimental"
+            android:textSize="12sp" />
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/sw_clip_tab"
             android:layout_width="match_parent"

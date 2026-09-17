@@ -65,14 +65,6 @@ internal class TabController(private val host: KeyboardHost) {
 
     fun setup(root: View) {
         val tabs = root.findViewById<TabLayout>(R.id.ime_tabs) ?: return
-        tabs.getTabAt(0)?.text = host.context.getString(R.string.ime_tab_letters)
-        tabs.getTabAt(1)?.text = host.context.getString(R.string.ime_tab_editor)
-        tabs.getTabAt(2)?.text = host.context.getString(R.string.ime_tab_files)
-        tabs.getTabAt(3)?.text = host.context.getString(R.string.ime_tab_clip_short)
-        tabs.getTabAt(4)?.text = host.context.getString(R.string.ime_tab_term_short)
-        tabs.getTabAt(5)?.text = host.context.getString(R.string.ime_tab_snip_short)
-        // Alle Labels gleich groß (Material auto-sizt sonst je Zelle unterschiedlich)
-        applyUniformTabTextSize(tabs, TAB_TEXT_SIZE_SP)
         val kb = root.findViewById<View>(R.id.kb_panel) ?: return
         val sym = root.findViewById<View>(R.id.sym_panel) ?: return
         val fm = root.findViewById<View>(R.id.file_panel) ?: return
@@ -86,19 +78,24 @@ internal class TabController(private val host: KeyboardHost) {
         val clipEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_CLIP_TAB, true)
         val termEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_TERM_TAB, true)
         val snipEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_SNIPPET_TAB, true)
-        // Von hinten entfernen (Snippet bei 5, Terminal bei 4, Clip bei 3) → Pflicht-Tabs stabil
-        if (!snipEnabled) {
-            tabs.getTabAt(5)?.let { tabs.removeTab(it) }
-            snip.visibility = View.GONE
+        // Idempotenter Aufbau: ein zweiter setup-Aufruf darf keine weiteren Tabs entfernen.
+        tabs.clearOnTabSelectedListeners()
+        host.inputRouter?.kind = InputKind.APP
+        tabs.removeAllTabs()
+        tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_letters)))
+        tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_editor)))
+        tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_files)))
+        if (clipEnabled) {
+            tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_clip_short)))
         }
-        if (!termEnabled) {
-            tabs.getTabAt(4)?.let { tabs.removeTab(it) }
-            term.visibility = View.GONE
+        if (termEnabled) {
+            tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_term_short)))
         }
-        if (!clipEnabled) {
-            tabs.getTabAt(3)?.let { tabs.removeTab(it) }
-            clip.visibility = View.GONE
+        if (snipEnabled) {
+            tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_snip_short)))
         }
+        // Alle Labels gleich groß (Material auto-sizet sonst je Zelle unterschiedlich)
+        applyUniformTabTextSize(tabs, TAB_TEXT_SIZE_SP)
         kinds = buildList {
             add(TabKind.ABC); add(TabKind.EDITOR); add(TabKind.FILES)
             if (clipEnabled) add(TabKind.CLIP)

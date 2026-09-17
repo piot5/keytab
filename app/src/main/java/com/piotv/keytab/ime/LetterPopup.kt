@@ -30,7 +30,7 @@ class LetterPopup(
     private var highlightBg: Drawable? = null
     // Erstes Zusatz-Zeichen → Fallback: wenn beim Loslassen keine Zelle angesteuert
     // wurde, wird dieses (erste der Popup-Reihe) ausgelöst.
-    private var firstChar: Char? = null
+    private var fallbackChar: Char? = null
 
     /** Blendet ein aktives Popup aus, falls vorhanden. */
     fun dismiss() {
@@ -59,7 +59,7 @@ class LetterPopup(
             setBackgroundColor(popupBg)
             setPadding(6, 6, 6, 6)
         }
-        firstChar = showExtras.firstOrNull()?.first()
+        fallbackChar = showExtras.firstOrNull()?.first()
         for (ch in showExtras) {
             val tv = TextView(ctx).apply {
                 text = ch
@@ -105,6 +105,11 @@ class LetterPopup(
         // Drag-Auswahl: alle wählbaren Zellen registrieren (Grid), Highlight zurücksetzen
         highlightBg = focusBgDrawable
         highlighted = null
+        // WICHTIG für das „Taste bleibt dauerhaft markiert"-Problem:
+        // - Toast-/Popup-Zustand muss nach UP/CANCEL komplett gelöscht werden.
+        // - `pickedChar()` darf NIE mehr einen Fallback liefern, wenn kein
+        //   Highlight existiert → sonst würde bei leicht abgehenden Fingern
+        //   versehentlich text committet werden. Wird explizit abgehandelt.
         cells = buildList {
             for (i in 0 until grid.childCount) (grid.getChildAt(i) as? TextView)?.let { add(it) }
         }
@@ -133,11 +138,20 @@ class LetterPopup(
         }
     }
 
+    /** Löscht alle Highlight- und Picker-Zustände. Wird bei Finger-Loslassen,
+     *  Cancel oder Out-of-bounds aufgerufen, damit die Taste nie „eingefroren"
+     *  wirkt. */
+    fun clearPicked() {
+        highlighted?.background = null
+        highlighted = null
+        fallbackChar = null
+    }
+
     /** Liefert den auszulösenden Buchstaben: die beim Drag hervorgehobene Zelle,
      *  oder (falls nichts angesteuert wurde) das erste Zeichen der Popup-Reihe. */
     fun pickedChar(): Char? {
         if (activePopup == null) return null
-        return highlighted?.text?.firstOrNull() ?: firstChar
+        return highlighted?.let { it.text.firstOrNull() } ?: fallbackChar
     }
 }
 

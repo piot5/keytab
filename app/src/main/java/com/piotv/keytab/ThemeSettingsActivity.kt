@@ -26,10 +26,12 @@ class ThemeSettingsActivity : AppCompatActivity() {
     private var selectedTarget = ThemePrefs.KIND_BG
     private var targetButtons: List<Pair<String, Button>> = emptyList()
 
+    private lateinit var backgroundSection: com.piotv.keytab.sections.BackgroundSection
     private lateinit var topSection: TopSection
     private lateinit var gradientSection: GradientSection
     private lateinit var colorSection: ColorSection
     private lateinit var likelySection: LikelyHighlightSection
+    private lateinit var trailSection: com.piotv.keytab.sections.TrailSection
     private lateinit var previewSection: PreviewSection
 
     private val dip: Float by lazy { resources.displayMetrics.density }
@@ -37,12 +39,15 @@ class ThemeSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = getSharedPreferences(ThemePrefs.PREFS, Context.MODE_PRIVATE)
+        com.piotv.keytab.ime.SettingsConfig.importIfChanged(this)
         editingDark = ThemePrefs.isDarkMode(this)
 
+        backgroundSection = com.piotv.keytab.sections.BackgroundSection(this, prefs) { updatePreview() }
         topSection = TopSection(this, prefs) { refreshAllUi() }
-        gradientSection = GradientSection(this, prefs) { }
-        colorSection = ColorSection(this, prefs, { selectedTarget }) { updatePreview(); refreshTargetButtons() }
+        gradientSection = GradientSection(this, prefs) { updatePreview() }
+        colorSection = ColorSection(this, prefs, { selectedTarget }) { updatePreview(); refreshTargetButtons(); gradientSection.updateGradient() }
         likelySection = LikelyHighlightSection(this, prefs) { updatePreview() }
+        trailSection = com.piotv.keytab.sections.TrailSection(this, prefs) { updatePreview() }
         previewSection = PreviewSection(this, prefs, { target -> currentColor(target) }) { }
 
         val scroll = android.widget.ScrollView(this)
@@ -67,6 +72,8 @@ class ThemeSettingsActivity : AppCompatActivity() {
         colorSection.build(col)
         buildTargetButtons(col)
         likelySection.build(col)
+        trailSection.build(col)
+        backgroundSection.build(col)
         sectionLabel(col, getString(R.string.theme_section_preview))
         previewSection.build(col)
         col.addView(actionRow(), rowParams())
@@ -87,7 +94,11 @@ class ThemeSettingsActivity : AppCompatActivity() {
             ThemePrefs.KIND_BG to "BG",
             ThemePrefs.KIND_KEY to "Key",
             ThemePrefs.KIND_TEXT to "Text",
-            ThemePrefs.KIND_HL to "HL"
+            ThemePrefs.KIND_HL to "HL",
+            ThemePrefs.KIND_LIKELY to "Likely",
+            ThemePrefs.KIND_TRAIL to getString(R.string.theme_color_trail),
+            ThemePrefs.KIND_GRADIENT1 to getString(R.string.settings_gradient_color1),
+            ThemePrefs.KIND_GRADIENT2 to getString(R.string.settings_gradient_color2)
         ).map { (target, label) ->
             val btn = Button(this).apply {
                 text = label
@@ -109,11 +120,12 @@ class ThemeSettingsActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 marginEnd = (4 * dip).toInt()
-                width = (56 * dip).toInt()
+                width = (100 * dip).toInt()
                 height = (32 * dip).toInt()
             })
         }
-        col.addView(targetRow, LinearLayout.LayoutParams(
+        val targetScroll = android.widget.HorizontalScrollView(this).apply { addView(targetRow) }
+        col.addView(targetScroll, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply { topMargin = (8 * dip).toInt() })
@@ -125,6 +137,8 @@ class ThemeSettingsActivity : AppCompatActivity() {
         refreshTargetButtons()
         colorSection.updateControls(selectedTarget)
         likelySection.updateButtons()
+        trailSection.updateButton()
+        backgroundSection.refresh()
         gradientSection.updateGradient()
         updatePreview()
     }
@@ -138,7 +152,7 @@ class ThemeSettingsActivity : AppCompatActivity() {
     }
 
     private fun currentColor(target: String): Int {
-        return ThemePrefs.getColor(prefs, editingDark, target, Color.GRAY)
+        return ThemePrefs.getColor(prefs, editingDark, target, ThemePrefs.defaultColor(this, editingDark, target))
     }
 
     private fun refreshTargetButtons() {
@@ -147,6 +161,7 @@ class ThemeSettingsActivity : AppCompatActivity() {
             btn.background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = 4f * dip
                 setColor(color)
+                if (target == selectedTarget) setStroke((3 * dip).toInt(), Color.MAGENTA)
             }
             val luminance = (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255
             btn.setTextColor(if (luminance > 0.5) Color.BLACK else Color.WHITE)

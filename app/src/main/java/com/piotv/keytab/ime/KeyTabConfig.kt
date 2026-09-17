@@ -1,26 +1,9 @@
 package com.piotv.keytab.ime
 
 import java.io.File
+import java.util.Locale
 
-/**
- * KeyTab-Konfigurationsdatei (android-frei, JUnit-testbar).
- *
- * Einfaches "schlüssel = wert"-Format, direkt auf dem Gerät editierbar:
- *   <externes Files-Dir>/keytab_config.txt
- * (über die KeyTab-App: „Config schreiben/aktualisieren" erzeugt eine
- *  vorbefüllte Datei mit allen Keys und dem Pfad als Toast/Hinweis.)
- *
- * Bekannte Keys (unbekannte Keys und ungültige Werte werden ignoriert,
- * Defaults greifen dann weiter):
- *
- *   # Skalierung der wahrscheinlichen Tasten
- *   max_scale           = 1.21   # größte Stufe
- *   mid_scale           = 1.15   # zweite Stufe
- *   hot_threshold       = 0.75   # Schwelle Stufe 3 (relativ)
- *   mid_threshold       = 0.55   # Schwelle Stufe 2 (relativ)
- *   min_neighbor_scale  = 0.812  # Verkleinerung neben Stufe-3-Taste
- *   mid_neighbor_scale  = 0.925  # Verkleinerung neben Stufe-2-Taste
- */
+/** Android-free scale configuration and shared key/value syntax. UI import lives in SettingsConfig. */
 data class KeyTabConfig(
     val maxScale: Float = 1.21f,
     val midScale: Float = 1.15f,
@@ -34,17 +17,17 @@ data class KeyTabConfig(
     private fun with(key: String, value: String): KeyTabConfig {
         val v = value.trim()
         return when (key) {
-            "max_scale" -> copy(maxScale = v.toFloatOrNull() ?: maxScale)
-            "mid_scale" -> copy(midScale = v.toFloatOrNull() ?: midScale)
-            "hot_threshold" -> copy(hotThreshold = v.toDoubleOrNull() ?: hotThreshold)
-            "mid_threshold" -> copy(midThreshold = v.toDoubleOrNull() ?: midThreshold)
-            "min_neighbor_scale" -> copy(minNeighborScale = v.toFloatOrNull() ?: minNeighborScale)
-            "mid_neighbor_scale" -> copy(midNeighborScale = v.toFloatOrNull() ?: midNeighborScale)
+            "max_scale" -> copy(maxScale = v.toFloatOrNull()?.takeIf { it.isFinite() && it > 0f } ?: maxScale)
+            "mid_scale" -> copy(midScale = v.toFloatOrNull()?.takeIf { it.isFinite() && it > 0f } ?: midScale)
+            "hot_threshold" -> copy(hotThreshold = v.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..1.0 } ?: hotThreshold)
+            "mid_threshold" -> copy(midThreshold = v.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..1.0 } ?: midThreshold)
+            "min_neighbor_scale" -> copy(minNeighborScale = v.toFloatOrNull()?.takeIf { it.isFinite() && it > 0f } ?: minNeighborScale)
+            "mid_neighbor_scale" -> copy(midNeighborScale = v.toFloatOrNull()?.takeIf { it.isFinite() && it > 0f } ?: midNeighborScale)
             else -> this
         }
     }
 
-    /** Serialisiert alle Keys (kommentiert), direkt wieder einlesbar. */
+    /** Serialisiert die sechs Scale-Keys; vollständiger UI-Export über SettingsConfig. */
     fun serialize(): String = buildString {
         appendLine("# KeyTab Konfiguration — Werte direkt anpassen,")
         appendLine("# Wirkung beim nächsten Öffnen der Tastatur.")
@@ -56,6 +39,7 @@ data class KeyTabConfig(
         appendLine("mid_threshold = $midThreshold")
         appendLine("min_neighbor_scale = $minNeighborScale")
         appendLine("mid_neighbor_scale = $midNeighborScale")
+
     }
 
     companion object {
@@ -65,14 +49,27 @@ data class KeyTabConfig(
         /** Parst Config-Text; unbekannte Keys/Zeilen werden ignoriert. */
         fun parse(text: String): KeyTabConfig {
             var cfg = KeyTabConfig()
-            for (rawLine in text.lines()) {
-                val line = rawLine.substringBefore('#').trim()
-                if (line.isEmpty()) continue
-                val idx = line.indexOf('=')
-                if (idx <= 0) continue
-                cfg = cfg.with(line.substring(0, idx).trim().lowercase(), line.substring(idx + 1))
-            }
+            for ((key, value) in entries(text)) cfg = cfg.with(key, value)
             return cfg
+        }
+
+        /** Comments start at a whitespace-separated #, except a leading hex color.
+         * URI fragments (image.png#fragment) remain intact. Last duplicate wins.
+         */
+        fun entries(text: String): Map<String, String> = buildMap {
+            for (raw in text.lineSequence()) {
+                val line = raw.trim()
+                if (line.startsWith("#")) continue
+                val index = line.indexOf('=')
+                if (index <= 0) continue
+                val key = line.substring(0, index).trim().lowercase(Locale.ROOT)
+                val value = line.substring(index + 1).trim()
+                val comment = value.indices.firstOrNull { i ->
+                    value[i] == '#' && (i == 0 || value[i - 1].isWhitespace()) &&
+                        !(i == 0 && Regex("#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?(?=\\s|$)").containsMatchIn(value))
+                }
+                put(key, (comment?.let { value.substring(0, it) } ?: value).trim())
+            }
         }
 
         /** Lädt die Config aus [file]; fehlt sie, werden die Defaults genutzt. */

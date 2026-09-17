@@ -90,4 +90,7 @@
     <string name="settings_language_label">Keyboard language</string>
     <string name="settings_suggestions_label">Suggestions</string>
     <string name="language_changed_to">Language: %1$s</string>
+    <string name="theme_trail_toggle">🌊 Typing Trail</string>
+    <string name="theme_trail_hint">The last clicked letter is highlighted and fades step by step with each new input until it disappears completely. Default color: Blue.</string>
+    <string name="theme_color_trail">Trail</string>
 </resources>

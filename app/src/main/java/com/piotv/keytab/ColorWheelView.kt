@@ -109,22 +109,42 @@ class ColorWheelView @JvmOverloads constructor(
         markerPaint.strokeWidth = 4f
     }
 
+    private var tracking = false
+
+    override fun performClick(): Boolean {
+        super.performClick()
+        return true
+    }
+
     override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
-        when (event.action) {
-            android.view.MotionEvent.ACTION_DOWN,
-            android.view.MotionEvent.ACTION_MOVE -> {
-                val dx = event.x - cx
-                val dy = event.y - cy
-                hsv[0] = (Math.toDegrees(atan2(dy.toDouble(), dx.toDouble()))
-                    .toFloat() + 360f) % 360f
-                hsv[1] = (min(dx * dx + dy * dy, radius * radius).let {
-                    kotlin.math.sqrt(it)
-                } / radius).coerceIn(0f, 1f)
-                invalidate()
-                notifyPicked()
+        val dx = event.x - cx
+        val dy = event.y - cy
+        val distSq = dx * dx + dy * dy
+        val inside = radius > 0f && distSq <= radius * radius
+        when (event.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> {
+                if (!inside) return false
+                tracking = true
+                parent?.requestDisallowInterceptTouchEvent(true)
+            }
+            android.view.MotionEvent.ACTION_MOVE -> if (!tracking) return false
+            android.view.MotionEvent.ACTION_UP,
+            android.view.MotionEvent.ACTION_CANCEL -> {
+                if (!tracking) return false
+                tracking = false
+                parent?.requestDisallowInterceptTouchEvent(false)
+                if (inside && event.actionMasked == android.view.MotionEvent.ACTION_UP) performClick()
                 return true
             }
+            else -> return tracking
         }
-        return super.onTouchEvent(event)
+        // Auch beim Ziehen außerhalb des Kreises keine Farbe auswählen.
+        if (inside) {
+            hsv[0] = (Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 360f) % 360f
+            hsv[1] = (kotlin.math.sqrt(distSq) / radius).coerceIn(0f, 1f)
+            invalidate()
+            notifyPicked()
+        }
+        return true
     }
 }

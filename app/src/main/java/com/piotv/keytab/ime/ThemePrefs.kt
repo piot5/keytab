@@ -50,6 +50,12 @@ object ThemePrefs {
     const val KEY_TRAIL_COLOR = "trail_color"
     /** Anzahl der Decay-Stufen bevor die Spur komplett verschwindet (Default 5). */
     const val KEY_TRAIL_STEPS = "trail_steps"
+    /** Korrektur-Trace an/aus: färbt getippte Wörter nach Engine-Urteil. */
+    const val KEY_TRAIL_TRACE = "trail_trace"
+    /** Grundfarbe des Trace für akzeptierte Wörter (Default grün). */
+    const val KEY_TRAIL_ACCEPTED_COLOR = "trail_accepted_color"
+    /** Grundfarbe des Trace für korrigierte Wörter (Default rot). */
+    const val KEY_TRAIL_CORRECTED_COLOR = "trail_corrected_color"
 
     // ---------- Likely Highlighting (Theme-Einstellungen) ----------
     /** Farbe der wahrscheinlichsten nächsten Taste („likely highlight"). */
@@ -68,15 +74,22 @@ object ThemePrefs {
         if (prefs.contains(KEY_TRAIL_COLOR)) prefs.getInt(KEY_TRAIL_COLOR, 0)
         else 0xFF2196F3.toInt()
     /** Anzahl Decay-Stufen. Default 5. */
-    fun trailSteps(prefs: SharedPreferences): Int = prefs.getInt(KEY_TRAIL_STEPS, 5)
-    /** Trail-Farbe mit aktuellem Alpha (Decay). */
-    fun trailColorWithAlpha(prefs: SharedPreferences, step: Int, maxSteps: Int): Int {
-        val base = trailColor(prefs)
-        if (step <= 0 || maxSteps <= 1) return base
-        // Alpha reduziert sich linear von 255 (Schritt 0) auf 0 (Schritt maxSteps)
-        val alpha = (255 * (maxSteps - step).toFloat() / maxSteps).toInt().coerceIn(0, 255)
-        return withAlpha(base, alpha)
-    }
+    fun trailSteps(prefs: SharedPreferences): Int =
+        prefs.getInt(KEY_TRAIL_STEPS, TrailLogic.DEFAULT_STEPS).coerceAtLeast(1)
+    /** Korrektur-Trace an/aus. Default: false (nur zusammen mit Trail sinnvoll). */
+    fun trailTraceEnabled(prefs: SharedPreferences): Boolean =
+        prefs.getBoolean(KEY_TRAIL_TRACE, false)
+    /** Grundfarbe für „Engine kennt das Wort" (grün). */
+    fun trailAcceptedColor(prefs: SharedPreferences): Int =
+        if (prefs.contains(KEY_TRAIL_ACCEPTED_COLOR)) prefs.getInt(KEY_TRAIL_ACCEPTED_COLOR, 0)
+        else 0xFF4CAF50.toInt()
+    /** Grundfarbe für „Fuzzy-Korrektur würde greifen" (rot). */
+    fun trailCorrectedColor(prefs: SharedPreferences): Int =
+        if (prefs.contains(KEY_TRAIL_CORRECTED_COLOR)) prefs.getInt(KEY_TRAIL_CORRECTED_COLOR, 0)
+        else 0xFFF44336.toInt()
+    /** Trail-Farbe mit aktuellem Alpha (Decay) – nutzt dieselbe Formel wie das Overlay. */
+    fun trailColorWithAlpha(prefs: SharedPreferences, step: Int, maxSteps: Int): Int =
+        withAlpha(trailColor(prefs), TrailLogic.alphaForStep(step, maxSteps))
 
     /** Zähler: ändert sich bei jeder Theme-Änderung → IME baut die Tastatur neu. */
     const val KEY_THEME_VERSION = "theme_version"
@@ -164,6 +177,9 @@ object ThemePrefs {
         tr.put("enabled", trailEnabled(prefs))
         tr.put("color", trailColor(prefs))
         tr.put("steps", trailSteps(prefs))
+        tr.put("trace", trailTraceEnabled(prefs))
+        tr.put("accepted_color", trailAcceptedColor(prefs))
+        tr.put("corrected_color", trailCorrectedColor(prefs))
         b.put("trail", tr)
         b.put("version", themeVersion(prefs))
         return b.toString(2)
@@ -197,6 +213,13 @@ object ThemePrefs {
             if (t.has("enabled")) prefs.edit().putBoolean(KEY_TRAIL, t.getBoolean("enabled")).apply()
             if (t.has("color")) prefs.edit().putInt(KEY_TRAIL_COLOR, t.getInt("color")).apply()
             if (t.has("steps")) prefs.edit().putInt(KEY_TRAIL_STEPS, t.getInt("steps")).apply()
+            if (t.has("trace")) prefs.edit().putBoolean(KEY_TRAIL_TRACE, t.getBoolean("trace")).apply()
+            if (t.has("accepted_color")) {
+                prefs.edit().putInt(KEY_TRAIL_ACCEPTED_COLOR, t.getInt("accepted_color")).apply()
+            }
+            if (t.has("corrected_color")) {
+                prefs.edit().putInt(KEY_TRAIL_CORRECTED_COLOR, t.getInt("corrected_color")).apply()
+            }
         }
         bumpVersion(prefs)
         true
@@ -207,6 +230,8 @@ object ThemePrefs {
         prefs.edit().remove(colorKey(true, KIND_BG)).remove(colorKey(true, KIND_KEY))
             .remove(colorKey(true, KIND_HL)).remove(colorKey(true, KIND_TEXT))
             .remove(colorKey(true, KIND_LIKELY)).remove(colorKey(true, KIND_TRAIL))
+            .remove(KEY_TRAIL_TRACE)
+            .remove(KEY_TRAIL_ACCEPTED_COLOR).remove(KEY_TRAIL_CORRECTED_COLOR)
             .remove(colorKey(false, KIND_BG)).remove(colorKey(false, KIND_KEY))
             .remove(colorKey(false, KIND_HL)).remove(colorKey(false, KIND_TEXT))
             .remove(colorKey(false, KIND_LIKELY)).remove(colorKey(false, KIND_TRAIL))

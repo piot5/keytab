@@ -29,7 +29,6 @@
     <string name="theme_dark">🌙 Dark</string>
     <string name="theme_light">☀️ Light</string>
     <string name="storage_denied">Storage access denied – grant the permission in Settings.</string>
-    <string name="request_storage_access">Allow full storage access.</string>
     <string name="btn_back_label">‹</string>
     <string name="btn_up_label">▲</string>
     <!-- File manager (IME) -->
@@ -91,6 +90,9 @@
     <string name="settings_suggestions_label">Suggestions</string>
     <string name="language_changed_to">Language: %1$s</string>
     <string name="theme_trail_toggle">🌊 Typing Trail</string>
-    <string name="theme_trail_hint">The last clicked letter is highlighted and fades step by step with each new input until it disappears completely. Default color: Blue.</string>
+    <string name="theme_trail_hint">The last clicked letter is highlighted and fades step by step with each new input until it disappears completely. Default color: Blue. The trail stays off in password fields.</string>
+    <string name="theme_trail_steps">Steps: %1$d</string>
+    <string name="theme_trail_trace_toggle">🔎 Correction trace</string>
+    <string name="theme_trail_trace_hint">Shows while typing what word prediction is about to do: red = it would auto-correct, green = it accepts the word. Indicator only, nothing is changed. Normal text fields only.</string>
     <string name="theme_color_trail">Trail</string>
 </resources>

@@ -3,6 +3,33 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    // Coverage-Gate (Roadmap Punkt 1): Kover 0.8.3, kompatibel mit AGP 8.5 / Kotlin 1.9
+    id("org.jetbrains.kotlinx.kover") version "0.8.3"
+}
+
+// Coverage-Gate: koverVerify ist das harte Gate (Zeilen-Coverage ≥ 20 %).
+// Der Wert ist bewusst ein unteres Limit gegen grobe Regressionen, kein Ziel:
+// Gemessen wird der gesamte :app-Scope (UI/Service inklusive), die reinen
+// Logik-Klassen liegen individuell deutlich höher.
+kover {
+    reports {
+        verify {
+            rule {
+                bound {
+                    minValue = 20 // Prozent Zeilen-Coverage
+                }
+            }
+        }
+    }
+}
+
+// Bequemer Einpunkt-Task für CI: Report + Log + hartes Gate.
+tasks.register("coverageGate") {
+    group = "verification"
+    dependsOn("koverHtmlReport", "koverLog", "koverVerify")
+    doLast {
+        println("Coverage-Gate bestanden (Schwelle 20 % Zeilen; Report: build/reports/kover)")
+    }
 }
 
 android {

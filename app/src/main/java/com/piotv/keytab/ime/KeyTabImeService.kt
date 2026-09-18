@@ -11,8 +11,6 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import com.piotv.keytab.R
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 /**
  * KeyTab-IME – schlanker Keyboard-Core (Tasten, Shift, Symbole, Long-Press).
@@ -81,8 +79,12 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         internal set
     override val letterPopup = LetterPopup(this)
     override val longPressHandler = Handler(Looper.getMainLooper())
-    private val mainHandler = Handler(Looper.getMainLooper())
-    private val ioExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+    // Phase "Thread-Konsolidierung": gemeinsame Pools statt eigener Instanzen
+    // (siehe KeyTabExecutors) – onDestroy ruft kein shutdownNow() mehr auf,
+    // die Daemons überleben den Service bewusst (Kostet ~0, verhindert
+    // RejectedExecutionException bei erneuter IME-Sitzung).
+    private val mainHandler = KeyTabExecutors.main
+    private val ioExecutor: java.util.concurrent.Executor = KeyTabExecutors.io
     override val baseLetters = mutableMapOf<Button, Char>()
 
     /** Eingabe-Routing (Phase 2): wohin Text fließt (App/Editor/Terminal). */
@@ -187,6 +189,8 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         // Tastatur das erste Mal angezeigt wird) → keyboardBinder ist dann noch
         // nicht initialisiert. Guard verhindert UninitializedPropertyAccessException.
         if (::keyboardBinder.isInitialized) {
+            // Passwort-/Sensibel-Feld: Trail dort hart abschalten (TrailLogic).
+            keyboardBinder.setEditorInfo(attribute)
             keyboardBinder.applyLetterCase(keyboardRoot)
             keyboardBinder.updateShiftVisual(keyboardRoot)
         }
@@ -198,6 +202,9 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         // wenn dasselbe Textfeld weiterläuft – onStartInput feuert dann nicht erneut,
         // die Tastatur zeigte sonst die alten Farben (u. a. Alpha nicht angewendet).
         refreshSettings()
+        // Feldwechsel: Trail in Passwort-/Sensibel-Feldern abschalten. Das feuert
+        // zuverlässiger als onStartInput (z. B. bei Fokuswechsel ohne neues Feld).
+        if (::keyboardBinder.isInitialized) keyboardBinder.setEditorInfo(editorInfo)
     }
 
     private fun autoCapitalize(attribute: android.view.inputmethod.EditorInfo?): Boolean =
@@ -271,7 +278,6 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         letterPopup.dismiss()
         longPressHandler.removeCallbacksAndMessages(null)
         super.onDestroy()
-        ioExecutor.shutdownNow()
         releasePanels()
     }
 }

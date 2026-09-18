@@ -40,7 +40,6 @@
     <string name="theme_dark">🌙 Dark</string>
     <string name="theme_light">☀️ Light</string>
     <string name="storage_denied">Storage access denied — grant permission in settings.</string>
-    <string name="request_storage_access">Allow full storage access</string>
     <string name="btn_back_label">‹</string>
     <string name="btn_up_label">▲</string>
 
@@ -160,7 +159,10 @@
     <string name="theme_gaming_effect">✨ Effekt bei Vervollständigung</string>
     <string name="theme_gaming_hint">Die wahrscheinlichste nächste Taste wird hervorgehoben; sobald das getippte Wort dem Top-Vorschlag entspricht, gibt es einen Puls-Effekt.</string>
     <string name="theme_trail_toggle">🌊 Tippspur (Trail)</string>
-    <string name="theme_trail_hint">Der zuletzt geklickte Buchstabe wird farblich markiert und mit jeder neuen Eingabe stufenweise weniger sichtbar, bis er ganz verschwindet. Standardfarbe: Blau.</string>
+    <string name="theme_trail_hint">Der zuletzt geklickte Buchstabe wird farblich markiert und mit jeder neuen Eingabe stufenweise weniger sichtbar, bis er ganz verschwindet. Standardfarbe: Blau. In Passwort-Feldern bleibt die Spur aus.</string>
+    <string name="theme_trail_steps">Stufen: %1$d</string>
+    <string name="theme_trail_trace_toggle">🔎 Korrektur-Trace</string>
+    <string name="theme_trail_trace_hint">Zeigt beim Tippen, was die Worterkennung mit dem Wort vorhat: rot = es würde automatisch korrigiert, grün = es wird akzeptiert. Nur ein Hinweis, es wird nichts geändert. Nur in normalen Textfeldern.</string>
     <string name="theme_reset">Reset</string>
     <string name="theme_gradient_hint">Farbe 1 / Farbe 2 und deren Alpha stellst du im Farbwahlrad unten ein (Ziel „Farbe 1/2").</string>
     <string name="editor_pick_parent">▲ …</string>

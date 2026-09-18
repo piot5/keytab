@@ -44,6 +44,10 @@ Install: open the APK in a file manager (allow "install unknown apps"), then ena
 
 **Likely highlighting** -- the most likely next key (from the current suggestion scores) glows in an adjustable highlight colour; when the typed word reaches the top suggestion, a pulse effect (colour flash + scale pulse + haptic) fires. Pure logic in `LikelyHighlightLogic`, unit-tested.
 
+**Typing trail + correction trace** -- optional (`trail`, default off). The last key you hit stays tinted and fades step by step (3/5/7/10 steps) as you keep typing, drawn as a *foreground overlay* so key background, corner radius and press state stay untouched. With the correction trace on top (`trail_trace`), the letters of the current word turn **red** when autocorrect would replace it and **green** when the dictionary accepts it — a live, read-only view of what the engine is about to do, which never changes what you type. Pure logic in `TrailLogic`, unit-tested (18 tests).
+
+**Never in password fields** -- the trail is suppressed in password fields and whenever an app sets `IME_FLAG_NO_PERSONALIZED_LEARNING`. This is enforced in code (`TrailLogic.isTrailAllowed`), not by preference: a visible trail over a `•` field would leak keystrokes through a visual side channel. Covered by four unit tests so the rule cannot be removed unnoticed.
+
 **Theme customization** -- long-press the tab/☾ (or ☀) key opens a dedicated *Theme settings* page (also reachable from the app settings): choose dark or light, pick a gradient preset or build your own (color 1 → color 2, top→bottom / inverted / radial), and set the background, key, highlight and text colors **separately and per theme** with a live **color wheel** (hue/saturation), brightness and alpha sliders. Keys, tabs (abc/Notes/Files/Terminal/Snippets), popups and the suggestion bar all recolor while the default look stays identical to stock until you set something. The built-in dark theme uses a darker gray palette (`#1a1a1a` background, `#2e2e2e` keys).
 
 **Terminal tab** -- optional command runner in the keyboard, togglable in settings. Black background, standard prompt `user@host:~$`, cd tracking. **Scope:** it runs the Android system shell (`/system/bin/sh`) inside the app sandbox — good for `ls`/`pwd`/`cat`/`wc`, but it has **no PTY, no userland and no access to Termux or a proot install**. For real work use Termux and KeyTab as the input method; the tab is a convenience, not the workspace (see `docs/REFACTORING_PLAN.md` §4.3).
@@ -54,7 +58,7 @@ Install: open the APK in a file manager (allow "install unknown apps"), then ena
 
 ## Architecture
 
-`KeyTabImeService` is the keyboard core (260 lines of orchestration). Every feature lives in its own class —
+`KeyTabImeService` is the keyboard core (283 lines of orchestration). Every feature lives in its own class —
 panels for UI, controllers for stateful wiring, pure modules for logic (Android-free, unit-testable).
 
 ### Panels (UI features)
@@ -93,8 +97,11 @@ which makes them directly unit-testable with Robolectric and no service mock.
 | `CapsLogic` | Auto-capitalisation decision |
 | `RepeatScheduler` | Backspace repeat timing |
 | `LikelyHighlightLogic` | Likely-next-key scoring and reached detection |
+| `TrailLogic` | Typing-trail decay curve, correction-trace classification, password-field guard |
 | `PanelHeights` | Uniform panel height computation |
 | `LiftSpan` | Text span for the key-lift effect |
+| `EditorHighlightLogic` | Syntax/highlight rule matching for the notes editor |
+| `KeyTabExecutors` | Shared background executor + main handler |
 | `ThemePrefs` | Theme keys, presets, rebuild version counter |
 | `KeyTabConfig` | Config / constants |
 | `InputTargets` | Editor / Terminal input interfaces |
@@ -106,43 +113,50 @@ which makes them directly unit-testable with Robolectric and no service mock.
 | Class | Responsibility |
 |---|---|
 | `WordPredictionManager` | Suggestion orchestration (engine load, bar render, learn, language reload) |
+| `TrailManager` | Renders the typing trail / correction trace as key foreground overlays |
 | `DynamicKeyScaler` | Maps suggestion scores → key sizes via neighbour-aware scaling |
 | `LanguageModule` | Multi-language registry (7 latin scripts) + per-language accents |
 | `FileManagerModel` | File-manager state (current dir, back-stack) — pure and testable |
 | `LetterPopup` | Long-press characters + drag selection |
+| `BackgroundImage` | Keyboard background image loading (fit/cover/stretch) |
+| `SettingsConfig` | Imports/exports `keytab_config.txt` (fills missing keys, fingerprint diffing) |
 | `KeyAnimations` | Key press / scale animation helpers |
 | `ThemedAdapter` | RecyclerView adapter with per-theme colours |
 | `ColorWheelView` | HSV color wheel (hue/saturation) + brightness / alpha |
 | `ThemeApplier` | Recursive theme application on the keyboard view tree |
-| `ThemeSettingsActivity` | Theme settings page, split into 5 section classes |
+| `ThemeSettingsActivity` | Theme settings page, split into section classes (Top / Color / Gradient / Background / Preview / LikelyHighlight / Trail) |
 | `MainActivity, file/FileManagerFragment` | App settings, in-app file manager |
 
 All panels share a background executor for file I/O and a main handler for UI updates; stale results are discarded on navigation.
 ## Tests
 
-Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `PanelHeights`) are fully Android-free and fast.
+Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**118 unit tests in 15 suites, 0 failures** (verified 2026-09-16):
+**164 unit tests in 19 suites, 0 failures** (verified 2026-09-17, `assembleDebug` + `testDebugUnitTest` both green):
 
 | Suite | Tests | Kind |
 |---|---:|---|
 | `TextEditLogicTest` | 20 | pure |
-| `SuggestionEngineTest` | 18 | pure |
+| `SuggestionEngineTest` | 19 | pure |
+| `TrailLogicTest` | 18 | pure |
 | `FileManagerModelTest` | 11 | pure |
+| `EditorHighlightLogicTest` | 11 | pure |
 | `KeyScaleLogicTest` | 10 | pure |
-| `ThemeApplierTest` | 7 | Robolectric |
-| `ShiftControllerTest` | 6 | pure |
-| `KeyTabConfigTest` | 6 | pure |
+| `KeyTabConfigTest` | 8 | pure |
 | `InputRouterTest` | 8 | Robolectric |
-| `EditorPanelTest` | 6 | Robolectric |
+| `EditorPanelTest` | 8 | Robolectric |
+| `ThemeApplierTest` | 7 | Robolectric |
+| `SettingsConfigTest` | 7 | Robolectric |
+| `ShiftControllerTest` | 6 | pure |
 | `CapsLogicTest` | 6 | pure |
+| `SettingsRegressionTest` | 5 | Robolectric |
 | `LikelyHighlightLogicTest` | 5 | pure |
 | `ClipboardPanelTest` | 5 | Robolectric |
 | `LiftSpanTest` | 4 | pure |
 | `KeyAnimationsTest` | 4 | Robolectric |
 | `PanelHeightsTest` | 2 | pure |
 
-Test code is 1,697 lines against 5,704 lines of main code — a **29.7 % test-to-main ratio**. Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
+Test code is 2,350 lines in 19 files against 7,020 lines of main code (51 files) — a **33.5 % test-to-main ratio**. Line coverage measured with Kover is **33.5 %** (`LINE` 1147/3428), branch coverage **31.8 %** (`BRANCH` 784/2462); the CI gate is 20 %. Coverage is concentrated in the Android-free logic (`com.piotv.keytab.ime`: 41.3 %), while the theme UI sections (`sections`: 9.9 %) and the in-app file manager (`file`: 0 %) are untested — see [Known gaps](#known-gaps). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
 
 ```bash
 # Run all unit tests
@@ -154,6 +168,20 @@ sh ./gradlew :app:testDebugUnitTest --tests "com.piotv.keytab.ime.SuggestionEngi
 # Run a single test class
 sh ./gradlew :app:testDebugUnitTest --tests "com.piotv.keytab.ime.SuggestionEngineTest"
 ```
+
+## Known gaps
+
+Documented honestly rather than implied away — these are the things that are **not** verified or covered:
+
+| Gap | Detail |
+|---|---|
+| **Trail performance not measured** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.autoCorrect`, a Damerau-Levenshtein pass over the char index). No frame timing, no profiling, no benchmark exists. Logic is unit-tested; smoothness on a real display is **not** verified. Mitigation if it stutters: restrict the trace to `knowsWord` and check `autoCorrect` only on word completion. |
+| **Trail visuals not screenshot-verified** | The regression fix for contradictory trace states (see 0.9.7) is proven at the **state level** by unit tests — no screenshot or instrumented test asserts the rendered colours. The red/green contrast against each custom theme palette has not been measured. |
+| **Theme UI sections untested** | `com.piotv.keytab.sections` sits at **9.9 %** line coverage; the colour wheel, gradient editor and background-image picker have no automated interaction tests. |
+| **In-app file manager untested** | `com.piotv.keytab.file` is at **0 %** line coverage — the fragment depends on `RecyclerView`/`DiffUtil` and has no Robolectric suite. |
+| **English locale incomplete** | `values-en` has 92 strings against 163 in the default (German) file; the rest fall back to German in an English-locale device. |
+| **Terminal has no PTY** | By design — see the Terminal description above. It is the Android system shell in the app sandbox, not a Termux replacement. |
+| **Instrumented tests are thin** | 2 tests in 44 lines. They run in CI on an API-34 emulator but do not exercise the keyboard UI. |
 
 ## Build
 
@@ -209,20 +237,22 @@ Or copy the APK, open it in a file manager, and confirm the package installer di
 ## Project structure
 
 ```
-app/src/main/java/com/piotv/keytab/            # 43 Kotlin files, 5,704 lines
+app/src/main/java/com/piotv/keytab/            # 51 Kotlin files, 7,020 lines
 ├── Prefs.kt                       # Central preference keys
 ├── MainActivity.kt                # Settings: enable keyboard, theme, language, toggles
 ├── ThemeSettingsActivity.kt       # Theme settings: color wheel, gradients, per-theme colors
 ├── ColorWheelView.kt              # HSV color wheel widget
 ├── file/FileManagerFragment.kt    # File manager in the app (with DiffUtil)
-├── sections/                      # Theme settings page, split into 5 classes
+├── sections/                      # Theme settings page, split into section classes
 │   ├── TopSection.kt              #   theme choice + gradient presets
 │   ├── ColorSection.kt            #   color wheel + sliders
 │   ├── GradientSection.kt         #   gradient preview
+│   ├── BackgroundSection.kt       #   background image (fit/cover/stretch)
 │   ├── LikelyHighlightSection.kt  #   likely-highlighting toggles
+│   ├── TrailSection.kt            #   typing trail: on/off, steps, correction trace
 │   └── PreviewSection.kt          #   live preview
 └── ime/
-    ├── KeyTabImeService.kt   # Keyboard core / orchestration (260 lines)
+    ├── KeyTabImeService.kt   # Keyboard core / orchestration (283 lines)
     ├── KeyboardHost.kt       # Interface consumed by the controllers
     ├── KeyboardViewFactory.kt # Builds the keyboard view tree
     ├── KeyboardBinder.kt     # Touch / long-press, backspace repeat
@@ -233,6 +263,8 @@ app/src/main/java/com/piotv/keytab/            # 43 Kotlin files, 5,704 lines
     ├── TextCommitController.kt # commitText / commitToApp routing
     ├── ThemePrefs.kt         # Theme keys/presets + rebuild version
     ├── ThemeApplier.kt       # Recursive theme application on the view tree
+    ├── BackgroundImage.kt    # Keyboard background image decoding
+    ├── SettingsConfig.kt     # keytab_config.txt import/export
     ├── FileManagerPanel.kt   # IME file manager
     ├── EditorPanel.kt        # Notes editor with folder browser
     ├── ClipboardPanel.kt     # Clipboard history (picker dialog)
@@ -244,20 +276,24 @@ app/src/main/java/com/piotv/keytab/            # 43 Kotlin files, 5,704 lines
     ├── LanguageModule.kt     # Multi-language registry (7 latin scripts)
     ├── KeyScaleLogic.kt      # Pure scaling math (stepped grades)
     ├── TextEditLogic.kt      # Pure, testable text logic
+    ├── EditorHighlightLogic.kt # Highlight rules for the notes editor
     ├── CapsLogic.kt          # Auto-capitalisation decision
     ├── RepeatScheduler.kt    # Backspace repeat timing
     ├── LikelyHighlightLogic.kt # Likely-next-key scoring
+    ├── TrailLogic.kt         # Trail decay + correction-trace classification
+    ├── TrailManager.kt       # Renders the trail as key foreground overlays
     ├── PanelHeights.kt       # Uniform panel heights
     ├── FileManagerModel.kt   # File-manager state (pure)
     ├── LetterPopup.kt        # Long-press characters + drag selection
     ├── KeyAnimations.kt      # Key press/scale animation helpers
     ├── ThemedAdapter.kt      # RecyclerView adapter with per-theme colors
+    ├── KeyTabExecutors.kt    # Shared executor + main handler
     └── …                     # InputTargets, LiftSpan, KeyTabConfig
 
-app/src/test/java/com/piotv/keytab/ime/        # 15 suites, 118 tests, 1,697 lines
+app/src/test/java/com/piotv/keytab/ime/        # 19 test classes, 164 tests, 2,350 lines
 app/src/androidTest/                           # 2 instrumented tests (CI: API 34 emulator)
-app/src/main/res/values/strings.xml            # 158 strings
-app/src/main/res/values-en/                    # English locale
+app/src/main/res/values/strings.xml            # 163 strings (default = German)
+app/src/main/res/values-en/                    # English locale (92 strings — partial, falls back to German)
 app/src/main/res/values-night/                 # Night-mode resource qualifiers
 app/src/main/assets/
 ├── de_freq_top6000.txt              # corpus (CC-BY-SA-4.0)
@@ -269,6 +305,19 @@ app/src/main/assets/
 └── nl_freq_top6000.txt              # Dutch corpus (CC-BY-SA-4.0)
 ```
 ## Changelog
+
+### 0.9.7
+
+- **Trail (typing trail + correction trace, theme settings section „Trail")**: the last clicked letter is highlighted and fades step by step with each new input until it disappears (`trail_steps`, default 5, adjustable 3/5/7/10). Drawn as a **foreground overlay** (`Button.setForeground`), so key background, corner radius and press state stay untouched (earlier bug: `SRC_IN` tint on the shared background drawable made keys invisible). Optional (`trail`, default off), colour via the theme colour wheel.
+
+  **Correction trace** (`trail_trace`, default off): while typing, the letters of the current word are tinted **red** when automatic correction would replace the word, **green** when the dictionary accepts it. Pure classification in `TrailLogic.classifyTypedWord` (unit-tested); the trace is a read-only indicator — it never changes what gets typed.
+
+  **One state per letter (bug fix):** the trace is applied **atomically per word** — `TrailManager.traceWord` clears every previous trace entry first (`clearTrace`, which leaves the plain typing trail untouched), and `snap` never overwrites an existing trace entry of the same letter. Both are required because `steps`/`kinds` are keyed by **letter**, not by occurrence: typing `hauss` had `traceWord("haus")` mark all four letters red, and the second `s` tap then overwrote `kinds['s']` with `TYPED` while `steps['s'] = 0` remained — the key showed a mixed colour. Since every occurrence of a letter maps to the same key, contradictory states were visible as overlay artefacts.
+
+  **Safety:** the trail never appears in password fields or when an app sets `IME_FLAG_NO_PERSONALIZED_LEARNING` — `TrailLogic.isTrailAllowed` enforces this in code, not via preference, because a visible trail over a `•` field would leak keystrokes (`CapsLogic` already excluded the same password variations from auto-capitalisation).
+- **Config file**: `trail`, `trail_trace` and `trail_steps` are now settable from `keytab_config.txt` (see `docs/CONFIG.md`). The importer gained the missing `int` branch — without it `trail_steps` would have been silently skipped.
+- **Notes editor**: highlight rules extracted into `EditorHighlightLogic` (Android-free, unit-tested); shared executors moved to `KeyTabExecutors`.
+- **Trail logic extracted** into `TrailLogic` (Android-free, unit-tested) — the decay formula now has a single source, previously duplicated between `TrailManager` and `ThemePrefs.trailColorWithAlpha`.
 
 ### 0.9.6
 
@@ -379,11 +428,19 @@ app/src/main/assets/
 
 Planned, in priority order (see `docs/REFACTORING_PLAN.md` for the full audit and rationale):
 
-1. **Coverage gate** (JaCoCo/Kover) in CI, plus more Robolectric panel tests.
-2. **Split the 697-line `keyboard_view.xml`** into `<include>`s.
-3. **Replace `MANAGE_EXTERNAL_STORAGE`** with SAF / `READ_MEDIA_*` to become Play-Store eligible.
-4. **Editor: syntax highlighting + line numbers**.
-5. **Finish the coroutine migration** (2 remaining `Handler`s + the background executor).
+1. ~~**Coverage gate** (Kover) in CI~~ — **done**: `:app:coverageGate` with a 20 % line threshold,
+   baseline **33.5 %** (`LINE` 1147/3428, measured 2026-09-17); CI job `coverage`
+   uploads the report. Next: more Robolectric panel tests — the theme sections (9.9 %)
+   and the in-app file manager (0 %) are the weakest areas.
+2. ~~**Split the 697-line `keyboard_view.xml`**~~ — **done**: rows now live in
+   `panel_keyboard_letters.xml` (106 lines) + `panel_keyboard_symbols.xml` (61 lines),
+   embedded via `<include>` (head file 579 lines).
+3. ~~**Replace `MANAGE_EXTERNAL_STORAGE`**~~ — **done** (permission + button + intent removed;
+   `READ_MEDIA_*` + app dirs remain) → Play-Store eligible permission-wise.
+4. ~~**Editor: line numbers**~~ and **heuristic syntax highlighting** — **done**
+   (`EditorHighlightLogic` + gutter in `EditorPanel`).
+5. **Finish the coroutine migration** — threading is centralised in `KeyTabExecutors`, the two
+   remaining `Handler`s are shared; true coroutines are still open.
 6. **Optional: PTY for the terminal tab** — it currently pipes stdin/stdout without a pseudo-terminal, so interactive TUI programs and ANSI colours cannot work. A PTY would turn the tab into a real terminal, but is a large change for a convenience feature; documenting the limitation was preferred (see §4.3).
 
 Explicitly *not* planned: cloud sync, glide typing, 100+ languages — those are Gboard dimensions that cannot be won here.
@@ -395,7 +452,7 @@ Explicitly *not* planned: cloud sync, glide typing, 100+ languages — those are
 Issues and pull requests are welcome. Before opening a PR:
 
 ```bash
-sh ./gradlew :app:testDebugUnitTest --offline   # 133 tests must stay green
+sh ./gradlew :app:testDebugUnitTest --offline   # 146 tests must stay green
 bash build_keytab.sh debug                      # must build
 ```
 

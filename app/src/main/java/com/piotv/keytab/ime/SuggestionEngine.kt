@@ -56,6 +56,8 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         }
     }
 
+    private val revisionCounter: Long = 0
+
     /** Basiswortschatz: word → normalisierte Log-Frequenz (0..1). */
     private val baseFreq: MutableMap<String, Double> = ConcurrentHashMap()
     /** Gelernte Wörter: word → Gewicht. */
@@ -115,6 +117,19 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
 
     fun knowsWord(word: String): Boolean =
         baseFreq.containsKey(word.lowercase()) || userFreq.containsKey(word.lowercase())
+
+    val revision: Long get() = revisionCounter
+
+    /** Jede Änderung im gelernten Bereich erhöht die Revision. */
+    fun incrementRevision() {
+        revisionCounter++
+    }
+
+    /** Lesend: Zugriff auf gelernte Einzelwörter (nicht Basis-Korpus). */
+    val userFreq: Map<String, Double> get() = userFreq
+
+    /** Lesend: Zugriff auf gelernte Bigramme (nicht Basis-Korpus). */
+    val bigrams: Map<String, Double> get() = bigrams
 
     /**
      * Lernen: [word] wurde soeben abgeschlossen (Space/Enter/Punkt), [prevWord]
@@ -260,6 +275,12 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         // Nur korrigieren, wenn der Kandidat ein echtes Wörterbuchwort ist
         return best?.takeIf { baseFreq.containsKey(it) || (userFreq.containsKey(it) && bestScore > 0.3) }
     }
+
+    /** Lesend: Zugriff auf gelernte Einzelwörter (nicht Basis-Korpus). */
+    val userFreq: Map<String, Double> get() = userFreq
+
+    /** Lesend: Zugriff auf gelernte Bigramme (nicht Basis-Korpus). */
+    val bigrams: Map<String, Double> get() = bigrams
 
     // ---------- Persistenz ----------
 

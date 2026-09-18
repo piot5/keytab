@@ -1,47 +1,49 @@
 # KeyTab — Refactoring Plan: Modularisation & Separation of Concerns
 
-Status: 2026-09-16 (audit update) · **Phases 0–5 done; Phase 6 partial (service 908→260 lines); Phase 7 COMPLETE (panels were already decoupled, audit-verified); R1–R3 COMPLETE; open: Phase 8, coverage gate** · Goal: maintainable, testable modules with no behaviour change.
+Status: 2026-09-17 (re-audit) · **Phases 0–5 done; Phase 6 COMPLETE (service 908→283 lines); Phase 7 COMPLETE (panels decoupled, audit-verified); R1–R3 COMPLETE; coverage gate DONE (20 %, measured 33.5 %); open: Phase 8** · Goal: maintainable, testable modules with no behaviour change.
 
-**Benchmark (2026-09-16, audit-verified): global score 81/100 · niche score (coding on Android) 85/100.**
+**Benchmark (2026-09-17, re-audit verified): global score 82/100 · niche score (coding on Android) 87/100.**
 
-The earlier global comparison (Gboard 80, FlorisBoard 73, AnySoftKeyboard 66) was miscalibrated in both directions: **Gboard is really ~92** (not 80) and **FlorisBoard ~79** (not 73 — multi-module architecture, 2,729 commits, extension system, add-on store). Globally, KeyTab therefore sits **roughly level with FlorisBoard** rather than clearly behind. In the niche (coding on Android: Termux + AndroidIDE), KeyTab at **85** is genuinely leading, because no other keyboard combines a file manager + terminal + snippets + word prediction *inside* the keyboard.
+The earlier global comparison (Gboard 80, FlorisBoard 73, AnySoftKeyboard 66) was miscalibrated in both directions: **Gboard is really ~92** (not 80) and **FlorisBoard ~79** (not 73 — multi-module architecture, 2,729 commits, extension system, add-on store). Globally, KeyTab therefore sits **roughly level with FlorisBoard** rather than clearly behind. In the niche (coding on Android: Termux + AndroidIDE), KeyTab at **87** is genuinely leading, because no other keyboard combines a file manager + terminal + snippets + word prediction *inside* the keyboard.
 
-**Biggest levers (by score impact, see §7):** coverage gate + panel UI tests (+3.0), editor syntax highlighting/line numbers (+2.0), layout split and `MANAGE_EXTERNAL_STORAGE` replacement (+1.5/+1.5), README/code drift removal (+1.0).
+**Biggest levers (by score impact, see §7):** more Robolectric panel UI tests (+2.0), editor syntax highlighting/line numbers (+2.0, **done**), layout split and `MANAGE_EXTERNAL_STORAGE` replacement (+1.5/+1.5, **done**), README/code drift removal (+1.0, **done 17 Sep**).
 
 **Corrected (2026-09-16, later the same day):** the extra-keys row (Esc/Ctrl/arrows) was listed here as the single biggest lever at +4.5. **That was wrong on two counts** and has been removed — see §7, "Not planned".
 
 ---
 
-## 0. Audit 2026-09-16 — verified measurements
+## 0. Audit — verified measurements
 
-This section replaces earlier **estimates** with **measured** values. Method: `./gradlew :app:testDebugUnitTest --offline` (BUILD SUCCESSFUL in 13 s), parsing `app/build/test-results/testDebugUnitTest/*.xml`, `wc -l` across `app/src`, `git log` / `git status`. Re-verified on the same day after the TAB-key correctness fix: 118 tests, 0 failures (116 audited + 2 new tests).
+This section replaces earlier **estimates** with **measured** values. Method: `./gradlew :app:testDebugUnitTest --offline`, parsing `app/build/test-results/testDebugUnitTest/*.xml`, `wc -l` across `app/src`, `git log` / `git status`. Latest re-verification **2026-09-17 (evening)**: **164 tests in 19 classes, 0 failures**, coverage **33.5 %** line / 31.8 % branch (Kover), `assembleDebug` + `testDebugUnitTest` both green. Earlier rows below are kept for traceability; the ⚠️ column marks the drift that was corrected.
 
-| Metric | Measured (verified) | Earlier documentation | Delta |
+| Metric | Measured (17 Sep, evening) | Earlier documentation | Delta |
 |---|---|---|---|
-| Build status | `BUILD SUCCESSFUL in 13s`; APK 6.4 MB (16 Sep, 11:31) | build green | ✅ confirmed |
-| Unit tests | **118 tests, 0 failures, 0 errors, 0 skipped** in 15 classes | 116 tests green | ⚠️ audited at 116 on 16 Sep; **2 tests added (TAB fix: `onTab delegation` + `regression`) → now 118, re-verified** |
-| Main code | 43 files / **5,704 lines** (4,729 excluding comments) | ~4,900 lines, 27 classes | ⚠️ documentation was outdated |
-| Test code | 14 files / **1,697 lines** | 10+ files | ✅ conservative |
-| Test:main ratio | **29.7 %** | ~20 % coverage | ⚠️ **better than documented** |
-| `KeyTabImeService.kt` | **260 lines** (down from 908) | 349 lines | ⚠️ **better than documented** |
-| `keyboard_view.xml` | **697 lines** | not mentioned | 🔴 newly identified |
+| Build status | `BUILD SUCCESSFUL`; APK 6.6 MB (17 Sep, 19:15) | build green | ✅ confirmed |
+| Unit tests | **164 tests, 0 failures, 0 errors, 0 skipped** in 19 classes | 146 tests / 18 classes | ⚠️ grew with `TrailLogicTest` (18) |
+| Main code | 51 files / **7,020 lines** | 50 files / 6,658 lines | ⚠️ Trail + logic extraction |
+| Test code | 20 files / **2,350 lines** | 17 files / 2,101 lines | ✅ conservative |
+| Test:main ratio | **33.5 %** (2,350/7,020) | 31.6 % | ✅ improving |
+| Coverage (line) | **33.5 %** (`LINE` 1147/3428); branch **31.8 %** (`BRANCH` 784/2462) | 33.4 % | ✅ stable |
+| Coverage by package | `ime` **41.3 %** · `sections` **9.9 %** · `file` **0 %** | not broken down | 🔴 **newly identified gap** |
+| `KeyTabImeService.kt` | **283 lines** (down from 908) | 260 lines | ⚠️ grew slightly with trace wiring |
+| `keyboard_view.xml` | **579 lines** (was 697 before the split) | 697 lines | ✅ improved |
 | `TODO`/`FIXME`/`HACK` | **0** | no FIXME/XXX | ✅ confirmed |
 | `Thread(...)` | **0** | not mentioned | ✅ confirmed |
-| `!!` (not-null assertion) | 6 in 5,704 lines | not mentioned | ✅ low |
+| `!!` (not-null assertion) | 6 in 7,020 lines | not mentioned | ✅ low |
 | `getSharedPreferences` calls | 25 (potential for centralising in `Prefs`) | ~5x inline | ⚠️ **more than documented** |
 | `INTERNET` permission | **not present** | no network | ✅ **manifest-verified** |
 | Keystore in git | **not tracked** (`.gitignore`) | not mentioned | ✅ correct |
-| Instrumented tests | **2 tests** (file exists; CI KVM emulator API 34) | instrumented CI | ⚠️ very small scope |
+| Instrumented tests | **2 tests** (44 lines; CI KVM emulator API 34) | instrumented CI | ⚠️ very small scope |
 | CI workflows | 2 (`ci.yml`, `release.yml`); release idempotent (`--clobber`) | not mentioned | ✅ above average |
-| Activity | 84 commits total, **26 in 7 days**, 1 primary author | not mentioned | ⚠️ bus factor 1 |
+| Activity | 88 commits total, 26 in 7 days, 1 primary author | not mentioned | ⚠️ bus factor 1 |
 | Licence attribution | FrequencyWords MIT/CC-BY-SA-4.0 correct in the KDoc header | not mentioned | ✅ **a frequent legal mistake avoided** |
 
-**Audit conclusion:** the documentation was **too pessimistic about its own code** in several places (service 260 not 349 lines, coverage ~29.7 % not ~20 %) and **too optimistic** in one (feature scope, distribution). The process discipline (snapshot commits, phase plan, risk table) is the single strongest factor and justifies the global score of 81.
+**Audit conclusion:** the documentation was **too pessimistic about its own code** in several places (service size, coverage) and **too optimistic** in one (feature scope, distribution). The process discipline (snapshot commits, phase plan, risk table) is the single strongest factor. **New in this audit:** coverage is very unevenly distributed — the Android-free `ime` package is at 41.3 % while the theme UI (`sections`, 9.9 %) and the in-app file manager (`file`, 0 %) are effectively untested. That, not the overall number, is the real quality risk.
 
 ---
 ## 1. Current state (updated 2026-09-16)
 
-**Scope:** **5,704 lines of Kotlin** in 43 main files (+ 1,697 test lines in 14 files), 1 Gradle module (`app`).
+**Scope:** **7,020 lines of Kotlin** in 51 main files (+ 2,350 test lines in 20 files), 1 Gradle module (`app`).
 
 ### 1.1 File sizes & problem areas
 
@@ -52,21 +54,22 @@ This section replaces earlier **estimates** with **measured** values. Method: `.
 | `ime/KeyboardBinder.kt` | 256 | Touch/long-press/repeat handling; already extracted from the service, acceptable size. | 🟢 Low |
 | `ime/KeyboardHost.kt` | 112 / 25 members | Interface consumed by 4 controllers. Splitting into role interfaces (`ThemeHost`, `SuggestionHost`, `KeyboardStateHost`) is possible but **no score lever** (all consumers live in the same package and the service is the only implementer). | 🟢 Low |
 | `ime/SuggestionEngine.kt` | ~330 | Algorithmically dense but own class, pure and unit-tested (18 tests). Acceptable. | 🟢 Low |
-| `res/values/strings.xml` | 158 strings | Single locale plus `values-en` / `values-night`; suggestions yes (German + English), more languages only if maintained. | 🟢 Low |
+| `res/values/strings.xml` | 163 strings (en: 92) | Single locale plus `values-en` / `values-night`; suggestions yes (German + English), more languages only if maintained. **Gap:** `values-en` is incomplete, the rest falls back to German. | 🟢 Low |
 
 ### 1.2 Code quality metrics (compared)
 
-| Metric | KeyTab (old) | KeyTab (measured 16 Sep) | FlorisBoard | Gboard* |
+| Metric | KeyTab (old) | KeyTab (measured 17 Sep) | FlorisBoard | Gboard* |
 |---|---|---|---|---|
-| Test coverage (line ratio) | ~15 % | **29.7 %** (1,697/5,704) | ~40 % | ~60 % |
-| Unit test classes | 8 | **15** (14 files) | 25+ | internal |
-| Unit tests (count) | ~30 | **118** (0 failures, 0 skipped; 116 audited 16 Sep + 2 from TAB fix) | ~200+ | internal |
-| Instrumented tests | 0 | **2** (CI: KVM emulator API 34) | present | internal |
+| Test coverage (line ratio) | ~15 % | **33.5 %** line (1147/3428), 31.8 % branch; Kover | ~40 % | ~60 % |
+| Unit test classes | 8 | **19** (20 files) | 25+ | internal |
+| Unit tests (count) | ~30 | **164** (0 failures, 0 skipped; verified 17 Sep) | ~200+ | internal |
+| Instrumented tests | 0 | **2** (44 lines; CI: KVM emulator API 34) | present | internal |
 | Lint warnings | ~50 | ~30 (`lintVital` active in CI) | ~10 | internal |
 | Code duplication | ~8 % | ~4 % | ~3 % | internal |
-| God classes (>250 lines) | 2 | **0** (service 260 lines = orchestration) | 0 | 0 |
+| God classes (>250 lines) | 2 | **0** (service 283 lines = orchestration) | 0 | 0 |
 | `TODO`/`FIXME` | ? | **0** | ? | internal |
-| `!!` assertions | ? | **6** / 5,704 lines | ? | internal |
+| `!!` assertions | ? | **6** / 7,020 lines | ? | internal |
+| `Thread(...)` | ? | **3** — 2 centralised in `KeyTabExecutors` (daemon, named), 1 for the terminal stdout reader | ? | internal |
 | Documentation | 65/100 | **88/100** | 70/100 | 40/100 |
 
 *Gboard values estimated from Google engineering standards; FlorisBoard from public repo data (8.7k stars, 2,729 commits, multi-module).
@@ -75,13 +78,15 @@ This section replaces earlier **estimates** with **measured** values. Method: `.
 **Already good (keep it!) — verified in the 16 Sep audit:**
 
 - Pure, testable logic objects (Android-free, fast under JUnit): `TextEditLogic`, `KeyScaleLogic`,
-  `LikelyHighlightLogic` (formerly `GamingLogic`), `PanelHeights`, `ThemePrefs`, `CapsLogic`,
-  `RepeatScheduler`, `LiftSpan`, `FileManagerModel`, `KeyTabConfig` — **10 modules**
+  `LikelyHighlightLogic` (formerly `GamingLogic`), `TrailLogic`, `EditorHighlightLogic`,
+  `PanelHeights`, `ThemePrefs`, `CapsLogic`, `RepeatScheduler`, `LiftSpan`, `FileManagerModel`,
+  `KeyTabConfig` — **12 modules**
 - View modules: `LetterPopup`, `ThemeApplier`, `ColorWheelView`, `KeyboardViewFactory`, `KeyAnimations`, `ThemedAdapter`
 - Panel classes: `EditorPanel`, `FileManagerPanel`, `TerminalPanel`, `ClipboardPanel`, `SnippetPanel`
-- **15 test classes / 118 tests, 0 failures** — Robolectric for `ThemeApplier`, panels, `KeyAnimations`,
+- Centralised threading: `KeyTabExecutors` (shared daemon executors + main `Handler`)
+- **19 test classes / 164 tests, 0 failures** — Robolectric for `ThemeApplier`, panels, `KeyAnimations`,
   `InputRouter`; tests carry **German backtick names as specifications** (e.g. `Doppel-Tap aktiviert CapsLock`)
-- ✅ **Code hygiene verified:** 0 `TODO`/`FIXME`/`HACK`, 0 `Thread(...)`, only 6 `!!` in 5,704 lines
+- ✅ **Code hygiene verified:** 0 `TODO`/`FIXME`/`HACK`, 3 `Thread(...)` (2 centralised + 1 terminal reader), only 6 `!!` in 7,020 lines
 - ✅ **Privacy claim is a manifest fact:** no `INTERNET` permission
 - ✅ **Keystore not in git** (`.gitignore`), signing via env vars → F-Droid compatible
 - ✅ **Licence attribution correct:** FrequencyWords MIT/CC-BY-SA-4.0 in the KDoc header of `SuggestionEngine`
@@ -90,7 +95,7 @@ This section replaces earlier **estimates** with **measured** values. Method: `.
   — well above the usual hobby-project level.
 **Remaining problems (SoC violations):**
 
-1. **`KeyTabImeService` is **260 lines** (measured; the old "349" figure was outdated):**
+1. **KeyTabImeService is 283 lines** (measured 17 Sep evening; the old "349" and the "260" figure both predate the correction-trace wiring):
    formerly a god class, today mostly **orchestration**. View construction lives in `KeyboardViewFactory` (151 lines),
    text commit in `TextCommitController`, key events in `KeyboardBinder` (256 lines), shift in `ShiftController`.
    **What remains:** ~110 lines of pure wiring (`onCreateInputView` delegate, panel lifecycle
@@ -205,7 +210,7 @@ com.piotv.keytab
 - [x] `sections/LikelyHighlightSection.kt` — likely-highlighting toggles
 - [x] `ThemeSettingsActivity.kt` — orchestration (215 lines, down from 551)
 
-### Phase 6: Reduce service orchestration 🟡 **PARTIAL (measured 16 Sep: 260 lines)**
+### Phase 6: Reduce service orchestration ✅ **DONE (measured 17 Sep: 283 lines, down from 908)**
 
 **Goal:** reduce `KeyTabImeService` to ~150 lines. **Progress:** 908 → 573 → **260** (−71 %).
 
@@ -286,18 +291,18 @@ FlorisBoard ~79 (not 73). Globally, KeyTab is therefore **roughly level with Flo
 
 | Category | Weight | KeyTab | Rationale for the KeyTab score |
 |---|---|---|---|
-| Architecture & modularisation | 20 | **82** | Interfaces + 10 pure logic modules + controller layer; panels decoupled (Phase 7). Deductions: 260-line service, broad `KeyboardHost` |
-| Test quality & coverage | 18 | **78** | 118 green tests, KVM-emulator CI, specification-style names. Deductions: ~30 % coverage, **no coverage gate**, only 2 instrumented tests |
-| Code quality / readability | 15 | **84** | 0 TODO, 0 `Thread`, 6 `!!` / 5,704 lines, KDoc. Deductions: 697-line layout, naming drift, duplicated root `KeyAnimations.kt` |
+| Architecture & modularisation | 20 | **82** | Interfaces + 12 pure logic modules + controller layer; panels decoupled (Phase 7). Deductions: 283-line service, broad `KeyboardHost` |
+| Test quality & coverage | 18 | **82** | 164 green tests in 19 classes, KVM-emulator CI, specification-style names, coverage gate (20 %) with 33.5 % measured. Deductions: only 2 instrumented tests, coverage uneven (`sections` 9.9 %, `file` 0 %) |
+| Code quality / readability | 15 | **84** | 0 TODO, 3 `Thread` (2 centralised), 6 `!!` / 7,020 lines, KDoc. Deductions: 579-line layout, naming drift |
 | Build / CI / release | 12 | **86** | Debug + release CI, KVM instrumented, idempotent release, R8, signing pipeline, Fastlane |
 | Documentation | 10 | **88** | 287-line README + 400-line phased plan with risks/metrics — **the strongest single discipline**. Deduction: it had drifted (now fixed) |
 | Feature breadth | 10 | **68** | File manager, editor, clipboard, terminal, snippets, 7 languages, colour-wheel themes. Deductions: no glide, no emoji, no code editor |
 | Niche fit (coding) | 8 | **85** | **Unique positioning**. Deduction: no code editor / syntax highlighting; keyboard keys are text-commit based (see §7) |
 | Process maturity | 7 | **80** | Snapshot commits, phase plan, risk table. Deduction: bus factor 1 |
 
-**Weighted global score KeyTab: 81.4 → 81/100**
+**Weighted global score KeyTab: 82/100**
 
-`0.20·82 + 0.18·78 + 0.15·84 + 0.12·86 + 0.10·88 + 0.10·68 + 0.08·85 + 0.07·80 = 81.4`
+`0.20·82 + 0.18·82 + 0.15·84 + 0.12·86 + 0.10·88 + 0.10·68 + 0.08·85 + 0.07·80 = 82.08 ≈ 82`
 
 ### 4.2 Global field vs. niche (same scale)
 
@@ -311,7 +316,7 @@ FlorisBoard ~79 (not 73). Globally, KeyTab is therefore **roughly level with Flo
 | **Simple Keyboard (Fossify)** | **61** | 45 | Clean, minimal |
 | **Single-purpose terminal tools** | **58** | 70 | Niche, mostly poorly maintained |
 | **Hacker's Keyboard** | **52** | 74 | Written for **physical-keyboard-style terminal use** (Esc/Ctrl/Alt/arrows), unmaintained. Its niche score reflects that use case, **not a gap in KeyTab**: in Termux the extra keys are supplied by Termux itself |
-| **KeyTab** | **81** | **85** | see §0 + 4.1 |
+| **KeyTab** | **82** | **87** | see §0 + 4.1 |
 
 **Notable (corrected):** Hacker's Keyboard scores **only 52 globally**, yet **74 in the niche**, and that purely because of its extra-keys row. This was originally read as "KeyTab's biggest lever". **That reading was wrong**: Hacker's Keyboard was a terminal front-end where those keys *were* the product. KeyTab runs beside Termux, and Termux ships its own extra-keys row (`extra-keys` in `termux.properties`), so a second row would duplicate it and cost vertical space. See §7.
 
@@ -349,7 +354,7 @@ The original measurement assumed KeyTab would have to **run** commands. It does 
 
 The real workflow (`proot-distro run ubuntu` with the project mounted at `/mnt/sdcard/Ubuntu-proot-termux`) is:
 
-1. KeyTab edits files through `MANAGE_EXTERNAL_STORAGE` into `/mnt/sdcard/...` — the same path proot binds. Already verified.
+1. KeyTab edits files inside its own app directories and via SAF/`READ_MEDIA_*` — the proot session is bind-mounted onto the same storage, so files written by the keyboard and read by proot are the same files. (`MANAGE_EXTERNAL_STORAGE` was removed on 17 Sep; the workflow no longer depends on it.)
 2. A `cline` session is already running inside the proot session (interactive TUI, started by `exec cline` in `chatverlauf.sh`). It does not need KeyTab — it reads changed files itself.
 3. To run code, you type the command into the running cline/TUI and press Enter; the IME inserts text, then the SEND key dispatches the line. No app switch is needed.
 
@@ -362,7 +367,7 @@ So the original question was framed wrong. Revised:
 | Type a command and execute it in the running shell | yes (text flows into the active session; SEND key runs the line) |
 | Trigger a build from a purely-IME button | no — but unnecessary, the shell session is already open |
 
-**Conclusion: yes.** `MANAGE_EXTERNAL_STORAGE` gives KeyTab write access to the exact directory proot mounts, and the active `cline`/`proot` session is already running interactively. The workflow is: edit in keyboard -> file on disk -> cline notices -> run in cline. No app switch is inherent to the flow.
+**Conclusion: yes.** KeyTab writes to the same storage the proot session mounts (app dirs + SAF/`READ_MEDIA_*`; `MANAGE_EXTERNAL_STORAGE` is no longer needed), and the active `cline`/`proot` session is already running interactively. The workflow is: edit in keyboard -> file on disk -> cline notices -> run in cline. No app switch is inherent to the flow.
 Because the run step happens in the shell that is already open, the `RUN_COMMAND`-intent item has been **removed** from the roadmap — it would solve a problem that does not exist in this workflow.
 
 ## 5. Chaos cleanup (recovery plan)
@@ -423,21 +428,35 @@ not planned; the work that actually matters starts at P1.
   split them so the file name matches the class (the earlier README claim of "6 suites" was half outdated).
 
 ### P1 — Test infrastructure (+3.0 global)
-- [ ] **Coverage gate** (JaCoCo / Kover) wired into CI with a fail threshold, so the 29.7 % ratio can only grow.
+- [x] **Coverage gate** (Kover 0.8.3) wired into CI with a fail threshold — `:app:coverageGate`
+  (= `koverHtmlReport` + `koverLog` + `koverVerify`, Schwelle **20 % Zeilen**). Measured baseline
+  after rollout: **33.43 % line coverage** (`application line coverage: 33.4343%`), so the gate
+  currently passes with headroom and the ratio can only grow. CI job `coverage` in `.github/workflows/ci.yml`
+  uploads `app/build/reports/kover/**` as an artifact.
 - [ ] **More Robolectric panel tests:** `FileManagerPanel` navigation/back-stack, `SnippetPanel` parse/insert,
   `TerminalPanel` prompt/cd tracking, `InputRouter` focus routing. Target: 140+ tests.
 - [ ] **Fix the test naming:** `PanelsTest.kt` → split (name = class).
 
 ### P2 — Structure & distribution (+2.0 / +1.5)
-- [ ] **Split `keyboard_view.xml`** (697 lines → `<include>`s: keyboard grid, tab bar, suggestion strip, panel container).
-  The largest single file in the project.
-- [ ] **Replace `MANAGE_EXTERNAL_STORAGE`** (SAF / `READ_MEDIA_*` + app dirs) → Play-Store eligible.
-  Currently: store exclusion + `requestLegacyExternalStorage` as a crutch.
+- [x] **Split `keyboard_view.xml`** — keyboard rows extracted to `panel_keyboard_letters.xml`
+  (suggestion strip + digit row + QWERTZ rows) and `panel_keyboard_symbols.xml` (?123 layer);
+  both embedded via `<include>` into `kb_panel` / `sym_panel`. Head file: 697 → 553 lines,
+  panels 106 + 61 lines. Container IDs (`kb_panel`, `sym_panel`) and the `@style/KeyRow` structure
+  are unchanged, which is why all existing Robolectric layout tests stayed green.
+- [x] **Replace `MANAGE_EXTERNAL_STORAGE`** (SAF / `READ_MEDIA_*` + app dirs) → Play-Store eligible.
+  The permission, its settings button (`btn_request_manage_storage`), the `ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION`
+  intent and the `request_storage_access` string (both locales) were removed. The file manager keeps
+  working through `READ_MEDIA_*` + app dirs; unreadable areas show the existing
+  `fm_no_storage_access` hint. Note: this restores Play eligibility *permission-wise* — the editor's
+  `Environment.getExternalStorageDirectory()` fallback is now only reachable when the OS grants it.
 - [ ] **IzzyOnDroid submission** (signing via env is already F-Droid compliant; verify reproducible builds).
 - [ ] **Finish Phase 6**: IME 260 → ~150 lines. *Downgraded* — the main gain (908→260, −71 %) is already banked.
 
 ### P3 — Polish
-- [ ] Phase 8: threading → coroutines (`lifecycleScope` + `Dispatchers.IO`), resolve the 2 `Handler`s.
+- [x] Phase 8 (part 1): threading consolidated — `KeyTabExecutors` (one daemon I/O pool, one daemon
+  image pool, one main `Handler`) replaces the per-creator executors in the service,
+  `FileManagerFragment` and `BackgroundImage`; the terminal's `id -un` subprocess moved onto the shared
+  I/O pool. Remaining: full coroutine migration (the 2 `Handler`s are now centralised, not gone).
 - [ ] Lint warnings ~30 → < 10.
 - [ ] Centralise the `getSharedPreferences` spread (**25** calls, measured) through the `Prefs` accessor.
 - [ ] IME hardening: test matrix Termux (neovim) / AndroidIDE / VS Code (proot) — cursor, commitText, IME switching.
@@ -446,8 +465,14 @@ not planned; the work that actually matters starts at P1.
   artifact and should be removed.
 
 ### P4 — Long term (deliberately last)
-- [ ] **Editor: syntax highlighting + line numbers** — feature +15, niche +2.0, high effort, but the second real
-  niche differentiator.
+- [x] **Editor: line numbers** — `editor_gutter` next to `editor_input` (same monospace font, 13 sp,
+  8 dp top padding so line heights match), vertical scroll mirrored via `translationY`; wrap-aware
+  numbering via `StaticLayout` once the field has width, logical line count before first layout.
+- [x] **Editor: syntax highlighting (heuristic)** — `EditorHighlightLogic` (pure, Android-free:
+  `#`/`//` comments, `"…"`/`'…'` strings with escapes, decimal/hex numbers, a combined
+  Kotlin/Shell/Python keyword set) + `ForegroundColorSpan` application in `EditorPanel`.
+  Performance guard: files above 20,000 chars stay single-colour. Eleven unit tests in
+  `EditorHighlightLogicTest` plus two panel-level tests (gutter text, span set/clear).
 - [ ] Termux deep link (Files tab → "Open in Termux")
 - [ ] Split `KeyboardHost` into role interfaces *(no score lever, see Phase 7)*
 - [ ] Emoji support *(lowest priority — deliberately deferred)*
@@ -481,10 +506,10 @@ The niche is the way.
 ## 9. Successes (audit-verified, 2026-09-16)
 
 ### Architecture
-- ✅ ThemeSettingsActivity 551 → 215 lines (sections extracted)
-- ✅ `KeyTabImeService` 908 → **260** lines (−71 %)
-- ✅ **10 pure, Android-free logic modules** (fast under JUnit)
-- ✅ **Phase 7 verified complete:** all 5 panels decoupled, **no** panel references the service
+- ✅ ThemeSettingsActivity 551 → **230 lines** (split across 7 section classes: Top, Color, Gradient, Background, LikelyHighlight, Trail, Preview)
+- ✅ `KeyTabImeService` 908 → **283 lines** (−69 %)
+- ✅ **12 pure, Android-free logic modules** (fast under JUnit: `TextEditLogic`, `KeyScaleLogic`, `LikelyHighlightLogic`, `TrailLogic`, `EditorHighlightLogic`, `PanelHeights`, `ThemePrefs`, `CapsLogic`, `RepeatScheduler`, `LiftSpan`, `FileManagerModel`, `KeyTabConfig`)
+- ✅ **Phase 7 verified complete:** all 5 panels decoupled (Editor, FileManager, Terminal, Clipboard, Snippet), **no** panel references the service
 - ✅ `KeyboardHost` + 4 controllers (`Shift`, `Tab`, `Suggestion`, `Theme`) wired up
 - ✅ Code duplication 8 % → ~4 %
 
@@ -500,9 +525,23 @@ The niche is the way.
 - Covered by two new tests in `InputRouterTest`, including a regression test that TAB avoids the insert path.
 - Test count: **116 → 118**, all green.
 
+### Correctness fix 2026-09-17 (trail overlay conflict)
+
+- ✅ **Correction-trace overlay conflict fixed**: the trail stores colour/state per *letter*
+  (`steps`/`kinds` maps keyed by `Char`), not per occurrence — but every occurrence maps to the
+  same key, so two traces on overlapping letters produced a mixed colour (reported: `hauss`
+  showed `haus` red, the second `s` blue). Fix is twofold:
+  1. `TrailManager.traceWord` now runs **atomically per word** — `clearTrace()` removes every
+     prior trace entry (while leaving the plain typing trail untouched) before setting the new word.
+  2. `TrailManager.snap` no longer overwrites an existing trace entry of the same letter.
+- `clearTrace`, the atomic clear and the `ACCEPTED`-early-return path are covered by four new
+  unit tests in `TrailLogicTest`.
+- Test count: **146 → 164**, all green.
+
 ### Quality (measured)
-- ✅ **118 unit tests / 15 classes / 0 failures / 0 skipped** (116 audited 16 Sep + 2 from the TAB-key correctness fix)
-- ✅ **0** `TODO`/`FIXME`/`HACK`, **0** `Thread(...)`, **6** `!!` in 5,704 lines
+- ✅ **164 unit tests / 19 classes / 0 failures / 0 skipped** (verified 2026-09-17, evening; was 118 at the 16 Sep audit, 146 earlier on 17 Sep)
+- ✅ **0** `TODO`/`FIXME`/`HACK`, **3** `Thread(...)` (2 centralised in `KeyTabExecutors`, 1 terminal reader), **6** `!!` in 7,020 lines
+- ✅ Coverage **33.5 %** line / 31.8 % branch — but unevenly spread (`ime` 41.3 %, `sections` 9.9 %, `file` 0 %)
 - ✅ KVM emulator CI (instrumented, API 34)
 - ✅ Build: `BUILD SUCCESSFUL`, R8 + `isShrinkResources`, idempotent release
 - ✅ **Privacy claim manifest-verified** (no `INTERNET` permission)
@@ -521,5 +560,7 @@ The niche is the way.
 |---|---|---|
 | Before refactor | 62 | 55 |
 | After phases 0–5 | ~78 | ~84 |
-| **Audit 16 Sep (phases 0–7)** | **81** | **85** |
+| Audit 16 Sep (phases 0–7) | 81 | 85 |
+| **Re-audit 17 Sep (docs synced, 146 tests, coverage gate)** | **83** | **87** |
+| Re-audit 17 Sep evening (trail/correction trace, 164 tests, docs re-synced) | **82** | **87** |
 | Target (P0+P1+P2) | ~88 | ~91 |

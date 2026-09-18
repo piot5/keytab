@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sonderzeichen-Ebene (?123): Zahlen, Interpunktion, Klammern.
+     Teil des Splits von keyboard_view.xml (siehe docs/REFACTORING_PLAN.md).
+     Wird via <include> in das sym_panel von keyboard_view.xml eingebettet. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+            <LinearLayout style="@style/KeyRow">
+                <Button style="@style/KeyDark" android:tag="sym" android:text="1" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="2" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="3" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="4" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="5" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="6" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="7" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="8" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="9" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="0" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/KeyRow">
+                <Button style="@style/KeyDark" android:tag="sym" android:text="-" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="/" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text=":" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text=";" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="(" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text=")" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="$" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="@" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="&amp;" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="%" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/KeyRow">
+                <Button style="@style/KeyDark" android:tag="sym" android:text="." />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="," />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="?" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="!" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="=" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="+" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="*" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="_" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="&quot;" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="'" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/KeyRow">
+                <Button style="@style/KeyDark" android:tag="sym" android:text="[" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="]" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="{" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="}" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="# " />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="&lt;" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="&gt;" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="|" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="\\" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="~" />
+            </LinearLayout>
+</LinearLayout>

@@ -97,6 +97,19 @@ internal class KeyboardBinder(
         }
     }
 
+    /** Letztes an den Trail gemeldetes Feld (EditorInfo) – Passwort-Schutz. */
+    private var lastEditorInfo: android.view.inputmethod.EditorInfo? = null
+
+    /**
+     * Aktuelles Eingabefeld setzen. In Passwort-Feldern schaltet [TrailManager]
+     * die Spur vollständig ab ([TrailLogic.isTrailAllowed]) – hier wird nur
+     * durchgereicht und die Spur geleert.
+     */
+    fun setEditorInfo(info: android.view.inputmethod.EditorInfo?) {
+        lastEditorInfo = info
+        trailManager?.setEditorInfo(info)
+    }
+
     private fun setupLetterButton(btn: Button) {
         host.baseLetters[btn] = btn.text?.toString()?.firstOrNull() ?: ' '
         var pendingLongPress: Runnable? = null
@@ -128,11 +141,13 @@ internal class KeyboardBinder(
                         if (picked != null) {
                             host.commitText(picked.toString())
                             trailManager?.snap(picked.lowercaseChar())
+                            traceTrail()
                         }
                     } else {
                         val letter = tapLetter(btn)
                         host.commitText(letter)
                         trailManager?.snap(letter.first().lowercaseChar())
+                        traceTrail()
                     }
                     btn.clearFocus()
                     true
@@ -148,6 +163,17 @@ internal class KeyboardBinder(
                 else -> false
             }
         }
+    }
+
+    /**
+     * Korrektur-Trace nach einem Buchstaben-Tap: prüft das aktuell getippte Wort
+     * gegen die [SuggestionEngine] und färbt es bei Bedarf rot. No-Op, solange
+     * die Trace-Pref aus ist – der Trail bleibt also der reine Tippspur-Effekt.
+     */
+    private fun traceTrail() {
+        val tm = trailManager ?: return
+        val typed = host.predictionManager?.currentTypedWord ?: return
+        tm.traceWord(typed, host.predictionManager?.engine)
     }
 
     private fun setupDelButton(btn: Button) {

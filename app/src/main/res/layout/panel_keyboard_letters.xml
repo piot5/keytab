@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Buchstaben-Tastatur (QWERTZ): Vorhersage-, Zahlen- und drei Buchstabenreihen.
+     Teil des Splits von keyboard_view.xml (siehe docs/REFACTORING_PLAN.md).
+     Wird via <include> in das kb_panel von keyboard_view.xml eingebettet. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/suggestion_bar"
+                android:layout_width="match_parent"
+                android:layout_height="26dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone"
+                android:layout_marginBottom="4dp"
+                android:background="@color/kbd_bg">
+                <!-- marginBottom 4dp: größerer Abstand zwischen Wortvorhersage und
+                     Q-Reihe (vorher nur 2dp über den Key-Margin). Wirkt nur, wenn
+                     die Wortvorhersage sichtbar ist → gezielt dieser Abstand. -->
+
+                <TextView
+                    android:id="@+id/sug_1"
+                    android:layout_width="0dp" android:layout_height="match_parent"
+                    android:layout_weight="2" android:gravity="center"
+                    android:singleLine="true" android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" android:clickable="true"
+                    android:focusable="true" android:background="@drawable/sug_top_bg" />
+                <TextView
+                    android:id="@+id/sug_2"
+                    android:layout_width="0dp" android:layout_height="match_parent"
+                    android:layout_weight="1" android:gravity="center"
+                    android:singleLine="true" android:textSize="13sp"
+                    android:textColor="@color/text_primary" android:clickable="true"
+                    android:focusable="true" android:background="@color/key_bg"
+                    android:layout_marginStart="2dp" />
+                <TextView
+                    android:id="@+id/sug_3"
+                    android:layout_width="0dp" android:layout_height="match_parent"
+                    android:layout_weight="1" android:gravity="center"
+                    android:singleLine="true" android:textSize="13sp"
+                    android:textColor="@color/text_primary" android:clickable="true"
+                    android:focusable="true" android:background="@color/key_bg"
+                    android:layout_marginStart="2dp" />
+            </LinearLayout>
+
+            <!-- Optionale Zahlenreihe (Einstellung in der App) -->
+            <LinearLayout
+                android:id="@+id/num_row"
+                style="@style/KeyRow"
+                android:visibility="gone">
+                <Button style="@style/KeyDark" android:tag="sym" android:text="1" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="2" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="3" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="4" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="5" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="6" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="7" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="8" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="9" />
+                <Button style="@style/KeyDark" android:tag="sym" android:text="0" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/KeyRow">
+                <Button style="@style/KeyDark" android:tag="letter" android:text="q" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="w" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="e" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="r" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="t" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="z" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="u" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="i" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="o" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="p" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="ü" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/KeyRow">
+                <Button style="@style/KeyDark" android:tag="letter" android:text="a" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="s" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="d" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="f" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="g" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="h" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="j" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="k" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="l" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="ö" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="ä" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/KeyRow">
+                <Button style="@style/KeyDark" android:id="@+id/key_shift" android:text="@string/key_shift_label" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="y" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="x" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="c" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="v" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="b" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="n" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="m" />
+                <Button style="@style/KeyDark" android:tag="letter" android:text="ß" />
+                <Button style="@style/KeyDark" android:id="@+id/key_del" android:text="@string/key_del_label" />
+            </LinearLayout>
+</LinearLayout>

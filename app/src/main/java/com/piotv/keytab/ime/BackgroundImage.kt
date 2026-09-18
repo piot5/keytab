@@ -8,13 +8,9 @@ import android.view.View
 import com.piotv.keytab.Prefs
 import java.io.File
 import java.util.WeakHashMap
-import java.util.concurrent.Executors
 
 /** Bounded image decoding off the UI thread; stale requests cannot replace a newer theme. */
 object BackgroundImage {
-    private val executor = Executors.newSingleThreadExecutor { task ->
-        Thread(task, "keytab-background").apply { isDaemon = true }
-    }
     private val requests = WeakHashMap<View, Any>()
 
     fun apply(view: View, context: Context, base: Drawable) {
@@ -27,9 +23,9 @@ object BackgroundImage {
         if (source.isBlank()) return
         val weak = java.lang.ref.WeakReference(view)
         val app = context.applicationContext
-        executor.execute {
+        KeyTabExecutors.image.execute {
             val bitmap = decode(app, source) ?: return@execute
-            android.os.Handler(android.os.Looper.getMainLooper()).post {
+            KeyTabExecutors.main.post {
                 val target = weak.get() ?: return@post
                 if (requests[target] !== token) return@post
                 target.background = LayerDrawable(arrayOf(base, ImageDrawable(bitmap, mode)))

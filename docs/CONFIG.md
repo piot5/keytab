@@ -17,37 +17,78 @@ Fehlende oder ungültige Werte lassen die bestehenden Einstellungen unverändert
 
 ## Schlüssel
 
+Alle unten genannten Schlüssel werden aus `keytab_config.txt` importiert. Es gibt
+zwei Importer, die nacheinander laufen: `SettingsConfig` (Schalter, Farben, Pfade)
+und `KeyTabConfig.entries()` (Skalierungswerte); die Abschnitte unten markieren,
+welcher Schlüssel wohin gehört.
+
+**Schalter** (`true` / `false`), Importer `SettingsConfig`:
+
 - `num_row`, `term_tab`, `clip_tab`, `snippet_tab`, `suggestions`, `autocorrect`,
-  `dynamic_keys`: `true` / `false`.
+  `dynamic_keys`.
+- `trail`, `trail_trace`: Tippspur an/aus und Korrektur-Trace an/aus
+  (Default `false`). Der Korrektur-Trace färbt getippte Wörter
+  rot, wenn sie automatisch ersetzt würden (Hinweis, es wird nichts geändert).
+- `gaming_mode`, `gaming_effect`: Hervorhebung der nächsten Taste und Puls-Effekt.
+  Die Namen sind historisch (aus der Zeit vor „Likely Highlighting") und bleiben
+  als Schlüssel stabil — im Code sind sie `ThemePrefs.KEY_LIKELY` /
+  `KEY_LIKELY_EFFECT`. `gaming` ist außerdem der interne `KIND_LIKELY`-Name für
+  die Highlight-Farbe in `theme_<dark|light>_gaming`.
+- `gradient_off_dark`, `gradient_off_light`.
+
+**Zahlen**, Importer `SettingsConfig`:
+
+- `trail_steps`: Anzahl der Verblass-Stufen der Tippspur (Ganzzahl, Default `5`).
+
+**Aufzählungen**, Importer `SettingsConfig`:
+
 - `language`: `de`, `en`, `es`, `fr`, `it`, `pt`, `nl`.
-- `dark_mode`: `true`, `false` oder `system`.
-- `gaming_mode`, `gaming_effect`: Hervorhebung der nächsten Taste und Puls-Effekt;
-  die alten Namen bleiben kompatibel.
-- `gradient_color1`, `gradient_color2`: `#RRGGBB`, `#AARRGGBB` oder `default`.
-  Die zwei Verlaufsfarben sind wie bisher gemeinsam für Hell/Dunkel gespeichert.
+- `dark_mode`: `true`, `false` oder `system` (`system` entfernt den Override).
 - `gradient_mode`: `top_down`, `invert`, `radial`.
-- `gradient_off_dark`, `gradient_off_light`: `true` / `false`.
+- `bg_image_fill`: `fit`, `cover`, `stretch`.
+
+**Farben** (`#RRGGBB`, `#AARRGGBB` oder `default`), Importer `SettingsConfig`:
+
+- `gradient_color1`, `gradient_color2`. Die zwei Verlaufsfarben sind wie bisher
+  gemeinsam für Hell/Dunkel gespeichert.
 - `theme_dark_bg`, `theme_dark_key`, `theme_dark_hl`, `theme_dark_text`,
-  `theme_dark_gaming` sowie dieselben Schlüssel mit `theme_light_`:
-  Farbe inkl. Alpha oder `default` zum Entfernen des Overrides.
+  `theme_dark_gaming` sowie dieselben Schlüssel mit `theme_light_`.
+  `default` entfernt den Override.
+
+**Pfade / Zeichenketten**, Importer `SettingsConfig`:
+
 - `bg_image_uri`: leer zum Abschalten, zugänglicher absoluter Dateipfad oder
   `content://`-URI. Die Bildauswahl in Themes erteilt einen dauerhaften Lesezugriff.
   Eine URI allein in der Config erteilt keine Android-Berechtigung.
-- `bg_image_fill`: `fit`, `cover`, `stretch`.
-- Skalierung wie bisher: `max_scale`, `mid_scale`, `hot_threshold`,
-  `mid_threshold`, `min_neighbor_scale`, `mid_neighbor_scale`.
+
+**Skalierung**, Importer `KeyTabConfig.entries()` (getrennt von `SettingsConfig`):
+
+- `max_scale`, `mid_scale`, `hot_threshold`, `mid_threshold`,
+  `min_neighbor_scale`, `mid_neighbor_scale`.
+  Alle Werte müssen endlich und > 0 sein; `hot_threshold`/`mid_threshold`
+  zusätzlich in `0.0..1.0`. Ungültige Werte lassen den jeweiligen Wert unverändert.
+
+> **Nicht** über `keytab_config.txt` steuerbar: Android-Berechtigungen, die
+> Auswahl der Systemtastatur, die Zeichenketten der Oberfläche (`strings.xml`)
+> und alles, was nur in der Theme-Einstellungsseite als UI-Zustand existiert.
+> Das sind Systemaktionen bzw. Ressourcen, keine per Textdatei erteilbaren
+> Berechtigungen.
 
 Beispiel:
 
 ```ini
 term_tab = false
 snippet_tab = true
+trail = true
+trail_trace = true
+trail_steps = 7
 gradient_color1 = #FF2196F3
 gradient_color2 = #800D47A1 # Alpha 128
 gradient_mode = top_down
 gradient_off_dark = false
 theme_dark_bg = default
 bg_image_fill = cover
+max_scale = 1.30
 ```
 
 Ein expliziter flacher `theme_*_bg`-Override oder `gradient_off_* = true`

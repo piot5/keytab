@@ -7,3 +7,4 @@ local.properties
 *.aab
 
 keystore/
+build_*.log

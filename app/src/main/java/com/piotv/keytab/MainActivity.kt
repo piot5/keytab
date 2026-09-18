@@ -187,15 +187,6 @@ class MainActivity : AppCompatActivity() {
         if (missingStorage.isNotEmpty()) {
             permLauncher.launch(missingStorage)
         }
-
-        // Button: MANAGE_EXTERNAL_STORAGE direkt öffnen (falls nötig)
-        findViewById<Button>(R.id.btn_request_manage_storage).setOnClickListener {
-            if (Build.VERSION.SDK_INT >= 30) {
-                val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                intent.data = android.net.Uri.parse("package:$packageName")
-                startActivity(intent)
-            }
-        }
         displayedSettings = SettingsConfig.snapshot(prefs)
     }
 

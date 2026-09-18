@@ -19,8 +19,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
+import com.piotv.keytab.ime.KeyTabExecutors
 import java.io.File
-import java.util.concurrent.Executors
 
 /** Dateimanager mit mehreren Tabs; jeder Tab merkt sich sein Verzeichnis. */
 class FileManagerFragment : Fragment() {
@@ -30,11 +30,12 @@ class FileManagerFragment : Fragment() {
     private lateinit var adapter: FileAdapter
     private lateinit var tabLayout: TabLayout
     private lateinit var pathView: TextView
-    private val ioExecutor = Executors.newSingleThreadExecutor()
+    // Gemeinsamer I/O-Pool (KeyTabExecutors) statt eigener Instanz pro Fragment
+    private val ioExecutor = KeyTabExecutors.io
 
     override fun onDestroy() {
         super.onDestroy()
-        ioExecutor.shutdown()
+        // Kein shutdown(): der Pool ist prozessweit und überlebt Fragment-Fragmente
     }
 
     private val permissionLauncher =

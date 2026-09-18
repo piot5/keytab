@@ -4,6 +4,8 @@ import android.app.AlertDialog
 import android.content.Context
 import android.os.Environment
 import android.os.Handler
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
@@ -36,8 +38,11 @@ class EditorPanel(
     private val sendToApp: (String) -> Unit = {}
 ) {
 
-                        private val input: EditText? = rootView.findViewById(R.id.editor_input)
+    private val input: EditText? = rootView.findViewById(R.id.editor_input)
     private val fileLabel: TextView? = rootView.findViewById(R.id.editor_file)
+    // Zeilennummern-Gutter + Highlight-Spans (Roadmap: Editor-Features)
+    private val gutter: TextView? = rootView.findViewById(R.id.editor_gutter)
+    private val highlightSpans = mutableListOf<ForegroundColorSpan>()
     private var editorFile: File = defaultFile()
 
     init {
@@ -48,6 +53,7 @@ class EditorPanel(
         setupClear(rootView)
         setupCopy(rootView)
         setupReload(rootView)
+        setupEditorChrome()
     }
 
     /** Text + Cursorposition (für die Wortvorhersage), null wenn nicht bereit. */
@@ -254,5 +260,86 @@ class EditorPanel(
         // Berechtigung nötig, immer beschreibbar). Fallback: internes Files-Dir.
         val dir = context.getExternalFilesDir(null) ?: context.filesDir
         return File(dir, "keytab_editor.txt")
+    }
+
+    // ---------- Editor-Chrome: Zeilennummern + Syntax-Highlighting ----------
+
+    /**
+     * Zeilennummern-Gutter ([R.id.editor_gutter]) und Highlighting verdrahten.
+     * Der Gutter nutzt dieselbe Schrift/Polsterung wie das Feld; der vertikale
+     * Scroll des Felds wird per OnScrollChangeListener auf den Gutter gespiegelt
+     * (translationY), damit beide Zeilen zusammenlaufen.
+     */
+    private fun setupEditorChrome() {
+        val et = input ?: return
+        et.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                refreshGutter()
+                applyHighlight()
+            }
+        })
+        et.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            gutter?.translationY = -scrollY.toFloat()
+        }
+        refreshGutter()
+        applyHighlight()
+    }
+
+    /**
+     * Zeilennummern neu schreiben. Wrap-bewusst, sobald das Feld Breite hat:
+     * Ein StaticLayout mit denselben Paint-/Breiten-Parametern wie das Feld
+     * liefert die visuellen Zeilen (umbrochene Fortsetzungslinien erhalten
+     * eine Leerzeile im Gutter, die Zahl bleibt an der logischen Zeile).
+     * Ohne Breite (Tests, vor erstem Layout) zählen logische Zeilen.
+     */
+    private fun refreshGutter() {
+        val g = gutter ?: return
+        val et = input ?: return
+        val text = et.text ?: return
+        val sb = StringBuilder()
+        val width = et.width - et.paddingLeft - et.paddingRight
+        if (width > 0 && text.isNotEmpty()) {
+            val layout = android.text.StaticLayout.Builder
+                .obtain(text, 0, text.length, et.paint, width).build()
+            var logical = 1
+            for (v in 0 until layout.lineCount) {
+                val start = layout.getLineStart(v)
+                val wrapped = start > 0 && text[start - 1] != '\n'
+                if (wrapped) sb.append(' ') else { sb.append(logical); logical++ }
+                sb.append('\n')
+            }
+        } else {
+            var count = 1
+            for (c in text) if (c == '\n') count++
+            for (i in 1..count) sb.append(i).append('\n')
+        }
+        g.text = sb.toString().trimEnd('\n')
+        if (et.width == 0 && text.isNotEmpty()) et.post { refreshGutter() }
+    }
+
+    /** Highlight-Spans neu anwenden; vorherige werden entfernt (kein Stau). */
+    private fun applyHighlight() {
+        val et = input ?: return
+        val editable = et.editableText ?: return
+        if (highlightSpans.isNotEmpty()) {
+            for (s in highlightSpans) editable.removeSpan(s)
+            highlightSpans.clear()
+        }
+        val text = editable.toString()
+        // Performance-Guard: große Dateien bleiben einfarbig statt UI zu blockieren
+        if (text.length > EditorHighlightLogic.MAX_SCAN_CHARS) return
+        for (span in EditorHighlightLogic.spans(text)) {
+            val color = androidx.core.content.ContextCompat.getColor(context, when (span.kind) {
+                EditorHighlightLogic.Kind.COMMENT -> R.color.editor_comment
+                EditorHighlightLogic.Kind.STRING -> R.color.editor_string
+                EditorHighlightLogic.Kind.NUMBER -> R.color.editor_number
+                EditorHighlightLogic.Kind.KEYWORD -> R.color.editor_keyword
+            })
+            val fg = ForegroundColorSpan(color)
+            editable.setSpan(fg, span.start, span.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            highlightSpans.add(fg)
+        }
     }
 }

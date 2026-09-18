@@ -120,11 +120,6 @@
             style="@style/SettingsSection"
             android:text="@string/settings_section_storage" />
         <Button
-            android:id="@+id/btn_request_manage_storage"
-        style="@style/SettingsKeyButton"
-
-            android:text="@string/request_storage_access" />
-        <Button
             android:id="@+id/btn_update_config"
         style="@style/SettingsKeyButton"
 

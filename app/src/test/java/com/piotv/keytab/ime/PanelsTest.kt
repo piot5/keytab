@@ -10,6 +10,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.EditText
 import android.widget.ListView
+import android.widget.TextView
 import com.piotv.keytab.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -99,6 +100,28 @@ class EditorPanelTest {
         et.setSelection(0)
         panel.delete(word = false)
         assertEquals("abc", et.text.toString())
+    }
+
+    @Test
+    fun `Gutter nummeriert logische Zeilen vor dem ersten Layout`() {
+        val root = inflateKeyboardRoot(app)
+        EditorPanel(app, root, directExecutor, Handler(Looper.getMainLooper()))
+        val et = root.findViewById<EditText>(R.id.editor_input)
+        val gutter = root.findViewById<TextView>(R.id.editor_gutter)
+        et.setText("a\nb\nc")
+        // Ohne Breite (Robolectric layoutet nicht) zählt die Logik logische Zeilen
+        assertEquals("1\n2\n3", gutter.text.toString())
+    }
+
+    @Test
+    fun `Highlight-Spans werden gesetzt und beim Leeren entfernt`() {
+        val root = inflateKeyboardRoot(app)
+        EditorPanel(app, root, directExecutor, Handler(Looper.getMainLooper()))
+        val et = root.findViewById<EditText>(R.id.editor_input)
+        et.setText("# Kommentar")
+        assertTrue(et.editableText.getSpans(0, et.length(), android.text.style.ForegroundColorSpan::class.java).isNotEmpty())
+        et.setText("")
+        assertTrue(et.editableText.getSpans(0, 0, android.text.style.ForegroundColorSpan::class.java).isEmpty())
     }
 }
 

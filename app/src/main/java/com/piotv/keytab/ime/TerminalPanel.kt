@@ -62,7 +62,8 @@ class TerminalPanel(
 
     /** Shell-User für den Prompt ermitteln (Fallback: Android-UID-Name). */
     private fun resolveUserName() {
-        Thread {
+        // Kurzer subprocess-Aufruf auf dem gemeinsamen I/O-Pool (Thread-Konsolidierung)
+        KeyTabExecutors.io.execute {
             val name = try {
                 val p = ProcessBuilder("/system/bin/sh", "-c", "id -un")
                     .redirectErrorStream(true).start()
@@ -72,7 +73,7 @@ class TerminalPanel(
                 userName = name ?: "u" + android.os.Process.myUid() / 100000 + "a" +
                         (android.os.Process.myUid() % 100000)
             }
-        }.apply { isDaemon = true; start() }
+        }
     }
 
     /** Text + Cursorposition (für die Wortvorhersage), null wenn nicht bereit. */
@@ -179,7 +180,9 @@ class TerminalPanel(
             p.directory(context.filesDir)
             shell = p.start()
             stdin = shell?.outputStream
-            readerThread = Thread {
+            // Blockierender Lese-Loop → bewusst eigener Daemon-Thread (kein Pool-Thread,
+            // der bis zum Shell-Ende belegt bleiben dürfte)
+            readerThread = Thread({
                 val reader = InputStreamReader(shell?.inputStream ?: return@Thread)
                 val buf = CharArray(512)
                 var n: Int
@@ -190,7 +193,7 @@ class TerminalPanel(
                     }
                 } catch (_: Exception) {
                 }
-            }.apply { isDaemon = true; start() }
+            }, "keytab-terminal-reader").apply { isDaemon = true; start() }
         } catch (e: Exception) {
             mainHandler.post {
                 appendOut(context.getString(R.string.terminal_start_failed) + "\n")

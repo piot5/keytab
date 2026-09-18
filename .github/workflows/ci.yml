@@ -36,6 +36,35 @@ jobs:
           path: app/build/reports/tests/testDebugUnitTest/**
           if-no-files-found: warn
 
+  # Coverage-Gate (Roadmap Punkt 1): koverVerify schlägt fehl, wenn die
+  # Zeilen-Coverage von :app unter 20 % fällt. Läuft nach build-test, damit
+  # im Fehlerfall zuerst die Klartext-Testergebnisse vorliegen.
+  coverage:
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # coverageGate = koverHtmlReport + koverLog + koverVerify (Schwelle 20 %)
+      - name: Coverage-Gate
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:coverageGate --no-daemon --stacktrace
+
+      - name: Coverage-Report als Artifact hochladen
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-report
+          path: app/build/reports/kover/**
+          if-no-files-found: warn
+
   # Instrumentierte Tests auf echtem Emulator (API 34, KVM-beschleunigt)
   instrumented:
     needs: build-test

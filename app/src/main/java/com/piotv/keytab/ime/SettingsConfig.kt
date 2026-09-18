@@ -26,6 +26,12 @@ object SettingsConfig {
         put("suggestions", Setting(Prefs.KEY_SUGGESTIONS, "true", "boolean"))
         put("autocorrect", Setting(Prefs.KEY_AUTOCORRECT, "true", "boolean"))
         put("dynamic_keys", Setting(Prefs.KEY_DYNAMIC_KEYS, "true", "boolean"))
+        // Trail (Tippspur + Korrektur-Trace). Vorher nur über Theme-Export
+        // steuerbar – hier zusätzlich über keytab_config.txt (docs/CONFIG.md).
+        put("trail", Setting(ThemePrefs.KEY_TRAIL, "false", "boolean"))
+        put("trail_trace", Setting(ThemePrefs.KEY_TRAIL_TRACE, "false", "boolean"))
+        put("trail_steps", Setting(ThemePrefs.KEY_TRAIL_STEPS,
+            TrailLogic.DEFAULT_STEPS.toString(), "int"))
         put("language", Setting(Prefs.KEY_LANGUAGE, "de", "enum", Languages.all.map { it.code }.toSet()))
         put("bg_image_uri", Setting(Prefs.KEY_BG_IMAGE_URI, "", "string"))
         put("bg_image_fill", Setting(Prefs.KEY_BG_IMAGE_FILL, Prefs.FILL_FIT, "enum",
@@ -78,6 +84,7 @@ object SettingsConfig {
                     else strictBoolean(value)?.let { editor.putBoolean(spec.pref, it) }
                 "enum" -> if (value in spec.choices) editor.putString(spec.pref, value)
                 "string" -> editor.putString(spec.pref, value)
+                "int" -> value.toIntOrNull()?.let { editor.putInt(spec.pref, it) }
                 "color" -> if (value == "default") editor.remove(spec.pref)
                     else parseColor(value)?.let { editor.putInt(spec.pref, it) }
             }

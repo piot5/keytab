@@ -29,4 +29,14 @@
     <color name="term_prompt">#4caf50</color>
     <!-- Trail-Effekt (Tippspur): Standardfarbe Blau -->
     <color name="trail_color">#2196F3</color>
+    <!-- Korrektur-Trace: grün = Engine kennt das Wort, rot = Korrektur würde greifen -->
+    <color name="trail_accepted_color">#4CAF50</color>
+    <color name="trail_corrected_color">#F44336</color>
+    <!-- Editor: Zeilennummern-Gutter + einfaches Highlighting (heurstisch,
+         VS-Code-inspirierte Palette; in Hell/Dunkel lesbar) -->
+    <color name="editor_gutter_text">#888888</color>
+    <color name="editor_comment">#5F875F</color>
+    <color name="editor_string">#B5651D</color>
+    <color name="editor_number">#3B7DD8</color>
+    <color name="editor_keyword">#316BC4</color>
 </resources>

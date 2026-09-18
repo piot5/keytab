@@ -187,8 +187,7 @@
     <ID>NewLineAtEndOfFile:WordPredictionManager.kt$com.piotv.keytab.ime.WordPredictionManager.kt</ID>
     <ID>SwallowedException:FileManagerFragment.kt$FileManagerFragment$e: Exception</ID>
     <ID>SwallowedException:TerminalPanel.kt$TerminalPanel$e: Exception</ID>
-    <ID>TooManyFunctions:KeyTabImeService.kt$KeyTabImeService : InputMethodServiceKeyboardHost</ID>
-    <ID>TooManyFunctions:KeyboardHost.kt$KeyboardHost</ID>
+    <ID>TooManyFunctions:KeyTabImeService.kt$KeyTabImeService : InputMethodServiceThemeHostTabHostSuggestionHostKeyboardInputHost</ID>
     <ID>TooManyFunctions:ThemePrefs.kt$ThemePrefs</ID>
     <ID>UnusedPrivateMember:ColorSection.kt$ColorSection$private fun updateColorFromWheel()</ID>
     <ID>UnusedPrivateProperty:LiftSpanTest.kt$LiftSpanTest$i</ID>

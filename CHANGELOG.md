@@ -11,14 +11,21 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
-## 0.9.8
+## 0.9.9
+
+Nach dem ausgelieferten 0.9.8 (Tag vom 18.09. 08:13, Commit `f1b4496`) sind zwei
+Aenderungssaetze aufgelaufen, die nicht mehr in der Release-APK stecken: der
+detekt-Commit (`a5b03c8`) und die hier dokumentierte P3-Runde. **Die lokale
+Version ist damit der ausgelieferten 0.9.8 strikt voraus** — 0.9.9 ist das
+Release, das diesen Vorsprung ausliefert.
 
 - **Refactor (P3): KeyboardHost in Rollen-Interfaces aufgeteilt** — statt eines
   25-Member-Interfaces gibt es nun `ThemeHost`, `TabHost`, `SuggestionHost` und
-  `KeyboardInputHost`. `ThemeController`, `TabController`, `SuggestionController`
-  und `KeyboardBinder` deklarieren nur noch die Rolle, die sie wirklich brauchen
-  (Interface Segregation); `KeyTabImeService` implementiert alle vier. Kein
-  Verhalten geändert.
+  `KeyboardInputHost` (plus minimales Basis-Interface mit nur `context`).
+  `ThemeController`, `TabController`, `SuggestionController` und `KeyboardBinder`
+  deklarieren nur noch die Rolle, die sie wirklich brauchen (Interface
+  Segregation); `KeyTabImeService` implementiert alle vier. Kein Verhalten
+  geändert.
 - **Refactor (P3): zentraler Prefs-Zugriff** — alle 25 direkten
   `context.getSharedPreferences(...)`-Aufrufe in 12 Dateien laufen jetzt über
   `Prefs.of(context)`. Dateiname (`keytab_prefs`) und Modus (`MODE_PRIVATE`)
@@ -30,10 +37,14 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
   `scripts/check_docs_drift.sh` aus und bricht den Build ab, wenn
   versionName/versionCode, `CHANGELOG.md`-Kopf und fastlane-Changelog
   auseinanderlaufen, oder wenn die im README genannten Testzahlen und
-  Suite-Namen nicht mehr zum Code passen.
+  Suite-Namen nicht mehr zum Code passen. Läuft auch im Release-Workflow vor dem
+  Keystore-Restore.
 - **Versionierung: Single Source of Truth** — die Version wird ausschließlich in
-  `app/build.gradle.kts` gepflegt (0.9.8 / versionCode 23); der fastlane-
-  Changelog `23.txt` wurde nachgezogen (fehlte seit 0.9.7).
+  `app/build.gradle.kts` gepflegt; der fastlane-Changelog für versionCode 23
+  wurde nachgezogen (fehlte seit 0.9.7).
+- **README-Korrekturen** — Testtabelle und Test-Ratio waren veraltet (nannte 164
+  Tests in 19 Suites und zwei gelöschte Klassen `EditorPanelTest`/
+  `ClipboardPanelTest`; korrekt sind 194 Tests in 22 Suites).
 
 
 ## 0.9.7

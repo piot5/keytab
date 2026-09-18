@@ -192,6 +192,7 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
     override fun onStartInput(attribute: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
         refreshSettings()
+        // Feld-Start: CapsLock aus, ggf. Auto-Caps (Shift-Zustandsmaschine).
         shiftController.resetForInput(autoCapitalize(attribute))
         // onStartInput kann VOR onCreateInputView feuern (IME-Start, bevor die
         // Tastatur das erste Mal angezeigt wird) → keyboardBinder ist dann noch
@@ -250,16 +251,6 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
     // ---------- Shift-State-Delegate (Phase 3, an ShiftController gebunden) ----------
 
     override fun tapShift(now: Long): ShiftController.ShiftState = shiftController.tapShift(now)
-
-    /**
-     * Feld-Start: CapsLock aus, ggf. Auto-Caps.
-     *
-     * Kein Host-Rollen-Member: wird nur intern von `onStartInput` aufgerufen
-     * (gehört zur Shift-Zustandsmaschine des Service, nicht zu einer Rolle).
-     */
-    private fun resetShiftForInput(autoCapitalize: Boolean) {
-        shiftController.resetForInput(autoCapitalize)
-    }
 
     override fun applyLetterCase(root: View?) {
         if (::keyboardBinder.isInitialized) keyboardBinder.applyLetterCase(root)

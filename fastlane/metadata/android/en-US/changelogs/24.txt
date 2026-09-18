@@ -2,4 +2,4 @@
 - Refactor: single shared-preferences access point (Prefs.of) replaces 25 direct getSharedPreferences calls
 - Docs: changelog moved out of the README into CHANGELOG.md
 - CI: new docs job fails the build on documentation drift (version, changelog, test counts)
-- Versioning: version defined in app/build.gradle.kts only (0.9.8, versionCode 23)
+- Versioning: version defined in app/build.gradle.kts only

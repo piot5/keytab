@@ -146,7 +146,7 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         }
         // Sanftes Decay, Schwaches verliert an Gewichtung
         if (userFreq.size % 25 == 0) {
-            for (k in userFreq.keys.toList()) userFreq[k] = userFreq[k]!! * DECAY_FACTOR
+            for (k in userFreq.keys.toList()) userFreq[k]?.let { cur -> userFreq[k] = cur * DECAY_FACTOR }
         }
     }
 
@@ -261,9 +261,9 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             if (Math.abs(w.length - cur.length) > maxDist) continue
             val dist = editDistance(cur, w)
             if (dist !in 1..maxDist) continue
-            val s = baseScore(w) + (userFreq[w] ?: 0.0) * 1.2
-                + (if (prev != null) bigrams["$prev $w"] ?: 0.0 else 0.0) * 3.0
-                - dist * 0.45
+            val s = baseScore(w) + (userFreq[w] ?: 0.0) * 1.2 +
+                (if (prev != null) bigrams["$prev $w"] ?: 0.0 else 0.0) * 3.0 -
+                dist * 0.45
             if (s > bestScore) { bestScore = s; best = w }
         }
         // Nur korrigieren, wenn der Kandidat ein echtes Wörterbuchwort ist

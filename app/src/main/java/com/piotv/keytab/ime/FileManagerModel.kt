@@ -65,7 +65,7 @@ class FileManagerModel(
     /** Einträge des aktuellen Verzeichnisses (sortiert: Ordner zuerst, dann Name). */
     fun listEntries(): List<File> {
         val d = dir
-        val raw = dirs(d) ?: emptyList()
+        val raw = dirs(d).orEmpty()
         return raw.filter { !it.isHidden }
             .sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase() })
     }

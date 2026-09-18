@@ -47,7 +47,7 @@ internal class ThemeController(private val host: KeyboardHost) {
                         host.haptic()
                         showThemeSettings()
                     }
-                    host.longPressHandler.postDelayed(pendingLongPress!!, LONG_PRESS_TIMEOUT)
+                    pendingLongPress?.let { host.longPressHandler.postDelayed(it, LONG_PRESS_TIMEOUT) }
                     true
                 }
                 MotionEvent.ACTION_UP -> {

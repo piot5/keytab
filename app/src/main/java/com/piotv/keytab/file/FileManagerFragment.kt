@@ -168,7 +168,7 @@ class FileManagerFragment : Fragment() {
         ioExecutor.execute {
             val files = dir.listFiles()
                 ?.sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase() })
-                ?: emptyList()
+                .orEmpty()
             view?.post {
                 if (!isAdded || tabs.getOrNull(current)?.absolutePath != dir.absolutePath) return@post
                 adapter.set(files)

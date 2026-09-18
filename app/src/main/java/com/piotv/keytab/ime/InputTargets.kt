@@ -103,13 +103,13 @@ class AppInputTarget(
 
     override fun deleteWord() {
         val ic = connection() ?: return
-        val text = ic.getTextBeforeCursor(200, 0)?.toString() ?: ""
+        val text = (ic.getTextBeforeCursor(200, 0)?.toString()).orEmpty()
         val toDelete = TextEditLogic.wordDeleteCount(text, text.length)
         // Wortgrenze löschen, min. ein Zeichen (wie im Original-Service).
         ic.deleteSurroundingText(maxOf(toDelete, 1), 0)
     }
     override fun textBefore(count: Int): String =
-        connection()?.getTextBeforeCursor(count, 0)?.toString() ?: ""
+        (connection()?.getTextBeforeCursor(count, 0)?.toString()).orEmpty()
     override fun onEnter() = sendKey(android.view.KeyEvent.KEYCODE_ENTER)
 
     /** KEYCODE_TAB statt `commitText("\t")` – nötig für Termux/SSH (vim, Completion). */

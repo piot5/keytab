@@ -82,6 +82,6 @@ class DynamicKeyScaler(
                 if (sameRow || adjacentRow) set.add(otherLetter.lowercaseChar())
             }
         }
-        return { c -> neighborButtons[c] ?: emptySet() }
+        return { c -> neighborButtons[c].orEmpty() }
     }
 }

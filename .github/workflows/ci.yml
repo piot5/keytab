@@ -36,6 +36,33 @@ jobs:
           path: app/build/reports/tests/testDebugUnitTest/**
           if-no-files-found: warn
 
+  # Static-Analysis-Gate: detekt (Baseline fixiert bestehende Befunde,
+  # neue Code-Smells schlagen fehl)
+  lint:
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: detekt
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:detektDebug --no-daemon --stacktrace
+
+      - name: detekt-Report als Artifact hochladen (bei Fehlern)
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: detekt-report
+          path: app/build/reports/detekt/**
+          if-no-files-found: warn
+
   # Coverage-Gate (Roadmap Punkt 1): koverVerify schlägt fehl, wenn die
   # Zeilen-Coverage von :app unter 20 % fällt. Läuft nach build-test, damit
   # im Fehlerfall zuerst die Klartext-Testergebnisse vorliegen.

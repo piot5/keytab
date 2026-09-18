@@ -98,7 +98,7 @@ class WordPredictionManager(
             val tv = suggestionViews[i] ?: continue
             val sug = list.getOrNull(i)
             if (sug == null) { tv.visibility = View.INVISIBLE; tv.tag = null }
-            else { tv.visibility = View.VISIBLE; tv.text = eng!!.matchCase(sug.word, currentTypedWord); tv.tag = sug.word }
+            else { tv.visibility = View.VISIBLE; tv.text = (eng?.matchCase(sug.word, currentTypedWord)).orEmpty(); tv.tag = sug.word }
         }
         currentSuggestions = list
         bar.visibility = View.VISIBLE
@@ -165,7 +165,7 @@ class WordPredictionManager(
     }
 
     fun deleteLast() {
-        currentTypedWord = currentTypedWord.dropLast(1).takeIf { it.isNotEmpty() } ?: ""
+        currentTypedWord = currentTypedWord.dropLast(1).takeIf { it.isNotEmpty() }.orEmpty()
     }
 
     fun reset() {

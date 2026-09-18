@@ -107,7 +107,7 @@ class EditorPanel(
     /** ↑: Editor-Inhalt direkt ins Zielfeld der App darüber einfügen. */
     private fun setupSendUp(root: View) {
         root.findViewById<Button>(R.id.btn_editor_send_up)?.setOnClickListener {
-            val text = input?.text?.toString() ?: ""
+            val text = (input?.text?.toString()).orEmpty()
             if (text.isEmpty()) {
                 Toast.makeText(context, R.string.editor_empty_nothing, Toast.LENGTH_SHORT).show()
             } else {
@@ -128,7 +128,7 @@ class EditorPanel(
     /** ⎘: Editor-Inhalt ins System-Clipboard kopieren. */
     private fun setupCopy(root: View) {
         root.findViewById<Button>(R.id.btn_editor_copy)?.setOnClickListener {
-            val text = input?.text?.toString() ?: ""
+            val text = (input?.text?.toString()).orEmpty()
             if (text.isEmpty()) {
                 Toast.makeText(context, R.string.editor_empty_nothing, Toast.LENGTH_SHORT).show()
             } else {
@@ -159,7 +159,8 @@ class EditorPanel(
                     }
                 } catch (e: Exception) {
                     mainHandler.post {
-                        Toast.makeText(context, context.getString(R.string.editor_save_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.editor_save_failed, e.message.orEmpty()),
+                        Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -188,7 +189,7 @@ class EditorPanel(
                 val raw = try { d.listFiles() } catch (_: Exception) { null }
                 val visible = raw?.filter { !it.isHidden }
                     ?.sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase() })
-                    ?: emptyList()
+                    .orEmpty()
                 val items = visible.map { label(it) }
                 mainHandler.post {
                     // Veraltetes Ergebnis verwerfen, falls weiter navigiert wurde
@@ -248,7 +249,7 @@ class EditorPanel(
                 }
             } catch (e: Exception) {
                 mainHandler.post {
-                    Toast.makeText(context, context.getString(R.string.editor_load_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.editor_load_failed, e.message.orEmpty()), Toast.LENGTH_SHORT).show()
                 }
             }
         }

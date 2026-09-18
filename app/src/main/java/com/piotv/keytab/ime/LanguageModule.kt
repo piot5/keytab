@@ -21,7 +21,7 @@ data class KeyboardLanguage(
     fun letterExtras(basePunct: Map<Char, List<String>>): Map<Char, List<String>> {
         val out = HashMap(basePunct)
         for ((k, v) in extras) {
-            val merged = (out[k] ?: emptyList()) + v.filterNot { out[k]?.contains(it) == true }
+            val merged = (out[k]).orEmpty() + v.filterNot { out[k]?.contains(it) == true }
             out[k] = merged
         }
         return out

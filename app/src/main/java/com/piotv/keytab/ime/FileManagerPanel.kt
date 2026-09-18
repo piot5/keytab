@@ -71,7 +71,7 @@ class FileManagerPanel(
         }
 
         up?.setOnClickListener {
-            currentDir?.parentFile?.let { navigate(it) }
+            currentDir?.parentFile?.let { parent -> navigate(parent) }
         }
 
         list?.setOnItemClickListener { _, _, position, _ ->
@@ -242,7 +242,7 @@ class FileManagerPanel(
                     if (f.isDirectory) FileEntry(f, "\uD83D\uDCC1 ${f.name}/", context.getString(R.string.fm_entry_dir))
                     else FileEntry(f, "\uD83D\uDCC4 ${f.name}", TextEditLogic.formatSize(f.length()))
                 }
-                ?: emptyList()
+                .orEmpty()
             val dirs = raw?.count { it.isDirectory } ?: 0
             val files = raw?.count { it.isFile } ?: 0
             mainHandler.post {

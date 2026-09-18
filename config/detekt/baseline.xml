@@ -1,0 +1,205 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ComplexCondition:BackgroundImage.kt$BackgroundImage$iw &lt;= 0 || ih &lt;= 0 || width &lt;= 0 || height &lt;= 0</ID>
+    <ID>ComplexCondition:EditorHighlightLogic.kt$EditorHighlightLogic$c == '0' &amp;&amp; i + 1 &lt; n &amp;&amp; (text[i + 1] == 'x' || text[i + 1] == 'X')</ID>
+    <ID>ComplexCondition:LetterPopup.kt$LetterPopup$event.rawX &gt;= loc[0] &amp;&amp; event.rawX &lt; loc[0] + cell.width &amp;&amp; event.rawY &gt;= loc[1] &amp;&amp; event.rawY &lt; loc[1] + cell.height</ID>
+    <ID>ComplexCondition:SuggestionEngine.kt$SuggestionEngine.Companion$i &gt; 1 &amp;&amp; j &gt; 1 &amp;&amp; a[i - 1] == b[j - 2] &amp;&amp; a[i - 2] == b[j - 1]</ID>
+    <ID>CyclomaticComplexMethod:DynamicKeyScaler.kt$DynamicKeyScaler$private fun computeNeighbors(): (Char) -&gt; Set&lt;Char&gt;</ID>
+    <ID>CyclomaticComplexMethod:EditorHighlightLogic.kt$EditorHighlightLogic$fun spans(text: String, maxChars: Int = MAX_SCAN_CHARS): List&lt;Span&gt;</ID>
+    <ID>CyclomaticComplexMethod:EditorPanel.kt$EditorPanel$private fun showFilePicker()</ID>
+    <ID>CyclomaticComplexMethod:KeyTabConfig.kt$KeyTabConfig$private fun with(key: String, value: String): KeyTabConfig</ID>
+    <ID>CyclomaticComplexMethod:KeyboardBinder.kt$KeyboardBinder$fun applyLetterCase(view: View?)</ID>
+    <ID>CyclomaticComplexMethod:LearnedDictionaryApi.kt$LearnedDictionaryApi$fun batchPreview( store: SuggestionEngine, deletes: List&lt;CleanupOperation.Delete&gt;, adds: List&lt;CleanupOperation.Add&gt; ): BatchPreview</ID>
+    <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
+    <ID>CyclomaticComplexMethod:SettingsConfig.kt$SettingsConfig$internal fun importTextIfChanged(text: String, prefs: SharedPreferences): Boolean</ID>
+    <ID>CyclomaticComplexMethod:SuggestionEngine.kt$SuggestionEngine$fun autoCorrect(typed: String, prev: String? = null): String?</ID>
+    <ID>CyclomaticComplexMethod:SuggestionEngine.kt$SuggestionEngine$private fun completeWord(cur: String, prev: String?, max: Int): List&lt;Suggestion&gt;</ID>
+    <ID>CyclomaticComplexMethod:SuggestionEngine.kt$SuggestionEngine$private fun predictNext(prev: String?, max: Int): List&lt;Suggestion&gt;</ID>
+    <ID>CyclomaticComplexMethod:TabController.kt$TabController$fun setup(root: View)</ID>
+    <ID>CyclomaticComplexMethod:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
+    <ID>CyclomaticComplexMethod:ThemePrefs.kt$ThemePrefs$fun importColors(prefs: SharedPreferences, json: String): Boolean</ID>
+    <ID>EmptyFunctionBlock:BackgroundSection.kt$BackgroundSection.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:ColorSection.kt$ColorSection.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:EditorPanel.kt$EditorPanel.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:FileManagerFragment.kt$FileManagerFragment.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:GradientSection.kt$GradientSection.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:MainActivity.kt$MainActivity.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:TabController.kt$TabController.&lt;no name provided&gt;${}</ID>
+    <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
+    <ID>LongMethod:TopSection.kt$TopSection$fun build(col: LinearLayout)</ID>
+    <ID>LongMethod:TrailSection.kt$TrailSection$fun build(col: LinearLayout)</ID>
+    <ID>LoopWithTooManyJumpStatements:DynamicKeyScaler.kt$DynamicKeyScaler$for</ID>
+    <ID>LoopWithTooManyJumpStatements:EditorHighlightLogic.kt$EditorHighlightLogic$while</ID>
+    <ID>LoopWithTooManyJumpStatements:KeyScaleLogic.kt$KeyScaleLogic$for</ID>
+    <ID>LoopWithTooManyJumpStatements:KeyTabConfig.kt$KeyTabConfig.Companion$for</ID>
+    <ID>LoopWithTooManyJumpStatements:LearnedDictionaryApi.kt$LearnedDictionaryApi$for</ID>
+    <ID>LoopWithTooManyJumpStatements:SnippetPanel.kt$SnippetPanel$for</ID>
+    <ID>LoopWithTooManyJumpStatements:SuggestionEngine.kt$SuggestionEngine$for</ID>
+    <ID>LoopWithTooManyJumpStatements:TrailManager.kt$TrailManager$for</ID>
+    <ID>MagicNumber:BackgroundImage.kt$BackgroundImage$2048</ID>
+    <ID>MagicNumber:BackgroundSection.kt$BackgroundSection$18f</ID>
+    <ID>MagicNumber:ColorSection.kt$ColorSection$200</ID>
+    <ID>MagicNumber:ColorSection.kt$ColorSection$255</ID>
+    <ID>MagicNumber:ColorSection.kt$ColorSection$50</ID>
+    <ID>MagicNumber:ColorSection.kt$ColorSection$8</ID>
+    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$10f</ID>
+    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$12f</ID>
+    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$13</ID>
+    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$24</ID>
+    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$255</ID>
+    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$30f</ID>
+    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$360f</ID>
+    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$4f</ID>
+    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$8f</ID>
+    <ID>MagicNumber:FileManagerFragment.kt$FileManagerFragment$33</ID>
+    <ID>MagicNumber:GradientSection.kt$GradientSection$40</ID>
+    <ID>MagicNumber:InputTargets.kt$AppInputTarget$200</ID>
+    <ID>MagicNumber:KeyAnimations.kt$KeyAnimations$1.6f</ID>
+    <ID>MagicNumber:KeyAnimations.kt$KeyAnimations$48</ID>
+    <ID>MagicNumber:KeyboardBinder.kt$KeyboardBinder$0.2f</ID>
+    <ID>MagicNumber:KeyboardBinder.kt$KeyboardBinder$0.55f</ID>
+    <ID>MagicNumber:KeyboardBinder.kt$KeyboardBinder$0.5f</ID>
+    <ID>MagicNumber:KeyboardBinder.kt$KeyboardBinder$0.6f</ID>
+    <ID>MagicNumber:KeyboardBinder.kt$KeyboardBinder$0.85f</ID>
+    <ID>MagicNumber:KeyboardViewFactory.kt$KeyboardViewFactory$14f</ID>
+    <ID>MagicNumber:LetterPopup.kt$LetterPopup$14</ID>
+    <ID>MagicNumber:LetterPopup.kt$LetterPopup$18</ID>
+    <ID>MagicNumber:LetterPopup.kt$LetterPopup$20f</ID>
+    <ID>MagicNumber:LetterPopup.kt$LetterPopup$6</ID>
+    <ID>MagicNumber:LetterPopup.kt$LetterPopup$8</ID>
+    <ID>MagicNumber:LetterPopup.kt$LetterPopup$8f</ID>
+    <ID>MagicNumber:LikelyHighlightSection.kt$LikelyHighlightSection$32</ID>
+    <ID>MagicNumber:LikelyHighlightSection.kt$LikelyHighlightSection$4</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$33</ID>
+    <ID>MagicNumber:PreviewSection.kt$PreviewSection$12</ID>
+    <ID>MagicNumber:PreviewSection.kt$PreviewSection$14f</ID>
+    <ID>MagicNumber:PreviewSection.kt$PreviewSection$16</ID>
+    <ID>MagicNumber:PreviewSection.kt$PreviewSection$18f</ID>
+    <ID>MagicNumber:PreviewSection.kt$PreviewSection$28</ID>
+    <ID>MagicNumber:PreviewSection.kt$PreviewSection$4f</ID>
+    <ID>MagicNumber:PreviewSection.kt$PreviewSection$6f</ID>
+    <ID>MagicNumber:PreviewSection.kt$PreviewSection$8</ID>
+    <ID>MagicNumber:SettingsConfig.kt$SettingsConfig$0xFF000000L</ID>
+    <ID>MagicNumber:SettingsConfig.kt$SettingsConfig$16</ID>
+    <ID>MagicNumber:SettingsConfig.kt$SettingsConfig$7</ID>
+    <ID>MagicNumber:ShiftController.kt$ShiftController$1_000_000_000L</ID>
+    <ID>MagicNumber:SnippetPanel.kt$SnippetPanel$16</ID>
+    <ID>MagicNumber:SnippetPanel.kt$SnippetPanel$8</ID>
+    <ID>MagicNumber:SuggestionController.kt$SuggestionController$1.3f</ID>
+    <ID>MagicNumber:SuggestionController.kt$SuggestionController$130</ID>
+    <ID>MagicNumber:SuggestionController.kt$SuggestionController$170</ID>
+    <ID>MagicNumber:SuggestionController.kt$SuggestionController$230</ID>
+    <ID>MagicNumber:SuggestionController.kt$SuggestionController$8f</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.1</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.2</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.25</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.3</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.45</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.5</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.6</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$1.2</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$10</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$25</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$4</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$6</ID>
+    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$8</ID>
+    <ID>MagicNumber:TerminalPanel.kt$TerminalPanel$100000</ID>
+    <ID>MagicNumber:TerminalPanel.kt$TerminalPanel$512</ID>
+    <ID>MagicNumber:TextEditLogic.kt$TextEditLogic$1024</ID>
+    <ID>MagicNumber:TextEditLogic.kt$TextEditLogic$1024.0</ID>
+    <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$0.6f</ID>
+    <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$255</ID>
+    <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$4</ID>
+    <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$8f</ID>
+    <ID>MagicNumber:ThemePrefs.kt$ThemePrefs$0.15f</ID>
+    <ID>MagicNumber:ThemePrefs.kt$ThemePrefs$0.5f</ID>
+    <ID>MagicNumber:ThemePrefs.kt$ThemePrefs$0.75f</ID>
+    <ID>MagicNumber:ThemePrefs.kt$ThemePrefs$0xFFFFFF</ID>
+    <ID>MagicNumber:ThemePrefs.kt$ThemePrefs$24</ID>
+    <ID>MagicNumber:ThemePrefs.kt$ThemePrefs$255</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$0.114</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$0.299</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$0.5</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$0.587</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$12</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$16</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$16f</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$18</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$20</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$22f</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$255</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$32</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$4</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$4f</ID>
+    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$8</ID>
+    <ID>MagicNumber:TopSection.kt$TopSection$12</ID>
+    <ID>MagicNumber:TopSection.kt$TopSection$28f</ID>
+    <ID>MagicNumber:TopSection.kt$TopSection$32</ID>
+    <ID>MagicNumber:TopSection.kt$TopSection$4</ID>
+    <ID>MagicNumber:TopSection.kt$TopSection$56</ID>
+    <ID>MagicNumber:TopSection.kt$TopSection$8</ID>
+    <ID>MagicNumber:TrailLogic.kt$TrailLogic$255</ID>
+    <ID>MagicNumber:TrailLogic.kt$TrailLogic$255f</ID>
+    <ID>MagicNumber:TrailManager.kt$TrailManager$8f</ID>
+    <ID>MagicNumber:TrailSection.kt$TrailSection$10</ID>
+    <ID>MagicNumber:TrailSection.kt$TrailSection$12f</ID>
+    <ID>MagicNumber:TrailSection.kt$TrailSection$32</ID>
+    <ID>MagicNumber:TrailSection.kt$TrailSection$4</ID>
+    <ID>MagicNumber:TrailSection.kt$TrailSection$5</ID>
+    <ID>MagicNumber:TrailSection.kt$TrailSection$7</ID>
+    <ID>MaxLineLength:ColorSection.kt$ColorSection$val color = ThemePrefs.getColor(prefs, ThemePrefs.isDarkMode(activity), target, ThemePrefs.defaultColor(activity, ThemePrefs.isDarkMode(activity), target))</ID>
+    <ID>MaxLineLength:ColorSection.kt$ColorSection.&lt;no name provided&gt;$override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean)</ID>
+    <ID>MaxLineLength:ThemeSettingsActivity.kt$ThemeSettingsActivity$colorSection = ColorSection(this, prefs, { selectedTarget }) { updatePreview(); refreshTargetButtons(); gradientSection.updateGradient() }</ID>
+    <ID>NestedBlockDepth:EditorHighlightLogic.kt$EditorHighlightLogic$fun spans(text: String, maxChars: Int = MAX_SCAN_CHARS): List&lt;Span&gt;</ID>
+    <ID>NestedBlockDepth:SettingsConfig.kt$SettingsConfig$internal fun importTextIfChanged(text: String, prefs: SharedPreferences): Boolean</ID>
+    <ID>NestedBlockDepth:SuggestionController.kt$SuggestionController$private fun updateLikelyKeys()</ID>
+    <ID>NestedBlockDepth:SuggestionEngine.kt$SuggestionEngine$private fun completeWord(cur: String, prev: String?, max: Int): List&lt;Suggestion&gt;</ID>
+    <ID>NestedBlockDepth:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
+    <ID>NestedBlockDepth:ThemePrefs.kt$ThemePrefs$fun importColors(prefs: SharedPreferences, json: String): Boolean</ID>
+    <ID>NewLineAtEndOfFile:CapsLogic.kt$com.piotv.keytab.ime.CapsLogic.kt</ID>
+    <ID>NewLineAtEndOfFile:CapsLogicTest.kt$com.piotv.keytab.ime.CapsLogicTest.kt</ID>
+    <ID>NewLineAtEndOfFile:DynamicKeyScaler.kt$com.piotv.keytab.ime.DynamicKeyScaler.kt</ID>
+    <ID>NewLineAtEndOfFile:EditorHighlightLogic.kt$com.piotv.keytab.ime.EditorHighlightLogic.kt</ID>
+    <ID>NewLineAtEndOfFile:EditorHighlightLogicTest.kt$com.piotv.keytab.ime.EditorHighlightLogicTest.kt</ID>
+    <ID>NewLineAtEndOfFile:EditorPanel.kt$com.piotv.keytab.ime.EditorPanel.kt</ID>
+    <ID>NewLineAtEndOfFile:FileManagerPanel.kt$com.piotv.keytab.ime.FileManagerPanel.kt</ID>
+    <ID>NewLineAtEndOfFile:InputRouterTest.kt$com.piotv.keytab.ime.InputRouterTest.kt</ID>
+    <ID>NewLineAtEndOfFile:KeyAnimationsTest.kt$com.piotv.keytab.ime.KeyAnimationsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:KeyTabExecutors.kt$com.piotv.keytab.ime.KeyTabExecutors.kt</ID>
+    <ID>NewLineAtEndOfFile:LanguageModule.kt$com.piotv.keytab.ime.LanguageModule.kt</ID>
+    <ID>NewLineAtEndOfFile:LiftSpan.kt$com.piotv.keytab.ime.LiftSpan.kt</ID>
+    <ID>NewLineAtEndOfFile:LiftSpanTest.kt$com.piotv.keytab.ime.LiftSpanTest.kt</ID>
+    <ID>NewLineAtEndOfFile:LikelyHighlightLogic.kt$com.piotv.keytab.ime.LikelyHighlightLogic.kt</ID>
+    <ID>NewLineAtEndOfFile:LikelyHighlightLogicTest.kt$com.piotv.keytab.ime.LikelyHighlightLogicTest.kt</ID>
+    <ID>NewLineAtEndOfFile:PanelsTest.kt$com.piotv.keytab.ime.PanelsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ShiftController.kt$com.piotv.keytab.ime.ShiftController.kt</ID>
+    <ID>NewLineAtEndOfFile:ShiftControllerTest.kt$com.piotv.keytab.ime.ShiftControllerTest.kt</ID>
+    <ID>NewLineAtEndOfFile:TerminalPanel.kt$com.piotv.keytab.ime.TerminalPanel.kt</ID>
+    <ID>NewLineAtEndOfFile:TextEditLogic.kt$com.piotv.keytab.ime.TextEditLogic.kt</ID>
+    <ID>NewLineAtEndOfFile:TextEditLogicTest.kt$com.piotv.keytab.ime.TextEditLogicTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ThemeApplier.kt$com.piotv.keytab.ime.ThemeApplier.kt</ID>
+    <ID>NewLineAtEndOfFile:ThemeApplierTest.kt$com.piotv.keytab.ime.ThemeApplierTest.kt</ID>
+    <ID>NewLineAtEndOfFile:TrailManager.kt$com.piotv.keytab.ime.TrailManager.kt</ID>
+    <ID>NewLineAtEndOfFile:TrailSection.kt$com.piotv.keytab.sections.TrailSection.kt</ID>
+    <ID>NewLineAtEndOfFile:WordPredictionManager.kt$com.piotv.keytab.ime.WordPredictionManager.kt</ID>
+    <ID>SwallowedException:FileManagerFragment.kt$FileManagerFragment$e: Exception</ID>
+    <ID>SwallowedException:TerminalPanel.kt$TerminalPanel$e: Exception</ID>
+    <ID>TooManyFunctions:KeyTabImeService.kt$KeyTabImeService : InputMethodServiceKeyboardHost</ID>
+    <ID>TooManyFunctions:KeyboardHost.kt$KeyboardHost</ID>
+    <ID>TooManyFunctions:ThemePrefs.kt$ThemePrefs</ID>
+    <ID>UnusedPrivateMember:ColorSection.kt$ColorSection$private fun updateColorFromWheel()</ID>
+    <ID>UnusedPrivateProperty:LiftSpanTest.kt$LiftSpanTest$i</ID>
+    <ID>UnusedPrivateProperty:PreviewSection.kt$PreviewSection$private val onChange: () -&gt; Unit</ID>
+    <ID>UnusedPrivateProperty:ThemePrefs.kt$ThemePrefs$/** Default-Verlaufs-Farbe (wenn nicht gesetzt). */ private const val INT_DEF_GRADIENT = 0xFF000000.toInt()</ID>
+    <ID>VariableNaming:ShiftControllerTest.kt$ShiftControllerTest$private val DEBOUNCE = 300L</ID>
+    <ID>WildcardImport:BackgroundImage.kt$import android.graphics.*</ID>
+    <ID>WildcardImport:BackgroundSection.kt$import android.widget.*</ID>
+    <ID>WildcardImport:GradientSection.kt$import android.widget.*</ID>
+    <ID>WildcardImport:LearnedDictionaryApiTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:SettingsConfigTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:SettingsRegressionTest.kt$import org.junit.Assert.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

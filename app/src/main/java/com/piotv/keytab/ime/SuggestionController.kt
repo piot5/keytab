@@ -80,7 +80,7 @@ internal class SuggestionController(private val host: KeyboardHost) {
             com.piotv.keytab.Prefs.KEY_DYNAMIC_KEYS, true)
         val pm = host.predictionManager
         host.keyScaler?.apply(
-            pm?.currentSuggestions ?: emptyList(),
+            (pm?.currentSuggestions).orEmpty(),
             pm?.currentTypedWord?.length ?: 0,
             enabled
         )
@@ -99,8 +99,8 @@ internal class SuggestionController(private val host: KeyboardHost) {
             com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
         if (!ThemePrefs.likelyHighlighting(prefs)) { restoreLikelyKeys(); return }
         val pm = host.predictionManager
-        val sugs = pm?.currentSuggestions ?: emptyList()
-        val typed = pm?.currentTypedWord ?: ""
+        val sugs = (pm?.currentSuggestions).orEmpty()
+        val typed = (pm?.currentTypedWord).orEmpty()
         val next = LikelyHighlightLogic.nextChar(sugs, typed.length)
         restoreLikelyKeys()
         if (next != null) {

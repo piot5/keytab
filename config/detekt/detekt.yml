@@ -1,0 +1,23 @@
+# detekt-Konfiguration (buildUponDefaultConfig = true; nur Abweichungen)
+# Schwerpunkt: verständliche, geringe Fehlalarm-Quote für ein IME-Projekt.
+complexity:
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 25
+    thresholdInClasses: 20
+    thresholdInObjects: 20
+style:
+  MagicNumber:
+    active: true
+    ignoreNumbers: ['-1', '0', '1', '2', '3', '100']
+  MaxLineLength:
+    active: true
+    maxLineLength: 140
+  ReturnCount:
+    active: false
+exceptions:
+  TooGenericExceptionCaught:
+    active: false  # IME: breite Catches an IO/Intent-Grenzen sind bewusst
+naming:
+  FunctionNaming:
+    active: false  # Compose-ähnliche/kurze Namen in UI-Klassen erlauben

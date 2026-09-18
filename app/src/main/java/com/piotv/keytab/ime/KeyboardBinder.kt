@@ -123,7 +123,7 @@ internal class KeyboardBinder(
                         longPressFired = true
                         showLetterExtras(btn)
                     }
-                    host.longPressHandler.postDelayed(pendingLongPress!!, longPressTimeout)
+                    pendingLongPress?.let { host.longPressHandler.postDelayed(it, longPressTimeout) }
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -198,9 +198,9 @@ internal class KeyboardBinder(
                                 host.longPressHandler.postDelayed(this, scheduler.interval)
                             }
                         }
-                        host.longPressHandler.postDelayed(repeater!!, scheduler.interval)
+                        repeater?.let { host.longPressHandler.postDelayed(it, scheduler.interval) }
                     }
-                    host.longPressHandler.postDelayed(pendingLongPress!!, longPressTimeout)
+                    pendingLongPress?.let { host.longPressHandler.postDelayed(it, longPressTimeout) }
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -238,7 +238,7 @@ internal class KeyboardBinder(
         val extras = host.letterExtras
         val showExtras = extras[if (upper) base.uppercaseChar() else base]
             ?: extras[base]
-            ?: emptyList()
+            .orEmpty()
         if (showExtras.isEmpty()) return
         host.letterPopup.show(anchor, showExtras) { ch -> host.commitText(ch.toString()) }
     }

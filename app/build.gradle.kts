@@ -5,6 +5,16 @@ plugins {
     id("org.jetbrains.kotlin.android")
     // Coverage-Gate (Roadmap Punkt 1): Kover 0.8.3, kompatibel mit AGP 8.5 / Kotlin 1.9
     id("org.jetbrains.kotlinx.kover") version "0.8.3"
+    // Statisches Qualitäts-Gate: detekt; Issues stehen in config/detekt/detekt.yml,
+    // bestehende, bewusst belassene Befunde in der Baseline (fix-erst-schrittweise)
+    id("io.gitlab.arturbosch.detekt") version "1.23.7"
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    baseline = file("$rootDir/config/detekt/baseline.xml")
+    parallel = true
 }
 
 // Coverage-Gate: koverVerify ist das harte Gate (Zeilen-Coverage ≥ 20 %).

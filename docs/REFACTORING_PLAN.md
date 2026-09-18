@@ -1,6 +1,6 @@
 # KeyTab — Refactoring Plan: Modularisation & Separation of Concerns
 
-Status: 2026-09-17 (re-audit) · **Phases 0–5 done; Phase 6 COMPLETE (service 908→283 lines); Phase 7 COMPLETE (panels decoupled, audit-verified); R1–R3 COMPLETE; coverage gate DONE (20 %, measured 33.5 %); open: Phase 8** · Goal: maintainable, testable modules with no behaviour change.
+Status: 2026-09-18 · **Phases 0–5 done; Phase 6 COMPLETE (service 908→283 lines); Phase 7 COMPLETE (panels decoupled, audit-verified); R1–R3 COMPLETE; coverage gate DONE (20 %, measured 33.5 %); P3 done (KeyboardHost role split, single prefs accessor, docs/versioning single source)** · Goal: maintainable, testable modules with no behaviour change.
 
 **Benchmark (2026-09-17, re-audit verified): global score 82/100 · niche score (coding on Android) 87/100.**
 
@@ -458,7 +458,19 @@ not planned; the work that actually matters starts at P1.
   `FileManagerFragment` and `BackgroundImage`; the terminal's `id -un` subprocess moved onto the shared
   I/O pool. Remaining: full coroutine migration (the 2 `Handler`s are now centralised, not gone).
 - [ ] Lint warnings ~30 → < 10.
-- [ ] Centralise the `getSharedPreferences` spread (**25** calls, measured) through the `Prefs` accessor.
+- [x] Centralise the `getSharedPreferences` spread through the `Prefs` accessor. **Done 2026-09-18**:
+  `Prefs.of(context)` is now the only entry point; all **25** direct calls in 12 files migrated
+  (`MODE_PRIVATE` + `keytab_prefs` are defined once). `ThemePrefs.PREFS`/`MainActivity.PREFS` remain as
+  deprecated aliases pointing at `Prefs.FILE`.
+- [x] Split `KeyboardHost` into role interfaces. **Done 2026-09-18**: `ThemeHost`, `TabHost`,
+  `SuggestionHost`, `KeyboardInputHost` (all extending a minimal `KeyboardHost` with just `context`).
+  `ThemeController`/`TabController`/`SuggestionController`/`KeyboardBinder` each declare only their role;
+  `KeyTabImeService` implements all four. No behaviour change; the Robolectric proxy in
+  `SettingsRegressionTest` now only needs to stub `TabHost`.
+- [x] **Docs/versioning single source.** **Done 2026-09-18**: changelog moved out of the README into
+  `CHANGELOG.md`; the version lives only in `app/build.gradle.kts`; CI job **`docs`**
+  (`scripts/check_docs_drift.sh`) fails the build when versionName/versionCode, the `CHANGELOG.md` head,
+  the fastlane release notes, or the README test counts drift apart.
 - [ ] IME hardening: test matrix Termux (neovim) / AndroidIDE / VS Code (proot) — cursor, commitText, IME switching.
 - [ ] Editor robustness: non-UTF-8 (latin-1) and very large files.
 - [ ] **Repository cleanup:** `KeyAnimations.kt` exists twice (project root **and** `ime/`) — the root copy is an
@@ -474,7 +486,7 @@ not planned; the work that actually matters starts at P1.
   Performance guard: files above 20,000 chars stay single-colour. Eleven unit tests in
   `EditorHighlightLogicTest` plus two panel-level tests (gutter text, span set/clear).
 - [ ] Termux deep link (Files tab → "Open in Termux")
-- [ ] Split `KeyboardHost` into role interfaces *(no score lever, see Phase 7)*
+- [x] Split `KeyboardHost` into role interfaces — **done 2026-09-18** (see P3)
 - [ ] Emoji support *(lowest priority — deliberately deferred)*
 - [ ] Multi-module Gradle structure
 ### ❌ Not planned (with reasons)

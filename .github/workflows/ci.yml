@@ -5,6 +5,20 @@ on:
   pull_request:
 
 jobs:
+  # Doku-Drift-Gate: laeuft zuerst und ohne Toolchain (kein Gradle, kein SDK),
+  # damit README/CHANGELOG/Versionsangaben nicht vom Code wegdriften.
+  # Geprueft werden eindeutig maschinell entscheidbare Dinge: versionName ==
+  # CHANGELOG.md-Kopf == fastlane-Changelog, die im README genannten
+  # Testzahlen/Suite-Namen gegen app/src/test, und dass die Version nur an
+  # einer Stelle definiert ist. Details: scripts/check_docs_drift.sh
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Doku-Drift pruefen
+        run: sh scripts/check_docs_drift.sh
+
   build-test:
     runs-on: ubuntu-latest
     steps:

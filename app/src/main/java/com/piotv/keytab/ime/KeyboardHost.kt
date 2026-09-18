@@ -6,53 +6,25 @@ import android.view.View
 import android.widget.Button
 
 /**
- * Schmale Schnittstelle, über die die ausgelagerten Controller- und Panel-Module
- * auf die Fähigkeiten des [KeyTabImeService] zugreifen.
+ * Rollen-Interface: gemeinsame Basis aller Host-Rollen.
  *
- * Refactoring (docs/REFACTORING_PLAN.md Phase 4): reduziert die breite Kopplung
- * – Module kennen den Service nur noch als [KeyboardHost], nicht als konkrete
- * God-Class. Das gleiche Interface wird später (Phase 6) auch von den Panels
- * verwendet, sodass kein Panel/Controller den Service direkt referenziert.
- *
- * Abhängigkeiten zeigen nach innen: Views → Controller → Core.
- * Core kennt keine Views; [KeyboardHost] ist die Außengrenze des Service.
+ * Jede Rolle erbt von [KeyboardHost] und wird von genau den Modulen konsumiert,
+ * die diese Rolle tatsächlich brauchen. Dadurch hängt kein Modul mehr am
+ * 25-Member-Interface, sondern nur an den 3–8 Membern seiner Rolle
+ * (Interface Segregation, docs/REFACTORING_PLAN.md Phase 7/P3).
  */
 interface KeyboardHost {
 
     /** Basis-Kontext des IME (für Prefs, Resources, Assets, String-Ressourcen). */
     val context: Context
+}
 
-    /** Aktueller Root-View der Tastatur (null vor erstem Aufbau / nach Release). */
-    val keyboardRoot: View?
-
-    /** Long-Press-Handler (MainThread) für verzögerte Aktionen. */
-    val longPressHandler: Handler
-
-    /** Long-Press-Popup (für dismiss bei Tab-/Tastenwechsel). */
-    val letterPopup: LetterPopup
-
-    /** Aktiver Input-Router (Ziel: App/Editor/Terminal). */
-    val inputRouter: InputRouter?
-
-    /** Wortvorhersage-Manager. */
-    val predictionManager: WordPredictionManager?
-
-    /** Dynamischer Tasten-Skaler. */
-    val keyScaler: DynamicKeyScaler?
-
-    /** Buchstaben-Tasten → Basiszeichen (für Likely-Highlights + LetterCase). */
-    val baseLetters: MutableMap<Button, Char>
-
-    /** Dateimanager-Panel (für show() beim Files-Tab). */
-    val fileManagerPanel: FileManagerPanel?
-
-    /** Clipboard-Panel (für onSelected() beim Notes-Tab). */
-    val clipboardPanel: ClipboardPanel?
-
-    /** Snippet-Panel (für onSelected() beim Snip-Tab). */
-    val snippetPanel: SnippetPanel?
-
-    // ---------- Theme ----------
+/**
+ * Rolle: Theme (Konsument [ThemeController]).
+ *
+ * Nur was zum Umschalten/Aufbauen des Themes nötig ist.
+ */
+interface ThemeHost : KeyboardHost {
 
     /** Dark-Mode aktiv? (Pref-Override oder System-Modus). */
     fun isDarkMode(): Boolean
@@ -63,23 +35,102 @@ interface KeyboardHost {
     /** Neuen View als aktiven Input-View setzen. */
     fun setInputView(view: View)
 
-    // ---------- Shift ----------
+    /** Aktueller Root-View der Tastatur (null vor erstem Aufbau / nach Release). */
+    val keyboardRoot: View?
 
-    fun isShifted(): Boolean
-    fun isCapsLock(): Boolean
+    /** Long-Press-Handler (MainThread) für verzögerte Aktionen. */
+    val longPressHandler: Handler
 
-    /**
-     * Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt) und View
-     * aktualisieren (Alpha/Bold + Buchstaben-Groß-/Kleinschreibung).
-     */
-    fun consumeSingleShift()
+    /** Long-Press-Popup (für dismiss bei Tastenwechsel). */
+    val letterPopup: LetterPopup
 
-    // ---------- Feedback / Routing ----------
+    /** Haptisches Feedback auf dem Tastatur-Root. */
+    fun haptic()
+}
+
+/**
+ * Rolle: Tabs (Konsument [TabController]).
+ *
+ * Tab-Umschaltung braucht Routing, Panel-Zugriffe und String-Ressourcen.
+ */
+interface TabHost : KeyboardHost {
+
+    /** Aktiver Input-Router (Ziel: App/Editor/Terminal). */
+    val inputRouter: InputRouter?
+
+    /** Long-Press-Popup (für dismiss beim Tab-Wechsel). */
+    val letterPopup: LetterPopup
+
+    /** Dateimanager-Panel (für show() beim Files-Tab). */
+    val fileManagerPanel: FileManagerPanel?
+
+    /** Clipboard-Panel (für onSelected() beim Notes-Tab). */
+    val clipboardPanel: ClipboardPanel?
+
+    /** Snippet-Panel (für onSelected() beim Snip-Tab). */
+    val snippetPanel: SnippetPanel?
+}
+
+/**
+ * Rolle: Vorschläge (Konsument [SuggestionController]).
+ *
+ * Vorschlagsleiste, dynamische Tastengröße und Likely-Highlighting.
+ */
+interface SuggestionHost : KeyboardHost {
+
+    /** Wortvorhersage-Manager. */
+    val predictionManager: WordPredictionManager?
+
+    /** Dynamischer Tasten-Skaler. */
+    val keyScaler: DynamicKeyScaler?
+
+    /** Buchstaben-Tasten → Basiszeichen (für Likely-Highlights). */
+    val baseLetters: MutableMap<Button, Char>
+
+    /** Aktueller Root-View der Tastatur (null vor erstem Aufbau / nach Release). */
+    val keyboardRoot: View?
+
+    /** Dark-Mode aktiv? (Pref-Override oder System-Modus). */
+    fun isDarkMode(): Boolean
 
     /** Haptisches Feedback auf dem Tastatur-Root. */
     fun haptic()
 
-    // ---------- Text-Eingabe (Delegate für KeyboardBinder) ----------
+    fun isShifted(): Boolean
+    fun isCapsLock(): Boolean
+
+    /** Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt). */
+    fun consumeSingleShift()
+}
+
+/**
+ * Rolle: Tasten-Binding (Konsument [KeyboardBinder]).
+ *
+ * Touch-/Long-Press-/Repeat-Logik der Tasten; enthält Text-Eingabe und
+ * Shift-State, aber keine Panel- oder Theme-Aufbauten.
+ */
+interface KeyboardInputHost : KeyboardHost {
+
+    /** Long-Press-Popup (für dismiss und Drag-Auswahl). */
+    val letterPopup: LetterPopup
+
+    /** Long-Press-Handler (MainThread) – Tab/Enter über den Router, Auto-Repeat der Del-Taste. */
+    val longPressHandler: Handler
+
+    /** Aktiver Input-Router (TAB/Enter/Backspace gehen an das aktive Eingabeziel). */
+    val inputRouter: InputRouter?
+
+    /** Wortvorhersage-Manager (für Vorschlags-Übernahme). */
+    val predictionManager: WordPredictionManager?
+
+    /** Buchstaben-Tasten → Basiszeichen (für LetterCase). */
+    val baseLetters: MutableMap<Button, Char>
+
+    /** Aktueller Root-View der Tastatur (null vor erstem Aufbau / nach Release). */
+    val keyboardRoot: View?
+
+    /** Haptisches Feedback auf dem Tastatur-Root. */
+    fun haptic()
 
     /** Text an das aktive Eingabeziel senden (App/Editor/Terminal via Router). */
     fun commitText(text: String)
@@ -90,16 +141,18 @@ interface KeyboardHost {
     /** App-Einstellungen öffnen (Settings-Taste). */
     fun openSettings()
 
-    // ---------- Shift-State (an ShiftController gebunden, Phase 3) ----------
+    fun isShifted(): Boolean
+    fun isCapsLock(): Boolean
+
+    /** Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt) und View
+     *  aktualisieren (Alpha/Bold + Buchstaben-Groß-/Kleinschreibung). */
+    fun consumeSingleShift()
 
     /**
      * Shift-Taste getippt. [now] = Zeitstempel (elapsedRealtime).
      * @return neuer Zustand (shifted/capsLock) – Aufrufer wendet Visual + LetterCase an.
      */
     fun tapShift(now: Long): ShiftController.ShiftState
-
-    /** Feld-Start: CapsLock aus, ggf. Auto-Caps. */
-    fun resetShiftForInput(autoCapitalize: Boolean)
 
     /** Buchstaben-Groß-/Kleinschreibung + Rand-Hinweise auf den View anwenden. */
     fun applyLetterCase(root: View?)

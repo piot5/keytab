@@ -17,7 +17,7 @@ import com.piotv.keytab.R
  *
  * Verhalten bleibt bit-identisch („Umziehen statt Umschreiben").
  */
-internal class ThemeController(private val host: KeyboardHost) {
+internal class ThemeController(private val host: ThemeHost) {
 
     companion object {
         const val LONG_PRESS_TIMEOUT = 400L
@@ -78,8 +78,7 @@ internal class ThemeController(private val host: KeyboardHost) {
 
     /** Dark-Mode-Override toggeln und Input-View mit neuem Theme neu aufbauen. */
     fun toggleDarkMode() {
-        val prefs = host.context.getSharedPreferences(
-            com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
+        val prefs = com.piotv.keytab.Prefs.of(host.context)
         prefs.edit().putBoolean(ThemePrefs.KEY_DARK, !host.isDarkMode()).apply()
         // Input-View mit neuem Theme neu aufbauen; Icon passend setzen
         val newRoot = host.rebuildInputView()
@@ -104,8 +103,7 @@ internal class ThemeController(private val host: KeyboardHost) {
         // Nur wenn die Tastatur schon aufgebaut ist: Beim allerersten Öffnen ist
         // keyboardRoot noch null und onCreateInputView läuft ohnehin gleich an.
         if (host.keyboardRoot == null) return
-        val prefs = host.context.getSharedPreferences(
-            com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
+        val prefs = com.piotv.keytab.Prefs.of(host.context)
         val version = ThemePrefs.themeVersion(prefs)
         if (version == appliedThemeVersion) return
         appliedThemeVersion = version

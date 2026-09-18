@@ -21,7 +21,7 @@ import com.piotv.keytab.R
  * - [ClipboardPanel]    – Ablage (Clipboard-Historie)
  * - [TextEditLogic]     – reine, testbare Textlogik
  */
-class KeyTabImeService : InputMethodService(), KeyboardHost {
+class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHost, KeyboardInputHost {
 
     private companion object {
         const val LONG_PRESS_TIMEOUT = 400L
@@ -69,6 +69,14 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         override val suggestionViews: Array<TextView?> get() = this@KeyTabImeService.suggestionViews
         override val baseLetters: MutableMap<Button, Char> get() = this@KeyTabImeService.baseLetters
     })
+
+    /**
+     * KeyboardHost-Rollen (P3, 2026-09-18): Der Service implementiert alle vier
+     * Rollen-Interfaces ([ThemeHost], [TabHost], [SuggestionHost],
+     * [KeyboardInputHost]) statt eines 25-Member-Interfaces. Jeder Controller
+     * deklariert jetzt nur noch die Rolle, die er wirklich braucht
+     * (Interface Segregation).
+     */
 
     /** KeyboardHost: Basis-Kontext für Prefs/Resources/Assets (gleiche Instanz wie baseContext). */
     override val context: Context get() = baseContext
@@ -155,7 +163,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         tabController.setup(root)
         // Trail-Manager erstellen (baseLetters noch leer, wird nach hook() aktualisiert)
         val trailManager = TrailManager(
-            getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE),
+            com.piotv.keytab.Prefs.of(this),
             baseLetters
         )
         keyboardBinder = KeyboardBinder(this, LONG_PRESS_TIMEOUT, tabController, themeController, suggestionController, trailManager)
@@ -165,7 +173,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
         keyboardBinder.applyLetterCase(root)
         // Suggestion-Views holen, Module starten (Engine lazy, Skaler aufbauen)
         suggestionController.setup(root, suggestionViews, activeLanguage)
-        appliedSettings = SettingsConfig.snapshot(getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE))
+        appliedSettings = SettingsConfig.snapshot(com.piotv.keytab.Prefs.of(this))
         appliedDarkMode = isDarkMode()
         return root
     }
@@ -175,7 +183,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
     /** Covers every UI preference, not just color edits that bump theme_version. */
     private fun refreshSettings() {
         SettingsConfig.importIfChanged(this)
-        val snapshot = SettingsConfig.snapshot(getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE))
+        val snapshot = SettingsConfig.snapshot(com.piotv.keytab.Prefs.of(this))
         if (keyboardRoot != null && (snapshot != appliedSettings || appliedDarkMode != isDarkMode())) {
             setInputView(onCreateInputView())
         }
@@ -216,7 +224,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
 
     /** Dark-Mode-Override; ohne gesetzte Pref gilt der System-Modus. */
     override fun isDarkMode(): Boolean {
-        val prefs = getSharedPreferences(com.piotv.keytab.Prefs.FILE, MODE_PRIVATE)
+        val prefs = com.piotv.keytab.Prefs.of(this)
         if (prefs.contains(ThemePrefs.KEY_DARK)) return prefs.getBoolean(ThemePrefs.KEY_DARK, false)
         val mask = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
         return mask == android.content.res.Configuration.UI_MODE_NIGHT_YES
@@ -243,7 +251,13 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
 
     override fun tapShift(now: Long): ShiftController.ShiftState = shiftController.tapShift(now)
 
-    override fun resetShiftForInput(autoCapitalize: Boolean) {
+    /**
+     * Feld-Start: CapsLock aus, ggf. Auto-Caps.
+     *
+     * Kein Host-Rollen-Member: wird nur intern von `onStartInput` aufgerufen
+     * (gehört zur Shift-Zustandsmaschine des Service, nicht zu einer Rolle).
+     */
+    private fun resetShiftForInput(autoCapitalize: Boolean) {
         shiftController.resetForInput(autoCapitalize)
     }
 
@@ -272,7 +286,7 @@ class KeyTabImeService : InputMethodService(), KeyboardHost {
     override fun onDestroy() {
         predictionManager?.engine?.let {
             val raw = it.serializeUserDict()
-            baseContext.getSharedPreferences(com.piotv.keytab.Prefs.FILE, Context.MODE_PRIVATE)
+            com.piotv.keytab.Prefs.of(this)
                 .edit().putString(com.piotv.keytab.Prefs.KEY_USER_DICT, raw).apply()
         }
         letterPopup.dismiss()

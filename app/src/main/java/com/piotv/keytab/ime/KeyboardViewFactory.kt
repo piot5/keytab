@@ -89,13 +89,13 @@ class KeyboardViewFactory(private val deps: Deps) {
         themeBtn?.textSize = 14f
         // Theme-Verlauf + Farb-Overrides (aus den Theme-Einstellungen) anwenden
         ThemeApplier.apply(
-            ctx.getSharedPreferences(com.piotv.keytab.Prefs.FILE, Context.MODE_PRIVATE),
+            com.piotv.keytab.Prefs.of(ctx),
             deps.isDarkMode(), root, cfgCtx)
         // Obere Ecken runden (12dp) — muss nach ThemeApplier sein
         KeyAnimations.applyRoundedCorners(root)
         // Optionale Zahlenreihe aus den Einstellungen
         root.findViewById<View>(R.id.num_row)?.visibility =
-            if (ctx.getSharedPreferences(com.piotv.keytab.Prefs.FILE, Context.MODE_PRIVATE)
+            if (com.piotv.keytab.Prefs.of(ctx)
                     .getBoolean(com.piotv.keytab.Prefs.KEY_NUM_ROW, false)) View.VISIBLE else View.GONE
         val fileManager = FileManagerPanel(ctx, root, deps.ioExecutor, deps.mainHandler) { deps.commitText(it) }
         val editor = EditorPanel(ctx, root, deps.ioExecutor, deps.mainHandler) { deps.commitToApp(it) }

@@ -69,14 +69,17 @@ class SettingsRegressionTest {
     @Test fun `Alle optionalen Tab Kombinationen bleiben auch bei erneutem Setup korrekt`() {
         val ctx = ContextThemeWrapper(app, R.style.Theme_KeyTab)
         val service = Robolectric.buildService(KeyTabImeService::class.java).get()
-        val host = Proxy.newProxyInstance(KeyboardHost::class.java.classLoader,
-            arrayOf(KeyboardHost::class.java)) { _, method, _ ->
+        // P3: TabController hängt jetzt am Rollen-Interface TabHost statt am
+        // früheren 25-Member-KeyboardHost. Der Proxy muss daher nur noch die
+        // von TabController benutzten Member bedienen (context + letterPopup).
+        val host = Proxy.newProxyInstance(TabHost::class.java.classLoader,
+            arrayOf(TabHost::class.java)) { _, method, _ ->
             when (method.name) {
                 "getContext" -> ctx
                 "getLetterPopup" -> LetterPopup(service)
                 else -> null
             }
-        } as KeyboardHost
+        } as TabHost
         for (mask in 0..7) {
             val prefs = app.getSharedPreferences(Prefs.FILE, 0)
             prefs.edit().clear().putBoolean(Prefs.KEY_CLIP_TAB, mask and 1 != 0)

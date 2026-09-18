@@ -30,7 +30,7 @@ import com.piotv.keytab.R
  * Verhalten bleibt bit-identisch („Umziehen statt Umschreiben").
  */
 internal class KeyboardBinder(
-    private val host: KeyboardHost,
+    private val host: KeyboardInputHost,
     private val longPressTimeout: Long,
     private val tabController: TabController,
     private val themeController: ThemeController,

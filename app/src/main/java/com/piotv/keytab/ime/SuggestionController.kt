@@ -21,7 +21,7 @@ import com.piotv.keytab.R
  *
  * Verhalten bleibt bit-identisch („Umziehen statt Umschreiben").
  */
-internal class SuggestionController(private val host: KeyboardHost) {
+internal class SuggestionController(private val host: SuggestionHost) {
 
     /** Likely Highlighting: momentan hervorgehobene Tasten + deren Original-Background. */
     private val likelyHighlighted = mutableListOf<Pair<Button, android.graphics.drawable.Drawable>>()
@@ -54,8 +54,7 @@ internal class SuggestionController(private val host: KeyboardHost) {
         // Nachhalten der Tasten-Nachbarschaft für den dynamischen Skaler
         host.keyScaler?.rebuildNeighbors()
         // Platzhalter: Leiste von Anfang an sichtbar (fixer Platz → kein Auf-/Zupoppen)
-        val enabled = host.context.getSharedPreferences(
-            com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
+        val enabled = com.piotv.keytab.Prefs.of(host.context)
             .getBoolean(com.piotv.keytab.Prefs.KEY_SUGGESTIONS, true)
         root.findViewById<View>(R.id.suggestion_bar)?.visibility =
             if (enabled) View.VISIBLE else View.GONE
@@ -64,8 +63,7 @@ internal class SuggestionController(private val host: KeyboardHost) {
     /** Vorschläge berechnen (Manager) + Tasten skalieren + Likely-Highlights. */
     fun update() {
         val bar = host.keyboardRoot?.findViewById<View>(R.id.suggestion_bar) ?: return
-        val suggestionEnabled = host.context.getSharedPreferences(
-            com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
+        val suggestionEnabled = com.piotv.keytab.Prefs.of(host.context)
             .getBoolean(com.piotv.keytab.Prefs.KEY_SUGGESTIONS, true)
         host.predictionManager?.updateSuggestions(bar, suggestionEnabled)
         updateDynamicKeys()
@@ -74,8 +72,7 @@ internal class SuggestionController(private val host: KeyboardHost) {
 
     /** Dynamische Tastengröße (Skaler-Modul) + Likely-Highlights. */
     private fun updateDynamicKeys() {
-        val prefs = host.context.getSharedPreferences(
-            com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
+        val prefs = com.piotv.keytab.Prefs.of(host.context)
         val enabled = prefs.getBoolean(
             com.piotv.keytab.Prefs.KEY_DYNAMIC_KEYS, true)
         val pm = host.predictionManager
@@ -95,8 +92,7 @@ internal class SuggestionController(private val host: KeyboardHost) {
      * Highlights zurückgesetzt.
      */
     private fun updateLikelyKeys() {
-        val prefs = host.context.getSharedPreferences(
-            com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
+        val prefs = com.piotv.keytab.Prefs.of(host.context)
         if (!ThemePrefs.likelyHighlighting(prefs)) { restoreLikelyKeys(); return }
         val pm = host.predictionManager
         val sugs = (pm?.currentSuggestions).orEmpty()

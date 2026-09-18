@@ -13,7 +13,7 @@ import com.piotv.keytab.R
  * entfernt werden, können Positionen nicht hartkodiert werden — stattdessen
  * wird eine [kinds]-Liste nach dem Entfernen aufgebaut.
  */
-internal class TabController(private val host: KeyboardHost) {
+internal class TabController(private val host: TabHost) {
 
     /** Schriftgröße der Tab-Beschriftungen (muss zu `KeyTabSmallTabText` passen). */
     private companion object {
@@ -73,8 +73,7 @@ internal class TabController(private val host: KeyboardHost) {
         val term = root.findViewById<View>(R.id.term_panel) ?: return
         val snip = root.findViewById<View>(R.id.snippet_panel) ?: return
         val bottom = root.findViewById<View>(R.id.bottom_row) ?: return
-        val prefs = host.context.getSharedPreferences(
-            com.piotv.keytab.Prefs.FILE, android.content.Context.MODE_PRIVATE)
+        val prefs = com.piotv.keytab.Prefs.of(host.context)
         val clipEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_CLIP_TAB, true)
         val termEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_TERM_TAB, true)
         val snipEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_SNIPPET_TAB, true)

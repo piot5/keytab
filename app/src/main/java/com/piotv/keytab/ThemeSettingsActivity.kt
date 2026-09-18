@@ -38,7 +38,7 @@ class ThemeSettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        prefs = getSharedPreferences(ThemePrefs.PREFS, Context.MODE_PRIVATE)
+        prefs = com.piotv.keytab.Prefs.of(this)
         com.piotv.keytab.ime.SettingsConfig.importIfChanged(this)
         editingDark = ThemePrefs.isDarkMode(this)
 

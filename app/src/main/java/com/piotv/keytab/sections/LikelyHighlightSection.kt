@@ -30,7 +30,7 @@ class LikelyHighlightSection(
             setPadding(0, 0, 0, 0)
             setOnClickListener {
                 val current = ThemePrefs.likelyHighlighting(prefs)
-                activity.getSharedPreferences(ThemePrefs.PREFS, android.content.Context.MODE_PRIVATE)
+                com.piotv.keytab.Prefs.of(activity)
                     .edit().putBoolean(ThemePrefs.KEY_LIKELY, !current).apply()
                 updateButtons()
                 onChange()
@@ -44,7 +44,7 @@ class LikelyHighlightSection(
             setPadding(0, 0, 0, 0)
             setOnClickListener {
                 val current = ThemePrefs.likelyEffect(prefs)
-                activity.getSharedPreferences(ThemePrefs.PREFS, android.content.Context.MODE_PRIVATE)
+                com.piotv.keytab.Prefs.of(activity)
                     .edit().putBoolean(ThemePrefs.KEY_LIKELY_EFFECT, !current).apply()
                 updateButtons()
                 onChange()

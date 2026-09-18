@@ -62,7 +62,7 @@ object SettingsConfig {
         File(context.getExternalFilesDir(null) ?: context.filesDir, KeyTabConfig.FILE_NAME)
 
     fun importIfChanged(context: Context): Boolean = importIfChanged(
-        configFile(context), context.getSharedPreferences(Prefs.FILE, Context.MODE_PRIVATE))
+        configFile(context), Prefs.of(context))
 
     /** Missing/unreadable files never clear preferences. */
     fun importIfChanged(file: File, prefs: SharedPreferences): Boolean = try {
@@ -117,7 +117,7 @@ object SettingsConfig {
     /** Add absent keys from current preferences; never replace existing edits or comments. */
     fun fillMissing(context: Context): File {
         val file = configFile(context)
-        fillMissing(file, context.getSharedPreferences(Prefs.FILE, Context.MODE_PRIVATE))
+        fillMissing(file, Prefs.of(context))
         return file
     }
 

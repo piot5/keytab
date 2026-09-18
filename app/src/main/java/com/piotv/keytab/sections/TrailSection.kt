@@ -112,12 +112,12 @@ class TrailSection(
         }
 
     private fun putBoolean(key: String, value: Boolean) {
-        activity.getSharedPreferences(ThemePrefs.PREFS, android.content.Context.MODE_PRIVATE)
+        com.piotv.keytab.Prefs.of(activity)
             .edit().putBoolean(key, value).apply()
     }
 
     private fun putInt(key: String, value: Int) {
-        activity.getSharedPreferences(ThemePrefs.PREFS, android.content.Context.MODE_PRIVATE)
+        com.piotv.keytab.Prefs.of(activity)
             .edit().putInt(key, value).apply()
     }
 

@@ -40,7 +40,7 @@ class MainActivity : AppCompatActivity() {
 
         /** Aktive Sprache aus den Einstellungen (Default Deutsch). */
         fun activeLanguage(context: Context): KeyboardLanguage {
-            val code = context.getSharedPreferences(Prefs.FILE, Context.MODE_PRIVATE)
+            val code = Prefs.of(context)
                 .getString(Prefs.KEY_LANGUAGE, "de")
             return Languages.byCode(code)
         }
@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
 
         // Zahlenreihe-Umschalter (wirkt beim nächsten Öffnen der Tastatur)
         val swNumRow = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_num_row)
-        val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val prefs = Prefs.of(this)
 
         // Sprachauswahl (Spinner) – wirkt beim nächsten Öffnen der Tastatur
         val langSpinner = findViewById<Spinner>(R.id.spinner_language)
@@ -193,7 +193,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         SettingsConfig.importIfChanged(this)
-        val current = SettingsConfig.snapshot(getSharedPreferences(PREFS, Context.MODE_PRIVATE))
+        val current = SettingsConfig.snapshot(Prefs.of(this))
         if (displayedSettings != current) recreate()
     }
 

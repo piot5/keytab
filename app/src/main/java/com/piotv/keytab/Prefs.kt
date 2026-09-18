@@ -1,5 +1,8 @@
 package com.piotv.keytab
 
+import android.content.Context
+import android.content.SharedPreferences
+
 /**
  * Zentrale Konstante für SharedPreferences-Name (keytab_prefs) + Feature-Keys,
  * die von mehreren Modulen geteilt werden ([MainActivity], [KeyTabImeService],
@@ -9,6 +12,12 @@ package com.piotv.keytab
  * die duplizierte `PREFS = "keytab_prefs"`-Konstante, die zuvor in
  * [MainActivity] UND [KeyTabImeService] getrennt existierte und per
  * `MainActivity.PREFS`/`<eigene>.PREFS` gemischt verwendet wurde → Drift-Risiko.
+ *
+ * Seit P3 (2026-09-18) liegt hier zusätzlich der **einzige Zugriffspunkt** auf die
+ * SharedPreferences: [of]. Vorher riefen 12 Dateien 25-mal direkt
+ * `context.getSharedPreferences(Prefs.FILE, MODE_PRIVATE)` auf — jede Stelle
+ * konnte Dateiname oder Modus abweichend setzen. Jetzt gibt es genau eine
+ * Methode, die den Dateinamen kennt.
  *
  * Theme-spezifische Keys bleiben in [com.piotv.keytab.ime.ThemePrefs]
  * (dark_mode, gradient_*, theme_dark_*, theme_light_*, gaming_*, theme_version).
@@ -20,6 +29,17 @@ object Prefs {
 
     /** Name der SharedPreferences-Datei der App. */
     const val FILE = "keytab_prefs"
+
+    /**
+     * Einziger Zugriffspunkt auf die App-SharedPreferences.
+     *
+     * Alle Module (Service, Controller, Panels, Activities, Sections) holen die
+     * Instanz hierüber; Dateiname und Modus sind damit unveränderlich zentral.
+     * `MODE_PRIVATE` ist der einzige zulässige Modus — die Datei enthält das
+     * gelernte Benutzer-Wörterbuch und verlässt das Gerät nicht.
+     */
+    fun of(context: Context): SharedPreferences =
+        context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     /** Optionale Zahlenreihe an/aus. */
     const val KEY_NUM_ROW = "num_row"

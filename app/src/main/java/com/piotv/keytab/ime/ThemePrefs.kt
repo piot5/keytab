@@ -100,7 +100,7 @@ object ThemePrefs {
 
     /** Dark-Mode-Override (Pref) bzw. System-Modus – identisch zum IME. */
     fun isDarkMode(context: android.content.Context): Boolean {
-        val prefs = context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+        val prefs = com.piotv.keytab.Prefs.of(context)
         if (prefs.contains(KEY_DARK)) return prefs.getBoolean(KEY_DARK, false)
         val mask = context.resources.configuration.uiMode and
             android.content.res.Configuration.UI_MODE_NIGHT_MASK

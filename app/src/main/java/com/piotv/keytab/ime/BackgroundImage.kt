@@ -14,7 +14,7 @@ object BackgroundImage {
     private val requests = WeakHashMap<View, Any>()
 
     fun apply(view: View, context: Context, base: Drawable) {
-        val prefs = context.getSharedPreferences(Prefs.FILE, Context.MODE_PRIVATE)
+        val prefs = Prefs.of(context)
         val source = prefs.getString(Prefs.KEY_BG_IMAGE_URI, "").orEmpty()
         val mode = prefs.getString(Prefs.KEY_BG_IMAGE_FILL, Prefs.FILL_FIT).orEmpty()
         val token = Any()

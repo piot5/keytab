@@ -67,7 +67,7 @@ class WordPredictionManager(
                 }
             } catch (_: Exception) { /* Asset fehlt: nur gelernte Wörter */ }
             val loaded = SuggestionEngine(words)
-            val saved = context.getSharedPreferences(com.piotv.keytab.Prefs.FILE, Context.MODE_PRIVATE)
+            val saved = com.piotv.keytab.Prefs.of(context)
                 .getString(com.piotv.keytab.Prefs.KEY_USER_DICT, null)
             if (saved != null) loaded.restoreUserDict(saved)
             engine = loaded
@@ -193,7 +193,7 @@ class WordPredictionManager(
      */
     fun autoCorrectBeforeSpace(): Boolean {
         // Optional in den Einstellungen (Default: an)
-        if (!context.getSharedPreferences(com.piotv.keytab.Prefs.FILE, Context.MODE_PRIVATE)
+        if (!com.piotv.keytab.Prefs.of(context)
                 .getBoolean(com.piotv.keytab.Prefs.KEY_AUTOCORRECT, true)
         ) return false
         val typed = currentTypedWord
@@ -207,7 +207,7 @@ class WordPredictionManager(
         val eng = engine ?: return
         val raw = eng.serializeUserDict()
         ioExecutor.execute {
-            context.getSharedPreferences(com.piotv.keytab.Prefs.FILE, Context.MODE_PRIVATE)
+            com.piotv.keytab.Prefs.of(context)
                 .edit().putString(com.piotv.keytab.Prefs.KEY_USER_DICT, raw).apply()
         }
     }

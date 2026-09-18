@@ -29,7 +29,7 @@ class TopSection(
             gravity = Gravity.CENTER
             setPadding((12 * dip).toInt(), (8 * dip).toInt(), (12 * dip).toInt(), (8 * dip).toInt())
             setOnClickListener {
-                activity.getSharedPreferences(ThemePrefs.PREFS, Context.MODE_PRIVATE)
+                com.piotv.keytab.Prefs.of(activity)
                     .edit().putBoolean(ThemePrefs.KEY_DARK, true).apply()
                 onThemeChanged()
             }
@@ -40,7 +40,7 @@ class TopSection(
             gravity = Gravity.CENTER
             setPadding((12 * dip).toInt(), (8 * dip).toInt(), (12 * dip).toInt(), (8 * dip).toInt())
             setOnClickListener {
-                activity.getSharedPreferences(ThemePrefs.PREFS, Context.MODE_PRIVATE)
+                com.piotv.keytab.Prefs.of(activity)
                     .edit().putBoolean(ThemePrefs.KEY_DARK, false).apply()
                 onThemeChanged()
             }
@@ -64,7 +64,7 @@ class TopSection(
                 minimumWidth = 0
                 setPadding(0, 0, 0, 0)
                 setOnClickListener {
-                    activity.getSharedPreferences(ThemePrefs.PREFS, Context.MODE_PRIVATE)
+                    com.piotv.keytab.Prefs.of(activity)
                         .edit()
                         .putInt(ThemePrefs.KEY_GRADIENT_COLOR1, preset.c1)
                         .putInt(ThemePrefs.KEY_GRADIENT_COLOR2, preset.c2)

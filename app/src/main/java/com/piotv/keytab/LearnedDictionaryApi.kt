@@ -1,5 +1,6 @@
 package com.piotv.keytab
 
+import com.piotv.keytab.ime.SuggestionEngine
 import java.util.UUID
 
 /**
@@ -57,6 +58,27 @@ object LearnedDictionaryApi {
         data class Rejected(val reason: String, val currentRevision: Long) : CleanupResult()
     }
 
+    // ---------- Lesen ----------
+
+    /** Zähler + Revision des gelernten Bereichs. */
+    fun stats(store: SuggestionEngine): Stats {
+        val userWords = store.userFreq.keys.count { store.baseScore(it) <= 0.0 }
+        return Stats(userWordCount = userWords, bigramCount = store.bigrams.size,
+            revision = store.revision)
+    }
+
+    /** Alle gelernten Einträge (Einzelwörter + Bigramme). */
+    fun listAll(store: SuggestionEngine): List<LearnedEntry> =
+        store.userFreq.map { (w, weight) -> LearnedEntry(w, weight, isBigramPair = false) } +
+            store.bigrams.map { (k, weight) -> LearnedEntry(k, weight, isBigramPair = true) }
+
+    /** Einzelnachschau: erst gelernte Einzelwörter, dann Bigramme; null wenn unbekannt. */
+    fun lookup(store: SuggestionEngine, word: String): LearnedEntry? {
+        store.userFreq[word]?.let { return LearnedEntry(word, it, isBigramPair = false) }
+        store.bigrams[word]?.let { return LearnedEntry(word, it, isBigramPair = true) }
+        return null
+    }
+
     // ---------- Schreibende Ausführung ----------
 
     fun applyPreview(store: SuggestionEngine, preview: BatchPreview, confirm: Boolean): CleanupResult {
@@ -111,7 +133,6 @@ object LearnedDictionaryApi {
         )
         return fragments.any { lower.startsWith(it) || lower == it }
     }
-}
 
     fun batchPreview(
         store: SuggestionEngine,
@@ -148,6 +169,10 @@ object LearnedDictionaryApi {
                 rejected.add("ADD invalid token: ${op.word}")
                 continue
             }
+            if (looksLikeArtifact(op.word)) {
+                rejected.add("ADD invalid token (artifact): ${op.word}")
+                continue
+            }
             if (op.weight <= 0.0 || op.weight.isNaN() || op.weight.isInfinite()) {
                 rejected.add("ADD invalid weight: ${op.word}")
                 continue
@@ -175,4 +200,6 @@ object LearnedDictionaryApi {
             rejections = rejected
         )
     }
+}
+
 

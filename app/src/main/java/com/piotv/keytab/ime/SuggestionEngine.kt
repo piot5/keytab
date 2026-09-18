@@ -56,14 +56,14 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         }
     }
 
-    private val revisionCounter: Long = 0
+    private var revisionCounter: Long = 0
 
     /** Basiswortschatz: word → normalisierte Log-Frequenz (0..1). */
     private val baseFreq: MutableMap<String, Double> = ConcurrentHashMap()
-    /** Gelernte Wörter: word → Gewicht. */
-    private val userFreq = ConcurrentHashMap<String, Double>()
-    /** Gelernte Bigramme: "prev next" → Gewicht. */
-    private val bigrams = ConcurrentHashMap<String, Double>()
+    /** Gelernte Wörter: word → Gewicht (öffentlich lesbar/änderbar für die Cleanup-API). */
+    val userFreq = ConcurrentHashMap<String, Double>()
+    /** Gelernte Bigramme: "prev next" → Gewicht (öffentlich lesbar/änderbar für die Cleanup-API). */
+    val bigrams = ConcurrentHashMap<String, Double>()
     /** Basiswörter nach Frequenz absteigend (für Next-Word-Fallback). */
     private val topBaseOrder: List<String> by lazy {
         baseFreq.entries.sortedByDescending { it.value }.map { it.key }
@@ -124,12 +124,6 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
     fun incrementRevision() {
         revisionCounter++
     }
-
-    /** Lesend: Zugriff auf gelernte Einzelwörter (nicht Basis-Korpus). */
-    val userFreq: Map<String, Double> get() = userFreq
-
-    /** Lesend: Zugriff auf gelernte Bigramme (nicht Basis-Korpus). */
-    val bigrams: Map<String, Double> get() = bigrams
 
     /**
      * Lernen: [word] wurde soeben abgeschlossen (Space/Enter/Punkt), [prevWord]
@@ -276,11 +270,6 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         return best?.takeIf { baseFreq.containsKey(it) || (userFreq.containsKey(it) && bestScore > 0.3) }
     }
 
-    /** Lesend: Zugriff auf gelernte Einzelwörter (nicht Basis-Korpus). */
-    val userFreq: Map<String, Double> get() = userFreq
-
-    /** Lesend: Zugriff auf gelernte Bigramme (nicht Basis-Korpus). */
-    val bigrams: Map<String, Double> get() = bigrams
 
     // ---------- Persistenz ----------
 

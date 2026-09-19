@@ -1,6 +1,6 @@
 # KeyTab — Refactoring Plan: Modularisation & Separation of Concerns
 
-Status: 2026-09-18 · **Phases 0–5 done; Phase 6 COMPLETE (service 908→283 lines); Phase 7 COMPLETE (panels decoupled, audit-verified); R1–R3 COMPLETE; coverage gate DONE (20 %, measured 33.5 %); P3 done (KeyboardHost role split, single prefs accessor, docs/versioning single source)** · Goal: maintainable, testable modules with no behaviour change.
+Status: 2026-09-19 · **Phases 0–5 done; Phase 6 COMPLETE (service 908→~290 lines); Phase 7 COMPLETE (panels decoupled, audit-verified); R1–R3 COMPLETE; coverage gate DONE (20 %, re-measured 2026-09-19: 46.5 % line / 35.4 % branch; `sections` 92.5 %, `file` 78.7 %); P3 done (KeyboardHost role split, single prefs accessor, docs/versioning single source)** · Goal: maintainable, testable modules with no behaviour change.
 
 **Benchmark (2026-09-17, re-audit verified): global score 82/100 · niche score (coding on Android) 87/100.**
 

@@ -14,7 +14,7 @@ The earlier global comparison (Gboard 80, FlorisBoard 73, AnySoftKeyboard 66) wa
 
 ## 0. Audit — verified measurements
 
-This section replaces earlier **estimates** with **measured** values. Method: `./gradlew :app:testDebugUnitTest --offline`, parsing `app/build/test-results/testDebugUnitTest/*.xml`, `wc -l` across `app/src`, `git log` / `git status`. Latest re-verification **2026-09-17 (evening)**: **164 tests in 19 classes, 0 failures**, coverage **33.5 %** line / 31.8 % branch (Kover), `assembleDebug` + `testDebugUnitTest` both green. Earlier rows below are kept for traceability; the ⚠️ column marks the drift that was corrected.
+This section replaces earlier **estimates** with **measured** values. Method: `./gradlew :app:testDebugUnitTest --offline`, parsing `app/build/test-results/testDebugUnitTest/*.xml`, `wc -l` across `app/src`, `git log` / `git status`. Latest re-verification **2026-09-19** (source counts): **208 tests in 22 classes** (README run verified green 18 Sep: `assembleDebug` + `testDebugUnitTest`), main code 52 files / 7,449 lines, test code 2,997 lines (ratio 40.2 %). Earlier re-verification **2026-09-17 (evening)**: 164 tests in 19 classes, 0 failures, coverage **33.5 %** line / 31.8 % branch (Kover), both green. Earlier rows below are kept for traceability; the ⚠️ column marks the drift that was corrected.
 
 | Metric | Measured (17 Sep, evening) | Earlier documentation | Delta |
 |---|---|---|---|

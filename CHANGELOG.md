@@ -11,6 +11,25 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
+## Unreleased
+
+
+- **Feature: Snippet-Vorschläge am Satzanfang** — wenn keine Wortvorhersagen
+  angezeigt werden und der Cursor am Satz­anfang steht (leeres Feld, oder Text
+  endet auf `. ! ?` + Leer/Zeile, und gerade kein Wort getippt wird), zeigt die
+  Vorschlags‑Leiste die **3 zuletzt eingefügten Snippets** als wählbare Chips
+  (statt der generischen Top‑3‑Wortvorschläge). Ein Snippet‑Tap fügt den Text ein
+  und merkt ihn als most‑recent; das Schreiben läuft wie der Snippet‑Tab über
+  `commitText` (Editor‑Routing, Auto‑Korrektur‑Bypass für mehrzeilige Snippets).
+  Die History ist **lokal in `MODE_PRIVATE`** (keine neue Permission, kein
+  Netzwerk) und wird auch nach **Wort‑Löschen via Del** neu ausgewertet (Refresh
+  über `deleteLastWord` → `reset` → `update`). Neu: `Prefs.KEY_RECENT_SNIPPETS`,
+  `SuggestionEngine.sentenceStart / recentSnippets / recordRecent` (+10 reine
+  Unit-Tests in `SuggestionEngineTest`), Snippet‑Tag‑Dispatch
+  (`SuggestionEngine.SNIPPET_TAG`) in `SuggestionController`,
+  `recordRecent`‑Hook im `SnippetPanel`.
+
+
 ## 0.9.9
 
 Nach dem ausgelieferten 0.9.8 (Tag vom 18.09. 08:13, Commit `f1b4496`) sind zwei
@@ -45,6 +64,29 @@ Release, das diesen Vorsprung ausliefert.
 - **README-Korrekturen** — Testtabelle und Test-Ratio waren veraltet (nannte 164
   Tests in 19 Suites und zwei gelöschte Klassen `EditorPanelTest`/
   `ClipboardPanelTest`; korrekt sind 194 Tests in 22 Suites).
+- **Testqualität: aussagelose Tests entfernt bzw. zu echten Prüfungen gemacht** —
+  vier Tests behaupteten nur, dass nichts abstürzt, und ein Test verglich einen
+  Wert mit sich selbst:
+  - `TopSectionTest`: „`updateThemeIcons` ohne Crash" hatte **null Assertions**.
+    Prüft jetzt, dass das aktive Icon den Hervorhebungs-Hintergrund bekommt und
+    das andere transparent bleibt (beide Richtungen).
+  - `FileManagerFragmentTest`: der alte „Up ohne Elternteil"-Test las den Pfad
+    vorher und nachher und verglich ihn mit sich selbst (`assertSame`-Tautologie).
+    Ersetzt durch zwei echte Verträge: der letzte Tab ist nicht schließbar
+    (Pfad bleibt erhalten) und jeder Tab merkt sich sein eigenes Verzeichnis
+    über einen Tab-Wechsel hinweg.
+  - `LiftSpanTest`: `assertEquals("...", true, shift < 21)` plus ein
+    `assertEquals(4, shift)` auf einen selbst berechneten Wert → `assertTrue`.
+  - `PanelHeightsTest`: Debug-`println` und ein Vergleich gegen eine fest
+    verdrahtete 164-dp-Altkonstante entfernt, die im Code nicht mehr existiert.
+- **Testqualität: `println`-Debug-Rauschen entfernt** — zehn `println`-Aufrufe in
+  `ThemeApplierTest` gaben bei jedem Lauf Diagnosewerte aus; in allen Fällen
+  trug die direkt folgende Assertion-Message dieselbe Information bereits.
+- **Testqualität: flaky Polling-Schleife ersetzt** — `FileManagerFragmentTest`
+  wartete bis zu 3 s mit `Thread.sleep(20)` auf den I/O-Pool. Jetzt wird der
+  Pool deterministisch über einen Marker-Task abgewartet (`submit{}.get`), was
+  den Test von 3 s auf unter 1 s bringt und Zeitabhängigkeit unter CI-Last
+  entfernt. `Thread.sleep` kommt im Testbaum nicht mehr vor.
 
 
 ## 0.9.7

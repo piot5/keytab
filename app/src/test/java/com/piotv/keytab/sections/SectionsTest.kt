@@ -156,11 +156,25 @@ class TopSectionTest : SectionsTestBase() {
         assertEquals(1, changedCount)
     }
 
+    /** Nur das aktive Icon wird hervorgehoben (Hintergrund statt transparent). */
     @Test
-    fun `updateThemeIcons hebt aktives Icon hervor ohne Crash`() {
+    fun `updateThemeIcons hebt genau das aktive Icon hervor`() {
         val s = TopSection(activity, prefs) { }
         s.build(col)
+        val row = col.getChildAt(0) as LinearLayout
+        val moon = row.getChildAt(0)
+        val sun = row.getChildAt(1)
+        val active = android.graphics.Color.parseColor("#33000000")
+        val transparent = android.graphics.Color.TRANSPARENT
+        fun background(v: android.view.View): Int =
+            (v.background as? android.graphics.drawable.ColorDrawable)?.color ?: transparent
+
         s.updateThemeIcons(editingDark = true)
+        assertEquals("Mond ist hervorgehoben", active, background(moon))
+        assertEquals("Sonne ist transparent", transparent, background(sun))
+
         s.updateThemeIcons(editingDark = false)
+        assertEquals("Mond ist transparent", transparent, background(moon))
+        assertEquals("Sonne ist hervorgehoben", active, background(sun))
     }
 }

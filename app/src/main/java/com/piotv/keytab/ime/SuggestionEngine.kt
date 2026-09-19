@@ -52,7 +52,54 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
                     }
                 }
             }
-            return d[n][m]
+                        return d[n][m]
+        }
+
+        /** Trenner für die Snippet-History in SharedPreferences (NUL, wie Clipboard). */
+        internal const val SEP_RECENT = "\u0000"
+
+        /** Sichtbarer Marker-Tag, damit [SuggestionController] Snippet-Chips von
+         *  Wortvorschlägen unterscheiden kann (`tv.setTag(SNIPPET_TAG, text)`,
+         *  vs. `tv.tag = word` für normale Vorschläge). */
+        internal const val SNIPPET_TAG: Int = 0x7f000001
+
+        /**
+         * Satzanfang-Erkennung für die Snippet-Leiste: gilt als Satzanfang, wenn
+         * gerade kein Wort in der Eingabe (Zwischen-Wörter-Puffer leer) ist und
+         * das, was vor dem Cursor steht, leer ist oder mit einem Satz-Terminator
+         * (. ! ?) endet (optional gefolgt von Leer-/Zeilenwechsel).
+         *
+         * Wird von [WordPredictionManager.updateSuggestions] genutzt, um zu
+         * entscheiden, ob die Vorschlags-Leiste durch zuletzt eingefügte
+         * Snippets ersetzt wird (statt der generischen Top-3-Wortvorschläge).
+         */
+        fun sentenceStart(textBefore: String, typedWord: String): Boolean {
+            if (typedWord.isNotEmpty()) return false
+            val b = textBefore.trimEnd()
+            return b.isEmpty() || b.last() in ".!?"
+        }
+
+        /**
+         * Parst die persistente Snippet-History (SEP_RECENT-getrennt,
+         * most-recent-first) und liefert höchstens [max] Einäge zurück —
+         * dedupliziert, leere/Whitespace-Einträge übersprungen.
+         */
+        fun recentSnippets(raw: String?, max: Int = 3): List<String> =
+            (raw ?: "").split(SEP_RECENT).map { it.trim() }
+                .filter { it.isNotEmpty() }.distinct().take(max)
+
+        /**
+         * Fügt [text] an den Anfang der History (most-recent-first), entfernt
+         * Duplikate (Move-to-Front) und begrenzt auf [max] Einäge → liefert den
+         * neuen Roh‑String zum Schreiben in SharedPreferences. Leer/Whitespace
+         * wird nicht aufgenommen.
+         */
+        fun recordRecent(raw: String?, text: String, max: Int = 3): String {
+            val t = text.trim()
+            if (t.isEmpty()) return raw ?: ""
+            val cur = (raw ?: "").split(SEP_RECENT).map { it.trim() }.filter { it.isNotEmpty() }
+            val ordered = buildList { add(t); for (e in cur) if (e != t) add(e) }.take(max)
+            return ordered.joinToString(SEP_RECENT)
         }
     }
 

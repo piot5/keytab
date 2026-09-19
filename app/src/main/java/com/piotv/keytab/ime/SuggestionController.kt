@@ -43,9 +43,14 @@ internal class SuggestionController(private val host: SuggestionHost) {
         suggestionViews[0] = root.findViewById(R.id.sug_1)
         suggestionViews[1] = root.findViewById(R.id.sug_2)
         suggestionViews[2] = root.findViewById(R.id.sug_3)
-        for (i in 0..2) {
-            suggestionViews[i]?.setOnClickListener {
-                val word = it?.tag as? String ?: return@setOnClickListener
+                                for (i in 0..2) {
+            suggestionViews[i]?.setOnClickListener { v ->
+                // Snippet-Chip (Satzanfang, ersetzt Wortvorschläge)
+                (v.getTag(SuggestionEngine.SNIPPET_TAG) as? String)?.let { snip ->
+                    commitSnippet(snip)
+                    return@setOnClickListener
+                }
+                val word = v.tag as? String ?: return@setOnClickListener
                 applySuggestion(word)
             }
         }
@@ -146,6 +151,26 @@ internal class SuggestionController(private val host: SuggestionHost) {
                 b.background = saved
             }.start()
         }
+    }
+
+    /**
+     * Snippet aus der Vorschlags-Leiste einfügen + in die History festhalten.
+     * Läuft über [WordPredictionManager.applySuggestion] — dieselbe,
+     * Auto-Korrektur-konsistente Route wie die Suggestion-Übernahme und der
+     * Snippet-Tab (Editor/Terminal/App-Routing via InputRouter; mehrzeilige
+     * Snippets ohne Trailing-Space). [applySuggestion] löst danach [update]
+     * aus, die dann wieder reguläre Wort-Vorschläge zeigt (Snippet beendet
+     * das Satzanfangs-Fenster).
+     */
+
+    private fun commitSnippet(snippet: String) {
+        val p = com.piotv.keytab.Prefs.of(host.context)
+        val raw = p.getString(com.piotv.keytab.Prefs.KEY_RECENT_SNIPPETS, null)
+        p.edit().putString(
+            com.piotv.keytab.Prefs.KEY_RECENT_SNIPPETS,
+            SuggestionEngine.recordRecent(raw, snippet)
+        ).apply()
+        host.predictionManager?.applySuggestion(snippet)
     }
 
     /** Vorschlag übernehmen (delegiert an Manager) + Shift zurücksetzen. */

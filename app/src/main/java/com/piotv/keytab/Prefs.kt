@@ -53,8 +53,16 @@ object Prefs {
     /** Snippet-Tab sichtbar an/aus (benannte Befehle/Snippets). */
     const val KEY_SNIPPET_TAB = "snippet_tab_enabled"
 
-    /** Wortvorhersage-Leiste an/aus. */
+        /** Wortvorhersage-Leiste an/aus. */
     const val KEY_SUGGESTIONS = "suggestions_enabled"
+
+    /**
+     * Snippet-History für die Vorschlags-Leiste: bis zu 3 zuletzt eingefügte
+     * Snippets (NUL-getrennt, most-recent-first), die angezeigt werden, wenn
+     * gerade keine Wortvorschläge gezeigt werden (Satzanfang). Siehe
+     * SuggestionEngine.recordRecent / recentSnippets.
+     */
+    const val KEY_RECENT_SNIPPETS = "recent_snippets"
 
     /** Auto-Korrektur an/aus. */
     const val KEY_AUTOCORRECT = "autocorrect_enabled"

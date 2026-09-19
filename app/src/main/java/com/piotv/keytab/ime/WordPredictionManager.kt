@@ -83,6 +83,19 @@ class WordPredictionManager(
     fun updateSuggestions(bar: View?, enabled: Boolean) {
         if (bar == null) return
         if (!enabled) { bar.visibility = View.GONE; return }
+                // Satzanfang (keine wortvorschläge relevant) → zuletzt eingefügte Snippets
+        // in die Leiste legen (ersetzt die generischen Top-3-Wortvorschläge).
+        // Wird auch nach Wort-Löschen via Del ausgewertet (deleteLastWord → reset).
+        if (SuggestionEngine.sentenceStart(inputOps.textBefore(16), currentTypedWord)) {
+            val snips = SuggestionEngine.recentSnippets(
+                com.piotv.keytab.Prefs.of(context)
+                    .getString(com.piotv.keytab.Prefs.KEY_RECENT_SNIPPETS, null)
+            )
+            if (snips.isNotEmpty()) {
+                renderSnippetBar(snips)
+                return
+            }
+        }
         val eng = engine
         val list = if (eng == null) emptyList() else {
             try { eng.suggest(currentTypedWord, prevTypedWord) }
@@ -90,18 +103,54 @@ class WordPredictionManager(
         }
         if (list.isEmpty()) {
             currentSuggestions = emptyList()
-            for (i in 0..2) { suggestionViews[i]?.apply { visibility = View.INVISIBLE; tag = null } }
+            for (i in 0..2) {
+                suggestionViews[i]?.apply {
+                    visibility = View.INVISIBLE; tag = null
+                    setTag(SuggestionEngine.SNIPPET_TAG, null)
+                }
+            }
             bar.visibility = View.VISIBLE
             return
         }
         for (i in 0..2) {
             val tv = suggestionViews[i] ?: continue
             val sug = list.getOrNull(i)
-            if (sug == null) { tv.visibility = View.INVISIBLE; tv.tag = null }
-            else { tv.visibility = View.VISIBLE; tv.text = (eng?.matchCase(sug.word, currentTypedWord)).orEmpty(); tv.tag = sug.word }
+            if (sug == null) {
+                tv.visibility = View.INVISIBLE; tv.tag = null
+                tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
+            } else {
+                tv.visibility = View.VISIBLE
+                tv.text = (eng?.matchCase(sug.word, currentTypedWord)).orEmpty()
+                tv.tag = sug.word
+                tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
+            }
         }
         currentSuggestions = list
         bar.visibility = View.VISIBLE
+    }
+
+    /**
+     * Rendert bis zu 3 zuletzt eingefügte Snippets als wählbare Chips in die
+     * Vorschlags-Leiste (ersetzt Wortvorschläge am Satzanfang). Der Klick-Listener
+     * wird in [SuggestionController.setup] über [SuggestionEngine.SNIPPET_TAG] auf
+     * Snippet‑Commit umgeleitet — kein Wort‑Lern‑Overhead, kein Trailing‑Space.
+     */
+    private fun renderSnippetBar(snippets: List<String>) {
+        for (i in 0..2) {
+            val tv = suggestionViews[i] ?: continue
+            val snip = snippets.getOrNull(i)
+            if (snip == null) {
+                tv.visibility = View.INVISIBLE
+                tv.tag = null
+                tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
+            } else {
+                tv.text = snip
+                tv.tag = null                          // Snippet: Kennzeichnung via SNIPPET_TAG
+                tv.setTag(SuggestionEngine.SNIPPET_TAG, snip)
+                tv.visibility = View.VISIBLE
+            }
+        }
+        currentSuggestions = emptyList()               // Key-Skalierung nicht an Top-3 knüpfen
     }
 
     /**

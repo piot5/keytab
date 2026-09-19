@@ -12,7 +12,7 @@
 ![Language](https://img.shields.io/badge/language-100%25%20Kotlin-7f52ff?logo=kotlin&logoColor=white)
 [![License](https://img.shields.io/github/license/piot5/keytab)](LICENSE)
 
-Keyboard app (IME) with a tabbed file manager and word prediction. 100% Kotlin, builds with Gradle.
+Mobile IDE shaped like a keyboard (IME): a tabbed file manager, an editor/clipboard, snippets and a terminal tab, with offline word prediction. 100% Kotlin, builds with Gradle.
 
 ## Download
 
@@ -30,9 +30,11 @@ Install: open the APK in a file manager (allow "install unknown apps"), then ena
 
 ## What it does
 
+KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab on the keyboard strip, so the keyboard itself is the launch point for a *local‑first* dev environment — open the file manager, editor, snippets or terminal tab directly, and what you type still lands in the app field you're in. This is **deliberately not an AI keyboard**: word prediction and fuzzy correction run fully on‑device on a small n‑gram model plus Damerau‑Levenshtein heuristics (no network, no cloud, no data collection), and a 50 ms‑per‑keystroke performance budget keeps prediction off the main thread. If you work from Termux/Ubuntu‑proot, the keyboard becomes your shell launcher, file browser and snippet library in one input view.
+
 **File manager in the keyboard** -- browse folders, switch tabs, navigate with back-stack and parent-navigation. Tapping a file inserts its path; in the app it opens via VIEW-Intent. Each tab remembers its own directory. Listing runs asynchronously so large folders don't freeze the UI.
 
-**Word prediction** -- offline n-gram model (FrequencyWords, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings.
+**Word prediction** -- offline n-gram model (FrequencyWords, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings. **Snippet suggestions on sentence start**: when there are no word predictions to show and the cursor is at the beginning of a new sentence (empty field, or text ending in `. ! ?` followed by space/newline, with no word currently being typed), the suggestion bar shows your last 3 used snippets as tappable chips instead of the generic top-3 words — so frequently-inserted snippets are one tap away. This also triggers after deleting a whole word with backspace (the bar re-evaluates the empty state). Using a snippet records it as most-recent; typing a new character returns the normal prediction bar. Fully offline, stored in `MODE_PRIVATE` prefs (no extra permission).
 
 **Dynamic key sizing** -- likely-next keys scale up to 1.30× (stepped grades 1.30×/1.15×), unlikely ones shrink down to 0.85× — but only in the direct neighborhood of enlarged keys, driven by the current suggestion scores. Toggleable in settings.
 
@@ -132,12 +134,12 @@ All panels share a background executor for file I/O and a main handler for UI up
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**194 unit tests in 22 suites, 0 failures** (verified 2026-09-18, `assembleDebug` + `testDebugUnitTest` both green):
+**208 unit tests in 22 suites, 0 failures** (verified 2026-09-18, `assembleDebug` + `testDebugUnitTest` both green):
 
 | Suite | Tests | Kind |
 |---|---:|---|
 | `TextEditLogicTest` | 20 | pure |
-| `SuggestionEngineTest` | 19 | pure |
+| `SuggestionEngineTest` | 32 | pure |
 | `TrailLogicTest` | 18 | pure |
 | `PanelsTest` | 13 | Robolectric |
 | `EditorHighlightLogicTest` | 11 | pure |
@@ -156,7 +158,7 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `SettingsRegressionTest` | 5 | Robolectric |
 | `KeyAnimationsTest` | 4 | Robolectric |
 | `LiftSpanTest` | 4 | Robolectric |
-| `FileManagerFragmentTest` | 3 | Robolectric |
+| `FileManagerFragmentTest` | 4 | Robolectric |
 | `PanelHeightsTest` | 2 | Robolectric |
 
 Test code is 2,889 lines in 22 files against 7,304 lines of main code (52 files) — a **39.6 % test-to-main ratio**. Line coverage measured with Kover is **33.5 %** (`LINE` 1147/3428), branch coverage **31.8 %** (`BRANCH` 784/2462); the CI gate is 20 %. Coverage is concentrated in the Android-free logic (`com.piotv.keytab.ime`: 41.3 %), while the theme UI sections (`sections`: 9.9 %) and the in-app file manager (`file`: 0 %) were historically untested — new suites (`SectionsTest`, `SectionsMoreTest`, `PanelsTest`, `FileManagerFragmentTest`, `LearnedDictionaryApiTest`) have since been added, see [Known gaps](#known-gaps). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
@@ -345,7 +347,7 @@ Issues and pull requests are welcome. Before opening a PR:
 
 ```bash
 sh scripts/check_docs_drift.sh                     # docs must match the code
-sh ./gradlew :app:testDebugUnitTest --offline      # 194 tests must stay green
+sh ./gradlew :app:testDebugUnitTest --offline      # 208 tests must stay green
 bash build_keytab.sh debug                         # must build
 ```
 

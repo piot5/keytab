@@ -175,7 +175,7 @@ class FileManagerModelTest {
             put = { _, _ -> },
             dirs = { dirCache[it] },
             rootOverride = File("/"))
-        assertEquals(false, atRoot.canGoUp)
+        assertFalse(atRoot.canGoUp)
     }
 
     @Test

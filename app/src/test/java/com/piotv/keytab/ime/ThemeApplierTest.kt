@@ -121,11 +121,9 @@ class ThemeApplierTest {
         ThemeApplier.apply(prefs, true, root, cfg)
 
         val moon = defaultStateColor(root.findViewById<Button>(R.id.key_theme).background)
-        println("moon color=${moon?.toUInt()?.toString(16)}")
         assertTrue("Mond-Taste: Alpha-Farbe kam nicht an",
             moon == halfAlpha)
         val sug2 = defaultStateColor(root.findViewById<View>(R.id.sug_2).background)
-        println("sug2 color=${sug2?.toUInt()?.toString(16)}")
         assertTrue("Vorschlag sug_2: Alpha-Farbe kam nicht an",
             sug2 == halfAlpha)
     }
@@ -169,12 +167,10 @@ class ThemeApplierTest {
         }
         assertTrue("keine Tab-Views gefunden", tabViews.isNotEmpty())
         val before = tabViews.map { it.background?.constantState }
-        println("Tab-Views gesamt=${tabViews.size} vor=Material-Ripple")
 
         ThemeApplier.apply(prefs, true, root, cfg)
 
         val unchanged = tabViews.filterIndexed { i, v -> v.background?.constantState == before[i] }.size
-        println("nachher unveraendert=$unchanged")
         assertTrue(
             "Taste-Farbe muss die Tab-Leiste (ABC/Notes/Files/Terminal) ueberfaerben, aber " +
                 "$unchanged von ${tabViews.size} behalten ihren Default-Hintergrund",
@@ -196,12 +192,10 @@ class ThemeApplierTest {
         val keys = drawableKeyButtons(root)
         assertTrue("keine KeyDark-Tasten gefunden", keys.isNotEmpty())
         val before = keys.map { it.background?.constantState }
-        println("KeyDark-Tasten gesamt=${keys.size}")
 
         ThemeApplier.apply(prefs, true, root, cfg)
 
         val unchanged = keys.filterIndexed { i, b -> b.background?.constantState == before[i] }.size
-        println("nachher unveraendert=$unchanged")
         assertTrue(
             "Taste-Farbe muss ALLE Tasten (abc-Buchstaben + Spezial) ueberfaerben, aber " +
                 "$unchanged von ${keys.size} haben ihren Default-Hintergrund behalten",
@@ -234,7 +228,6 @@ class ThemeApplierTest {
                 d.color == android.graphics.Color.TRANSPARENT
         }
         // 1) TabLayout: kein Material-colorSurface-Grau, kein zweites bg
-        println("tab-bar bg=${tabs.background}")
         assertTrue("TabLayout muss transparent sein (kein Grau, kein zweites bg)",
             isTransparent(tabs))
         // 2) Obere Zeile (Eltern-LinearLayout der Tab-Leiste) transparent
@@ -242,7 +235,6 @@ class ThemeApplierTest {
             isTransparent(tabs.parent as View))
         // 3) Vorschlagsleiste (2. obere Zeile) transparent
         val sugBar = root.findViewById<View>(R.id.suggestion_bar)
-        println("sug-bar bg=${sugBar?.background}")
         assertTrue("Vorschlagsleiste muss transparent sein", isTransparent(sugBar))
         // 4) Buchstabenreihe ohne eigenen Hintergrund → identische Compositing-Tiefe
         val numRow = root.findViewById<View>(R.id.num_row)
@@ -284,7 +276,6 @@ class ThemeApplierTest {
         for (id in intArrayOf(R.id.key_theme, R.id.key_settings)) {
             val btn = root.findViewById<Button>(id)
             val radius = cornerRadiusOf(btn.background)
-            println("btn $id bg=${btn.background} radius=$radius")
             assertEquals("Taste $id darf NICHT abgerundet sein", 0f, radius ?: -1f, 0.001f)
             assertEquals("Taste $id: Alpha-Tastenfarbe im Default-State",
                 0x80FF0000.toInt(), defaultStateColor(btn.background) ?: -1)
@@ -307,8 +298,6 @@ class ThemeApplierTest {
         //    key_bg mit 8dp-Rundung) → graue abgerundete Felder + Lücken links/rechts
         val insetsBefore = cells.count {
             it.background is android.graphics.drawable.InsetDrawable }
-        println("Tab-Zellen=${cells.size} Insets im Layout=$insetsBefore " +
-            "Insets gesamt=${insetBgViews(root).size}")
         assertEquals("Tab-Zellen dürfen im Layout kein Inset-Drawable haben (Lücken!)",
             0, insetsBefore)
         assertTrue("tab_bg_flat darf kein InsetDrawable sein",

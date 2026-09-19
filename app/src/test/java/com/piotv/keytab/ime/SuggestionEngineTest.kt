@@ -205,7 +205,87 @@ class SuggestionEngineTest {
         }
         val avgMs = (System.nanoTime() - start) / 1_000_000.0 / 50.0
         // Main-Thread-Budget: ein Space-Tastendruck darf die Tastatur nicht blockieren
-        assertTrue("autoCorrect/suggest zu langsam: %.2f ms/Call".format(avgMs), avgMs < 50.0)
+                assertTrue("autoCorrect/suggest zu langsam: %.2f ms/Call".format(avgMs), avgMs < 50.0)
+    }
+
+    // ---------- Snippet-Leiste am Satzanfang ----------
+
+    @Test
+    fun `sentenceStart bei leerem feld`() {
+        assertTrue(SuggestionEngine.sentenceStart("", ""))
+    }
+
+    @Test
+    fun `sentenceStart nach satzende-punkt`() {
+        assertTrue(SuggestionEngine.sentenceStart("Hallo. ", ""))
+    }
+
+    @Test
+    fun `sentenceStart nach ausrufezeichen- und fragezeichen`() {
+        assertTrue(SuggestionEngine.sentenceStart("Hey! ", ""))
+        assertTrue(SuggestionEngine.sentenceStart("Na? ", ""))
+    }
+
+    @Test
+    fun `sentenceStart nach newline`() {
+        assertTrue(SuggestionEngine.sentenceStart("Hallo.\n", ""))
+    }
+
+    @Test
+    fun `kein sentenceStart in der mitte des satzes`() {
+        assertFalse(SuggestionEngine.sentenceStart("Hallo Welt ", ""))
+    }
+
+    @Test
+    fun `laufendes wort hebt sentenceStart auf`() {
+        assertFalse(SuggestionEngine.sentenceStart("Hallo Welt ", "ha"))
+    }
+
+    @Test
+    fun `recentSnippets parst history in reihenfolge`() {
+        val raw = "git status\u0000ls -la\u0000cd"
+        assertEquals(listOf("git status", "ls -la", "cd"), SuggestionEngine.recentSnippets(raw))
+    }
+
+    @Test
+    fun `recentSnippets ignoriert leere eintraege und dedupliziert`() {
+        val raw = "git status\u0000\u0000ls -la\u0000git status\u0000  "
+        assertEquals(listOf("git status", "ls -la"), SuggestionEngine.recentSnippets(raw))
+    }
+
+    @Test
+    fun `recentSnippets begrenzt auf max drei`() {
+        assertEquals(3, SuggestionEngine.recentSnippets("a\u0000b\u0000c\u0000d\u0000e").size)
+    }
+
+    @Test
+    fun `recordRecent prependet neuen eintrag`() {
+        assertEquals(
+            "git status\u0000ls -la\u0000cd",
+            SuggestionEngine.recordRecent("ls -la\u0000cd", "git status")
+        )
+    }
+
+    @Test
+    fun `recordRecent bewegt doppelten an den anfang`() {
+        assertEquals(
+            "ls -la\u0000git status",
+            SuggestionEngine.recordRecent("git status\u0000ls -la", "ls -la")
+        )
+    }
+
+    @Test
+    fun `recordRecent begrenzt auf max drei und rundelt mit recentSnippets`() {
+        var r = SuggestionEngine.recordRecent("", "a")
+        r = SuggestionEngine.recordRecent(r, "b")
+        r = SuggestionEngine.recordRecent(r, "c")
+        r = SuggestionEngine.recordRecent(r, "d")
+        assertEquals(listOf("d", "c", "b"), SuggestionEngine.recentSnippets(r))
+    }
+
+    @Test
+    fun `recordRecent ignoriert leerzeichen`() {
+        assertEquals("ls -la", SuggestionEngine.recordRecent("ls -la", "  "))
     }
 }
 

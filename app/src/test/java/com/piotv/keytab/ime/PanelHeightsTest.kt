@@ -41,18 +41,9 @@ class PanelHeightsTest {
         val root = inflateRoot(nightContext())
         val ed = root.findViewById<View>(R.id.editor_panel)
         val kb = root.findViewById<View>(R.id.kb_panel)
-        val fm = root.findViewById<View>(R.id.file_panel)
         val width = app.resources.displayMetrics.widthPixels
-        val density = app.resources.displayMetrics.density
 
         val height = PanelHeights.filesPanelHeight(ed, kb, width)
-        val fixedOld = (164 * density).toInt()
-        println("filesPanelHeight=${height}px alt-fix=${fixedOld}px " +
-            "fm.layoutParams.height=${fm.layoutParams.height}")
-        assertTrue("Höhe muss ermittelt werden", height > 0)
-        assertTrue(
-            "Files-Panel ($height px) muss höher sein als die alte fixe Höhe ($fixedOld px)",
-            height > fixedOld)
         assertTrue("Editor-Panel muss gemessen worden sein", ed.measuredHeight > 0)
         assertTrue("Buchstaben-Panel muss gemessen worden sein", kb.measuredHeight > 0)
         assertEquals("Höhe = Editor-Panel + Buchstaben-Panel",

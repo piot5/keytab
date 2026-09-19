@@ -70,6 +70,16 @@ class SnippetPanel(
         }
     }
 
+    /** Snippet in die Vorschlags-History (Preferences) eintragen. */
+    private fun recordRecent(text: String) {
+        val p = com.piotv.keytab.Prefs.of(context)
+        p.edit().putString(
+            com.piotv.keytab.Prefs.KEY_RECENT_SNIPPETS,
+            SuggestionEngine.recordRecent(
+                p.getString(com.piotv.keytab.Prefs.KEY_RECENT_SNIPPETS, null), text)
+        ).apply()
+    }
+
     /** Parst "name = text"-Zeilen; '#' Kommentare und Leerzeilen werden ignoriert. */
     private fun parse(text: String): List<Snippet> = buildList {
         for (raw in text.lines()) {
@@ -89,9 +99,12 @@ class SnippetPanel(
         if (snippets.isEmpty()) {
             Toast.makeText(context, R.string.snippet_hint_empty, Toast.LENGTH_SHORT).show()
         }
-        list.adapter = themedAdapter(context, snippets.map { it.name })
+                list.adapter = themedAdapter(context, snippets.map { it.name })
         list.setOnItemClickListener { _, _, position, _ ->
-            snippets.getOrNull(position)?.let { onCommit(it.text) }
+            snippets.getOrNull(position)?.let { snip ->
+                recordRecent(snip.text)
+                onCommit(snip.text)
+            }
         }
         list.setOnItemLongClickListener { _, _, position, _ ->
             snippets.getOrNull(position)?.let {

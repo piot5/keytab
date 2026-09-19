@@ -176,7 +176,7 @@ object ThemeApplier {
             btn.setTextColor(text)
             btn.background = flatKeyState()
         }
-        for (id in intArrayOf(R.id.sug_1, R.id.sug_2, R.id.sug_3)) {
+        for (id in intArrayOf(R.id.sug_emoji, R.id.sug_1, R.id.sug_2, R.id.sug_3)) {
             val sug = v.findViewById<View>(id) ?: continue
             sug.background = if (id == R.id.sug_1) sugLayer() else ColorDrawable(keyBg)
             (sug as? TextView)?.setTextColor(text)

@@ -48,4 +48,40 @@ class EmojiModuleTest {
         assertTrue(EmojiModule.emojisFor("bugfix").contains("🐛"))
         assertTrue(EmojiModule.emojisFor("rebuild").contains("🚀"))
     }
+
+    // ---------- Katalog-Paging (Suggestion-Leiste, 😀-Button) ----------
+
+    @Test
+    fun `Katalog-Seiten sind 3er-Blöcke in Katalog-Reihenfolge`() {
+        val p0 = EmojiModule.page(0)
+        val p1 = EmojiModule.page(1)
+        assertEquals(3, p0.size)
+        assertEquals(3, p1.size)
+        assertEquals(p0 + p1, EmojiModule.catalog.take(6))
+    }
+
+    @Test
+    fun `Katalog-letzte Seite kann kürzer sein, danach leer`() {
+        val pages = EmojiModule.pageCount()
+        val last = EmojiModule.page(pages - 1)
+        assertTrue(last.isNotEmpty() && last.size <= 3)
+        assertTrue(EmojiModule.page(pages).isEmpty())
+        assertTrue(EmojiModule.page(-1).isEmpty())
+    }
+
+    @Test
+    fun `Katalog deckt alle Katalog-Emojis ohne Duplikate ab`() {
+        val all = (0 until EmojiModule.pageCount()).flatMap { EmojiModule.page(it) }
+        assertTrue(all.isNotEmpty())
+        assertEquals(all.size, all.toSet().size)
+        assertEquals(EmojiModule.catalog.size, all.size)
+    }
+
+    @Test
+    fun `pageOf findet Emojis und liefert -1 für Fremdes`() {
+        assertTrue(EmojiModule.pageOf("😂") in 0 until EmojiModule.pageCount())
+        assertEquals(-1, EmojiModule.pageOf("🚫"))
+        // 💻 ("code"-Thema) liegt alphabetisch nach den ersten 3 Keywords → nicht auf Seite 0
+        assertTrue(EmojiModule.pageOf("💻") >= 1)
+    }
 }

@@ -210,6 +210,18 @@ class WordPredictionManager(
         persistUserDict()
     }
 
+    /**
+     * Emoji aus dem Vorschlags-Leisten-Katalog einfügen (v0.11): bewusst KEIN
+     * Wort-Lernen und keine Autokorrektur — Emojis gehören nicht ins User-
+     * Dictionary. Einfügen via [inputOps.insert] (App/Editor/Terminal-Routing,
+     * wie bei den Wortvorschlägen) ohne Trailing-Space; danach Buffer-Reset,
+     * damit Engine-State und Feld nicht desynchronisieren.
+     */
+    fun commitEmoji(emoji: String) {
+        inputOps.insert(emoji)
+        reset()
+    }
+
     /** Zeichen hinzufügen/entfernen (Rückgabewert: Vorschläge neu berechnen?). */
     fun onCharacter(text: String) {
         currentTypedWord += text[0]

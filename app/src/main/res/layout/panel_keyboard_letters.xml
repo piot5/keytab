@@ -21,6 +21,14 @@
                      die Wortvorhersage sichtbar ist → gezielt dieser Abstand. -->
 
                 <TextView
+                    android:id="@+id/sug_emoji"
+                    android:layout_width="0dp" android:layout_height="match_parent"
+                    android:layout_weight="0.7" android:gravity="center"
+                    android:singleLine="true" android:textSize="16sp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="@color/key_bg" android:text="😀"
+                    android:contentDescription="@string/settings_emoji" />
+                <TextView
                     android:id="@+id/sug_1"
                     android:layout_width="0dp" android:layout_height="match_parent"
                     android:layout_weight="2" android:gravity="center"

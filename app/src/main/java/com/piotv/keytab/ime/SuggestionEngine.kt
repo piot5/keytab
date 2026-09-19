@@ -63,6 +63,9 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
          *  vs. `tv.tag = word` für normale Vorschläge). */
         internal const val SNIPPET_TAG: Int = 0x7f000001
 
+        /** Marker-Tag für Emoji-Katalog-Chips (Klick → Emoji einfügen statt Wort). */
+        internal const val EMOJI_TAG: Int = 0x7f000002
+
         /**
          * Satzanfang-Erkennung für die Snippet-Leiste: gilt als Satzanfang, wenn
          * gerade kein Wort in der Eingabe (Zwischen-Wörter-Puffer leer) ist und

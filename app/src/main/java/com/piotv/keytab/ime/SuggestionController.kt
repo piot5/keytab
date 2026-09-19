@@ -6,7 +6,6 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import com.piotv.keytab.R
-
 /**
  * Suggestion-Controller – Vorschlagsleiste, dynamische Tastengröße und
  * Likely-Highlights.
@@ -26,6 +25,16 @@ internal class SuggestionController(private val host: SuggestionHost) {
     /** Likely Highlighting: momentan hervorgehobene Tasten + deren Original-Background. */
     private val likelyHighlighted = mutableListOf<Pair<Button, android.graphics.drawable.Drawable>>()
 
+    /**
+     * Emoji-Katalog-Browser: Aktuelle Seite (−1 = Wortvorschläge). Der 😀-Button
+     * links in der Leiste öffnet Seite 0; jeder weitere Tap blättert weiter und
+     * springt nach der letzten Seite zurück zu den Wortvorschlägen.
+     */
+    private var emojiBrowsePage: Int = -1
+
+    /** Die 3 Vorschlags-Slots (gleiche Array-Referenz wie in [WordPredictionManager]). */
+    private var slots: Array<TextView?> = arrayOfNulls(3)
+
     /** Likely-Highlights freigeben (beim Rebuild/Release der Tastatur). */
     fun clearLikelyHighlights() {
         likelyHighlighted.clear()
@@ -43,8 +52,14 @@ internal class SuggestionController(private val host: SuggestionHost) {
         suggestionViews[0] = root.findViewById(R.id.sug_1)
         suggestionViews[1] = root.findViewById(R.id.sug_2)
         suggestionViews[2] = root.findViewById(R.id.sug_3)
+        slots = suggestionViews
                                 for (i in 0..2) {
             suggestionViews[i]?.setOnClickListener { v ->
+                // Emoji-Katalog-Chip (Katalog-Browser aktiv)
+                (v.getTag(SuggestionEngine.EMOJI_TAG) as? String)?.let { emoji ->
+                    commitEmoji(emoji)
+                    return@setOnClickListener
+                }
                 // Snippet-Chip (Satzanfang, ersetzt Wortvorschläge)
                 (v.getTag(SuggestionEngine.SNIPPET_TAG) as? String)?.let { snip ->
                     commitSnippet(snip)
@@ -53,6 +68,14 @@ internal class SuggestionController(private val host: SuggestionHost) {
                 val word = v.tag as? String ?: return@setOnClickListener
                 applySuggestion(word)
             }
+        }
+        // 😀-Katalog-Button links in der Leiste: öffnet/blättert den Emoji-Katalog
+        root.findViewById<TextView>(R.id.sug_emoji)?.setOnClickListener {
+            host.haptic()
+            val pages = EmojiModule.pageCount()
+            emojiBrowsePage = if (pages == 0) -1
+            else if (emojiBrowsePage + 1 >= pages) -1 else emojiBrowsePage + 1
+            update()
         }
         // Engine der aktiven Sprache laden (async, bei Wechsel: Reload)
         host.predictionManager?.loadEngine(language)
@@ -70,8 +93,54 @@ internal class SuggestionController(private val host: SuggestionHost) {
         val bar = host.keyboardRoot?.findViewById<View>(R.id.suggestion_bar) ?: return
         val suggestionEnabled = com.piotv.keytab.Prefs.of(host.context)
             .getBoolean(com.piotv.keytab.Prefs.KEY_SUGGESTIONS, true)
+        if (emojiBrowsePage >= 0) {
+            // Katalog-Browser aktiv: zeigt anstelle der Wortvorschläge die aktuelle
+            // Emoji-Katalog-Seite (jeder 😀-Tap blättert weiter / zurück zu Wörtern).
+            if (suggestionEnabled) renderEmojiPage(bar)
+            else emojiBrowsePage = -1
+            return
+        }
         host.predictionManager?.updateSuggestions(bar, suggestionEnabled)
         updateDynamicKeys()
+    }
+
+    /**
+     * Rendert die aktuelle [EmojiModule]-Katalog-Seite in die Leiste. Chips
+     * tragen [SuggestionEngine.EMOJI_TAG] (Klick → [commitEmoji]), freie Slots
+     * bleiben INVISIBLE und ohne Tag.
+     */
+    private fun renderEmojiPage(bar: View) {
+        val page = EmojiModule.page(emojiBrowsePage)
+        for (i in 0..2) {
+            val tv = slots[i] ?: continue
+            val emoji = page.getOrNull(i)
+            if (emoji == null) {
+                tv.visibility = View.INVISIBLE
+                tv.tag = null
+                tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
+                tv.setTag(SuggestionEngine.EMOJI_TAG, null)
+            } else {
+                tv.visibility = View.VISIBLE
+                tv.text = emoji
+                tv.tag = null
+                tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
+                tv.setTag(SuggestionEngine.EMOJI_TAG, emoji)
+            }
+        }
+        bar.visibility = View.VISIBLE
+    }
+
+    /**
+     * Emoji einfügen (Katalog-Chip): direktes [InputOperations.insert] — ohne
+     * Wort-Lern-Side-Effects und ohne Trailing-Space (bewusst anders als
+     * [applySuggestion]); Emojis sind keine Wörter und sollen die n-gram-
+     * Vorhersage nicht verfälschen. Danach zurück zu den Wortvorschlägen
+     * (Katalog-Browser schließt sich — Emoji-Session ist damit beendet).
+     */
+    private fun commitEmoji(emoji: String) {
+        host.predictionManager?.commitEmoji(emoji)
+        emojiBrowsePage = -1
+        update()
     }
 
 

@@ -18,6 +18,9 @@ object EmojiModule {
     /** Maximaler Anteil der Vorschlags-Slots, den Emojis einnehmen dürfen. */
     const val MAX_EMOJI = 2
 
+    /** Katalog-Browser: Emojis pro Seite (Vorschlags-Leiste hat 3 Slots). */
+    const val PAGE_SIZE = 3
+
     /**
      * Keyword→Emoji-Katalog. Substring-Match (lowercase) — Reihenfolge im
      * [LinkedHashMap] determiniert die Emoji-Reihenfolge innerhalb eines Themas.
@@ -75,6 +78,38 @@ object EmojiModule {
         "datei" to listOf("📁"),
         "file" to listOf("📁")
     )
+
+    /**
+     * Katalog-Browser: flache, deduplizierte Emoji-Liste (Katalog-Reihenfolge,
+     * alphabetisch nach Keyword sortiert) — Grundlage für die Paging-Logik
+     * ([page]) und den 😀-Katalog-Zugriff in der Vorschlags-Leiste.
+     */
+    val catalog: List<String> by lazy {
+        KEYWORDS.keys.sorted()
+            .flatMap { kw -> KEYWORDS[kw].orEmpty() }
+            .distinct()
+    }
+
+    /** Emojis einer Katalog-Seite ([page], 0-basiert, [perPage] Einträge). */
+    fun page(page: Int, perPage: Int = PAGE_SIZE): List<String> {
+        if (perPage <= 0 || page < 0) return emptyList()
+        val from = page * perPage
+        if (from >= catalog.size) return emptyList()
+        return catalog.subList(from, minOf(from + perPage, catalog.size))
+    }
+
+    /** Erste Seite, die [emoji] enthält (−1, wenn nicht im Katalog). */
+    fun pageOf(emoji: String, perPage: Int = PAGE_SIZE): Int {
+        if (perPage <= 0) return -1
+        val idx = catalog.indexOf(emoji)
+        return if (idx < 0) -1 else idx / perPage
+    }
+
+    /** Anzahl Katalog-Seiten bei [perPage] Emojis pro Seite. */
+    fun pageCount(perPage: Int = PAGE_SIZE): Int {
+        if (perPage <= 0) return 0
+        return (catalog.size + perPage - 1) / perPage
+    }
 
     /**
      * Emojis für [word] (Substring-Match, lowercase) — höchstens [max],

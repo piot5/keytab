@@ -1,0 +1,3 @@
+- Feature: snippet suggestions at sentence start (when no word predictions apply, the suggestion bar shows your 3 most recent snippets as tappable chips; local history in MODE_PRIVATE, refreshes after delete-last-word)
+- Docs: coverage re-measured with Kover — 46.5 % line / 35.4 % branch; theme sections at 92.5 % and in-app file manager at 78.7 % (previously untested)
+- Tests: 208 unit tests in 22 suites, all green (test-to-main ratio 40.2 %)

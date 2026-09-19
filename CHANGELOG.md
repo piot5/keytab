@@ -11,7 +11,7 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
-## Unreleased
+## 0.10
 
 
 - **Feature: Snippet-Vorschläge am Satzanfang** — wenn keine Wortvorhersagen

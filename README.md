@@ -316,24 +316,9 @@ The version itself is defined in exactly one place (`app/build.gradle.kts`,
 `versionCode`/`versionName`) and is checked against the changelog and the
 fastlane release notes by the CI job "docs" (`scripts/check_docs_drift.sh`).
 
-## Roadmap
-
-Planned, in priority order (see `docs/REFACTORING_PLAN.md` for the full audit and rationale):
-
-1. ~~**Coverage gate** (Kover) in CI~~ — **done**: `:app:coverageGate` with a 20 % line threshold,
-   baseline **33.5 %** (`LINE` 1147/3428, measured 2026-09-17); CI job `coverage`
-   uploads the report. Next: more Robolectric panel tests — the theme sections (9.9 %)
-   and the in-app file manager (0 %) are the weakest areas.
-2. ~~**Split the 697-line `keyboard_view.xml`**~~ — **done**: rows now live in
-   `panel_keyboard_letters.xml` (106 lines) + `panel_keyboard_symbols.xml` (61 lines),
-   embedded via `<include>` (head file 579 lines).
-3. ~~**Replace `MANAGE_EXTERNAL_STORAGE`**~~ — **done** (permission + button + intent removed;
-   `READ_MEDIA_*` + app dirs remain) → Play-Store eligible permission-wise.
-4. ~~**Editor: line numbers**~~ and **heuristic syntax highlighting** — **done**
-   (`EditorHighlightLogic` + gutter in `EditorPanel`).
-5. **Finish the coroutine migration** — threading is centralised in `KeyTabExecutors`, the two
+1. **Finish the coroutine migration** — threading is centralised in `KeyTabExecutors`, the two
    remaining `Handler`s are shared; true coroutines are still open.
-6. **Optional: PTY for the terminal tab** — it currently pipes stdin/stdout without a pseudo-terminal, so interactive TUI programs and ANSI colours cannot work. A PTY would turn the tab into a real terminal, but is a large change for a convenience feature; documenting the limitation was preferred (see §4.3).
+2. **Optional: PTY for the terminal tab** — it currently pipes stdin/stdout without a pseudo-terminal, so interactive TUI programs and ANSI colours cannot work. A PTY would turn the tab into a real terminal, but is a large change for a convenience feature; documenting the limitation was preferred (see §4.3).
 
 Explicitly *not* planned: cloud sync, glide typing, 100+ languages — those are Gboard dimensions that cannot be won here.
 

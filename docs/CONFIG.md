@@ -25,7 +25,8 @@ welcher Schlüssel wohin gehört.
 **Schalter** (`true` / `false`), Importer `SettingsConfig`:
 
 - `num_row`, `term_tab`, `clip_tab`, `snippet_tab`, `suggestions`, `autocorrect`,
-  `dynamic_keys`.
+  `dynamic_keys`, `emoji_suggestions` (Default `false` — hängt bis zu 2
+  thematische Emojis hinten an die Wortvorschläge an; immer offline).
 - `trail`, `trail_trace`: Tippspur an/aus und Korrektur-Trace an/aus
   (Default `false`). Der Korrektur-Trace färbt getippte Wörter
   rot, wenn sie automatisch ersetzt würden (Hinweis, es wird nichts geändert).

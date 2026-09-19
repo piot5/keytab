@@ -97,6 +97,8 @@ class WordPredictionManager(
             }
         }
         val eng = engine
+        eng?.emojiEnabled = com.piotv.keytab.Prefs.of(context)
+            .getBoolean(com.piotv.keytab.Prefs.KEY_EMOJI_SUGGESTIONS, false)
         val list = if (eng == null) emptyList() else {
             try { eng.suggest(currentTypedWord, prevTypedWord) }
             catch (_: Exception) { emptyList() }

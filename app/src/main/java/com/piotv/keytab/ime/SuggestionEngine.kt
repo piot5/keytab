@@ -198,14 +198,29 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
     }
 
     /**
+     * Emoji-Vorschläge (v0.11, optional): Wenn true, hängt [suggest] thematisch
+     * passende Emojis ([EmojiModule.emojisFor]) hinten an die Wortvorschläge an
+     * (max. [EmojiModule.MAX_EMOJI], Wortschläge behalten mind. einen Slot).
+     * Default **aus** — der Toggle liegt in den Einstellungen
+     * ([com.piotv.keytab.Prefs.KEY_EMOJI_SUGGESTIONS]).
+     */
+    var emojiEnabled: Boolean = false
+
+    /**
      * Vorschläge für den aktuellen Teilwort-Status.
      * @param currentWord aktuell getipptes (unvollständiges) Wort, evtl. leer
      * @param prevWord Wort vor dem aktuellen (für Bigram-Prediction), evtl. null
      */
     fun suggest(currentWord: String, prevWord: String?, max: Int = MAX_SUGGESTIONS): List<Suggestion> {
         val cur = currentWord.lowercase()
-        return if (cur.isEmpty()) predictNext(prevWord?.lowercase(), max)
-        else completeWord(cur, prevWord?.lowercase(), max)
+        val base = if (cur.isEmpty()) predictNext(prevWord?.lowercase(), max)
+                   else completeWord(cur, prevWord?.lowercase(), max)
+        if (!emojiEnabled) return base
+        // Emoji-Schlüssel: getipptes Teilwort, sonst das vorherige Wort (Leerraum-Fall)
+        val emojis = EmojiModule.emojisFor(
+            if (cur.isNotEmpty()) cur else (prevWord?.lowercase().orEmpty()), EmojiModule.MAX_EMOJI)
+        if (emojis.isEmpty() || emojis.size >= max) return base
+        return base.take(max - emojis.size) + emojis.map { Suggestion(it, 0.0) }
     }
 
     /** Next-Word-Prediction: Bigramm zuerst, dann häufigste Basis-/Nutzerwörter. */

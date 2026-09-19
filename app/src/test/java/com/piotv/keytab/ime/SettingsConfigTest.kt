@@ -96,7 +96,7 @@ class SettingsConfigTest {
 
     @Test fun fullExportImportsAllUiSettingsWithoutCreatingColorOverrides() {
         val completed = SettingsConfig.completeText("", prefs)
-        assertEquals(37, KeyTabConfig.entries(completed).size)
+        assertEquals(38, KeyTabConfig.entries(completed).size)
         assertTrue(SettingsConfig.importTextIfChanged(completed, prefs))
         assertFalse(prefs.getBoolean(Prefs.KEY_NUM_ROW, true))
         for (key in listOf(Prefs.KEY_TERM_TAB, Prefs.KEY_CLIP_TAB, Prefs.KEY_SNIPPET_TAB,

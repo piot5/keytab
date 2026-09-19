@@ -67,6 +67,13 @@ object Prefs {
     /** Auto-Korrektur an/aus. */
     const val KEY_AUTOCORRECT = "autocorrect_enabled"
 
+    /**
+     * Emoji-Vorschläge (optional, Default **aus**): hängt thematisch passende
+     * Emojis hinten an die Wortvorschläge an (max. 2 der 3 Slots).
+     * Logik: [com.piotv.keytab.ime.EmojiModule].
+     */
+    const val KEY_EMOJI_SUGGESTIONS = "emoji_suggestions_enabled"
+
     /** Dynamische Tastengröße an/aus. */
     const val KEY_DYNAMIC_KEYS = "dynamic_keys_enabled"
 

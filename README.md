@@ -34,7 +34,7 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 
 **File manager in the keyboard** -- browse folders, switch tabs, navigate with back-stack and parent-navigation. Tapping a file inserts its path; in the app it opens via VIEW-Intent. Each tab remembers its own directory. Listing runs asynchronously so large folders don't freeze the UI.
 
-**Word prediction** -- offline n-gram model (FrequencyWords, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings. **Snippet suggestions on sentence start**: when there are no word predictions to show and the cursor is at the beginning of a new sentence (empty field, or text ending in `. ! ?` followed by space/newline, with no word currently being typed), the suggestion bar shows your last 3 used snippets as tappable chips instead of the generic top-3 words — so frequently-inserted snippets are one tap away. This also triggers after deleting a whole word with backspace (the bar re-evaluates the empty state). Using a snippet records it as most-recent; typing a new character returns the normal prediction bar. Fully offline, stored in `MODE_PRIVATE` prefs (no extra permission).
+**Word prediction** -- offline n-gram model (FrequencyWords, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings. **Snippet suggestions on sentence start**: when there are no word predictions to show and the cursor is at the beginning of a new sentence (empty field, or text ending in `. ! ?` followed by space/newline, with no word currently being typed), the suggestion bar shows your last 3 used snippets as tappable chips instead of the generic top-3 words — so frequently-inserted snippets are one tap away. This also triggers after deleting a whole word with backspace (the bar re-evaluates the empty state). Using a snippet records it as most-recent; typing a new character returns the normal prediction bar. Fully offline, stored in `MODE_PRIVATE` prefs (no extra permission). **Optional emoji suggestions** (settings toggle, **off by default**): a small built-in keyword→emoji catalog (de/en, offline) appends up to 2 thematic emojis behind the word suggestions — word suggestions always keep at least one slot.
 
 **Dynamic key sizing** -- likely-next keys scale up to 1.30× (stepped grades 1.30×/1.15×), unlikely ones shrink down to 0.85× — but only in the direct neighborhood of enlarged keys, driven by the current suggestion scores. Toggleable in settings.
 
@@ -134,34 +134,39 @@ All panels share a background executor for file I/O and a main handler for UI up
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**208 unit tests in 22 suites, 0 failures** (verified 2026-09-18, `assembleDebug` + `testDebugUnitTest` both green):
+**231 unit tests in 27 suites, 0 failures** (verified 2026-09-19, `assembleDebug` + `testDebugUnitTest` both green):
 
 | Suite | Tests | Kind |
 |---|---:|---|
-| `TextEditLogicTest` | 20 | pure |
 | `SuggestionEngineTest` | 32 | pure |
+| `TextEditLogicTest` | 20 | pure |
 | `TrailLogicTest` | 18 | pure |
-| `PanelsTest` | 13 | Robolectric |
-| `EditorHighlightLogicTest` | 11 | pure |
 | `FileManagerModelTest` | 11 | Robolectric |
-| `KeyScaleLogicTest` | 10 | pure |
+| `EditorHighlightLogicTest` | 11 | pure |
 | `SectionsTest` | 10 | Robolectric |
+| `KeyScaleLogicTest` | 10 | pure |
 | `SectionsMoreTest` | 9 | pure |
+| `EditorPanelTest` | 8 | Robolectric |
 | `InputRouterTest` | 8 | Robolectric |
 | `KeyTabConfigTest` | 8 | pure |
 | `LearnedDictionaryApiTest` | 8 | pure |
+| `EmojiModuleTest` | 7 | pure |
+| `EmojiSuggestionsTest` | 7 | pure |
 | `SettingsConfigTest` | 7 | Robolectric |
+| `TermuxKeyMatrixTest` | 7 | pure |
 | `ThemeApplierTest` | 7 | Robolectric |
 | `CapsLogicTest` | 6 | Robolectric |
 | `ShiftControllerTest` | 6 | Robolectric |
+| `ClipboardPanelTest` | 5 | Robolectric |
 | `LikelyHighlightLogicTest` | 5 | pure |
 | `SettingsRegressionTest` | 5 | Robolectric |
 | `KeyAnimationsTest` | 4 | Robolectric |
 | `LiftSpanTest` | 4 | Robolectric |
 | `FileManagerFragmentTest` | 4 | Robolectric |
 | `PanelHeightsTest` | 2 | Robolectric |
+| `TrailPerformanceTest` | 2 | pure |
 
-Test code is 2,997 lines in 22 files against 7,449 lines of main code (52 files) — a **40.2 % test-to-main ratio**. Line coverage measured with Kover is **46.5 %** (`LINE` 1663/3578), branch coverage **35.4 %** (`BRANCH` 916/2584); the CI gate is 20 % (re-measured 2026-09-19, all tests green). Per package: the Android-free logic (`com.piotv.keytab.ime`: 41.2 %), the theme UI sections (`sections`: 92.5 %) and the in-app file manager (`file`: 78.7 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `PanelsTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
+Test code is 3,324 lines in 27 files against 7,576 lines of main code (53 files) — a **43.9 % test-to-main ratio**. Line coverage measured with Kover is **47.6 %** (`LINE` 1739/3653), branch coverage **36.4 %** (`BRANCH` 951/2616); the CI gate is 20 % (re-measured 2026-09-19, all 231 tests green). Per package: the Android-free logic (`com.piotv.keytab.ime`: 42.9 %), the theme UI sections (`sections`: 92.5 %) and the in-app file manager (`file`: 78.7 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot path (correction trace → `autoCorrect`) is JVM-benchmarked in `TrailPerformanceTest` (avg µs per classification, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
 
 ```bash
 # Run all unit tests
@@ -180,7 +185,7 @@ Documented honestly rather than implied away — these are the things that are *
 
 | Gap | Detail |
 |---|---|
-| **Trail performance not measured** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.autoCorrect`, a Damerau-Levenshtein pass over the char index). No frame timing, no profiling, no benchmark exists. Logic is unit-tested; smoothness on a real display is **not** verified. Mitigation if it stutters: restrict the trace to `knowsWord` and check `autoCorrect` only on word completion. |
+| **Trail frame timing not measured on device** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.autoCorrect`). **Partially measured (2026-09-19):** the algorithm cost is JVM-benchmarked in `TrailPerformanceTest` — ~2 µs per classification on a 6,000-word corpus, ~4 orders of magnitude below the 50 ms keystroke budget (with a hard assertion so regressions fail the build). What remains open: **frame timing on a real display** (profiling on the device) and visual smoothness; the red/green trace contrast per theme palette is still not screenshot-verified. Mitigation if it stutters: restrict the trace to `knowsWord` and check `autoCorrect` only on word completion. |
 | **Trail visuals not screenshot-verified** | The regression fix for contradictory trace states (see 0.9.7) is proven at the **state level** by unit tests — no screenshot or instrumented test asserts the rendered colours. The red/green contrast against each custom theme palette has not been measured. |
 | **English locale incomplete** | `values-en` has 92 strings against 163 in the default (German) file; the rest fall back to German in an English-locale device. |
 | **Terminal has no PTY** | By design — see the Terminal description above. It is the Android system shell in the app sandbox, not a Termux replacement. |

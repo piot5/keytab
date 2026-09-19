@@ -103,6 +103,12 @@
             android:layout_marginTop="8dp"
             android:text="@string/settings_suggestions" />
         <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_emoji"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_emoji" />
+        <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/sw_autocorrect"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

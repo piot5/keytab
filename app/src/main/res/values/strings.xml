@@ -85,6 +85,9 @@
     <string name="settings_autocorrect">Auto-correction (fix typos on space)</string>
     <string name="settings_autocorrect_on">Auto-correction enabled</string>
     <string name="settings_autocorrect_off">Auto-correction disabled</string>
+    <string name="settings_emoji">Emoji suggestions (optional, appended to word suggestions)</string>
+    <string name="settings_emoji_on">Emoji suggestions enabled</string>
+    <string name="settings_emoji_off">Emoji suggestions disabled</string>
 
     <string name="settings_dynamic_keys">Dynamic key size (likely keys bigger)</string>
     <string name="settings_dynamic_keys_on">Dynamic key sizing enabled</string>

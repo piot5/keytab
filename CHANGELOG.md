@@ -11,6 +11,34 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
+## Unreleased
+
+
+- **Feature: optionale Emoji-Vorschläge** (Einstellungen-Schalter, **Standard aus**):
+  ein eingebetteter Keyword→Emoji-Katalog (de/en, offline, keine neue Permission)
+  hängt thematisch passende Emojis hinten an die Wortvorschläge an (max. 2 der
+  3 Slots; Wortschläge behalten mindestens einen Slot). Neu: `Prefs.KEY_EMOJI_SUGGESTIONS`,
+  `SuggestionEngine.emojiEnabled` + `EmojiModule.emojisFor` (+14 Unit-Tests:
+  `EmojiModuleTest`, `EmojiSuggestionsTest`), Config-Key `emoji_suggestions`
+  (`keytab_config.txt`, docs/CONFIG.md), Settings-Schalter `sw_emoji`.
+- **Termux-Key-Matrix (automatisiert)** — `TermuxKeyMatrixTest` fixiert die
+  Key-Verträge des App-Eingabepfads, auf die der Kern-Use-Case „Coding in
+  Termux" angewiesen ist: TAB = KEYCODE_TAB-Key-Event (nie `commitText("\t")`),
+  Enter = KEYCODE_ENTER, Backspace = KEYCODE_DEL, Text = `commitText`,
+  `deleteBeforeKeys` = n × KEYCODE_DEL (Fallback für Felder ohne
+  deleteSurroundingText). Die manuelle Device-Matrix (Termux/neovim,
+  AndroidIDE, VS Code proot) bleibt offen.
+- **Trail-Hot-Path gemessen** — `TrailPerformanceTest` benchmarkt
+  `classifyTypedWord` → `autoCorrect` (der Code-Pfad, der bei jedem Tastendruck
+  läuft) auf einem synthetischen 6.000-Wort-Korpus: **~2 µs pro Klassifizierung**
+  (JVM; ~4 Größenordnungen unter dem 50-ms-Keystroke-Budget), bekanntes Wort
+  ~3 µs (Short-Circuit). Mit Hard-Assertion (< 5 ms), damit Performance-
+  Regressionen den Build brechen. Device-Frame-Timing bleibt offen.
+- **Tests: 208 → 231 in 27 Suiten** — `PanelsTest` in `EditorPanelTest` +
+  `ClipboardPanelTest` aufgeteilt (Name = Klasse); Kover re-messen:
+  **47,6 % line / 36,4 % branch** (`ime` 42,9 %, `sections` 92,5 %, `file` 78,7 %).
+
+
 ## 0.10
 
 

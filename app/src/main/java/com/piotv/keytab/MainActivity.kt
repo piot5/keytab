@@ -126,6 +126,15 @@ class MainActivity : AppCompatActivity() {
             else R.string.settings_suggestions_off, Toast.LENGTH_SHORT).show()
         }
 
+        // Emoji-Vorschläge (optional, Default aus; wirkt beim nächsten Vorschlags-Update)
+        val swEmoji = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_emoji)
+        swEmoji.isChecked = prefs.getBoolean(Prefs.KEY_EMOJI_SUGGESTIONS, false)
+        swEmoji.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(Prefs.KEY_EMOJI_SUGGESTIONS, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_emoji_on
+            else R.string.settings_emoji_off, Toast.LENGTH_SHORT).show()
+        }
+
         // Aktive Autokorrektur ein-/ausschalten (wirkt sofort)
         val swAutoCorrect = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_autocorrect)
         swAutoCorrect.isChecked = prefs.getBoolean(Prefs.KEY_AUTOCORRECT, true)

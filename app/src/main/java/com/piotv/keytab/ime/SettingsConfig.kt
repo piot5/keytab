@@ -25,6 +25,7 @@ object SettingsConfig {
         put("snippet_tab", Setting(Prefs.KEY_SNIPPET_TAB, "true", "boolean"))
         put("suggestions", Setting(Prefs.KEY_SUGGESTIONS, "true", "boolean"))
         put("autocorrect", Setting(Prefs.KEY_AUTOCORRECT, "true", "boolean"))
+        put("emoji_suggestions", Setting(Prefs.KEY_EMOJI_SUGGESTIONS, "false", "boolean"))
         put("dynamic_keys", Setting(Prefs.KEY_DYNAMIC_KEYS, "true", "boolean"))
         // Trail (Tippspur + Korrektur-Trace). Vorher nur über Theme-Export
         // steuerbar – hier zusätzlich über keytab_config.txt (docs/CONFIG.md).

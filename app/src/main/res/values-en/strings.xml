@@ -72,6 +72,9 @@
     <string name="settings_autocorrect">Auto-correction (fix typos on space)</string>
     <string name="settings_autocorrect_on">Auto-correction enabled</string>
     <string name="settings_autocorrect_off">Auto-correction disabled</string>
+    <string name="settings_emoji">Emoji suggestions (optional, appended to word suggestions)</string>
+    <string name="settings_emoji_on">Emoji suggestions enabled</string>
+    <string name="settings_emoji_off">Emoji suggestions disabled</string>
     <string name="settings_update_config">⚙️ Konfiguration schreiben (keytab_config.txt)</string>
     <string name="config_ready">Konfiguration bereit: %1$s</string>
     <string name="config_exists">Datei existiert bereits — Werte direkt editieren, wirkt beim nächsten Öffnen der Tastatur</string>

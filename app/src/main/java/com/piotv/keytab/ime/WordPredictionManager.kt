@@ -40,11 +40,14 @@ class WordPredictionManager(
     private var engineLoading = false
     private var engineLanguage: String? = null
 
-    var currentTypedWord = ""
+        var currentTypedWord = ""
         private set
     private var prevTypedWord: String? = null
     var currentSuggestions: List<SuggestionEngine.Suggestion> = emptyList()
         private set
+
+    /** Text vor dem Cursor (für externe Module wie SuggestionController). */
+    fun textBeforeForSuggestions(count: Int): String = inputOps.textBefore(count)
 
     /** Lädt die Engine für die aktive Sprache (async). Bei Sprachwechsel: Reload. */
     fun loadEngine(language: KeyboardLanguage, forceReload: Boolean = false) {
@@ -79,14 +82,14 @@ class WordPredictionManager(
     private var onEngineReady: (() -> Unit)? = null
     fun setOnEngineReady(callback: (() -> Unit)?) { onEngineReady = callback }
 
-    /** Berechnet Vorschläge und aktualisiert die Leiste. */
+            /** Berechnet Vorschläge und aktualisiert die Leiste. */
     fun updateSuggestions(bar: View?, enabled: Boolean) {
         if (bar == null) return
         if (!enabled) { bar.visibility = View.GONE; return }
-                // Satzanfang (keine wortvorschläge relevant) → zuletzt eingefügte Snippets
-        // in die Leiste legen (ersetzt die generischen Top-3-Wortvorschläge).
-        // Wird auch nach Wort-Löschen via Del ausgewertet (deleteLastWord → reset).
-        if (SuggestionEngine.sentenceStart(inputOps.textBefore(16), currentTypedWord)) {
+        val contextBefore = inputOps.textBefore(16)
+        // Snippet-Leiste: nur ausblasen, wenn **kein** Wort getippt wird
+        // (sentenceStart ist strenger: typedWord != null → false).
+        if (SuggestionEngine.sentenceStart(contextBefore, currentTypedWord)) {
             val snips = SuggestionEngine.recentSnippets(
                 com.piotv.keytab.Prefs.of(context)
                     .getString(com.piotv.keytab.Prefs.KEY_RECENT_SNIPPETS, null)
@@ -96,11 +99,17 @@ class WordPredictionManager(
                 return
             }
         }
+        // Satz-Struktur-Berücksichtigung für Wortvorschläge: auch während des
+        // Tippens (isSentenceStartContext entfernt das getippte Wort aus dem
+        // Kontext) — am Satzanfang werden Satzanfangs­wörter bevorzugt und
+        // Vorschläge großgeschrieben.
+        val atSentenceStart = SuggestionEngine.isSentenceStartContext(
+            contextBefore, currentTypedWord)
         val eng = engine
         eng?.emojiEnabled = com.piotv.keytab.Prefs.of(context)
             .getBoolean(com.piotv.keytab.Prefs.KEY_EMOJI_SUGGESTIONS, false)
         val list = if (eng == null) emptyList() else {
-            try { eng.suggest(currentTypedWord, prevTypedWord) }
+            try { eng.suggest(currentTypedWord, prevTypedWord, sentenceStart = atSentenceStart) }
             catch (_: Exception) { emptyList() }
         }
         if (list.isEmpty()) {
@@ -122,7 +131,7 @@ class WordPredictionManager(
                 tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
             } else {
                 tv.visibility = View.VISIBLE
-                tv.text = (eng?.matchCase(sug.word, currentTypedWord)).orEmpty()
+                tv.text = (eng?.matchCase(sug.word, currentTypedWord, sentenceStart = atSentenceStart)).orEmpty()
                 tv.tag = sug.word
                 tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
             }
@@ -158,56 +167,70 @@ class WordPredictionManager(
     /**
      * Setzt einen Vorschlag ein (Editor/Terminal/App via inputOps).
      *
-     * Bugfix: Vor dem Löschen wird geprüft, ob das getippte Teilwort wirklich
-     * direkt vor dem Cursor steht. Steht der Cursor woanders (z. B. nach einem
-     * Tap mitten in den Text), würde das alte Verhalten [deleteBefore] falsche
-     * Zeichen entfernen und das Wort am falschen Ort einfügen. In dem Fall wird
-     * nichts gelöscht, sondern das Wort sauber mit Trenner an der Cursor-
-     * position eingefügt.
+     * **Bugfix Verdopplung/Zerstörung:** Die Ersetzung wird über
+     * [SuggestionReplaceLogic] entschieden und das Löschen **verifiziert**.
+     * Früher wurde der Vorschlag angehängt statt ersetzt, wenn der Vergleich
+     * „steht das getippte Wort vor dem Cursor?“ nur scheinbar fehlschlug
+     * (Unicode-Normalisierung/abweichende Feld-Repräsentation) → der Text
+     * verdoppelte sich. Jetzt gilt: „anhängen ohne löschen“ nur, wenn der
+     * gelesene Kontext exakt `typed.length` Zeichen lang **und** ein anderes
+     * Wort ist; und es wird **nie eingefügt, wenn das Löschen nicht
+     * nachweislich geklappt hat**.
      */
-    fun applySuggestion(word: String) {
+            fun applySuggestion(word: String) {
         val typed = currentTypedWord
-        val typedLen = typed.length
-        val fullWord = engine?.matchCase(word, typed) ?: word
-        if (typedLen > 0) {
-            val before = inputOps.textBefore(typedLen)
-            val readable = before.isNotEmpty()
-            val tailMatches = readable && before.takeLast(typedLen)
-                .equals(typed, ignoreCase = true)
-            when {
-                // Verifiziert ANDERER Inhalt (Cursor steht mitten im Text):
-                // nichts löschen, Wort mit Trenner an der Cursorposition.
-                readable && before.length >= typedLen && !tailMatches -> {
-                    val sep = if (before.last().isLetter()) " " else ""
-                    inputOps.insert("$sep$fullWord ")
-                    engine?.learn(prevTypedWord, fullWord)
-                    prevTypedWord = fullWord.lowercase()
-                    currentTypedWord = ""
-                    persistUserDict()
-                    return
-                }
-                // Lesbar + Wort steht davor → normal löschen, dann VERIFIZIEREN
-                readable -> {
-                    inputOps.deleteBefore(typedLen)
-                    val after = inputOps.textBefore(typedLen)
-                    if (after.isNotEmpty() && after.length >= typedLen &&
-                        after.takeLast(typedLen).equals(typed, ignoreCase = true)
-                    ) {
-                        // deleteSurroundingText wirkte nicht (z. B. Termux/WebView)
-                        // → über KEYCODE_DEL-Key-Events löschen
-                        inputOps.deleteBeforeKeys(typedLen)
-                    }
-                }
-                // Feld liefert nichts Lesbares → direkt den zuverlässigen
-                // Key-Event-Weg nehmen (statt blind deleteSurroundingText)
-                else -> inputOps.deleteBeforeKeys(typedLen)
+        val atSentenceStart = SuggestionEngine.isSentenceStartContext(
+            inputOps.textBefore(16), typed)
+        val fullWord = engine?.matchCase(word, typed, sentenceStart = atSentenceStart) ?: word
+        // Etwas weiter lesen als das Wort lang ist (NFC/NFD-Längen, siehe
+        // SuggestionReplaceLogic.CONTEXT_PAD).
+        val context = inputOps.textBefore(typed.length + SuggestionReplaceLogic.CONTEXT_PAD)
+        when (SuggestionReplaceLogic.action(typed, context)) {
+            SuggestionReplaceLogic.Action.INSERT_PLAIN ->
+                inputOps.insert("$fullWord ")
+            SuggestionReplaceLogic.Action.INSERT_WITH_SEPARATOR -> {
+                val sep = if (context.isNotEmpty() && context.last().isLetter()) " " else ""
+                inputOps.insert("$sep$fullWord ")
+            }
+            SuggestionReplaceLogic.Action.REPLACE_TYPED -> {
+                // Lösch-Menge = Roh-Länge im Feld (nicht typed.length!), sonst
+                // blieben bei NFD-Umlauten Zeichen stehen („verdoppelt“).
+                val rawLen = SuggestionReplaceLogic.rawWordLength(context, typed)
+                    ?: typed.length
+                // Löschen zuerst VERIFIZIEREN; ohne nachweisliches Löschen NICHT
+                // einfügen, sonst verdoppelt sich der Text.
+                if (!replaceTypedWord(typed, context, rawLen)) return
+                inputOps.insert("$fullWord ")
             }
         }
-        inputOps.insert("$fullWord ")
         engine?.learn(prevTypedWord, fullWord)
         prevTypedWord = fullWord.lowercase()
         currentTypedWord = ""
         persistUserDict()
+    }
+
+    /**
+     * Löscht das getippte Wort vor dem Cursor — mit Verifikation.
+     *
+     * @param context der vor dem Löschen gelesene Kontext (für die Verifikation)
+     * @param count Roh-Anzahl zu löschender Zeichen (siehe `rawWordLength`)
+     * @return true, wenn das Wort danach nicht mehr dasteht; false, wenn es nicht
+     *   entfernt werden konnte (der Aufrufer fügt dann bewusst NICHT ein).
+     */
+    private fun replaceTypedWord(typed: String, context: String, count: Int): Boolean {
+        if (count <= 0) return true
+        if (context.isEmpty()) {
+            // Kein lesbarer Kontext (z. B. Termux/WebView): der bewährte
+            // Key-Event-Weg ist dort zuverlässiger als deleteSurroundingText.
+            inputOps.deleteBeforeKeys(count)
+            return true
+        }
+        val width = context.length.coerceAtLeast(count)
+        inputOps.deleteBefore(count)
+        // Kontext unverändert → deleteSurroundingText hat nicht gewirkt.
+        if (SuggestionReplaceLogic.deleteWorked(context, inputOps.textBefore(width))) return true
+        inputOps.deleteBeforeKeys(count)
+        return !SuggestionReplaceLogic.endsWith(inputOps.textBefore(width), typed)
     }
 
     /**

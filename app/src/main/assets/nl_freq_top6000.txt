@@ -30,9 +30,7 @@ om 1321308
 dit 1258367
 mijn 1224703
 aan 1182865
-u 1177214
 dan 1134894
-n 1131929
 naar 1129663
 weet 1120838
 hier 1086524
@@ -73,14 +71,12 @@ daar 581597
 jullie 580766
 gaat 569583
 zal 568758
-m 567079
 hebt 565918
 kom 559616
 waarom 557548
 meer 555563
 deze 516044
 moeten 472658
-t 472001
 laat 470609
 kunnen 468133
 dus 461409
@@ -92,7 +88,6 @@ echt 424799
 doe 418336
 door 417203
 alleen 407083
-s 401559
 toch 392983
 zien 383961
 weg 376436
@@ -133,7 +128,6 @@ zeg 254035
 omdat 252830
 zit 251543
 wordt 250695
-z 249724
 hou 247154
 kijk 243303
 heel 243287
@@ -273,7 +267,6 @@ bang 108357
 nemen 107484
 samen 106665
 eten 106458
-o 106208
 zelf 105869
 hoor 104358
 geleden 104345
@@ -1020,7 +1013,6 @@ kerk 18459
 mijne 18450
 dode 18405
 brand 18385
-i 18361
 max 18349
 betrokken 18328
 wegwezen 18295
@@ -1070,7 +1062,6 @@ eer 17305
 gezet 17280
 zuster 17246
 bal 17239
-a 17228
 sprak 17212
 aanval 17167
 aandacht 17149
@@ -1120,7 +1111,6 @@ wisten 16195
 sheriff 16193
 bekijken 16156
 helft 16125
-r 16120
 warm 16098
 keus 16097
 vanmorgen 16088
@@ -1274,7 +1264,6 @@ beurt 13888
 koop 13888
 appartement 13873
 cel 13855
-d 13848
 begraven 13845
 indruk 13830
 vlees 13793
@@ -2343,7 +2332,6 @@ gezondheid 6716
 daarheen 6710
 wijze 6695
 britse 6690
-b 6686
 komende 6682
 kerstmis 6681
 haven 6671
@@ -2819,7 +2807,6 @@ versie 5246
 minste 5240
 hartaanval 5235
 bo 5234
-c 5229
 as 5224
 illegaal 5217
 vertrouwde 5213
@@ -3241,7 +3228,6 @@ beschadigd 4415
 marty 4411
 realiseerde 4411
 verbranden 4410
-e 4410
 klasse 4409
 riep 4405
 onbekend 4403
@@ -3398,7 +3384,6 @@ miles 4170
 televisie 4169
 meld 4169
 verzonnen 4167
-h 4165
 aangeboden 4164
 ellen 4164
 ministerie 4163
@@ -3695,7 +3680,6 @@ bedrogen 3758
 brandstof 3757
 verwoest 3756
 verf 3755
-k 3755
 hector 3754
 munitie 3754
 paleis 3748
@@ -4608,7 +4592,6 @@ jarenlang 2837
 troy 2835
 staal 2834
 chemische 2833
-x 2833
 zeuren 2833
 sector 2832
 vreemds 2832
@@ -4743,7 +4726,6 @@ grey 2723
 eis 2723
 buitenland 2721
 ongeacht 2720
-g 2720
 krijt 2720
 oven 2720
 gps 2720
@@ -4784,7 +4766,6 @@ gebeurtenis 2694
 hoofden 2693
 balans 2693
 uitspraak 2692
-l 2691
 logeren 2689
 schrik 2688
 medewerkers 2688
@@ -5212,7 +5193,6 @@ absurd 2420
 ultieme 2419
 pam 2418
 erica 2418
-v 2418
 adrian 2417
 verbinden 2416
 mmm 2415
@@ -5279,7 +5259,6 @@ beckett 2378
 forensisch 2377
 moordzaken 2375
 lucifer 2373
-j 2373
 kuste 2373
 piloten 2373
 kippen 2372

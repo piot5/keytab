@@ -3,7 +3,6 @@ a 7608505
 o 7310536
 não 6184188
 de 5386265
-é 4217176
 e 3648721
 um 2717861
 para 2508286
@@ -40,7 +39,6 @@ vamos 651942
 já 624617
 ser 609411
 vai 608385
-à 596785
 minha 594069
 ao 587019
 tem 575074
@@ -730,7 +728,6 @@ vista 26285
 charlie 26279
 breve 26245
 melhores 26137
-á 26119
 bonita 26119
 normal 26084
 devemos 26077
@@ -844,7 +841,6 @@ mamã 22276
 mostrar 22252
 reunião 22094
 prova 22071
-s 22037
 percebi 22031
 casar 22016
 general 21998
@@ -1325,7 +1321,6 @@ igual 13326
 prestes 13289
 paris 13274
 corre 13272
-h 13272
 inteiro 13269
 branca 13264
 gelo 13263
@@ -1420,7 +1415,6 @@ estranha 12192
 simpático 12178
 valor 12177
 cor 12152
-i 12127
 serei 12102
 devido 12100
 terei 12096
@@ -1627,7 +1621,6 @@ navio 10527
 soubesse 10521
 escapar 10513
 cavalos 10508
-d 10502
 eua 10501
 cansado 10492
 aula 10491
@@ -2075,7 +2068,6 @@ guardar 7788
 desaparecido 7787
 montanha 7783
 fraco 7775
-c 7773
 mensagens 7770
 méxico 7768
 emma 7762
@@ -2404,7 +2396,6 @@ brincadeira 6601
 chamou 6595
 canto 6594
 completa 6581
-b 6578
 canal 6577
 van 6569
 haveria 6568
@@ -2463,7 +2454,6 @@ ena 6418
 tripulação 6413
 queda 6409
 der 6404
-m 6401
 clara 6396
 alarme 6393
 santa 6388
@@ -2527,7 +2517,6 @@ jackie 6213
 gary 6213
 ganhei 6210
 versão 6210
-t 6210
 sorriso 6206
 relaxa 6205
 campeão 6202
@@ -3442,7 +3431,6 @@ revolução 4293
 deverias 4292
 morar 4291
 meritíssimo 4288
-ê 4283
 gravar 4278
 brad 4277
 desejar 4276
@@ -3693,7 +3681,6 @@ tchau 3921
 restos 3918
 produtos 3917
 mason 3917
-n 3917
 influência 3916
 espetáculo 3916
 penny 3914
@@ -3868,7 +3855,6 @@ stress 3697
 dificuldades 3697
 caçador 3697
 poço 3697
-p 3697
 descoberta 3696
 continuamos 3696
 sejamos 3695
@@ -4630,7 +4616,6 @@ ligados 2970
 ken 2970
 sincronização 2969
 manny 2965
-x 2965
 tramar 2964
 holmes 2962
 vic 2962
@@ -4934,7 +4919,6 @@ craig 2724
 tentava 2724
 padrinho 2723
 oficina 2723
-l 2723
 levamos 2722
 fadas 2722
 ângulo 2721
@@ -5087,7 +5071,6 @@ apanho 2622
 burke 2621
 extraterrestres 2621
 april 2621
-è 2620
 gravidez 2620
 procurava 2619
 parva 2619
@@ -5159,7 +5142,6 @@ sotaque 2564
 vivas 2563
 tess 2563
 vendido 2563
-g 2562
 tomas 2561
 beba 2561
 relacionado 2561
@@ -5205,7 +5187,6 @@ chegará 2535
 contém 2535
 may 2534
 alegre 2532
-v 2531
 arrogante 2530
 cuja 2530
 quisermos 2530
@@ -5916,7 +5897,6 @@ fevereiro 2143
 stella 2142
 regressa 2142
 implorar 2142
-r 2140
 fechadura 2140
 democracia 2140
 putas 2139

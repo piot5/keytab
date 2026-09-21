@@ -11,10 +11,10 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import com.piotv.keytab.ime.ThemePrefs
 import com.piotv.keytab.sections.ColorSection
-import com.piotv.keytab.sections.LikelyHighlightSection
 import com.piotv.keytab.sections.GradientSection
 import com.piotv.keytab.sections.PreviewSection
 import com.piotv.keytab.sections.TopSection
@@ -30,13 +30,35 @@ class ThemeSettingsActivity : AppCompatActivity() {
     private lateinit var topSection: TopSection
     private lateinit var gradientSection: GradientSection
     private lateinit var colorSection: ColorSection
-    private lateinit var likelySection: LikelyHighlightSection
     private lateinit var trailSection: com.piotv.keytab.sections.TrailSection
     private lateinit var previewSection: PreviewSection
 
     private val dip: Float by lazy { resources.displayMetrics.density }
 
+    /** Mond/Sonne-Override auf den App-Modus anwenden (beide Activities). */
+    private fun applyDarkModeOverride() {
+        val mode = if (prefs.contains(ThemePrefs.KEY_DARK)) {
+            if (prefs.getBoolean(ThemePrefs.KEY_DARK, false))
+                AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        } else AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        AppCompatDelegate.setDefaultNightMode(mode)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        applyDarkModeOverride()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // In der Tastatur gewählter Modus (☾ Dark / ☀ Light) bestimmt auch das
+        // App-Layout der Theme-Einstellungen — nicht nur das System-Theme.
+        // Muss vor super.onCreate passieren, damit das Layout sofort den Modus trifft.
+        val prePrefs = com.piotv.keytab.Prefs.of(this)
+        val mode = if (prePrefs.contains(ThemePrefs.KEY_DARK)) {
+            if (prePrefs.getBoolean(ThemePrefs.KEY_DARK, false))
+                AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        } else AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        AppCompatDelegate.setDefaultNightMode(mode)
         super.onCreate(savedInstanceState)
         prefs = com.piotv.keytab.Prefs.of(this)
         com.piotv.keytab.ime.SettingsConfig.importIfChanged(this)
@@ -44,11 +66,16 @@ class ThemeSettingsActivity : AppCompatActivity() {
 
         backgroundSection = com.piotv.keytab.sections.BackgroundSection(this, prefs) { updatePreview() }
         topSection = TopSection(this, prefs) { refreshAllUi() }
-        gradientSection = GradientSection(this, prefs) { updatePreview() }
-        colorSection = ColorSection(this, prefs, { selectedTarget }) { updatePreview(); refreshTargetButtons(); gradientSection.updateGradient() }
-        likelySection = LikelyHighlightSection(this, prefs) { updatePreview() }
+        gradientSection = GradientSection(this, prefs, { updatePreview() }) { target ->
+            selectedTarget = target
+            refreshTargetButtons()
+            colorSection.updateControls(target)
+        }
+        colorSection = ColorSection(this, prefs, { selectedTarget }) {
+            updatePreview(); refreshTargetButtons(); gradientSection.updateGradient()
+        }
         trailSection = com.piotv.keytab.sections.TrailSection(this, prefs) { updatePreview() }
-        previewSection = PreviewSection(this, prefs, { target -> currentColor(target) }) { }
+        previewSection = PreviewSection(this, prefs, { target -> currentColor(target) })
 
         val scroll = android.widget.ScrollView(this)
         scroll.layoutParams = LinearLayout.LayoutParams(
@@ -71,7 +98,7 @@ class ThemeSettingsActivity : AppCompatActivity() {
         sectionLabel(col, getString(R.string.theme_section_colors))
         colorSection.build(col)
         buildTargetButtons(col)
-        likelySection.build(col)
+        sectionLabel(col, getString(R.string.theme_section_trail))
         trailSection.build(col)
         backgroundSection.build(col)
         sectionLabel(col, getString(R.string.theme_section_preview))
@@ -94,8 +121,6 @@ class ThemeSettingsActivity : AppCompatActivity() {
             ThemePrefs.KIND_BG to "BG",
             ThemePrefs.KIND_KEY to "Key",
             ThemePrefs.KIND_TEXT to "Text",
-            ThemePrefs.KIND_HL to "HL",
-            ThemePrefs.KIND_LIKELY to "Likely",
             ThemePrefs.KIND_TRAIL to getString(R.string.theme_color_trail),
             ThemePrefs.KIND_GRADIENT1 to getString(R.string.settings_gradient_color1),
             ThemePrefs.KIND_GRADIENT2 to getString(R.string.settings_gradient_color2)
@@ -136,7 +161,6 @@ class ThemeSettingsActivity : AppCompatActivity() {
         refreshThemeIcons()
         refreshTargetButtons()
         colorSection.updateControls(selectedTarget)
-        likelySection.updateButtons()
         trailSection.updateButton()
         backgroundSection.refresh()
         gradientSection.updateGradient()

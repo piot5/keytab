@@ -12,7 +12,11 @@ import com.piotv.keytab.ColorWheelView
 import com.piotv.keytab.Prefs
 import com.piotv.keytab.R
 import com.piotv.keytab.sections.ColorSection
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric

@@ -42,7 +42,9 @@ class ColorSection(
             max = 100
             progress = 50
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) { if (fromUser) colorWheel?.setBrightness(p / 100f) }
+                override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
+                    if (fromUser) colorWheel?.setBrightness(p / 100f)
+                }
                 override fun onStartTrackingTouch(sb: SeekBar?) {}
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
@@ -56,7 +58,9 @@ class ColorSection(
             max = 255
             progress = 255
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) { if (fromUser) colorWheel?.setAlphaValue(p) }
+                override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
+                    if (fromUser) colorWheel?.setAlphaValue(p)
+                }
                 override fun onStartTrackingTouch(sb: SeekBar?) {}
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
@@ -68,7 +72,11 @@ class ColorSection(
     }
 
     fun updateControls(target: String) {
-        val color = ThemePrefs.getColor(prefs, ThemePrefs.isDarkMode(activity), target, ThemePrefs.defaultColor(activity, ThemePrefs.isDarkMode(activity), target))
+        val dark = ThemePrefs.isDarkMode(activity)
+        val color = ThemePrefs.getColor(
+            prefs, dark, target,
+            ThemePrefs.defaultColor(activity, dark, target)
+        )
         val hsv = FloatArray(3)
         Color.colorToHSV(color, hsv)
         currentHue = hsv[0]
@@ -76,12 +84,6 @@ class ColorSection(
         brightnessBar?.progress = (hsv[2] * 100).toInt()
         alphaSlider?.progress = Color.alpha(color)
         colorWheel?.setArgb(color)
-    }
-
-    private fun updateColorFromWheel() {
-        val value = (brightnessBar?.progress ?: 50) / 100f
-        val color = Color.HSVToColor(alphaSlider?.progress ?: 255, floatArrayOf(currentHue, currentSat, value))
-        applyColorToCurrentTarget(color)
     }
 
     private fun applyColorToCurrentTarget(color: Int) {

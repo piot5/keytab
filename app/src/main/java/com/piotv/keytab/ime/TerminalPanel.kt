@@ -2,6 +2,7 @@ package com.piotv.keytab.ime
 
 import android.content.Context
 import android.os.Handler
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -139,6 +140,7 @@ class TerminalPanel(
             stdin?.write((cmd + "\n").toByteArray())
             stdin?.flush()
         } catch (e: Exception) {
+            Log.e("KeyTab", "Shell-Eingabe fehlgeschlagen (Prozess tot?)", e)
             appendOut(context.getString(R.string.terminal_shell_dead) + "\n")
             appendOut(prompt() + "\n")
         }

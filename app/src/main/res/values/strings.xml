@@ -86,12 +86,21 @@
     <string name="settings_autocorrect_on">Auto-correction enabled</string>
     <string name="settings_autocorrect_off">Auto-correction disabled</string>
     <string name="settings_emoji">Emoji suggestions (optional, appended to word suggestions)</string>
+    <string name="sug_back_desc">Back to word suggestions</string>
+    <string name="sug_grid_desc">Select from full emoji catalog</string>
+    <string name="sug_hide_desc">Hide keyboard</string>
     <string name="settings_emoji_on">Emoji suggestions enabled</string>
     <string name="settings_emoji_off">Emoji suggestions disabled</string>
 
     <string name="settings_dynamic_keys">Dynamic key size (likely keys bigger)</string>
     <string name="settings_dynamic_keys_on">Dynamic key sizing enabled</string>
     <string name="settings_dynamic_keys_off">Dynamic key sizing disabled</string>
+    <string name="settings_swipe">Swipe typing (glide over keys, offline)</string>
+    <string name="settings_swipe_on">Swipe typing enabled</string>
+    <string name="settings_swipe_off">Swipe typing disabled</string>
+    <string name="settings_swipe_preview">Circuit preview ⚠️ experimental (likely keys shown as a path)</string>
+    <string name="settings_swipe_preview_on">Circuit preview enabled</string>
+    <string name="settings_swipe_preview_off">Circuit preview disabled</string>
     <string name="settings_update_config">⚙️ Write config (keytab_config.txt)</string>
     <string name="config_ready">Config ready: %1$s</string>
     <string name="config_exists">file already exists — edit values directly, effective on next keyboard open</string>
@@ -158,6 +167,7 @@
     <string name="theme_brightness">Brightness</string>
     <string name="theme_alpha">Alpha</string>
     <string name="theme_section_gaming">Likely Highlighting</string>
+    <string name="theme_section_trail">Trail (Tipp trace)</string>
     <string name="theme_gaming_toggle">🎯 Nächste Taste hervorheben</string>
     <string name="theme_gaming_effect">✨ Effekt bei Vervollständigung</string>
     <string name="theme_gaming_hint">Die wahrscheinlichste nächste Taste wird hervorgehoben; sobald das getippte Wort dem Top-Vorschlag entspricht, gibt es einen Puls-Effekt.</string>

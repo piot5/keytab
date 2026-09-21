@@ -77,6 +77,22 @@ object Prefs {
     /** Dynamische Tastengröße an/aus. */
     const val KEY_DYNAMIC_KEYS = "dynamic_keys_enabled"
 
+    /**
+     * Swipe-Eingabe (Gleit-Eingabe) an/aus (Default **aus**). Gleiten über die
+     * Tastatur bewertet die gefahrene Route gegen die Engine; bei klarem
+     * Ergebnis Auto-Commit. Offline, engine-basiert, kein neues Modell.
+     * Logik: [com.piotv.keytab.ime.SwipePathLogic] + [com.piotv.keytab.ime.SwipeScorer].
+     */
+    const val KEY_SWIPE = "swipe_enabled"
+
+    /**
+     * Schaltplan-Preview an/aus (Default **aus**): die wahrscheinlichen Folge-
+     * Tasten des aktuell getippten Worts werden als verbundener Pfad sichtbar
+     * (passiv). Setzt [KEY_SWIPE] oder [KEY_DYNAMIC_KEYS] voraus (beide nutzen
+     * die Prognose-Scores). Siehe `docs/SWIPE_PLAN.md`.
+     */
+    const val KEY_SWIPE_PREVIEW = "swipe_preview_enabled"
+
     /** Aktive Tastatur-Sprache (ISO-Code, z. B. "de", "en"). */
     const val KEY_LANGUAGE = "language"
 

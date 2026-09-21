@@ -13,8 +13,7 @@ import com.piotv.keytab.ime.ThemePrefs
 class PreviewSection(
     private val activity: android.app.Activity,
     private val prefs: SharedPreferences,
-    private val getCurrentColor: (String) -> Int,
-    private val onChange: () -> Unit
+    private val getCurrentColor: (String) -> Int
 ) {
     private val dip = activity.resources.displayMetrics.density
 

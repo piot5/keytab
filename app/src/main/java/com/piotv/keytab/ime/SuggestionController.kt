@@ -32,6 +32,9 @@ internal class SuggestionController(private val host: SuggestionHost) {
      */
     private var emojiBrowsePage: Int = -1
 
+    /** Katalog-Seitenlänge in der Leiste (5 Slots: sug_1..sug_5). */
+    private val CATALOG_PER_PAGE = 5
+
     /** Die 3 Vorschlags-Slots (gleiche Array-Referenz wie in [WordPredictionManager]). */
     private var slots: Array<TextView?> = arrayOfNulls(3)
 
@@ -69,14 +72,41 @@ internal class SuggestionController(private val host: SuggestionHost) {
                 applySuggestion(word)
             }
         }
-        // 😀-Katalog-Button links in der Leiste: öffnet/blättert den Emoji-Katalog
+        // ☺-Katalog-Button links in der Leiste: öffnet/blättert den Emoji-Katalog
         root.findViewById<TextView>(R.id.sug_emoji)?.setOnClickListener {
             host.haptic()
-            val pages = EmojiModule.pageCount()
+            val pages = EmojiModule.pageCount(CATALOG_PER_PAGE)
             emojiBrowsePage = if (pages == 0) -1
             else if (emojiBrowsePage + 1 >= pages) -1 else emojiBrowsePage + 1
             update()
         }
+        // ◀ (nur im Katalog-Modus): zurück zu den Wortvorschlägen
+        root.findViewById<TextView>(R.id.sug_back)?.setOnClickListener {
+            host.haptic()
+            emojiBrowsePage = -1
+            update()
+        }
+        // ▦ (nur im Katalog-Modus): ganzen Katalog als Tabelle auswählen
+        root.findViewById<TextView>(R.id.sug_grid)?.setOnClickListener {
+            host.haptic()
+            showEmojiGrid(it)
+        }
+        // ⌄/⇱ Tastatur ausblenden/maximieren (rechts in der Wortvorhersage-Zeile).
+        // NUR im Editor- und Terminal-Tab sichtbar; Einblenden durch erneutes Tippen.
+        // Symbol: ⇲ (nach außen-unten, dunkel) zum Maximieren, ⇱ (nach innen-oben)
+        // zum Zurückblenden — wechselt je nach Hide-Zustand.
+        val sugHide = root.findViewById<TextView>(R.id.sug_hide)
+        sugHide?.setOnClickListener {
+            host.haptic()
+            host.hideKeyboard()
+            // Symbol passend zum neuen Zustand setzen.
+            val collapsed = root.getTag(R.id.sug_hide) as? Boolean ?: false
+            sugHide?.text = if (collapsed) "⇱" else "⇲"
+        }
+        sugHide?.visibility =
+            if (host.isEditorOrTerminalTab()) View.VISIBLE else View.GONE
+        // Initiales Symbol: ⇲ (nicht maximiert).
+        sugHide?.text = "⇲"
         // Engine der aktiven Sprache laden (async, bei Wechsel: Reload)
         host.predictionManager?.loadEngine(language)
         // Nachhalten der Tasten-Nachbarschaft für den dynamischen Skaler
@@ -95,40 +125,130 @@ internal class SuggestionController(private val host: SuggestionHost) {
             .getBoolean(com.piotv.keytab.Prefs.KEY_SUGGESTIONS, true)
         if (emojiBrowsePage >= 0) {
             // Katalog-Browser aktiv: zeigt anstelle der Wortvorschläge die aktuelle
-            // Emoji-Katalog-Seite (jeder 😀-Tap blättert weiter / zurück zu Wörtern).
+            // Emoji-Katalog-Seite (jeder ☺-Tap blättert weiter / zurück zu Wörtern).
             if (suggestionEnabled) renderEmojiPage(bar)
             else emojiBrowsePage = -1
             return
         }
         host.predictionManager?.updateSuggestions(bar, suggestionEnabled)
+        setPageChrome(bar, catalogMode = false)
         updateDynamicKeys()
     }
 
     /**
-     * Rendert die aktuelle [EmojiModule]-Katalog-Seite in die Leiste. Chips
-     * tragen [SuggestionEngine.EMOJI_TAG] (Klick → [commitEmoji]), freie Slots
-     * bleiben INVISIBLE und ohne Tag.
+     * Rendert die aktuelle [EmojiModule]-Katalog-Seite in die Leiste (5 Chips:
+     * sug_1..sug_5). Chips tragen [SuggestionEngine.EMOJI_TAG] (Klick →
+     * [commitEmoji]), freie Slots bleiben INVISIBLE/GONE und ohne Tag.
+     * Zusätzlich erscheinen links ◀ (zurück zu den Wortvorschlägen) und ▦
+     * (ganzen Katalog als Tabelle auswählen).
      */
     private fun renderEmojiPage(bar: View) {
-        val page = EmojiModule.page(emojiBrowsePage)
+        setPageChrome(bar, catalogMode = true)
+        val page = EmojiModule.page(emojiBrowsePage, CATALOG_PER_PAGE)
+        val extra = arrayOf(
+            bar.findViewById<TextView>(R.id.sug_4),
+            bar.findViewById<TextView>(R.id.sug_5))
         for (i in 0..2) {
             val tv = slots[i] ?: continue
-            val emoji = page.getOrNull(i)
-            if (emoji == null) {
-                tv.visibility = View.INVISIBLE
-                tv.tag = null
-                tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
-                tv.setTag(SuggestionEngine.EMOJI_TAG, null)
-            } else {
-                tv.visibility = View.VISIBLE
-                tv.text = emoji
-                tv.tag = null
-                tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
-                tv.setTag(SuggestionEngine.EMOJI_TAG, emoji)
-            }
+            applyEmojiChip(tv, page.getOrNull(i))
+        }
+        for (i in 0..1) {
+            val tv = extra[i] ?: continue
+            applyEmojiChip(tv, page.getOrNull(3 + i))
         }
         bar.visibility = View.VISIBLE
     }
+
+    /** Ein Emoji-Chip befüllen (oder leer/unten halten). */
+    private fun applyEmojiChip(tv: TextView, emoji: String?) {
+        if (emoji == null) {
+            tv.visibility = View.INVISIBLE
+            tv.tag = null
+            tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
+            tv.setTag(SuggestionEngine.EMOJI_TAG, null)
+        } else {
+            tv.visibility = View.VISIBLE
+            tv.text = emoji
+            tv.tag = null
+            tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
+            tv.setTag(SuggestionEngine.EMOJI_TAG, emoji)
+        }
+    }
+
+    /**
+     * Katalog-Chrome (◀/▦/sug_4/sug_5) an/aus: im Katalog-Modus sichtbar,
+     * sonst ausgeblendet. sug_1..sug_3 sind immer da (Wortvorschläge-Chips).
+     */
+    private fun setPageChrome(bar: View, catalogMode: Boolean) {
+        val vis = if (catalogMode) View.VISIBLE else View.GONE
+        for (id in intArrayOf(R.id.sug_back, R.id.sug_grid, R.id.sug_4, R.id.sug_5)) {
+            bar.findViewById<View>(id)?.visibility = vis
+        }
+        if (!catalogMode) {
+            for (id in intArrayOf(R.id.sug_4, R.id.sug_5)) {
+                (bar.findViewById<View>(id) as? TextView)?.let { applyEmojiChip(it, null) }
+            }
+        }
+    }
+
+    /**
+     * Ganzen Emoji-Katalog als Tabelle (Raster) anbieten: scrollbares Popup-
+     * Fenster mit allen [EmojiModule.catalog]-Emojis, Tap fügt das Emoji ein
+     * ([commitEmoji]) und schließt Tabelle und Katalog-Browser.
+     */
+    private fun showEmojiGrid(anchor: View) {
+        val ctx = anchor.context
+        val dip = ctx.resources.displayMetrics.density
+        val cols = 5
+        val cell = (46 * dip).toInt()
+        val grid = android.widget.GridLayout(ctx).apply {
+            columnCount = cols
+            setPadding((8 * dip).toInt(), (8 * dip).toInt(), (8 * dip).toInt(), (8 * dip).toInt())
+        }
+        for (emoji in EmojiModule.catalog) {
+            val cellView = TextView(ctx).apply {
+                text = emoji
+                textSize = 22f
+                gravity = android.view.Gravity.CENTER
+                setOnClickListener {
+                    commitEmoji(emoji)
+                    popup?.dismiss()
+                }
+            }
+            grid.addView(cellView, android.widget.GridLayout.LayoutParams().apply {
+                width = cell
+                height = cell
+            })
+        }
+        // Theme-übersteuerte Farben (beide Modi: Dark/Light) für Raster-Popup
+        val prefs = com.piotv.keytab.Prefs.of(host.context)
+        val keyBg = ThemePrefs.getColor(prefs, host.isDarkMode(), ThemePrefs.KIND_KEY,
+            androidx.core.content.ContextCompat.getColor(ctx, R.color.key_bg))
+        val textColor = ThemePrefs.getColor(prefs, host.isDarkMode(), ThemePrefs.KIND_TEXT,
+            androidx.core.content.ContextCompat.getColor(ctx, R.color.key_text))
+        val scroll = android.widget.ScrollView(ctx).apply {
+            addView(grid)
+            // Opaker, abgerundeter Theme-Hintergrund (keyBg kann Alpha enthalten
+            // → für die Tabelle auf decklich erzwingen)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 10f * dip
+                setColor(keyBg or 0xFF000000.toInt())
+            }
+        }
+        for (i in 0 until grid.childCount) {
+            (grid.getChildAt(i) as TextView).setTextColor(textColor)
+        }
+        popup = android.widget.PopupWindow(scroll,
+            (5 * 46 * dip).toInt() + (20 * dip).toInt(),
+            (5 * 46 * dip).toInt() + (16 * dip).toInt(), true).apply {
+            isOutsideTouchable = true
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(keyBg))
+            showAsDropDown(anchor, 0, (4 * dip).toInt())
+        }
+    }
+
+    /** Aktuelles Katalog-Raster-Popup (null = keines offen). */
+    private var popup: android.widget.PopupWindow? = null
 
     /**
      * Emoji einfügen (Katalog-Chip): direktes [InputOperations.insert] — ohne
@@ -250,5 +370,48 @@ internal class SuggestionController(private val host: SuggestionHost) {
             host.consumeSingleShift()
         }
         update()
+    }
+
+    /**
+     * Swipe-Kandidaten in der Vorschlags-Leiste anzeigen (v0.11). Die Wörter
+     * laufen als normale Tap-Vorschläge über die 3 Slots (kein neues Tag nötig –
+     * `v.tag = word` wie bei Wortvorschlägen). Ein Tap übernimmt das Wort via
+     * [applySuggestion] (Auto-Korrektur/Shift-Reset wie gehabt). Leerliste
+     * versteckt die Slots nicht (Platzhalter bleibt).
+     */
+        fun showSwipeCandidates(words: List<String>) {
+        val bar = host.keyboardRoot?.findViewById<View>(R.id.suggestion_bar) ?: return
+        val enabled = com.piotv.keytab.Prefs.of(host.context)
+            .getBoolean(com.piotv.keytab.Prefs.KEY_SUGGESTIONS, true)
+        if (!enabled) return
+        // Case-Matching: am Satzanfang (nach . ! ? oder Dokument-Anfang)
+        // werden Swipe-Wörter großgeschrieben, auch wenn der Route-Kandidat
+        // aus Kleinbuchstaben besteht.
+        val pm = host.predictionManager
+        val eng = pm?.engine
+        val typed = pm?.currentTypedWord ?: ""
+        val atSentenceStart = pm?.let {
+            SuggestionEngine.isSentenceStartContext(
+                it.textBeforeForSuggestions(16), typed)
+        } ?: false
+        emojiBrowsePage = -1
+        setPageChrome(bar, catalogMode = false)
+        for (i in 0..2) {
+            val tv = slots[i] ?: continue
+            val word = words.getOrNull(i)
+            if (word != null) {
+                tv.text = (eng?.matchCase(word, typed, sentenceStart = atSentenceStart)).orEmpty()
+                tv.tag = word
+                tv.setTag(SuggestionEngine.SNIPPET_TAG, null)
+                tv.setTag(SuggestionEngine.EMOJI_TAG, null)
+                tv.visibility = View.VISIBLE
+            } else {
+                tv.text = ""
+                tv.tag = null
+                tv.visibility = View.INVISIBLE
+            }
+        }
+        // Likely-Highlights zurücksetzen (Swipe-Kandidaten haben keinen nächsten Buchstaben).
+        restoreLikelyKeys()
     }
 }

@@ -16,9 +16,9 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class ShiftControllerTest {
 
-    private val DEBOUNCE = 300L
+    private val debounce = 300L
 
-    private fun controller(doubleTap: Long = DEBOUNCE) = ShiftController(doubleTap)
+    private fun controller(doubleTap: Long = debounce) = ShiftController(doubleTap)
 
     @Test
     fun `einzelner Shift-Tap toggelt shifted, kein CapsLock`() {
@@ -29,7 +29,7 @@ class ShiftControllerTest {
         assertFalse(s.capsLock)
         assertTrue(c.isUpper())
         // zweiter einzelner Tap nach Debounce (weit genug entfernt) → wieder aus
-        val s2 = c.tapShift(100 + DEBOUNCE + 50)
+        val s2 = c.tapShift(100 + debounce + 50)
         assertFalse(s2.shifted)
         assertFalse(s2.capsLock)
     }

@@ -7,7 +7,6 @@ il 3726599
 un 3555300
 a 3451723
 per 2866558
-è 2559257
 in 2156931
 una 2153925
 mi 2013071
@@ -754,7 +753,6 @@ morti 31669
 odio 31644
 solito 31565
 brava 31529
-é 31392
 incidente 31346
 allo 31269
 intenzione 31147
@@ -811,7 +809,6 @@ torno 28430
 venite 28262
 controllare 28240
 appuntamento 28216
-s 28200
 chiami 28183
 vecchia 28158
 detective 28116
@@ -1293,7 +1290,6 @@ sposato 16492
 sembrare 16490
 treno 16489
 radio 16467
-l 16466
 comune 16466
 cattivo 16462
 imparato 16452
@@ -1910,7 +1906,6 @@ genio 10466
 caduto 10464
 corri 10449
 cinema 10448
-t 10445
 passati 10443
 tetto 10438
 alcuna 10423
@@ -2084,7 +2079,6 @@ luke 9544
 zero 9543
 ruolo 9522
 cavalli 9520
-c 9515
 mattino 9513
 pazzi 9498
 funerale 9489
@@ -2306,7 +2300,6 @@ aspettato 8409
 dovessi 8408
 ambulanza 8401
 superiore 8397
-m 8391
 dean 8379
 volare 8363
 mancato 8363
@@ -2679,7 +2672,6 @@ socio 7013
 susan 7011
 personalmente 7010
 magazzino 7009
-b 7007
 commissione 6998
 coloro 6995
 sullo 6994
@@ -2735,7 +2727,6 @@ lasciala 6857
 credono 6854
 jones 6852
 km 6850
-n 6849
 greg 6849
 riposo 6844
 indovina 6841
@@ -2819,7 +2810,6 @@ passione 6584
 cercate 6579
 olivia 6577
 autista 6577
-d 6574
 essermi 6573
 terry 6571
 coscienza 6569
@@ -3302,7 +3292,6 @@ alibi 5426
 assassini 5425
 fortunati 5423
 poterlo 5422
-u 5421
 disco 5418
 shawn 5416
 moltissimo 5416
@@ -3929,7 +3918,6 @@ rimanga 4383
 russell 4382
 riportato 4380
 indizio 4380
-x 4379
 spezzato 4373
 dl 4372
 sessuali 4372
@@ -4048,7 +4036,6 @@ dicevano 4239
 possiede 4239
 earl 4238
 armato 4237
-j 4231
 settembre 4230
 mancata 4230
 sostegno 4229
@@ -5376,7 +5363,6 @@ talpa 2990
 sandy 2990
 eccezione 2990
 maglia 2990
-h 2989
 prega 2988
 aiutata 2988
 andassi 2988
@@ -5409,7 +5395,6 @@ garcia 2970
 becca 2970
 debolezza 2969
 corea 2969
-v 2968
 patria 2967
 compassione 2966
 up 2965
@@ -5512,7 +5497,6 @@ tess 2887
 calibro 2886
 birre 2885
 ginocchia 2885
-q 2883
 salotto 2883
 impiegati 2882
 disegni 2882
@@ -5650,7 +5634,6 @@ fotografie 2811
 comanda 2811
 gusti 2809
 fermate 2809
-r 2808
 novembre 2807
 clyde 2807
 amministratore 2806
@@ -5701,7 +5684,6 @@ alieno 2781
 monroe 2781
 fossa 2781
 pericolosi 2780
-g 2779
 evidentemente 2778
 indizi 2777
 benny 2775

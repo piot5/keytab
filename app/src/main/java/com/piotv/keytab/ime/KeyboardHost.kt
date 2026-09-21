@@ -17,6 +17,10 @@ interface KeyboardHost {
 
     /** Basis-Kontext des IME (für Prefs, Resources, Assets, String-Ressourcen). */
     val context: Context
+
+    /** Tastatur ausblenden (Hide-Button). Wird durch erneutes Tippen ins Feld
+     *  wieder eingeblendet (Standard InputMethodService-Verhalten). */
+    fun hideKeyboard()
 }
 
 /**
@@ -98,6 +102,9 @@ interface SuggestionHost : KeyboardHost {
 
     fun isShifted(): Boolean
     fun isCapsLock(): Boolean
+
+    /** Aktiver Tab ist Editor oder Terminal? (⌄-Hide-Button nur dort sichtbar.) */
+    fun isEditorOrTerminalTab(): Boolean
 
     /** Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt). */
     fun consumeSingleShift()

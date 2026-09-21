@@ -21,13 +21,19 @@ internal class TabController(private val host: TabHost) {
     }
 
     /** Art eines Tabs (für Position→Verhalten-Mapping nach optionalem Entfernen). */
-    private enum class TabKind { ABC, EDITOR, FILES, CLIP, TERMINAL, SNIPPET }
+    internal enum class TabKind { ABC, EDITOR, FILES, CLIP, TERMINAL, SNIPPET }
 
     /** Symbol-Layer sichtbar? (Toggle über ?123-Taste). */
     private var showSymbols = false
 
     /** Position → TabKind (nach optionalem Entfernen von Clip/Terminal). */
     private var kinds: List<TabKind> = listOf(TabKind.ABC, TabKind.EDITOR, TabKind.FILES)
+
+    /** Aktuell ausgewählter Tab (für Hide-Button-Sichtbarkeit & Höhen-Anpassung). */
+    private var currentKind: TabKind = TabKind.ABC
+
+    /** Aktiver Tab — öffentlich für SuggestionController (⌄ nur bei Editor/Terminal). */
+    fun currentTabKind(): TabKind = currentKind
 
     /** Symbol-Status zurücksetzen (beim Rebuild der Tastatur). */
     fun resetSymbols() {
@@ -106,6 +112,18 @@ internal class TabController(private val host: TabHost) {
                 host.letterPopup.dismiss()
                 val pos = tab.position
                 val kind = kinds.getOrNull(pos) ?: TabKind.ABC
+                currentKind = kind
+                // Beim Tab-Wechsel den Hide-Zustand zurücksetzen (Tastatur wieder da):
+                // alle Tastenreihen + Funktionsleiste wieder sichtbar.
+                root.setTag(R.id.sug_hide, false)
+                val sugBar0 = root.findViewById<View>(R.id.suggestion_bar)
+                val lettersRoot0 = sugBar0?.parent as? android.view.ViewGroup
+                if (lettersRoot0 != null) {
+                    for (i in 0 until lettersRoot0.childCount) {
+                        lettersRoot0.getChildAt(i).visibility = View.VISIBLE
+                    }
+                }
+                root.findViewById<View>(R.id.bottom_row)?.visibility = View.VISIBLE
                 val keyboardVisible = kind == TabKind.ABC ||
                     kind == TabKind.EDITOR || kind == TabKind.TERMINAL
                 host.inputRouter?.kind = when (kind) {
@@ -159,6 +177,12 @@ internal class TabController(private val host: TabHost) {
                 }
                 if (kind == TabKind.SNIPPET) host.snippetPanel?.onSelected(root)
                 if (kind == TabKind.EDITOR) host.clipboardPanel?.onSelected()
+                // ⌄-Hide-Button nur im Editor- und Terminal-Tab sichtbar + Symbol reset.
+                val sugHideBtn = root.findViewById<android.widget.TextView>(R.id.sug_hide)
+                sugHideBtn?.visibility =
+                    if (kind == TabKind.EDITOR || kind == TabKind.TERMINAL)
+                        View.VISIBLE else View.GONE
+                sugHideBtn?.text = "⇲"
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}

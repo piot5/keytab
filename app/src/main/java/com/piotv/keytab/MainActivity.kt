@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import com.piotv.keytab.ime.KeyboardLanguage
 import com.piotv.keytab.ime.Languages
 import com.piotv.keytab.ime.SettingsConfig
+import com.piotv.keytab.ime.ThemePrefs
 
 /**
  * KeyTab – Einstellungsbildschirm: Tastatur aktivieren/wechseln, Theme.
@@ -47,6 +48,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // In der Tastatur gewählter Modus (☾ Dark / ☀ Light) bestimmt auch das
+        // App-Layout (Einstellungen) — nicht nur das System-Theme.
+        applyDarkModeOverride()
         super.onCreate(savedInstanceState)
         SettingsConfig.importIfChanged(this)
         setContentView(R.layout.activity_main)
@@ -153,6 +157,24 @@ class MainActivity : AppCompatActivity() {
             else R.string.settings_dynamic_keys_off, Toast.LENGTH_SHORT).show()
         }
 
+        // Swipe-Eingabe (Gleit-Eingabe, v0.11) ein-/ausblenden
+        val swSwipe = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_swipe)
+        swSwipe.isChecked = prefs.getBoolean(Prefs.KEY_SWIPE, false)
+        swSwipe.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(Prefs.KEY_SWIPE, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_swipe_on
+            else R.string.settings_swipe_off, Toast.LENGTH_SHORT).show()
+        }
+
+        // Schaltplan-Preview (passiver Pfad, v0.11) ein-/ausblenden
+        val swSwipePreview = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_swipe_preview)
+        swSwipePreview.isChecked = prefs.getBoolean(Prefs.KEY_SWIPE_PREVIEW, false)
+        swSwipePreview.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(Prefs.KEY_SWIPE_PREVIEW, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_swipe_preview_on
+            else R.string.settings_swipe_preview_off, Toast.LENGTH_SHORT).show()
+        }
+
         // Konfigurationsdatei schreiben/aktualisieren (Werte direkt editierbar)
         findViewById<Button>(R.id.btn_update_config).setOnClickListener {
             try {
@@ -201,9 +223,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        applyDarkModeOverride()
         SettingsConfig.importIfChanged(this)
         val current = SettingsConfig.snapshot(Prefs.of(this))
         if (displayedSettings != current) recreate()
+    }
+
+    /** Mond/Sonne-Override auf den App-Modus anwenden (beide Activities). */
+    private fun applyDarkModeOverride() {
+        val prefs = Prefs.of(this)
+        val mode = if (prefs.contains(ThemePrefs.KEY_DARK)) {
+            if (prefs.getBoolean(ThemePrefs.KEY_DARK, false))
+                AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        } else AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        AppCompatDelegate.setDefaultNightMode(mode)
     }
 
     private fun neededPermissions(vararg perms: String): Array<String> {

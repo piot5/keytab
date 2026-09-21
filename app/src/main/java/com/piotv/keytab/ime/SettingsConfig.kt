@@ -27,6 +27,9 @@ object SettingsConfig {
         put("autocorrect", Setting(Prefs.KEY_AUTOCORRECT, "true", "boolean"))
         put("emoji_suggestions", Setting(Prefs.KEY_EMOJI_SUGGESTIONS, "false", "boolean"))
         put("dynamic_keys", Setting(Prefs.KEY_DYNAMIC_KEYS, "true", "boolean"))
+        // Swipe (Gleit-Eingabe + Schaltplan-Preview), v0.11 — Default aus.
+        put("swipe", Setting(Prefs.KEY_SWIPE, "false", "boolean"))
+        put("swipe_preview", Setting(Prefs.KEY_SWIPE_PREVIEW, "false", "boolean"))
         // Trail (Tippspur + Korrektur-Trace). Vorher nur über Theme-Export
         // steuerbar – hier zusätzlich über keytab_config.txt (docs/CONFIG.md).
         put("trail", Setting(ThemePrefs.KEY_TRAIL, "false", "boolean"))
@@ -47,12 +50,18 @@ object SettingsConfig {
         put(ThemePrefs.KEY_GRADIENT_MODE, Setting(ThemePrefs.KEY_GRADIENT_MODE,
             ThemePrefs.GRADIENT_TOP_DOWN, "enum", setOf(ThemePrefs.GRADIENT_TOP_DOWN,
                 ThemePrefs.GRADIENT_INVERT, ThemePrefs.GRADIENT_RADIAL)))
+        for (key in listOf(ThemePrefs.KEY_GRADIENT_MODE_DARK, ThemePrefs.KEY_GRADIENT_MODE_LIGHT)) {
+            put(key, Setting(key, ThemePrefs.GRADIENT_TOP_DOWN, "enum", setOf(
+                ThemePrefs.GRADIENT_TOP_DOWN, ThemePrefs.GRADIENT_INVERT,
+                ThemePrefs.GRADIENT_RADIAL)))
+        }
         for (key in listOf(ThemePrefs.KEY_GRADIENT_COLOR1, ThemePrefs.KEY_GRADIENT_COLOR2)) {
             put(key, Setting(key, "default", "color"))
         }
         for (dark in listOf(true, false)) {
             for (kind in listOf(ThemePrefs.KIND_BG, ThemePrefs.KIND_KEY, ThemePrefs.KIND_HL,
-                ThemePrefs.KIND_TEXT, ThemePrefs.KIND_LIKELY)) {
+                ThemePrefs.KIND_TEXT, ThemePrefs.KIND_LIKELY,
+                ThemePrefs.KIND_GRADIENT1, ThemePrefs.KIND_GRADIENT2)) {
                 val key = ThemePrefs.colorKey(dark, kind)
                 put(key, Setting(key, "default", "color"))
             }

@@ -19,17 +19,25 @@ import android.view.View
 object PanelHeights {
 
     /**
+     * Misst die natürliche Höhe eines Views (auch wenn GONE). 0 wenn nicht
+     * ermittelbar. Util für das Maximieren des Editor-/Terminal-Panels beim
+     * Ausblenden der Tastatur.
+     */
+    fun measureHeight(view: View?, widthPx: Int): Int {
+        if (view == null || widthPx <= 0) return 0
+        val width = View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY)
+        val free = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        view.measure(width, free)
+        return if (view.measuredHeight > 0) view.measuredHeight else 0
+    }
+
+    /**
      * Zielhöhe des Terminal-Panels = gemessene Höhe des [editorPanel] allein —
      * im Terminal-Tab bleibt die Buchstaben-Tastatur sichtbar (Eingabezeile),
      * daher Panel + Tastatur = gleiche Gesamthöhe wie Editor/Files/Clip.
      */
-    fun terminalPanelHeight(editorPanel: View?, widthPx: Int): Int {
-        if (editorPanel == null || widthPx <= 0) return 0
-        val width = View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY)
-        val free = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        editorPanel.measure(width, free)
-        return if (editorPanel.measuredHeight > 0) editorPanel.measuredHeight else 0
-    }
+    fun terminalPanelHeight(editorPanel: View?, widthPx: Int): Int =
+        measureHeight(editorPanel, widthPx)
 
     /**
      * Zielhöhe des Datei-Panels = gemessene Höhe von [editorPanel] + [keyboardPanel].

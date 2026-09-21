@@ -20,14 +20,39 @@
                      Q-Reihe (vorher nur 2dp über den Key-Margin). Wirkt nur, wenn
                      die Wortvorhersage sichtbar ist → gezielt dieser Abstand. -->
 
+                <!-- ☺ exakt UNTER der ☾-Taste (36dp, ganz links): feste Breite 36dp,
+                     zentriert → Symbol-Mitte auf gleicher X-Position wie ☾/☀. -->
                 <TextView
                     android:id="@+id/sug_emoji"
-                    android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="0.7" android:gravity="center"
+                    android:layout_width="36dp" android:layout_height="match_parent"
+                    android:gravity="center"
                     android:singleLine="true" android:textSize="16sp"
+                    android:textStyle="bold"
                     android:clickable="true" android:focusable="true"
-                    android:background="@color/key_bg" android:text="😀"
+                    android:background="@color/key_bg" android:text="☺︎"
                     android:contentDescription="@string/settings_emoji" />
+                <!-- Nur im Emoji-Katalog-Modus sichtbar: ◀ zurück zu Wortvorschlägen,
+                     ▦ ganzen Katalog als Tabelle auswählen. -->
+                <TextView
+                    android:id="@+id/sug_back"
+                    android:layout_width="36dp" android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:singleLine="true" android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:clickable="true" android:focusable="true"
+                    android:background="@color/key_bg" android:text="‹"
+                    android:contentDescription="@string/sug_back_desc"
+                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/sug_grid"
+                    android:layout_width="36dp" android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:singleLine="true" android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:clickable="true" android:focusable="true"
+                    android:background="@color/key_bg" android:text="▦"
+                    android:contentDescription="@string/sug_grid_desc"
+                    android:visibility="gone" />
                 <TextView
                     android:id="@+id/sug_1"
                     android:layout_width="0dp" android:layout_height="match_parent"
@@ -51,6 +76,39 @@
                     android:singleLine="true" android:textSize="13sp"
                     android:textColor="@color/text_primary" android:clickable="true"
                     android:focusable="true" android:background="@color/key_bg"
+                    android:layout_marginStart="2dp" />
+                <!-- 2 zusätzliche Slots NUR für den Katalog-Browser (5 Emojis pro
+                     Seite statt 3); im Wortvorschlag-Modus hidden. -->
+                <TextView
+                    android:id="@+id/sug_4"
+                    android:layout_width="0dp" android:layout_height="match_parent"
+                    android:layout_weight="1" android:gravity="center"
+                    android:singleLine="true" android:textSize="13sp"
+                    android:textColor="@color/text_primary" android:clickable="true"
+                    android:focusable="true" android:background="@color/key_bg"
+                    android:layout_marginStart="2dp"
+                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/sug_5"
+                    android:layout_width="0dp" android:layout_height="match_parent"
+                    android:layout_weight="1" android:gravity="center"
+                    android:singleLine="true" android:textSize="13sp"
+                    android:textColor="@color/text_primary" android:clickable="true"
+                    android:focusable="true" android:background="@color/key_bg"
+                    android:layout_marginStart="2dp"
+                    android:visibility="gone" />
+                <!-- Tastatur ausblenden/einblenden (rechts in der Wortvorhersage-Zeile).
+                     Tap blendet die Tastatur aus; erneut tippen (Feld fokusieren)
+                     blendet sie wieder ein (InputMethodService-Standardverhalten). -->
+                <TextView
+                    android:id="@+id/sug_hide"
+                    android:layout_width="36dp" android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:singleLine="true" android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:clickable="true" android:focusable="true"
+                    android:background="@color/key_bg" android:text="⇲"
+                    android:contentDescription="@string/sug_hide_desc"
                     android:layout_marginStart="2dp" />
             </LinearLayout>
 

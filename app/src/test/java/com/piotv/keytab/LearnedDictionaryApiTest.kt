@@ -1,7 +1,9 @@
 package com.piotv.keytab
 
 import com.piotv.keytab.ime.SuggestionEngine
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**

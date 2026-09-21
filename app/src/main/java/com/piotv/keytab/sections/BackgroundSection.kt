@@ -2,7 +2,13 @@ package com.piotv.keytab.sections
 
 import android.content.Intent
 import android.content.SharedPreferences
-import android.widget.*
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.piotv.keytab.Prefs
@@ -45,7 +51,7 @@ class BackgroundSection(
             adapter = ArrayAdapter(activity, android.R.layout.simple_spinner_dropdown_item,
                 listOf(activity.getString(R.string.background_fit), activity.getString(R.string.background_cover),
                     activity.getString(R.string.background_stretch)))
-            onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, pos: Int, id: Long) {
                     val value = values[pos]
                     if (prefs.getString(Prefs.KEY_BG_IMAGE_FILL, Prefs.FILL_FIT) != value) {

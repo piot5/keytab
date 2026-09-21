@@ -22,14 +22,15 @@ object ThemePrefs {
     const val KEY_GRADIENT_MODE = "gradient_mode"
     const val KEY_GRADIENT_OFF = "gradient_off_dark"
     const val KEY_GRADIENT_OFF_LIGHT = "gradient_off_light"
+    /** Verlauf-Modus JETZT pro Modus (Legacy: KEY_GRADIENT_MODE als Fallback). */
+    const val KEY_GRADIENT_MODE_DARK = "theme_dark_gradient_mode"
+    const val KEY_GRADIENT_MODE_LIGHT = "theme_light_gradient_mode"
     const val GRADIENT_TOP_DOWN = "top_down"
     const val GRADIENT_INVERT = "invert"
     const val GRADIENT_RADIAL = "radial"
 
     private const val PREFIX_DARK = "theme_dark_"
     private const val PREFIX_LIGHT = "theme_light_"
-    /** Default-Verlaufs-Farbe (wenn nicht gesetzt). */
-    private const val INT_DEF_GRADIENT = 0xFF000000.toInt()
     const val KIND_BG = "bg"
     const val KIND_KEY = "key"
     const val KIND_HL = "hl"
@@ -38,6 +39,10 @@ object ThemePrefs {
     const val KIND_LIKELY = "gaming"
     /** Farbe des Tippspur-Effekts (Trail der zuletzt geklickten Taste). */
     const val KIND_TRAIL = "trail"
+    /** Farbe der Swipe-Pfad-Knoten (Schaltplan-Preview + Swipe-Eingabe). */
+    const val KIND_SWIPE = "swipe"
+    /** Farbe der Swipe-Pfad-Kanten (Verbindungslinien zwischen Prognose-Tasten). */
+    const val KIND_SWIPE_EDGE = "swipe_edge"
     /** Gradient-Farbe 1 (über dem Farbkreis auswählbar). */
     const val KIND_GRADIENT1 = "gradient1"
     /** Gradient-Farb 2 (über dem Farbkreis auswählbar). */
@@ -91,6 +96,20 @@ object ThemePrefs {
     fun trailColorWithAlpha(prefs: SharedPreferences, step: Int, maxSteps: Int): Int =
         withAlpha(trailColor(prefs), TrailLogic.alphaForStep(step, maxSteps))
 
+    // ---------- Swipe (Gleit-Eingabe + Schaltplan-Preview) ----------
+    /** Pref-Keys für die Swipe-Farben je Modus (Knoten + Kanten). */
+    const val KEY_SWIPE_COLOR = "swipe_color"
+    const val KEY_SWIPE_EDGE_COLOR = "swipe_edge_color"
+    /** Swipe-Farbe der Pfad-Knoten (ARGB). Default: grünlich #4CAF50 (deutlich
+     *  unterschieden vom Likely-Default grün, eigene Pfad-Farbe laut Plan §8). */
+    fun swipeColor(prefs: SharedPreferences): Int =
+        if (prefs.contains(KEY_SWIPE_COLOR)) prefs.getInt(KEY_SWIPE_COLOR, 0)
+        else 0xFF4CAF50.toInt()
+    /** Swipe-Farbe der Pfad-Kanten (ARGB). Default: gedämpftes Grün #8038B04A. */
+    fun swipeEdgeColor(prefs: SharedPreferences): Int =
+        if (prefs.contains(KEY_SWIPE_EDGE_COLOR)) prefs.getInt(KEY_SWIPE_EDGE_COLOR, 0)
+        else 0x8038B04A.toInt()
+
     /** Zähler: ändert sich bei jeder Theme-Änderung → IME baut die Tastatur neu. */
     const val KEY_THEME_VERSION = "theme_version"
     fun themeVersion(prefs: SharedPreferences): Int = prefs.getInt(KEY_THEME_VERSION, 0)
@@ -120,17 +139,24 @@ object ThemePrefs {
             KIND_TEXT -> R.color.key_text
             KIND_LIKELY -> R.color.primary
             KIND_TRAIL -> R.color.trail_color
+            KIND_SWIPE -> R.color.swipe_color
+            KIND_SWIPE_EDGE -> R.color.swipe_edge_color
             else -> R.color.kbd_bg
         }
         return androidx.core.content.ContextCompat.getColor(ctx, res)
     }
 
-    /** Pref-Key für eine Theme-Farbe (dark/light × Art). */
+    /** Pref-Key für eine Theme-Farbe (dark/light × Art) — der Verlauf ist
+     *  **je Modus** gespeichert (dark/light haben eigene Verläufe). */
     fun colorKey(dark: Boolean, kind: String): String = when (kind) {
-        KIND_GRADIENT1 -> KEY_GRADIENT_COLOR1
-        KIND_GRADIENT2 -> KEY_GRADIENT_COLOR2
+        KIND_GRADIENT1, KIND_GRADIENT2 ->
+            (if (dark) PREFIX_DARK else PREFIX_LIGHT) + kind
         else -> (if (dark) PREFIX_DARK else PREFIX_LIGHT) + kind
     }
+
+    /** Verlauf-Modus-Key je Modus (Legacy-Fallback: KEY_GRADIENT_MODE). */
+    fun gradientModeKey(dark: Boolean): String =
+        if (dark) KEY_GRADIENT_MODE_DARK else KEY_GRADIENT_MODE_LIGHT
 
     /** Farbe lesen; [default] = aufgelöste Theme-Ressource (mit Alpha 0xFF). */
     fun getColor(prefs: SharedPreferences, dark: Boolean, kind: String, default: Int): Int = when (kind) {
@@ -154,18 +180,31 @@ object ThemePrefs {
         for (dark in listOf(true, false)) {
             val prefix = if (dark) "dark" else "light"
             val m = org.json.JSONObject()
-            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY, KIND_TRAIL)) {
+            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY, KIND_TRAIL,
+                KIND_SWIPE, KIND_SWIPE_EDGE)) {
                 val key = colorKey(dark, kind)
                 if (prefs.contains(key)) m.put(kind, prefs.getInt(key, 0))
             }
             b.put(prefix, m)
         }
+        for (dark in listOf(true, false)) {
+            // Verlauf JETZT je Modus exportiert (dark/light getrennt)
+            val gg = org.json.JSONObject()
+            if (prefs.contains(colorKey(dark, KIND_GRADIENT1)))
+                gg.put("color1", prefs.getInt(colorKey(dark, KIND_GRADIENT1), 0))
+            if (prefs.contains(colorKey(dark, KIND_GRADIENT2)))
+                gg.put("color2", prefs.getInt(colorKey(dark, KIND_GRADIENT2), 0))
+            gg.put("mode", gradientMode(prefs, dark))
+            gg.put("off", isGradientOff(prefs, dark))
+            b.put(if (dark) "gradient_dark" else "gradient_light", gg)
+        }
         val g = org.json.JSONObject()
+        // Legacy-Block (alter globaler Verlauf) bleibt für ältere Importe lesbar
         if (prefs.contains(KEY_GRADIENT_COLOR1)) g.put("color1", prefs.getInt(KEY_GRADIENT_COLOR1, 0))
         if (prefs.contains(KEY_GRADIENT_COLOR2)) g.put("color2", prefs.getInt(KEY_GRADIENT_COLOR2, 0))
         // KEY_GRADIENT_MODE ist ein STRING-Pref ("top_down"/"invert"/"radial") –
         // getInt() warf hier eine ClassCastException → ExportButton crashte.
-        g.put("mode", gradientMode(prefs))
+        g.put("mode", gradientMode(prefs, true))
         g.put("off_dark", isGradientOff(prefs, true))
         g.put("off_light", isGradientOff(prefs, false))
         b.put("gradient", g)
@@ -194,7 +233,8 @@ object ThemePrefs {
         val b = org.json.JSONObject(json)
         for (dark in listOf(true, false)) {
             val m = b.optJSONObject(if (dark) "dark" else "light") ?: continue
-            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY, KIND_TRAIL)) {
+            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY, KIND_TRAIL,
+                KIND_SWIPE, KIND_SWIPE_EDGE)) {
                 if (m.has(kind)) setColor(prefs, dark, kind, m.getInt(kind))
             }
         }
@@ -204,6 +244,15 @@ object ThemePrefs {
             if (g.has("mode")) prefs.edit().putString(KEY_GRADIENT_MODE, g.getString("mode")).apply()
             if (g.has("off_dark")) setGradientOff(prefs, true, g.getBoolean("off_dark"))
             if (g.has("off_light")) setGradientOff(prefs, false, g.getBoolean("off_light"))
+        }
+        for (dark in listOf(true, false)) {
+            // Neuer per-Modus-Verlauf (dark/light getrennt) – gewinnt gegen Legacy
+            b.optJSONObject(if (dark) "gradient_dark" else "gradient_light")?.let { gg ->
+                if (gg.has("color1")) setColor(prefs, dark, KIND_GRADIENT1, gg.getInt("color1"))
+                if (gg.has("color2")) setColor(prefs, dark, KIND_GRADIENT2, gg.getInt("color2"))
+                if (gg.has("mode")) prefs.edit().putString(gradientModeKey(dark), gg.getString("mode")).apply()
+                if (gg.has("off")) setGradientOff(prefs, dark, gg.getBoolean("off"))
+            }
         }
         b.optJSONObject("likely")?.let { lk ->
             if (lk.has("enabled")) prefs.edit().putBoolean(KEY_LIKELY, lk.getBoolean("enabled")).apply()
@@ -230,16 +279,22 @@ object ThemePrefs {
         prefs.edit().remove(colorKey(true, KIND_BG)).remove(colorKey(true, KIND_KEY))
             .remove(colorKey(true, KIND_HL)).remove(colorKey(true, KIND_TEXT))
             .remove(colorKey(true, KIND_LIKELY)).remove(colorKey(true, KIND_TRAIL))
+            .remove(colorKey(true, KIND_SWIPE)).remove(colorKey(true, KIND_SWIPE_EDGE))
             .remove(KEY_TRAIL_TRACE)
             .remove(KEY_TRAIL_ACCEPTED_COLOR).remove(KEY_TRAIL_CORRECTED_COLOR)
+            .remove(KEY_SWIPE_COLOR).remove(KEY_SWIPE_EDGE_COLOR)
             .remove(colorKey(false, KIND_BG)).remove(colorKey(false, KIND_KEY))
             .remove(colorKey(false, KIND_HL)).remove(colorKey(false, KIND_TEXT))
             .remove(colorKey(false, KIND_LIKELY)).remove(colorKey(false, KIND_TRAIL))
+            .remove(colorKey(false, KIND_SWIPE)).remove(colorKey(false, KIND_SWIPE_EDGE))
             .remove(KEY_LIKELY).remove(KEY_LIKELY_EFFECT)
             .remove(KEY_TRAIL).remove(KEY_TRAIL_COLOR).remove(KEY_TRAIL_STEPS)
             .remove(KEY_GRADIENT_COLOR1).remove(KEY_GRADIENT_COLOR2)
             .remove(KEY_GRADIENT_MODE).remove(KEY_GRADIENT_OFF)
             .remove(KEY_GRADIENT_OFF_LIGHT)
+            .remove(colorKey(true, KIND_GRADIENT1)).remove(colorKey(true, KIND_GRADIENT2))
+            .remove(colorKey(false, KIND_GRADIENT1)).remove(colorKey(false, KIND_GRADIENT2))
+            .remove(KEY_GRADIENT_MODE_DARK).remove(KEY_GRADIENT_MODE_LIGHT)
             .remove(com.piotv.keytab.Prefs.KEY_BG_IMAGE_URI)
             .remove(com.piotv.keytab.Prefs.KEY_BG_IMAGE_FILL).apply()
     }
@@ -275,18 +330,29 @@ object ThemePrefs {
     fun hasGradient(prefs: SharedPreferences, dark: Boolean): Boolean =
         !hasExplicitBg(prefs, dark) && !isGradientOff(prefs, dark)
 
-    /** Verlaufs-Farbe 1 (2-Farb-Verlauf; Default je Modus). */
+    /** Verlaufs-Farbe 1 je Modus (per-mode Override → Legacy global → Default). */
     fun gradientColor1(prefs: SharedPreferences, dark: Boolean): Int =
-        if (prefs.contains(KEY_GRADIENT_COLOR1)) prefs.getInt(KEY_GRADIENT_COLOR1, 0)
-        else defaultGradientColor1(dark)
+        when {
+            prefs.contains(colorKey(dark, KIND_GRADIENT1)) ->
+                prefs.getInt(colorKey(dark, KIND_GRADIENT1), 0)
+            prefs.contains(KEY_GRADIENT_COLOR1) -> prefs.getInt(KEY_GRADIENT_COLOR1, 0)
+            else -> defaultGradientColor1(dark)
+        }
 
-    /** Verlaufs-Farbe 2 (2-Farb-Verlauf; Default je Modus). */
+    /** Verlaufs-Farbe 2 je Modus (per-mode Override → Legacy global → Default). */
     fun gradientColor2(prefs: SharedPreferences, dark: Boolean): Int =
-        if (prefs.contains(KEY_GRADIENT_COLOR2)) prefs.getInt(KEY_GRADIENT_COLOR2, 0)
-        else defaultGradientColor2(dark)
+        when {
+            prefs.contains(colorKey(dark, KIND_GRADIENT2)) ->
+                prefs.getInt(colorKey(dark, KIND_GRADIENT2), 0)
+            prefs.contains(KEY_GRADIENT_COLOR2) -> prefs.getInt(KEY_GRADIENT_COLOR2, 0)
+            else -> defaultGradientColor2(dark)
+        }
 
-    fun gradientMode(prefs: SharedPreferences): String =
-        prefs.getString(KEY_GRADIENT_MODE, GRADIENT_TOP_DOWN) ?: GRADIENT_TOP_DOWN
+    /** Verlaufs-Modus je Modus (per-mode Override → Legacy global → Default). */
+    fun gradientMode(prefs: SharedPreferences, dark: Boolean): String =
+        prefs.getString(gradientModeKey(dark), null)
+            ?: prefs.getString(KEY_GRADIENT_MODE, GRADIENT_TOP_DOWN)
+            ?: GRADIENT_TOP_DOWN
 
     /**
      * Verlauf-Drawable für den Tastatur-Hintergrund; null wenn deaktiviert
@@ -297,7 +363,7 @@ object ThemePrefs {
     fun gradientDrawable(prefs: SharedPreferences, dark: Boolean, widthPx: Int): GradientDrawable? {
         if (!hasGradient(prefs, dark)) return null
         val d = GradientDrawable()
-        when (gradientMode(prefs)) {
+        when (gradientMode(prefs, dark)) {
             GRADIENT_INVERT -> d.orientation = GradientDrawable.Orientation.BOTTOM_TOP
             GRADIENT_RADIAL -> {
                 d.setGradientType(GradientDrawable.RADIAL_GRADIENT)

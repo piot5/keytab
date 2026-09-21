@@ -425,7 +425,6 @@ tenido 99237
 juego 99041
 deberías 98960
 cuerpo 98410
-e 96622
 algunas 96075
 entrar 95899
 cree 95859
@@ -727,7 +726,6 @@ asesinato 50759
 vio 50756
 llegado 50534
 disculpe 50520
-s 50469
 cita 50399
 estaría 50270
 fuiste 50201
@@ -772,7 +770,6 @@ cena 47357
 sentir 47337
 través 47295
 accidente 47117
-i 46981
 ellas 46892
 caja 46635
 tranquilo 46587
@@ -1561,7 +1558,6 @@ debí 21196
 unidad 21181
 estan 21171
 cuchillo 21138
-t 21127
 oigan 21109
 quienes 21083
 gana 21078
@@ -1745,7 +1741,6 @@ mirada 18665
 demonio 18645
 abierta 18639
 kevin 18631
-m 18621
 llámame 18616
 siguen 18607
 romper 18603
@@ -1770,7 +1765,6 @@ necesidad 18452
 dueño 18451
 merece 18449
 rayos 18443
-d 18432
 mintiendo 18424
 tantas 18422
 imagino 18413
@@ -2176,7 +2170,6 @@ nieve 14533
 mensajes 14528
 fecha 14528
 violencia 14523
-n 14504
 sujeto 14500
 acciones 14496
 fría 14472
@@ -2278,7 +2271,6 @@ mono 13802
 llevaron 13798
 página 13788
 poquito 13774
-u 13752
 habíamos 13746
 encontraremos 13745
 ruego 13737
@@ -2371,7 +2363,6 @@ lucy 13170
 abrigo 13147
 okay 13145
 estudiar 13144
-b 13132
 sonrisa 13131
 cobarde 13126
 olvida 13118
@@ -2383,7 +2374,6 @@ josh 13073
 charla 13069
 vives 13062
 bruja 13054
-c 13047
 celular 13042
 rose 13042
 andando 13028
@@ -3093,7 +3083,6 @@ paliza 9520
 chef 9517
 ocurra 9513
 marty 9513
-l 9511
 entrado 9510
 quitar 9506
 amanecer 9504
@@ -3578,7 +3567,6 @@ sienten 8001
 rumbo 8000
 valle 7995
 ian 7992
-x 7990
 viejas 7988
 buscaba 7984
 científicos 7983
@@ -4080,7 +4068,6 @@ solar 6816
 encontrarme 6815
 williams 6813
 trucos 6806
-h 6806
 lectura 6806
 camarero 6805
 toman 6802
@@ -4726,7 +4713,6 @@ demuestra 5673
 lauren 5672
 eventos 5671
 entendiste 5668
-v 5666
 reciente 5665
 empiezan 5665
 pasaste 5664
@@ -5037,7 +5023,6 @@ miran 5225
 prometes 5225
 chase 5225
 pluma 5224
-r 5224
 posibles 5224
 fallo 5223
 iris 5222
@@ -5387,7 +5372,6 @@ rapido 4788
 merecen 4787
 bonitos 4787
 angel 4786
-g 4786
 woo 4782
 brasil 4782
 freddie 4780
@@ -5549,7 +5533,6 @@ supervivencia 4624
 nacer 4624
 hechas 4624
 sacaron 4623
-p 4617
 olvidas 4617
 escondiendo 4616
 can 4616
@@ -5593,7 +5576,6 @@ campus 4581
 compro 4577
 bingo 4576
 asumo 4575
-j 4574
 impulso 4574
 pensaría 4572
 venden 4571
@@ -5995,6 +5977,4 @@ escuchan 4181
 chimenea 4181
 febrero 4178
 recoge 4176
-wallace 4175
-doyle 4175
 inglesa 4175

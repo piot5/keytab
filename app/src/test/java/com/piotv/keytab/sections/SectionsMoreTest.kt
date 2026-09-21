@@ -12,7 +12,7 @@ class GradientSectionTest : SectionsTestBase() {
 
     @Test
     fun `build erzeugt Checkbox, Spinner und Preview`() {
-        val s = GradientSection(activity, prefs) { changedCount++ }
+        val s = GradientSection(activity, prefs, { changedCount++ }, { })
         s.build(col)
         assertTrue(col.childCount >= 3)
         s.updateGradient()
@@ -20,7 +20,7 @@ class GradientSectionTest : SectionsTestBase() {
 
     @Test
     fun `Checkbox unchecked setzt gradient_off_dark`() {
-        val s = GradientSection(activity, prefs) { changedCount++ }
+        val s = GradientSection(activity, prefs, { changedCount++ }, { })
         s.build(col)
         val cb = col.getChildAt(0) as android.widget.CheckBox
         cb.isChecked = false
@@ -31,7 +31,7 @@ class GradientSectionTest : SectionsTestBase() {
     @Test
     fun `updateGradient uebernimmt gesetzten Modus in die Auswahl`() {
         prefs.edit().putString(ThemePrefs.KEY_GRADIENT_MODE, ThemePrefs.GRADIENT_RADIAL).apply()
-        val s = GradientSection(activity, prefs) { changedCount++ }
+        val s = GradientSection(activity, prefs, { changedCount++ }, { })
         s.build(col)
         s.updateGradient()
         // Aktualisierung ohne Crash; Verlauf-Preview wurde erzeugt (aktiv, kein OFF)
@@ -43,7 +43,7 @@ class PreviewSectionTest : SectionsTestBase() {
 
     @Test
     fun `build + updatePreview ohne Crash und mit Hintergrund`() {
-        val s = PreviewSection(activity, prefs, { Color.RED }) { changedCount++ }
+        val s = PreviewSection(activity, prefs, { Color.RED })
         s.build(col)
         assertEquals(1, col.childCount)
         s.updatePreview()

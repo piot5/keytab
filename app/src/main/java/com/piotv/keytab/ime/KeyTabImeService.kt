@@ -46,6 +46,8 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
     private val suggestionController = SuggestionController(this)
     // Phase-3-Controller: Tasten-Event-Binding (Touch/Long-Press/Del-Repeat)
     private lateinit var keyboardBinder: KeyboardBinder
+    /** Swipe-Manager (v0.11): Schaltplan-Preview + Swipe-Eingabe. null vor erstem Aufbau. */
+    private var swipeManager: SwipeManager? = null
 
     // Phase 6: Text-Commit-Orchestrierung + View-Aufbau ausgelagert
     private val textCommit = TextCommitController(object : TextCommitController.Host {
@@ -53,7 +55,10 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         override val inputRouter get() = this@KeyTabImeService.inputRouter
         override val predictionManager get() = this@KeyTabImeService.predictionManager
         override fun consumeSingleShift() = this@KeyTabImeService.consumeSingleShift()
-        override fun updateSuggestions() = suggestionController.update()
+        override fun updateSuggestions() {
+            suggestionController.update()
+            updateSwipePreview()
+        }
     })
     private val viewFactory = KeyboardViewFactory(object : KeyboardViewFactory.Deps {
         override val imeContext: Context get() = baseContext
@@ -122,6 +127,11 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
      * akkumuliert einen kompletten View-Baum (Memory-Leak).
      */
     private fun releasePanels() {
+        // Swipe-Preview (Overlay + Knoten-Färbung) VOR dem Vergessen der alten
+        // Instanz entfernen — sonst bleibt das EdgeOverlay im alten View-Baum
+        // hängen und ist nicht mehr removebar („Verbindung geht nicht weg"-Bug).
+        swipeManager?.clearPreview()
+        swipeManager = null
         terminalPanel?.shutdown()
         fileManagerPanel = null
         editorPanel = null
@@ -154,9 +164,7 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         snippetPanel = result.snippetPanel
         inputRouter = result.router
         activeLanguage = result.language
-        predictionManager = result.predictionManager.also { pm ->
-            pm.setOnEngineReady { suggestionController.update() }
-        }
+        predictionManager = result.predictionManager
         keyScaler = result.keyScaler
         val root = result.root
         // Module einhängen
@@ -166,13 +174,23 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
             com.piotv.keytab.Prefs.of(this),
             baseLetters
         )
-        keyboardBinder = KeyboardBinder(this, LONG_PRESS_TIMEOUT, tabController, themeController, suggestionController, trailManager)
+        // Swipe-Manager (v0.11): erstellt mit baseLetters (noch leer, wird nach hook gefüllt).
+        val sm = SwipeManager(com.piotv.keytab.Prefs.of(this), baseLetters)
+        swipeManager = sm
+        keyboardBinder = KeyboardBinder(this, LONG_PRESS_TIMEOUT, tabController, themeController, suggestionController, trailManager, sm)
         keyboardBinder.hook(root)
         // Jetzt baseLetters gefüllt - TrailManager aktualisieren
         trailManager.updateBaseLetters(baseLetters)
         keyboardBinder.applyLetterCase(root)
         // Suggestion-Views holen, Module starten (Engine lazy, Skaler aufbauen)
         suggestionController.setup(root, suggestionViews, activeLanguage)
+        // Swipe-Engine anbinden: sobald die Engine ready ist, am SwipeManager setzen.
+        predictionManager?.setOnEngineReady {
+            swipeManager?.setEngine(predictionManager?.engine)
+            suggestionController.update()
+            updateSwipePreview()
+        }
+        swipeManager?.setEngine(predictionManager?.engine)
         appliedSettings = SettingsConfig.snapshot(com.piotv.keytab.Prefs.of(this))
         appliedDarkMode = isDarkMode()
         return root
@@ -238,6 +256,87 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
 
     override fun isShifted(): Boolean = shiftController.isUpper()
     override fun isCapsLock(): Boolean = shiftController.state().capsLock
+    override fun isEditorOrTerminalTab(): Boolean =
+        tabController.currentTabKind().let {
+            it == TabController.TabKind.EDITOR || it == TabController.TabKind.TERMINAL
+        }
+    override fun hideKeyboard() {
+        // Nur der Tastatur-Block UNTER der Wortvorhersage-Zeile wird ausgeblendet:
+        // alle Tastenreihen (Buchstaben/Symbole/Zahlen) + Funktionsleiste + Datei-Panel.
+        // Die Wortvorhersage-Zeile (mit ☺ und ⌄) bleibt sichtbar → Einblenden per ⌄.
+        // Das Editor-/Terminal-Panel wird MAXIMIERT: es füllt den gesamten bisherigen
+        // Tastatur-Platz aus (Editor-Normalhöhe + Tastatur + Funktionsleiste).
+        val root = keyboardRoot ?: return
+        val collapsed = root.getTag(R.id.sug_hide) as? Boolean ?: false
+        val next = !collapsed
+        root.setTag(R.id.sug_hide, next)
+        val ed = root.findViewById<View>(R.id.editor_panel)
+        val kb = root.findViewById<View>(R.id.kb_panel)
+        val term = root.findViewById<View>(R.id.term_panel)
+        val bottomRow = root.findViewById<View>(R.id.bottom_row)
+        val width = root.resources.displayMetrics.widthPixels
+        val kind = tabController.currentTabKind()
+        if (next) {
+            // HÖHEN VOR dem Ausblenden messen (GONE-Views haben Höhe 0)!
+            val editorH = PanelHeights.terminalPanelHeight(ed, width)
+            val kbH = PanelHeights.measureHeight(kb, width)
+            val bottomH = PanelHeights.measureHeight(bottomRow, width)
+            // Tastenreihen ausblenden (alle Geschwister der Suggestion-Bar).
+            val sugBar = root.findViewById<View>(R.id.suggestion_bar)
+            val lettersRoot = sugBar?.parent as? android.view.ViewGroup
+            if (lettersRoot != null) {
+                for (i in 0 until lettersRoot.childCount) {
+                    val child = lettersRoot.getChildAt(i)
+                    if (child.id == R.id.suggestion_bar) continue
+                    child.visibility = View.GONE
+                }
+            }
+            bottomRow?.visibility = View.GONE
+            // Panel MAXIMIEREN: Editor-Normalhöhe + Tastatur + Funktionsleiste.
+            val maxH = editorH + kbH + bottomH
+            if (maxH > 0) {
+                if (kind == TabController.TabKind.EDITOR && ed != null) {
+                    ed.layoutParams = ed.layoutParams.apply { height = maxH }
+                }
+                if (kind == TabController.TabKind.TERMINAL && term != null) {
+                    term.layoutParams = term.layoutParams.apply { height = maxH }
+                }
+            }
+        } else {
+            // WIEDER EINBLENDEN: nur die Tastenreihen + Funktionsleiste sichtbar
+            // machen. Panels (editor/term/file/clip/snip) NICHT anfassen — der
+            // TabController verwaltet deren Sichtbarkeit. Ein unbedachtes VISIBLE
+            // würde z. B. im ABC-Tab das Editor-Panel zeigen und die Tastatur nach
+            // oben drücken! Nur die echten Tastatur-Views wieder auf VISIBLE setzen.
+            val sugBar = root.findViewById<View>(R.id.suggestion_bar)
+            val lettersRoot = sugBar?.parent as? android.view.ViewGroup
+            if (lettersRoot != null) {
+                for (i in 0 until lettersRoot.childCount) {
+                    val child = lettersRoot.getChildAt(i)
+                    if (child.id == R.id.suggestion_bar) continue
+                    // Nur Tastatur-Elemente (kb_panel, sym_panel, num_row) und die
+                    // Buchstabenreihen wieder sichtbar — Panels bleiben wie sie sind.
+                    val id = child.id
+                    if (id == R.id.editor_panel || id == R.id.term_panel ||
+                        id == R.id.file_panel || id == R.id.clip_panel ||
+                        id == R.id.snippet_panel
+                    ) continue
+                    child.visibility = View.VISIBLE
+                }
+            }
+            bottomRow?.visibility = View.VISIBLE
+            // Panel zurück auf reine Editor-Höhe.
+            val h = PanelHeights.terminalPanelHeight(ed, width)
+            if (h > 0) {
+                if (kind == TabController.TabKind.EDITOR && ed != null) {
+                    ed.layoutParams = ed.layoutParams.apply { height = h }
+                }
+                if (kind == TabController.TabKind.TERMINAL && term != null) {
+                    term.layoutParams = term.layoutParams.apply { height = h }
+                }
+            }
+        }
+    }
 
     /** Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt) + View aktualisieren. */
     override fun consumeSingleShift() {
@@ -274,12 +373,30 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
     private fun commitToApp(text: String) =
         textCommit.commitToApp(text, currentInputConnection)
 
+    /**
+     * Schaltplan-Preview (v0.11, passiv): die wahrscheinlichen Folge-Tasten
+     * des aktuell getippten Worts als verbundener Pfad sichtbar machen.
+     * Nutzt [SwipePathLogic.previewNodes] aus den aktuellen Vorschlägen.
+     * Deaktiviert (Pref aus / Passwort-Feld / keine Vorschläge) → Preview gelöscht.
+     */
+    private fun updateSwipePreview() {
+        val sm = swipeManager ?: return
+        if (!sm.previewEnabled()) { sm.clearPreview(); return }
+        val pm = predictionManager ?: return
+        val sugs = pm.currentSuggestions
+        val typedLen = pm.currentTypedWord.length
+        val nodes = SwipePathLogic.previewNodes(sugs, typedLen)
+        sm.applyPreview(nodes)
+    }
+
     override fun onDestroy() {
         predictionManager?.engine?.let {
             val raw = it.serializeUserDict()
             com.piotv.keytab.Prefs.of(this)
                 .edit().putString(com.piotv.keytab.Prefs.KEY_USER_DICT, raw).apply()
         }
+        swipeManager?.clearPreview()
+        swipeManager = null
         letterPopup.dismiss()
         longPressHandler.removeCallbacksAndMessages(null)
         super.onDestroy()

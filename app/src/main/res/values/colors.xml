@@ -32,6 +32,9 @@
     <!-- Korrektur-Trace: grün = Engine kennt das Wort, rot = Korrektur würde greifen -->
     <color name="trail_accepted_color">#4CAF50</color>
     <color name="trail_corrected_color">#F44336</color>
+    <!-- Swipe (Gleit-Eingabe + Schaltplan-Preview): Pfad-Knoten + Kanten -->
+    <color name="swipe_color">#4CAF50</color>
+    <color name="swipe_edge_color">#8038B04A</color>
     <!-- Editor: Zeilennummern-Gutter + einfaches Highlighting (heurstisch,
          VS-Code-inspirierte Palette; in Hell/Dunkel lesbar) -->
     <color name="editor_gutter_text">#888888</color>

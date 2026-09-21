@@ -1,0 +1,2 @@
+- Feature: swipe typing (glide over the keys; offline engine-based scoring, auto-commit on clear winner, candidates bar otherwise) + circuit preview (likely next keys shown as a connected path). Both default off, password fields excluded. New keys: swipe, swipe_preview
+- Tests: +57 unit tests (SwipePathLogicTest, SwipeScorerTest, SwipePerformanceTest, SwipeManagerTest); 231 → 288 total in 31 suites

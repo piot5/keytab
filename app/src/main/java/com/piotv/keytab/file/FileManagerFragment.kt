@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -188,6 +189,7 @@ class FileManagerFragment : Fragment() {
         try {
             startActivity(i)
         } catch (e: Exception) {
+            Log.e("KeyTab", "Datei-oeffnen ohne Handler: ${f.name}", e)
             Toast.makeText(requireContext(), getString(R.string.fm_open_no_app, f.name), Toast.LENGTH_SHORT).show()
         }
     }

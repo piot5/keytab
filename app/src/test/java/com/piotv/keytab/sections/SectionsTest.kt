@@ -151,8 +151,13 @@ class TopSectionTest : SectionsTestBase() {
         s.build(col)
         val presetRow = col.getChildAt(1) as LinearLayout
         presetRow.getChildAt(2).performClick() // "Ozean"
-        assertEquals(ThemePrefs.GRADIENTS[2].c1, prefs.getInt(ThemePrefs.KEY_GRADIENT_COLOR1, 0))
-        assertEquals(ThemePrefs.GRADIENTS[2].mode, prefs.getString(ThemePrefs.KEY_GRADIENT_MODE, null))
+        val dark = ThemePrefs.isDarkMode(activity)
+        assertEquals(
+            ThemePrefs.GRADIENTS[2].c1,
+            prefs.getInt(ThemePrefs.colorKey(dark, ThemePrefs.KIND_GRADIENT1), 0))
+        assertEquals(
+            ThemePrefs.GRADIENTS[2].mode,
+            prefs.getString(ThemePrefs.gradientModeKey(dark), null))
         assertEquals(1, changedCount)
     }
 

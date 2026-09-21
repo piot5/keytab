@@ -2,6 +2,8 @@ package com.piotv.keytab.ime
 
 import android.content.SharedPreferences
 import android.graphics.drawable.GradientDrawable
+import android.os.Handler
+import android.os.Looper
 import android.widget.Button
 
 /**
@@ -41,6 +43,9 @@ class TrailManager(
     /** Aktuelles Feld (Passwort-Schutz). null = unbekannt → Trail erlaubt. */
     private var editorInfo: android.view.inputmethod.EditorInfo? = null
 
+    private val fadeHandler = Handler(Looper.getMainLooper())
+    private var fadePending = false
+
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
             ThemePrefs.KEY_TRAIL -> {
@@ -73,15 +78,33 @@ class TrailManager(
         }
     }
 
+    /** Backspace-Pause: Ausblenden gestoppt + Spur eingefroren, bis wieder
+     *  getippt wird ([snap]/[traceWord] heben die Pause auf). */
+    private var paused = false
+
+    /**
+     * Backspace gedrückt: den geplanten Ausblend-Vorgang STOPPEN und die
+     * aktuelle Spur einfrieren — und keine neue (blaue) Markierung setzen.
+     * Erst die nächste getippte Eingabe setzt fort.
+     */
+    fun onBackspace() {
+        fadeHandler.removeCallbacksAndMessages(null)
+        fadePending = false
+        paused = true
+        applyToKeyboard()
+    }
+
     /** Wird aufgerufen, wenn ein Buchstabe geklickt wurde.
      * Decay des vorherigen Trails (alle Schritte +1), dann neuer Buchstabe mit Schritt 0.
      */
     fun snap(char: Char) {
+        paused = false
         snap(char, TrailLogic.TrailKind.TYPED)
     }
 
     /** Wie [snap], aber mit expliziter Betriebsart (Korrektur-Trace). */
     fun snap(char: Char, kind: TrailLogic.TrailKind) {
+        paused = false
         if (! trailEnabled()) return
         if (! TrailLogic.isTrailAllowed(editorInfo)) {
             // Passwortfeld (oder NO_PERSONALIZED_LEARNING): nichts anzeigen.
@@ -133,18 +156,23 @@ class TrailManager(
      * nicht angetastet – der Trace ist eine Zusatzinformation, kein Ersatz für
      * den zuletzt gedrückten Buchstaben.
      */
-    fun traceWord(typed: String, engine: SuggestionEngine?) {
-        if (! trailEnabled() || ! traceEnabled()) return
+    fun traceWord(typed: String, engine: SuggestionEngine?, topSuggestion: String? = null) {
+        paused = false
+        if (! trailEnabled()) return
         if (! TrailLogic.isTrailAllowed(editorInfo)) return
         val kind = TrailLogic.classifyTypedWord(typed, engine) ?: return
         // Bisherigen Trace dieses Wortes verwerfen – atomarer Neuzustand.
         clearTrace()
-        // Nur den Korrektur-Fall sichtbar machen: er ist die Information, die
-        // beim Tippen sonst nirgends erscheint.
-        if (kind == TrailLogic.TrailKind.ACCEPTED) {
-            applyToKeyboard()
-            return
-        }
+        // Roter Korrektur-Hinweis nur mit Trace-Pref. Der GRÜNE Vollwort-Markierer
+        // (ACCEPTED) ist ein fester Bestandteil des Trails — er erscheint nur,
+        // wenn das getippte Wort exakt dem Top-Vorschlag entspricht ("wie
+        // Vorschlag"); dann färben wir alle Buchstaben grün und blenden schnell
+        // (max. 2 Stufen) aus.
+        if (kind == TrailLogic.TrailKind.ACCEPTED &&
+            topSuggestion != null &&
+            ! typed.equals(topSuggestion, ignoreCase = true)
+        ) return
+        if (kind == TrailLogic.TrailKind.CORRECTED && ! traceEnabled()) return
         for (ch in typed.lowercase()) {
             if (ch.isLetter()) {
                 steps[ch] = 0
@@ -152,6 +180,55 @@ class TrailManager(
             }
         }
         applyToKeyboard()
+        // Frischer Fade-Zyklus pro Wort: alten Timer verwerfen, sonst würde ein
+        // schnell hintereinander getipptes Wort die Restzeit des Vorgängers erben.
+        fadeHandler.removeCallbacksAndMessages(null)
+        fadePending = false
+        scheduleTraceFade()
+    }
+
+    /**
+     * Selbstständiges Ausblenden des Wort-Traces: Nach einer kurzen Pause
+     * ([TRACE_FADE_START_MS]) decays jeder Trace-Eintrag ([TrailKind.ACCEPTED]/
+     * [TrailKind.CORRECTED]) stufenweise weiter – unabhängig von weiteren
+     * Eingaben – bis er verschwunden ist ([TrailLogic.nextStep]). Die Tippspur
+     * ([TrailKind.TYPED]) wird nicht angetastet; die normale Decay-Logik in
+     * [snap] läuft parallel weiter.
+     */
+    /**
+     * Selbstständiges Ausblenden des Wort-Traces in **maximal 2 Stufen**: Nach
+     * einer kurzen Pause ([TRACE_FADE_START_MS]) springt jeder Trace-Eintrag
+     * ([TrailKind.ACCEPTED]/[TrailKind.CORRECTED]) auf die Halbstufe, nach einem
+     * weiteren Tick ([TRACE_FADE_TICK_MS]) ist er vollständig verschwunden –
+     * unabhängig von weiteren Eingaben. Die Tippspur ([TrailKind.TYPED]) wird
+     * nicht angetastet; die normale Decay-Logik in [snap] läuft parallel weiter.
+     */
+    private fun scheduleTraceFade() {
+        if (fadePending) return
+        fadePending = true
+        fadeHandler.postDelayed({
+            fadePending = false
+            val traceChars = kinds.entries
+                .filter { it.value != TrailLogic.TrailKind.TYPED }
+                .map { it.key }
+            if (traceChars.isEmpty()) return@postDelayed
+            // Schnelles Ausblenden in maximal 2 Stufen: Halbschritt (aufrundend,
+            // damit der zweite Tick garantiert entfernt), dann weg.
+            val half = ((maxSteps + 1) / 2).coerceAtLeast(1)
+            var remaining = false
+            for (c in traceChars) {
+                val next = (steps[c] ?: 0) + half
+                if (next >= maxSteps) {
+                    steps.remove(c)
+                    kinds.remove(c)
+                } else {
+                    steps[c] = next
+                    remaining = true
+                }
+            }
+            applyToKeyboard()
+            if (remaining) scheduleTraceFade()
+        }, TRACE_FADE_TICK_MS)
     }
 
     /**
@@ -170,6 +247,8 @@ class TrailManager(
 
     /** Trail vollständig zurücksetzen (z.B. beim Theme-Wechsel oder View-Neuaufbau). */
     fun clear() {
+        fadeHandler.removeCallbacksAndMessages(null)
+        fadePending = false
         steps.clear()
         kinds.clear()
         lastChar = null
@@ -247,5 +326,9 @@ class TrailManager(
         const val DEFAULT_STEPS = TrailLogic.DEFAULT_STEPS
         /** Ab dieser Wortlänge bewertet der Korrektur-Trace (Engine-Grenze). */
         const val MIN_TRACE_WORD = 3
+        /** Pause nach dem grünen Vollwort-Marker, bevor das Ausblenden startet (ms). */
+        const val TRACE_FADE_START_MS = 500L
+        /** Fade-Tick zwischen den (maximal 2) Ausblend-Stufen (ms). */
+        const val TRACE_FADE_TICK_MS = 250L
     }
 }

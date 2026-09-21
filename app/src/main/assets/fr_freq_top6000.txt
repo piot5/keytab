@@ -8,7 +8,6 @@ la 4825603
 vous 4500162
 tu 4434920
 un 4360896
-à 4119959
 et 4110855
 il 4025241
 a 3679682
@@ -624,7 +623,6 @@ bras 40381
 cul 40257
 prochaine 40242
 visage 39958
-h 39905
 meilleure 39793
 face 39743
 soirée 39649
@@ -655,7 +653,6 @@ revenir 38040
 joue 37977
 pauvre 37944
 devenir 37910
-s 37881
 rencontrer 37801
 sort 37668
 commencer 37646
@@ -759,7 +756,6 @@ anniversaire 31734
 finir 31715
 réussi 31714
 agit 31654
-i 31645
 retourner 31576
 sale 31573
 libre 31568
@@ -990,7 +986,6 @@ acheté 23393
 diable 23391
 viennent 23391
 monter 23296
-l 23240
 capable 23171
 emmener 23169
 écrire 23152
@@ -1006,7 +1001,6 @@ appartement 22865
 prochain 22858
 cerveau 22839
 paris 22815
-m 22801
 blague 22769
 choisi 22760
 époque 22746
@@ -1036,7 +1030,6 @@ commandant 22118
 garçons 22071
 faisons 22048
 paul 21991
-n 21978
 tient 21944
 prise 21880
 gouvernement 21860
@@ -1060,7 +1053,6 @@ max 21608
 promets 21565
 lequel 21558
 blessé 21552
-c 21528
 société 21526
 tort 21494
 sept 21493
@@ -1113,7 +1105,6 @@ directeur 20517
 intéressant 20484
 excuse 20473
 environ 20468
-t 20438
 inutile 20414
 terrible 20402
 danse 20395
@@ -1263,7 +1254,6 @@ fier 17888
 discuter 17845
 village 17843
 spectacle 17835
-d 17834
 nul 17822
 rose 17817
 touché 17811
@@ -1722,7 +1712,6 @@ hasard 12306
 concerne 12304
 réponds 12290
 génie 12290
-j 12287
 parlais 12284
 parlons 12277
 jardin 12269
@@ -2053,7 +2042,6 @@ sommeil 9808
 blancs 9796
 survivre 9792
 semblait 9781
-o 9780
 craint 9779
 traduction 9779
 notes 9757
@@ -2084,7 +2072,6 @@ choc 9625
 différentes 9619
 théâtre 9612
 exploser 9610
-â 9605
 rivière 9605
 paye 9594
 allo 9588
@@ -2266,7 +2253,6 @@ bat 8786
 seraient 8785
 bébés 8785
 cherches 8775
-e 8768
 donnes 8765
 préparé 8758
 soucis 8758
@@ -2310,7 +2296,6 @@ tués 8575
 forcément 8570
 cadeaux 8562
 herbe 8562
-b 8561
 menteur 8561
 vivante 8556
 riches 8555
@@ -2879,7 +2864,6 @@ passés 6598
 épreuve 6598
 vivants 6598
 conduite 6596
-p 6592
 robin 6590
 chffffff 6588
 découvre 6585
@@ -3984,7 +3968,6 @@ white 4437
 devaient 4436
 timide 4435
 chevalier 4433
-r 4431
 précisément 4430
 continues 4430
 halloween 4428
@@ -4291,7 +4274,6 @@ pères 4047
 basket 4046
 harris 4046
 pathétique 4043
-x 4039
 journalistes 4039
 remarquer 4038
 booth 4037
@@ -4301,7 +4283,6 @@ fichiers 4035
 casque 4034
 ruiné 4034
 mené 4033
-v 4032
 prime 4027
 bloqué 4027
 faisiez 4025
@@ -4399,7 +4380,6 @@ allumer 3911
 craig 3908
 tarder 3908
 fausses 3907
-f 3905
 administration 3905
 arrangement 3903
 existent 3902
@@ -4984,7 +4964,6 @@ prétendre 3370
 amenez 3370
 marteau 3369
 jet 3368
-g 3368
 paierai 3367
 cameron 3366
 accorder 3366
@@ -5669,7 +5648,6 @@ bêtise 2881
 comptent 2881
 réunir 2880
 lâches 2880
-u 2880
 étrangère 2879
 philadelphie 2879
 harrison 2879

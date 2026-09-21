@@ -76,9 +76,27 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
          * entscheiden, ob die Vorschlags-Leiste durch zuletzt eingefügte
          * Snippets ersetzt wird (statt der generischen Top-3-Wortvorschläge).
          */
-        fun sentenceStart(textBefore: String, typedWord: String): Boolean {
+                fun sentenceStart(textBefore: String, typedWord: String): Boolean {
             if (typedWord.isNotEmpty()) return false
             val b = textBefore.trimEnd()
+            return b.isEmpty() || b.last() in ".!?"
+        }
+
+        /**
+         * Satzanfang-Erkennung **auch während des Tippens**: wie [sentenceStart],
+         * aber das aktuell getippte Wort wird aus dem Kontext entfernt, bevor
+         * geprüft wird. Damit wird erkannt, dass der Nutzer gerade am Satzanfang
+         * tippt (z. B. nach "Hallo. w" → Kontext "Hallo." → Satzanfang), auch
+         * wenn [typedWord] nicht leer ist.
+         *
+         * Wird für die Großschreibung von Vorschlägen während des Tippens
+         * verwendet ([WordPredictionManager.updateSuggestions] / [applySuggestion]).
+         */
+        fun isSentenceStartContext(textBefore: String, typedWord: String): Boolean {
+            if (typedWord.isEmpty()) return sentenceStart(textBefore, "")
+            val stripped = if (textBefore.endsWith(typedWord))
+                textBefore.removeSuffix(typedWord) else textBefore
+            val b = stripped.trimEnd()
             return b.isEmpty() || b.last() in ".!?"
         }
 
@@ -165,6 +183,15 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
     /** Liefert die Basis-Frequenz eines Worts (0.0 wenn unbekannt). */
     fun baseScore(word: String): Double = baseFreq[word.lowercase()] ?: 0.0
 
+    /**
+     * Iteriert über alle Basiswörter, die mit [first] (lowercase) beginnen.
+     * Wird vom Swipe-Scorer genutzt, um den Kandidaten-Pool ohne Kopie zu
+     * durchlaufen (über den vorhandenen First-Char-Index).
+     */
+    fun forEachBaseWordStartingWith(first: Char, action: (String) -> Unit) {
+        byFirstChar[first.lowercaseChar()]?.forEach(action)
+    }
+
     fun knowsWord(word: String): Boolean =
         baseFreq.containsKey(word.lowercase()) || userFreq.containsKey(word.lowercase())
 
@@ -209,14 +236,24 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
      */
     var emojiEnabled: Boolean = false
 
-    /**
-     * Vorschläge für den aktuellen Teilwort-Status.
+        /**
+     * Vorschläge für den aktuell getippten Text.
      * @param currentWord aktuell getipptes (unvollständiges) Wort, evtl. leer
      * @param prevWord Wort vor dem aktuellen (für Bigram-Prediction), evtl. null
+     * @param sentenceStart true, wenn der Cursor nach einem Satz-Terminator
+     *   (. ! ?) oder am Dokument-Anfang steht — dann werden
+     *   Satzanfangswörter bevorzugt und Vorschläge großgeschrieben
      */
-    fun suggest(currentWord: String, prevWord: String?, max: Int = MAX_SUGGESTIONS): List<Suggestion> {
+    fun suggest(
+        currentWord: String, prevWord: String?,
+        max: Int = MAX_SUGGESTIONS, sentenceStart: Boolean = false
+    ): List<Suggestion> {
         val cur = currentWord.lowercase()
-        val base = if (cur.isEmpty()) predictNext(prevWord?.lowercase(), max)
+        // Am Satzanfang: Bigramme vom vorherigen Wort nicht nutzen
+        // (nach "." ist das vorherige Wort kein relevanter Kontext mehr).
+        // Stattdessen satztypische Wortwahl via sentenceStartBoost.
+        val effectivePrev = if (sentenceStart) null else prevWord?.lowercase()
+        val base = if (cur.isEmpty()) predictNext(effectivePrev, max, sentenceStart)
                    else completeWord(cur, prevWord?.lowercase(), max)
         if (!emojiEnabled) return base
         // Emoji-Schlüssel: getipptes Teilwort, sonst das vorherige Wort (Leerraum-Fall)
@@ -226,10 +263,10 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         return base.take(max - emojis.size) + emojis.map { Suggestion(it, 0.0) }
     }
 
-    /** Next-Word-Prediction: Bigramm zuerst, dann häufigste Basis-/Nutzerwörter. */
-    private fun predictNext(prev: String?, max: Int): List<Suggestion> {
+        /** Next-Word-Prediction: Bigramm zuerst, dann häufigste Basis-/Nutzerwörter. */
+    private fun predictNext(prev: String?, max: Int, sentenceStart: Boolean = false): List<Suggestion> {
         val results = LinkedHashMap<String, Double>()
-        if (prev != null) {
+        if (prev != null && !sentenceStart) {
             bigrams.entries
                 .filter { it.key.startsWith("$prev ") }
                 .map { it.key.substringAfter(' ') to it.value }
@@ -243,17 +280,41 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             val limit = max * 8
             for ((w, bonus) in userFreq.entries) {
                 if (w == prev || results.containsKey(w)) continue
-                results[w] = baseScore(w) * 0.6 + bonus
+                var score = baseScore(w) * 0.6 + bonus
+                if (sentenceStart) score *= sentenceStartBoost(w)
+                results[w] = score
                 if (++added > limit) break
             }
             for (w in topBaseOrder) {
                 if (w == prev || results.containsKey(w)) continue
-                results[w] = baseScore(w) * 0.6
+                var score = baseScore(w) * 0.6
+                if (sentenceStart) score *= sentenceStartBoost(w)
+                results[w] = score
                 if (++added > limit) break
             }
         }
         return results.entries.sortedByDescending { it.value }.take(max)
             .map { Suggestion(it.key, it.value) }
+    }
+
+    /**
+     * Satzanfang-Boost: Am Satzanfang werden typische Satzanfangs­wörter
+     * (Nomen, Verben, häufige Einleitungen) bevorzugt, reine Funktions­wörter
+     * (Kurzpräpositionen/Konjunktionen), die selten allein einen Satz
+     * eröffnen, leicht abgewertet. Der Faktor ist absichtlich moderat,
+     * damit seltene, aber wirklich passende Bigramme nicht ausgeblendet werden.
+     */
+    private fun sentenceStartBoost(word: String): Double {
+        val lower = word.lowercase()
+        // Reine Funktionswörter, die typischerweise nicht als Satzanfang dienen
+        val weakStarters = setOf(
+            // Deutsch: Kurzpräpositionen / -konjunktionen
+            "in", "auf", "von", "zu", "mit", "bei", "nach", "vor", "um",
+            "aus", "seit", "durch", "für", "gegen", "ohne", "per",
+            // Englisch: Kurzpräpositionen / Artikeln / Konjunktionen
+            "of", "to", "in", "on", "at", "by", "for", "and", "or", "but", "the"
+        )
+        return if (weakStarters.contains(lower)) 0.75 else 1.15
     }
 
     /** Autovervollständigung + Fehlerkorrektur für das aktuelle Teilwort. */
@@ -264,8 +325,13 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         }
         val userBonus: (String) -> Double = { w -> userFreq[w] ?: 0.0 }
         fun consider(w: String, penalty: Double = 0.0) {
-            if (w == cur && penalty == 0.0) return
-            val s = baseScore(w) + userBonus(w) * 1.2 + bigramBonus(w) * 3.0 - penalty
+            // Exakt getipptes Wort nie vorschlagen ( Nutzer tippt es ja schon )
+            if (w == cur) return
+            // Längere Kandidaten leicht abwerten: kürzere Vervollständigungen
+            // sind näher an der Eingabe (Deterministisch, winziger Faktor).
+            val lenPenalty = (w.length - cur.length).coerceAtLeast(0) * 0.01
+            val s = baseScore(w) + userBonus(w) * 1.2 + bigramBonus(w) * 3.0 -
+                penalty - lenPenalty
             val existing = results[w]
             if (existing == null || existing < s) results[w] = s
         }
@@ -288,9 +354,13 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             .map { Suggestion(it.key, it.value) }
     }
 
-    /** Groß-/Kleinschreibung des Getippten auf den Vorschlag übertragen. */
-    fun matchCase(suggestion: String, typed: String): String =
-        if (typed.isEmpty() || typed[0].isUpperCase()) {
+        /**
+     * Groß-/Kleinschreibung des Getippten auf den Vorschlag übertragen.
+     * @param sentenceStart true am Satzanfang → Vorschlag großschreiben,
+     *   auch wenn der Nutzer noch ein Kleinbuchstabe getippt hat
+     */
+    fun matchCase(suggestion: String, typed: String, sentenceStart: Boolean = false): String =
+        if (typed.isEmpty() || typed[0].isUpperCase() || sentenceStart) {
             suggestion.replaceFirstChar { it.uppercase() }
         } else suggestion
 
@@ -323,16 +393,22 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         for (w in fuzzyCandidates(first, second)) {
             if (w == cur) continue
             // Längen-Differenz ist eine Untergrenze der Edit-Distanz
-            if (Math.abs(w.length - cur.length) > maxDist) continue
+            val lenDiff = Math.abs(w.length - cur.length)
+            if (lenDiff > maxDist) continue
             val dist = editDistance(cur, w)
             if (dist !in 1..maxDist) continue
             val s = baseScore(w) + (userFreq[w] ?: 0.0) * 1.2 +
                 (if (prev != null) bigrams["$prev $w"] ?: 0.0 else 0.0) * 3.0 -
-                dist * 0.45
+                dist * 0.45 - lenDiff * 0.1
             if (s > bestScore) { bestScore = s; best = w }
         }
-        // Nur korrigieren, wenn der Kandidat ein echtes Wörterbuchwort ist
-        return best?.takeIf { baseFreq.containsKey(it) || (userFreq.containsKey(it) && bestScore > 0.3) }
+        // Nur korrigieren, wenn der Kandidat ein echtes, HÄUFIGES Wörterbuchwort
+        // ist (Mindest-Frequenz → keine Seltenheits-Überraschungen) bzw. ein
+        // klar gelerntes User-Wort.
+        return best?.takeIf {
+            (baseFreq.containsKey(it) && baseScore(it) >= 0.01) ||
+                (userFreq.containsKey(it) && bestScore > 0.3)
+        }
     }
 
 

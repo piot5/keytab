@@ -524,7 +524,6 @@ hate 128153
 food 127657
 outside 127251
 light 126657
-l 126518
 needs 126398
 dog 125769
 country 125731
@@ -569,7 +568,6 @@ perfect 112229
 lives 110583
 special 110344
 parents 110206
-s 110199
 john 109966
 himself 109748
 perhaps 109240
@@ -641,7 +639,6 @@ sign 92512
 lucky 92377
 somewhere 92265
 bet 91573
-o 91243
 jesus 91143
 longer 91035
 calling 90868
@@ -754,7 +751,6 @@ suppose 73465
 evidence 73113
 movie 73070
 ride 73070
-t 72881
 completely 72777
 mouth 72733
 totally 72478
@@ -843,7 +839,6 @@ sitting 64521
 marriage 64465
 join 64456
 fear 64352
-d 64304
 peace 64262
 forgot 64169
 force 63737
@@ -959,7 +954,6 @@ honest 56234
 often 55998
 starting 55979
 calls 55940
-y 55842
 spent 55836
 third 55750
 english 55677
@@ -1114,7 +1108,6 @@ kitchen 45812
 aah 45774
 fat 45737
 passed 45678
-m 45657
 final 45614
 summer 45611
 bob 45572
@@ -1360,7 +1353,6 @@ skin 36861
 excellent 36849
 asshole 36844
 beach 36841
-c 36830
 faith 36815
 beg 36807
 fuckin 36802
@@ -1544,7 +1536,6 @@ bobby 31434
 target 31415
 feed 31409
 nurse 31406
-e 31369
 fake 31355
 records 31339
 breathing 31306
@@ -1633,7 +1624,6 @@ cream 29378
 selling 29357
 believed 29337
 create 29323
-h 29291
 afford 29290
 sunday 29282
 total 29264
@@ -1978,7 +1968,6 @@ rachel 23258
 giant 23227
 insurance 23218
 woods 23211
-n 23195
 scare 23192
 pleased 23158
 period 23158
@@ -2005,7 +1994,6 @@ bath 22866
 hired 22838
 site 22834
 knowledge 22822
-b 22813
 led 22806
 guests 22805
 celebrate 22764
@@ -2701,7 +2689,6 @@ sara 15387
 disaster 15366
 revolution 15350
 online 15339
-f 15338
 demon 15328
 heavily 15326
 coincidence 15318
@@ -2822,7 +2809,6 @@ roy 14370
 dollar 14367
 tone 14366
 voices 14350
-g 14340
 cheating 14310
 confess 14303
 demand 14303
@@ -3024,7 +3010,6 @@ catherine 13179
 steel 13177
 wipe 13177
 burns 13175
-j 13171
 generation 13163
 cabin 13159
 financial 13153
@@ -3242,7 +3227,6 @@ anniversary 12069
 beth 12061
 election 12060
 warrior 12054
-r 12054
 forth 12049
 fetch 12029
 banks 12029
@@ -3301,7 +3285,6 @@ jonathan 11764
 dennis 11751
 benefit 11751
 adventure 11744
-p 11737
 territory 11737
 ve 11729
 apology 11723
@@ -3422,7 +3405,6 @@ comin 11237
 cried 11236
 traveling 11223
 bells 11222
-x 11212
 impact 11206
 robbed 11188
 relief 11188
@@ -3801,7 +3783,6 @@ survival 9752
 gloves 9750
 tracking 9747
 zoe 9744
-u 9743
 bend 9739
 review 9732
 connect 9723
@@ -4002,7 +3983,6 @@ brush 9186
 nelson 9184
 pill 9181
 concept 9181
-w 9179
 delay 9179
 quarters 9178
 korea 9178
@@ -4136,7 +4116,6 @@ largest 8817
 washing 8817
 achieve 8816
 causes 8812
-k 8812
 mo 8810
 dope 8809
 nest 8803
@@ -5077,7 +5056,6 @@ proves 6677
 morris 6677
 luxury 6673
 pistol 6669
-v 6669
 losers 6666
 funds 6662
 sunset 6661
@@ -5842,7 +5820,6 @@ annual 5474
 torch 5474
 dallas 5473
 fulfill 5472
-bon 5471
 resting 5469
 reunion 5466
 witnessed 5464

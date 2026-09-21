@@ -116,7 +116,7 @@
     <LinearLayout
         android:id="@+id/editor_panel"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="180dp"
         android:orientation="vertical"
         android:visibility="gone">
 
@@ -236,10 +236,14 @@
 
         <!-- Editorfeld mit Zeilennummern-Gutter: gleiche Schrift (monospace, 13sp)
              und gleiche Polsterung (8dp oben) wie das Feld, damit die Zeilenhöhen
-             exakt übereinstimmen; EditorPanel synchronisiert den vertikalen Scroll. -->
+             exakt übereinstimmen; EditorPanel synchronisiert den vertikalen Scroll.
+             Höhe via ID + weight=1: beim Maximieren (⌄) füllt das Feld den gesamten
+             Panel-Platz aus; im Normalmodus misst PanelHeights die Naturalhöhe. -->
         <LinearLayout
+            android:id="@+id/editor_field_row"
             android:layout_width="match_parent"
-            android:layout_height="130dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="horizontal">
 
             <TextView
@@ -374,7 +378,7 @@
     <LinearLayout
         android:id="@+id/term_panel"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="180dp"
         android:orientation="vertical"
         android:visibility="gone">
 

@@ -2,7 +2,10 @@ package com.piotv.keytab.ime
 
 import android.content.Context
 import com.piotv.keytab.Prefs
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -96,7 +99,8 @@ class SettingsConfigTest {
 
     @Test fun fullExportImportsAllUiSettingsWithoutCreatingColorOverrides() {
         val completed = SettingsConfig.completeText("", prefs)
-        assertEquals(38, KeyTabConfig.entries(completed).size)
+        // 40 Alt-Keys + 2 Verlauf-Modi (dark/light) + 4 Verlaufs-Farben (je Modus)
+        assertEquals(46, KeyTabConfig.entries(completed).size)
         assertTrue(SettingsConfig.importTextIfChanged(completed, prefs))
         assertFalse(prefs.getBoolean(Prefs.KEY_NUM_ROW, true))
         for (key in listOf(Prefs.KEY_TERM_TAB, Prefs.KEY_CLIP_TAB, Prefs.KEY_SNIPPET_TAB,

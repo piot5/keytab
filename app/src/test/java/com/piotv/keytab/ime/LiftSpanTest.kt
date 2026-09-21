@@ -30,7 +30,7 @@ class LiftSpanTest {
         val span = LiftSpan(-0.2f)
         span.updateMeasureState(tp)
         val once = tp.baselineShift
-        for (i in 1..10) span.updateMeasureState(tp)
+        repeat(10) { span.updateMeasureState(tp) }
         assertEquals("Mehrfaches Anwenden darf baselineShift nicht aufsummieren",
             once, tp.baselineShift)
     }

@@ -12,6 +12,25 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 
 ## Unreleased
+
+- **Test: 20 neue Robolectric-Panel-Tests (P1)** — `SnippetPanelTest` (5),
+  `TerminalPanelTest` (10), `FileManagerPanelTest` (5); Lücke aus der externen
+  Pruefung (§8.3 Rang 2 „Testpyramide"): die Panels waren nur ueber den reinen
+  `FileManagerModel`/`EditorPanel` abgedeckt. Neu geprueft: Snippet-Parser
+  (Kommentare, Leerzeilen, fehlendes `=`, `\n`-Escapes, Default-Datei-Erzeugung,
+  Tap → Commit + Recent-History), Terminal (Prompt `user@host:~`, cd-Verfolgung
+  inkl. Rueckfall auf Home bei ungueltigem Ziel, Insert/Delete/`delete(word)`
+  am Cursor, leerer Befehl), Files-Panel (Navigation in Unterordner,
+  Back-Stack + Zurueck-Button-Sichtbarkeit, Up-Navigation, Datei-Tipp →
+  Pfad-Commit, Persistenz von `fm_dir`/`fm_backstack`). Testsuite jetzt
+  **343 Tests in 36 Suiten**, 0 Fehler.
+
+- **i18n: `values-en` vervollstaendigt (176/176 Strings)** — 71 fehlende
+  Uebersetzungen ergaenzt (Settings-/Theme-/Snippet-/Editor-/Terminal-Texte,
+  Gradient-Modi, Versions-Label). Vorher fiel in englischsprachigen Systemen
+  rund ein Drittel der Oberflaeche auf Deutsch zurueck; das war die letzte
+  offene Schwaeche der externen Doku-Bewertung (§8.3 Rang 5).
+
 - **Refactor: detekt-Baseline aufgeräumt und neu generiert** — Quick-Wins-Paket
   (staerkster Hebel der externen Pruefung, §8.3): 26x `NewLineAtEndOfFile`
   (fehlende Datei-Newlines, automatisiert), 6x `WildcardImport` → explizite

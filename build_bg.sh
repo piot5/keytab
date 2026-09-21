@@ -124,6 +124,10 @@ case "$TARGET" in
         TASK=":app:detektBaseline"
         APK=""
         ;;
+    coverage)
+        TASK=":app:coverageGate"
+        APK=""
+        ;;
     *)
         echo "Unbekanntes Ziel: $TARGET (erwartet: debug|release|test|wait|status)"
         exit 1

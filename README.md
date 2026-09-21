@@ -134,45 +134,48 @@ All panels share a background executor for file I/O and a main handler for UI up
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**323 unit tests in 33 suites, 0 failures** (verified 2026-09-20, `assembleDebug` + `testDebugUnitTest` both green):
+**343 unit tests in 36 suites, 0 failures** (verified 2026-09-21, `assembleDebug` + `testDebugUnitTest` both green):
 
 | Suite | Tests | Kind |
 |---|---:|---|
 | `SuggestionEngineTest` | 32 | pure |
-| `SwipePathLogicTest` | 19 | pure |
-| `SwipeScorerTest` | 19 | pure |
+| `SwipePathLogicTest` | 23 | pure |
+| `SwipeManagerTest` | 20 | Robolectric |
 | `TextEditLogicTest` | 20 | pure |
+| `SwipeScorerTest` | 19 | pure |
 | `TrailLogicTest` | 18 | pure |
-| `FileManagerModelTest` | 11 | Robolectric |
+| `SuggestionReplaceLogicTest` | 17 | pure |
 | `EditorHighlightLogicTest` | 11 | pure |
-| `SectionsTest` | 10 | Robolectric |
+| `EmojiModuleTest` | 11 | pure |
+| `FileManagerModelTest` | 11 | Robolectric |
 | `KeyScaleLogicTest` | 10 | pure |
+| `SectionsTest` | 10 | Robolectric |
+| `TerminalPanelTest` | 10 | Robolectric |
 | `SectionsMoreTest` | 9 | pure |
 | `EditorPanelTest` | 8 | Robolectric |
 | `InputRouterTest` | 8 | Robolectric |
 | `KeyTabConfigTest` | 8 | pure |
 | `LearnedDictionaryApiTest` | 8 | pure |
-| `EmojiModuleTest` | 7 | pure |
 | `EmojiSuggestionsTest` | 7 | pure |
 | `SettingsConfigTest` | 7 | Robolectric |
 | `TermuxKeyMatrixTest` | 7 | pure |
 | `ThemeApplierTest` | 7 | Robolectric |
 | `CapsLogicTest` | 6 | Robolectric |
 | `ShiftControllerTest` | 6 | Robolectric |
+| `WordPredictionManagerSuggestionTest` | 6 | Robolectric |
 | `ClipboardPanelTest` | 5 | Robolectric |
+| `FileManagerPanelTest` | 5 | Robolectric |
 | `LikelyHighlightLogicTest` | 5 | pure |
 | `SettingsRegressionTest` | 5 | Robolectric |
+| `SnippetPanelTest` | 5 | Robolectric |
+| `FileManagerFragmentTest` | 4 | Robolectric |
 | `KeyAnimationsTest` | 4 | Robolectric |
 | `LiftSpanTest` | 4 | Robolectric |
-| `FileManagerFragmentTest` | 4 | Robolectric |
-| `SwipeManagerTest` | 20 | Robolectric |
-| `SuggestionReplaceLogicTest` | 17 | pure |
-| `WordPredictionManagerSuggestionTest` | 6 | Robolectric |
+| `SwipePerformanceTest` | 3 | pure |
 | `PanelHeightsTest` | 2 | Robolectric |
 | `TrailPerformanceTest` | 2 | pure |
-| `SwipePerformanceTest` | 3 | pure |
 
-Test code is 3,324 lines in 27 files against 7,576 lines of main code (53 files) — a **43.9 % test-to-main ratio**. Line coverage measured with Kover is **47.6 %** (`LINE` 1739/3653), branch coverage **36.4 %** (`BRANCH` 951/2616); the CI gate is 20 % (re-measured 2026-09-19, all 288 tests green). Per package: the Android-free logic (`com.piotv.keytab.ime`: 42.9 %), the theme UI sections (`sections`: 92.5 %) and the in-app file manager (`file`: 78.7 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
+Test code is 4,718 lines in 36 files against 9,380 lines of main code (57 files) — a **50.3 % test-to-main ratio**. Line coverage measured with Kover is **52.2 %** (`LINE` 2300/4404), branch coverage **39.8 %** (`BRANCH` 1287/3237); the CI gate is 20 % (re-measured 2026-09-21, all 343 tests green). Per package: the Android-free logic (`com.piotv.keytab.ime`: 49.7 %), the theme UI sections (`sections`: 93.6 %) and the in-app file manager (`file`: 77.9 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `TerminalPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
 
 ```bash
 # Run all unit tests
@@ -194,7 +197,7 @@ Documented honestly rather than implied away — these are the things that are *
 | **Trail frame timing not measured on device** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.autoCorrect`). **Partially measured (2026-09-19):** the algorithm cost is JVM-benchmarked in `TrailPerformanceTest` — ~2 µs per classification on a 6,000-word corpus, ~4 orders of magnitude below the 50 ms keystroke budget (with a hard assertion so regressions fail the build). What remains open: **frame timing on a real display** (profiling on the device) and visual smoothness; the red/green trace contrast per theme palette is still not screenshot-verified. Mitigation if it stutters: restrict the trace to `knowsWord` and check `autoCorrect` only on word completion. |
 | **Trail visuals not screenshot-verified** | The regression fix for contradictory trace states (see 0.9.7) is proven at the **state level** by unit tests — no screenshot or instrumented test asserts the rendered colours. The red/green contrast against each custom theme palette has not been measured. |
 | **Swipe frame timing not measured on device** | The swipe hot path (`charAt` + `dedup` per Move-Event, `SwipeScorer.score` on release) is JVM-benchmarked in `SwipePerformanceTest` — `charAt` and `dedup` are asserted < 5 ms avg over 10 000 calls, the scorer < 50 ms on a 6 000-word corpus (hard assertions so regressions fail the build). What remains open: **frame timing on a real display** (profiling the overlay invalidate + edge redraw on the device) and visual smoothness of the circuit preview path. |
-| **English locale incomplete** | `values-en` has 92 strings against 163 in the default (German) file; the rest fall back to German in an English-locale device. |
+| ~~English locale incomplete~~ **Resolved 2026-09-21** | `values-en` now covers all 176 strings (was 92/163); no German fallback in English-locale devices any more. |
 | **Terminal has no PTY** | By design — see the Terminal description above. It is the Android system shell in the app sandbox, not a Termux replacement. |
 | **Instrumented tests are thin** | 2 tests in 44 lines. They run in CI on an API-34 emulator but do not exercise the keyboard UI. |
 
@@ -308,7 +311,7 @@ app/src/main/java/com/piotv/keytab/            # 51 Kotlin files, 7,020 lines
 app/src/test/java/com/piotv/keytab/ime/        # 19 test classes, 164 tests, 2,350 lines
 app/src/androidTest/                           # 2 instrumented tests (CI: API 34 emulator)
 app/src/main/res/values/strings.xml            # 163 strings (default = German)
-app/src/main/res/values-en/                    # English locale (92 strings — partial, falls back to German)
+app/src/main/res/values-en/                    # English locale (176 strings — complete, 2026-09-21)
 app/src/main/res/values-night/                 # Night-mode resource qualifiers
 app/src/main/assets/
 ├── de_freq_top6000.txt              # corpus (CC-BY-SA-4.0)

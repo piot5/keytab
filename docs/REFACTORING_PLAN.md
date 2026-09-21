@@ -13,9 +13,11 @@ Status: 2026-09-21 · Goal: maintainable, testable modules with no behaviour cha
 
 | Metric | Value |
 |---|---|
-| Unit tests | **323 in 33 suites**, 0 failures (verified 21 Sep, `testDebugUnitTest` green) |
-| Coverage (Kover) | 46.5 % line / 35.4 % branch (19 Sep); `sections` 92.5 %, `file` 78.7 % |
+| Unit tests | **343 in 36 suites**, 0 failures (verified 21 Sep; `testDebugUnitTest` + `coverageGate` green) |
+| Coverage (Kover) | **52.2 % line** (2300/4404) / **39.8 % branch** (1287/3237), measured 21 Sep; `sections` 93.6 %, `file` 77.9 %, `ime` 49.7 % |
+| Test:main ratio | **50.3 %** (4,718 test lines / 9,380 main lines; 57 main files) |
 | detekt baseline | **198 Einträge** (156 nach Quick-Win-Aufräumung; + 42 neue v0.11-Swipe-Funde via `detektBaseline`-Regenerierung 21 Sep) |
+| i18n | `values-en` **176/176 Strings** (100 %, 21 Sep) |
 | Service size | ~290 lines (from 908) |
 | Working tree | v0.11 swipe + autocorrect-fix + dict scripts — **commit pending** |
 | Repo hygiene | `KeyAnimations.kt` duplication resolved (only `ime/` copy left) |
@@ -50,8 +52,12 @@ Status: 2026-09-21 · Goal: maintainable, testable modules with no behaviour cha
 
 ### P1 — Test infrastructure (+3.0 global)
 - [x] Coverage gate (Kover, 20 % threshold) — done 17 Sep (History §3/P1)
-- [ ] **More Robolectric panel tests:** `FileManagerPanel` navigation/back-stack, `SnippetPanel`
-  parse/insert, `TerminalPanel` prompt/cd tracking, `InputRouter` focus routing
+- [x] **Robolectric panel tests (21 Sep):** `SnippetPanelTest` (5: parser rules, defaults file,
+  tap→commit, recent-history), `TerminalPanelTest` (10: prompt, cd tracking + invalid-target
+  fallback, insert/delete/delete(word), empty command), `FileManagerPanelTest` (5: navigation,
+  back-stack, up, file-tap commit, `fm_dir`/`fm_backstack` persistence).
+  Suite total **343 tests / 36 suites**. Still open from the original P1 list:
+  `InputRouter` focus routing has `InputRouterTest` (8) but no cross-panel routing case.
 - [ ] **Instrumented swipe/touch integration test** (external lever #2, +2.0): IME touch
   interaction + swipe path — only 2 instrumented tests exist today
 
@@ -105,7 +111,7 @@ baselined by regeneration on 21 Sep — they join the same cleanup cycles.
 |---|---|---|---|
 | 1 | detekt baseline reduction (hard cases) | +2.0 | §5 above |
 | 2 | Instrumented swipe/touch tests | +2.0 | P1 above |
-| 3 | `values-en` completeness: **105/176 strings (~60 %)** → 100 % | +0.5 | new — i18n item |
+| 3 | ~~`values-en` completeness~~ **DONE 2026-09-21: 176/176 strings** | ✅ | i18n item closed |
 | 4 | Kover report as CI artifact **on success** too (not only on failure) | +1.0 (partial) | CI tweak, cheap |
 
 ---

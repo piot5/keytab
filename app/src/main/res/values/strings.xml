@@ -82,9 +82,6 @@
     <string name="settings_suggestions">Word suggestions (click = insert)</string>
     <string name="settings_suggestions_on">Suggestions enabled</string>
     <string name="settings_suggestions_off">Suggestions disabled</string>
-    <string name="settings_autocorrect">Auto-correction (fix typos on space)</string>
-    <string name="settings_autocorrect_on">Auto-correction enabled</string>
-    <string name="settings_autocorrect_off">Auto-correction disabled</string>
     <string name="settings_emoji">Emoji suggestions (optional, appended to word suggestions)</string>
     <string name="sug_back_desc">Back to word suggestions</string>
     <string name="sug_grid_desc">Select from full emoji catalog</string>
@@ -98,9 +95,6 @@
     <string name="settings_swipe">Swipe typing (glide over keys, offline)</string>
     <string name="settings_swipe_on">Swipe typing enabled</string>
     <string name="settings_swipe_off">Swipe typing disabled</string>
-    <string name="settings_swipe_preview">Circuit preview ⚠️ experimental (likely keys shown as a path)</string>
-    <string name="settings_swipe_preview_on">Circuit preview enabled</string>
-    <string name="settings_swipe_preview_off">Circuit preview disabled</string>
     <string name="settings_update_config">⚙️ Write config (keytab_config.txt)</string>
     <string name="config_ready">Config ready: %1$s</string>
     <string name="config_exists">file already exists — edit values directly, effective on next keyboard open</string>
@@ -174,8 +168,8 @@
     <string name="theme_trail_toggle">🌊 Tippspur (Trail)</string>
     <string name="theme_trail_hint">Der zuletzt geklickte Buchstabe wird farblich markiert und mit jeder neuen Eingabe stufenweise weniger sichtbar, bis er ganz verschwindet. Standardfarbe: Blau. In Passwort-Feldern bleibt die Spur aus.</string>
     <string name="theme_trail_steps">Stufen: %1$d</string>
-    <string name="theme_trail_trace_toggle">🔎 Korrektur-Trace</string>
-    <string name="theme_trail_trace_hint">Zeigt beim Tippen, was die Worterkennung mit dem Wort vorhat: rot = es würde automatisch korrigiert, grün = es wird akzeptiert. Nur ein Hinweis, es wird nichts geändert. Nur in normalen Textfeldern.</string>
+    <string name="theme_trail_trace_toggle">✅ Vorschlag-Treffer grün markieren</string>
+    <string name="theme_trail_trace_hint">Passt das getippte Wort genau zum obersten Vorschlag, werden seine Buchstaben kurz grün markiert. Es wird nichts geändert — nur eine Bestätigung. Nur in normalen Textfeldern.</string>
     <string name="theme_reset">Reset</string>
     <string name="theme_gradient_hint">Farbe 1 / Farbe 2 und deren Alpha stellst du im Farbwahlrad unten ein (Ziel „Farbe 1/2").</string>
     <string name="editor_pick_parent">▲ …</string>

@@ -271,7 +271,7 @@ internal class KeyboardBinder(
     }
 
     /**
-     * Korrektur-Trace nach einem Buchstaben-Tap: prüft das aktuell getippte Wort
+     * Treffer-Markierung nach einem Buchstaben-Tap: prüft das aktuell getippte Wort
      * gegen die [SuggestionEngine] und färbt es bei Bedarf rot. No-Op, solange
      * die Trace-Pref aus ist – der Trail bleibt also der reine Tippspur-Effekt.
      */

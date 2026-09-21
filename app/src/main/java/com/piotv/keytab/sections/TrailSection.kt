@@ -15,8 +15,8 @@ import com.piotv.keytab.ime.ThemePrefs
  *
  * Zusätzlich (v0.9.8):
  *  - **Stufen**: Anzahl der Verblass-Schritte (3/5/7/10), Pref `trail_steps`.
- *  - **Korrektur-Trace**: färbt getippte Wörter rot, wenn die Worterkennung sie
- *    automatisch ersetzen würde (Hinweis; es wird nichts geändert).
+ *  - **Treffer-Markierung**: färbt getippte Wörter grün, wenn sie exakt dem
+ *    obersten Vorschlag entsprechen (reine Bestätigung; es wird nichts geändert).
  *
  * Der Trail erscheint nie in Passwort-Feldern (siehe [TrailLogic.isTrailAllowed]).
  */
@@ -131,7 +131,7 @@ class TrailSection(
             if (enabled) Color.parseColor("#FF3F51B5") else Color.TRANSPARENT
         )
         traceToggle?.setBackgroundColor(
-            if (enabled && ThemePrefs.trailTraceEnabled(prefs)) Color.parseColor("#FFF44336")
+            if (enabled && ThemePrefs.trailTraceEnabled(prefs)) Color.parseColor("#FF4CAF50")
             else Color.TRANSPARENT
         )
     }

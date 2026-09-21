@@ -30,7 +30,7 @@ object SettingsConfig {
         // Swipe (Gleit-Eingabe + Schaltplan-Preview), v0.11 — Default aus.
         put("swipe", Setting(Prefs.KEY_SWIPE, "false", "boolean"))
         put("swipe_preview", Setting(Prefs.KEY_SWIPE_PREVIEW, "false", "boolean"))
-        // Trail (Tippspur + Korrektur-Trace). Vorher nur über Theme-Export
+        // Trail (Tippspur + Treffer-Markierung). Vorher nur über Theme-Export
         // steuerbar – hier zusätzlich über keytab_config.txt (docs/CONFIG.md).
         put("trail", Setting(ThemePrefs.KEY_TRAIL, "false", "boolean"))
         put("trail_trace", Setting(ThemePrefs.KEY_TRAIL_TRACE, "false", "boolean"))

@@ -5,15 +5,15 @@ import android.view.inputmethod.EditorInfo
 
 /**
  * Reine Trail-Logik (Android-frei bis auf die [EditorInfo]-Ableitung, JUnit-testbar):
- * Decay-Berechnung der Tippspur und die Farb-Klassifikation des Korrektur-Traces.
+ * Decay-Berechnung der Tippspur und die Klassifikation der Treffer-Markierung.
  *
  * Der Trail hat zwei Betriebsarten:
  *  - **Tippspur** ([TrailKind.TYPED]): der zuletzt gedrückte Buchstabe, in der
  *    Theme-Farbe, stufenweise verblassend (v0.9.7, unverändertes Verhalten).
- *  - **Korrektur-Trace** ([TrailKind.ACCEPTED] / [TrailKind.CORRECTED]): zeigt beim
- *    Tippen, ob die [SuggestionEngine] das getippte Wort kennt oder es per
- *    Fuzzy-Korrektur ersetzen will. Das ist ein Live-Debug der Engine, sichtbar
- *    auf den Tasten – in keinem anderen Keyboard vorhanden.
+ *  - **Treffer-Markierung** ([TrailKind.ACCEPTED]): wird grün, wenn das getippte
+ *    Wort genau dem obersten Vorschlag entspricht — eine reine Bestätigung.
+ *    **Kein Rot:** die frühere Warnfärbung („Fuzzy-Korrektur würde greifen")
+ *    wurde entfernt; Tippfehler bleiben unmarkiert.
  *
  * **Sicherheit:** In Passwort-Feldern darf der Trail nicht erscheinen. Er würde
  * die `•`-Maskierung durch einen visuellen Seitenkanal unterlaufen
@@ -26,11 +26,8 @@ object TrailLogic {
         /** Normale Tippspur: zuletzt gedrückter Buchstabe, Theme-Farbe. */
         TYPED,
 
-        /** Korektur-Trace: Wort ist im Wörterbuch/User-Dict → nichts zu tun. */
-        ACCEPTED,
-
-        /** Korrektur-Trace: Fuzzy-Korrektur würde das Wort ersetzen → Hinweis. */
-        CORRECTED
+        /** Treffer-Markierung: getipptes Wort entspricht dem Top-Vorschlag → grün. */
+        ACCEPTED
     }
 
     /** Default-Anzahl Decay-Stufen (v0.9.7). */
@@ -62,21 +59,24 @@ object TrailLogic {
     }
 
     /**
-     * Klassifiziert das getippte Wort für den Korrektur-Trace.
+     * Klassifiziert das getippte Wort für die Treffer-Markierung.
      * Nur ganze Wörter ab [TrailManager.MIN_TRACE_WORD] Zeichen werden bewertet –
      * für kürzere Wörter greift die Engine-Autokorrektur ohnehin nicht
      * ([SuggestionEngine.autoCorrect] verlangt `length >= 3`).
      *
+     * Liefert nur noch [TrailKind.ACCEPTED] (Wort ist der Engine bekannt) oder
+     * `null`. Ein Fuzzy-Korrektur-Kandidat ergibt **keine** Markierung mehr —
+     * die frühere rote Warnfarbe wurde entfernt.
+     *
      * @param typed das getippte Wort (ohne Trennzeichen)
      * @param engine laufende Engine oder null (noch nicht geladen)
-     * @return [TrailKind.ACCEPTED], [TrailKind.CORRECTED] oder null (kein Trace)
+     * @return [TrailKind.ACCEPTED] oder null (keine Markierung)
      */
     fun classifyTypedWord(typed: String, engine: SuggestionEngine?): TrailKind? {
         if (engine == null) return null
         if (typed.length < TrailManager.MIN_TRACE_WORD) return null
         if (!typed.all { it.isLetter() }) return null
-        if (engine.knowsWord(typed)) return TrailKind.ACCEPTED
-        return if (engine.autoCorrect(typed) != null) TrailKind.CORRECTED else null
+        return if (engine.knowsWord(typed)) TrailKind.ACCEPTED else null
     }
 
     /**

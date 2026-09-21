@@ -27,15 +27,20 @@ welcher Schlüssel wohin gehört.
 - `num_row`, `term_tab`, `clip_tab`, `snippet_tab`, `suggestions`, `autocorrect`,
   `dynamic_keys`, `emoji_suggestions` (Default `false` — hängt bis zu 2
   thematische Emojis hinten an die Wortvorschläge an; immer offline).
-- `swipe`, `swipe_preview` (Default `false` — v0.11). `swipe` aktiviert die
-  Gleit-Eingabe: der Finger gleitet über die Tastatur, die Route wird gegen die
-  Engine bewertet (Auto-Commit bei klarem Ergebnis, sonst Kandidaten-Leiste).
-  `swipe_preview` zeigt die wahrscheinlichen Folge-Tasten des aktuell getippten
-  Worts als verbundenen Pfad (passiv). Beide sind in Passwort-Feldern hart
-  deaktiviert (gleiche Regel wie `trail`). Siehe `docs/SWIPE_PLAN.md`.
-- `trail`, `trail_trace`: Tippspur an/aus und Korrektur-Trace an/aus
-  (Default `false`). Der Korrektur-Trace färbt getippte Wörter
-  rot, wenn sie automatisch ersetzt würden (Hinweis, es wird nichts geändert).
+  **Hinweis:** `autocorrect` (Default `true`) ist seit 2026-09-21 nicht mehr im
+  Einstellungs-Screen (die Autokorrektur läuft fest); über diese Config-Datei
+  lässt sie sich weiterhin gezielt abschalten.
+- `swipe` (Default `false` — v0.11): Gleit-Eingabe; der Finger gleitet über die
+  Tastatur, die Route wird gegen die Engine bewertet (Auto-Commit bei klarem
+  Ergebnis, sonst Kandidaten-Leiste). `swipe_preview` (Default `false`,
+  experimentell) zeigt die wahrscheinlichen Folge-Tasten des aktuell getippten
+  Worts als verbundenen Pfad (passiv) — **seit 2026-09-21 nicht mehr im
+  Einstellungs-Screen**, nur noch hier schaltbar. Beide sind in Passwort-Feldern
+  hart deaktiviert (gleiche Regel wie `trail`). Siehe `docs/SWIPE_PLAN.md`.
+- `trail`, `trail_trace`: Tippspur an/aus und Treffer-Markierung an/aus
+  (Default `false`). Die Treffer-Markierung färbt ein Wort **grün**, wenn es
+  exakt dem obersten Vorschlag entspricht (reine Bestätigung, es wird nichts
+  geändert). Die frühere rote Warnfärbung („würde korrigiert") ist entfernt.
 - `gaming_mode`, `gaming_effect`: Hervorhebung der nächsten Taste und Puls-Effekt.
   Die Namen sind historisch (aus der Zeit vor „Likely Highlighting") und bleiben
   als Schlüssel stabil — im Code sind sie `ThemePrefs.KEY_LIKELY` /

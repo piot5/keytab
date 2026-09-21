@@ -13,6 +13,25 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Unreleased
 
+- **Einstellungen entlastet + Rot-Färbung raus** — auf Wunsch des Projekt-Eigners:
+  - Die Schalter **„Auto-correction"** und **„Circuit preview"** sind aus dem
+    Einstellungs-Screen entfernt (Layout, Verdrahtung, 6 Strings in beiden
+    Sprachen). Verhalten: Autokorrektur bleibt aktiv (Pref-Default `true`), die
+    experimentelle Schaltplan-Preview bleibt aus (Default `false`); beide Werte
+    sind weiterhin über die Config-Datei steuerbar (`docs/CONFIG.md`).
+  - **Kein rotes Buchstaben-Aufleuchten mehr:** die Korrektur-Warnfärbung
+    (`TrailKind.CORRECTED`, `trail_corrected_color` in beiden Farbsets,
+    Config-Export/-Import, Reset) ist komplett entfernt. Ein Tippfehler bleibt
+    jetzt unmarkiert.
+  - **Grün bleibt — und bedeutet jetzt genau eins:** die Buchstaben färben sich
+    kurz grün, wenn das getippte Wort **exakt dem obersten Vorschlag entspricht**
+    (`TrailKind.ACCEPTED`, gated durch die Pref `trail_trace`). Schalter-Label
+    und Hinweistext in beiden Sprachen angepasst
+    („✅ Vorschlag-Treffer grün markieren").
+  - Tests/Doku nachgezogen: `TrailLogicTest` (Regression „Korrektur-Kandidat
+    ergibt keine Markierung mehr"), `TrailPerformanceTest`, README-Abschnitt,
+    `docs/CONFIG.md`, KDoc in `TrailLogic`/`TrailManager`/`ThemePrefs`.
+
 - **Test: 20 neue Robolectric-Panel-Tests (P1)** — `SnippetPanelTest` (5),
   `TerminalPanelTest` (10), `FileManagerPanelTest` (5); Lücke aus der externen
   Pruefung (§8.3 Rang 2 „Testpyramide"): die Panels waren nur ueber den reinen

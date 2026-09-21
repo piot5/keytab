@@ -55,12 +55,10 @@ object ThemePrefs {
     const val KEY_TRAIL_COLOR = "trail_color"
     /** Anzahl der Decay-Stufen bevor die Spur komplett verschwindet (Default 5). */
     const val KEY_TRAIL_STEPS = "trail_steps"
-    /** Korrektur-Trace an/aus: färbt getippte Wörter nach Engine-Urteil. */
+    /** Treffer-Markierung an/aus: färbt ein Wort grün, wenn es dem Top-Vorschlag entspricht. */
     const val KEY_TRAIL_TRACE = "trail_trace"
-    /** Grundfarbe des Trace für akzeptierte Wörter (Default grün). */
+    /** Grundfarbe der Treffer-Markierung (Default grün). */
     const val KEY_TRAIL_ACCEPTED_COLOR = "trail_accepted_color"
-    /** Grundfarbe des Trace für korrigierte Wörter (Default rot). */
-    const val KEY_TRAIL_CORRECTED_COLOR = "trail_corrected_color"
 
     // ---------- Likely Highlighting (Theme-Einstellungen) ----------
     /** Farbe der wahrscheinlichsten nächsten Taste („likely highlight"). */
@@ -81,17 +79,13 @@ object ThemePrefs {
     /** Anzahl Decay-Stufen. Default 5. */
     fun trailSteps(prefs: SharedPreferences): Int =
         prefs.getInt(KEY_TRAIL_STEPS, TrailLogic.DEFAULT_STEPS).coerceAtLeast(1)
-    /** Korrektur-Trace an/aus. Default: false (nur zusammen mit Trail sinnvoll). */
+    /** Treffer-Markierung an/aus. Default: false (nur zusammen mit Trail sinnvoll). */
     fun trailTraceEnabled(prefs: SharedPreferences): Boolean =
         prefs.getBoolean(KEY_TRAIL_TRACE, false)
-    /** Grundfarbe für „Engine kennt das Wort" (grün). */
+    /** Grundfarbe der Treffer-Markierung (grün) — erscheint, wenn das Wort dem Top-Vorschlag entspricht. */
     fun trailAcceptedColor(prefs: SharedPreferences): Int =
         if (prefs.contains(KEY_TRAIL_ACCEPTED_COLOR)) prefs.getInt(KEY_TRAIL_ACCEPTED_COLOR, 0)
         else 0xFF4CAF50.toInt()
-    /** Grundfarbe für „Fuzzy-Korrektur würde greifen" (rot). */
-    fun trailCorrectedColor(prefs: SharedPreferences): Int =
-        if (prefs.contains(KEY_TRAIL_CORRECTED_COLOR)) prefs.getInt(KEY_TRAIL_CORRECTED_COLOR, 0)
-        else 0xFFF44336.toInt()
     /** Trail-Farbe mit aktuellem Alpha (Decay) – nutzt dieselbe Formel wie das Overlay. */
     fun trailColorWithAlpha(prefs: SharedPreferences, step: Int, maxSteps: Int): Int =
         withAlpha(trailColor(prefs), TrailLogic.alphaForStep(step, maxSteps))
@@ -218,7 +212,6 @@ object ThemePrefs {
         tr.put("steps", trailSteps(prefs))
         tr.put("trace", trailTraceEnabled(prefs))
         tr.put("accepted_color", trailAcceptedColor(prefs))
-        tr.put("corrected_color", trailCorrectedColor(prefs))
         b.put("trail", tr)
         b.put("version", themeVersion(prefs))
         return b.toString(2)
@@ -266,9 +259,6 @@ object ThemePrefs {
             if (t.has("accepted_color")) {
                 prefs.edit().putInt(KEY_TRAIL_ACCEPTED_COLOR, t.getInt("accepted_color")).apply()
             }
-            if (t.has("corrected_color")) {
-                prefs.edit().putInt(KEY_TRAIL_CORRECTED_COLOR, t.getInt("corrected_color")).apply()
-            }
         }
         bumpVersion(prefs)
         true
@@ -281,7 +271,7 @@ object ThemePrefs {
             .remove(colorKey(true, KIND_LIKELY)).remove(colorKey(true, KIND_TRAIL))
             .remove(colorKey(true, KIND_SWIPE)).remove(colorKey(true, KIND_SWIPE_EDGE))
             .remove(KEY_TRAIL_TRACE)
-            .remove(KEY_TRAIL_ACCEPTED_COLOR).remove(KEY_TRAIL_CORRECTED_COLOR)
+            .remove(KEY_TRAIL_ACCEPTED_COLOR)
             .remove(KEY_SWIPE_COLOR).remove(KEY_SWIPE_EDGE_COLOR)
             .remove(colorKey(false, KIND_BG)).remove(colorKey(false, KIND_KEY))
             .remove(colorKey(false, KIND_HL)).remove(colorKey(false, KIND_TEXT))

@@ -53,12 +53,12 @@ class TrailPerformanceTest {
             }
         }
         val t0 = System.nanoTime()
-        var corrected = 0
+        var marked = 0
         for (w in words) {
-            if (TrailLogic.classifyTypedWord(w, engine) == TrailLogic.TrailKind.CORRECTED) corrected++
+            if (TrailLogic.classifyTypedWord(w, engine) == TrailLogic.TrailKind.ACCEPTED) marked++
         }
         val avgMicros = (System.nanoTime() - t0) / 1000 / words.size
-        println("classifyTypedWord: $avgMicros µs/call im Schnitt (JVM, 6k-Wort-Korpus, 500 calls, $corrected korrigiert)")
+        println("classifyTypedWord: $avgMicros µs/call im Schnitt (JVM, 6k-Wort-Korpus, 500 calls, $marked markiert)")
         assertTrue("avg $avgMicros µs sollte < 5.000 µs (5 ms) sein", avgMicros < 5_000)
     }
 

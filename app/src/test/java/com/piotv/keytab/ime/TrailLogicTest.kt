@@ -51,7 +51,7 @@ class TrailLogicTest {
         assertNull(TrailLogic.nextStep(9, 5))
     }
 
-    // ---------- Korrektur-Trace ----------
+    // ---------- Treffer-Markierung (kein Rot mehr) ----------
 
     private fun engine(vararg words: String) =
         SuggestionEngine(words.map { it to 1000 })
@@ -65,12 +65,10 @@ class TrailLogicTest {
     }
 
     @Test
-    fun `classifyTypedWord erkennt Korrektur-Kandidat als CORRECTED`() {
-        // "ahus" ist unbekannt, "haus" steht im Korpus (Transposition)
-        assertEquals(
-            TrailLogic.TrailKind.CORRECTED,
-            TrailLogic.classifyTypedWord("ahus", engine("haus", "hallo"))
-        )
+    fun `classifyTypedWord markiert Korrektur-Kandidaten nicht mehr`() {
+        // Regression: die fruehere rote Warnfaerbung ist entfernt — ein
+        // Fuzzy-Kandidat ("ahus" → "haus") darf jetzt KEINE Markierung ergeben.
+        assertNull(TrailLogic.classifyTypedWord("ahus", engine("haus", "hallo")))
     }
 
     @Test
@@ -173,19 +171,19 @@ class TrailLogicTest {
     @Test
     fun `gleicher Buchstabe behaelt seine Klassifikation und wird nicht ueberschrieben`() {
         val kinds = mutableMapOf<Char, TrailLogic.TrailKind>()
-        // Wort "haus" wird als korrekturbeduerftig eingestuft
-        for (ch in "haus") kinds[ch] = TrailLogic.TrailKind.CORRECTED
+        // Wort "haus" wurde als Treffer markiert
+        for (ch in "haus") kinds[ch] = TrailLogic.TrailKind.ACCEPTED
         // zweiter Tap auf "s" (Wort "hauss") – snap() laeuft mit TYPED
         val incoming = TrailLogic.TrailKind.TYPED
         val existing = kinds['s']
         if (existing == null || existing == TrailLogic.TrailKind.TYPED) kinds['s'] = incoming
         assertEquals(
-            "bestehender CORRECTED-Trace darf nicht von TYPED ueberschrieben werden",
-            TrailLogic.TrailKind.CORRECTED, kinds['s']
+            "bestehende Treffer-Markierung darf nicht von TYPED ueberschrieben werden",
+            TrailLogic.TrailKind.ACCEPTED, kinds['s']
         )
-        assertEquals(TrailLogic.TrailKind.CORRECTED, kinds['h'])
-        assertEquals(TrailLogic.TrailKind.CORRECTED, kinds['a'])
-        assertEquals(TrailLogic.TrailKind.CORRECTED, kinds['u'])
+        assertEquals(TrailLogic.TrailKind.ACCEPTED, kinds['h'])
+        assertEquals(TrailLogic.TrailKind.ACCEPTED, kinds['a'])
+        assertEquals(TrailLogic.TrailKind.ACCEPTED, kinds['u'])
     }
 
     /**
@@ -196,7 +194,7 @@ class TrailLogicTest {
     fun `clearTrace entfernt nur Trace-Eintraege und laesst die Tippspur stehen`() {
         val kinds = mutableMapOf(
             'z' to TrailLogic.TrailKind.TYPED,
-            'q' to TrailLogic.TrailKind.CORRECTED,
+            'q' to TrailLogic.TrailKind.ACCEPTED,
             'y' to TrailLogic.TrailKind.ACCEPTED
         )
         for (c in kinds.keys.toList()) {
@@ -209,15 +207,16 @@ class TrailLogicTest {
     }
 
     /**
-     * Wird ein Wort akzeptiert, muss der vorherige rote Trace WEG sein – nicht
-     * zusaetzlich stehen bleiben (sonst rot+gruen gleichzeitig auf denselben
-     * Tasten, wenn beide Woerter gemeinsame Buchstaben haben).
+     * Wird ein Wort als Treffer markiert, muss die vorherige Markierung WEG sein –
+     * nicht zusaetzlich stehen bleiben (sonst ueberlagern sich zwei gruene
+     * Markierungen auf denselben Tasten, wenn beide Woerter gemeinsame
+     * Buchstaben haben).
      */
     @Test
-    fun `akzeptiertes Wort raeumt den vorherigen Korrektur-Trace ab`() {
-        // altes Wort war rot
+    fun `Treffer-Markierung raeumt die vorherige Markierung ab`() {
+        // altes Wort war markiert
         val kinds = mutableMapOf<Char, TrailLogic.TrailKind>()
-        for (ch in "hauss") kinds[ch] = TrailLogic.TrailKind.CORRECTED
+        for (ch in "hauss") kinds[ch] = TrailLogic.TrailKind.ACCEPTED
         // neues Wort "haus" wird akzeptiert -> clearTrace() laeuft zuerst
         for (c in kinds.keys.toList()) {
             if (kinds[c] != TrailLogic.TrailKind.TYPED) kinds.remove(c)
@@ -229,7 +228,7 @@ class TrailLogicTest {
     @Test
     fun `clearTrace entfernt auch die zugehoerigen Decay-Stufen`() {
         val steps = mutableMapOf('a' to 0, 'b' to 3)
-        val kinds = mutableMapOf('a' to TrailLogic.TrailKind.CORRECTED,
+        val kinds = mutableMapOf('a' to TrailLogic.TrailKind.ACCEPTED,
             'b' to TrailLogic.TrailKind.TYPED)
         for (c in kinds.keys.toList()) {
             if (kinds[c] != TrailLogic.TrailKind.TYPED) {

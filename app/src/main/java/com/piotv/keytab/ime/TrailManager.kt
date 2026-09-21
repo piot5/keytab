@@ -7,7 +7,7 @@ import android.os.Looper
 import android.widget.Button
 
 /**
- * Tippspur + Korrektur-Trace (Trail): die zuletzt geklickten Buchstaben werden
+ * Tippspur + Treffer-Markierung (Trail): die zuletzt geklickten Buchstaben werden
  * farblich markiert und mit jeder neuen Eingabe stufenweise weniger sichtbar,
  * bis sie verschwinden ([TrailLogic.alphaForStep]).
  *
@@ -18,9 +18,9 @@ import android.widget.Button
  *
  * **Zwei Betriebsarten** (Details in [TrailLogic.TrailKind]):
  *  - Tippspur: Standardfarbe Blau #2196F3, pro Buchstabe verblassend.
- *  - Korrektur-Trace: grün = Wörterbuch kennt das Wort, rot = Fuzzy-Korrektur
- *    würde es ersetzen. Damit lässt sich die [SuggestionEngine] beim Tippen
- *    live beobachten. Optional (Pref `trail_trace`).
+ *  - Treffer-Markierung: grün, wenn das getippte Wort exakt dem obersten
+ *    Vorschlag entspricht — reine Bestätigung, **kein Rot** mehr. Optional
+ *    (Pref `trail_trace`).
  *
  * **Sicherheit:** In Passwort-Feldern erscheint nichts, weil Android-IME-
  * Verträge (`inputType`-Variation, IME_FLAG_NO_PERSONALIZED_LEARNING) das
@@ -38,7 +38,7 @@ class TrailManager(
     /** Decay-Schritt pro markiertem Buchstaben (0 = voll sichtbar, maxSteps = weg).
      *  Bei jedem neuen Buchstaben werden alle bestehenden Schritte +1 (verblassen). */
     private val steps = mutableMapOf<Char, Int>()
-    /** Betriebsart je Buchstabe (Tippspur oder Korrektur-Trace). */
+    /** Betriebsart je Buchstabe (Tippspur oder Treffer-Markierung). */
     private val kinds = mutableMapOf<Char, TrailLogic.TrailKind>()
     /** Aktuelles Feld (Passwort-Schutz). null = unbekannt → Trail erlaubt. */
     private var editorInfo: android.view.inputmethod.EditorInfo? = null
@@ -102,7 +102,7 @@ class TrailManager(
         snap(char, TrailLogic.TrailKind.TYPED)
     }
 
-    /** Wie [snap], aber mit expliziter Betriebsart (Korrektur-Trace). */
+    /** Wie [snap], aber mit expliziter Betriebsart (Tippspur/Treffer). */
     fun snap(char: Char, kind: TrailLogic.TrailKind) {
         paused = false
         if (! trailEnabled()) return
@@ -124,9 +124,9 @@ class TrailManager(
         }
         // Neuen Buchstaben mit Schritt 0 hinzufügen.
         // Achtung: `kinds` wird pro Buchstabe gehalten, nicht pro Vorkommen.
-        // Läuft für diesen Buchstaben bereits ein Korrektur-Trace, bleibt der
-        // bestehen – sonst würde ein zweiter Tap desselben Buchstabens die
-        // rote Trace-Färbung eines Wortes (z.B. `hauss`) blau überschreiben.
+        // Läuft für diesen Buchstaben bereits eine Treffer-Markierung, bleibt
+        // die bestehen – sonst würde ein zweiter Tap desselben Buchstabens die
+        // grüne Markierung eines Wortes (z.B. `hauss`) blau überschreiben.
         val c = char.lowercaseChar()
         steps[c] = 0
         val existingKind = kinds[c]
@@ -138,17 +138,17 @@ class TrailManager(
     }
 
     /**
-     * Korrektur-Trace für eine ganze Eingabe: färbt **alle** Buchstaben des
-     * zuletzt getippten Wortes ein (grün = akzeptiert, rot = Korrektur nötig).
-     * Nur aktiv, wenn die Trace-Pref an ist – sonst No-Op.
+     * Treffer-Markierung für eine ganze Eingabe: färbt **alle** Buchstaben des
+     * zuletzt getippten Wortes grün, wenn es exakt dem obersten Vorschlag
+     * entspricht (sonst passiert nichts). Nur mit Trace-Pref – sonst No-Op.
      *
      * **Atomar pro Wort:** Vor dem Setzen werden *alle* bisherigen Trace-Einträge
      * entfernt. Ohne das entstanden widersprüchliche Zustände, weil [steps] und
      * [kinds] pro **Buchstabe** speichern, nicht pro Vorkommen: tippt man
      * `hauss`, so setzte `traceWord("haus")` alle vier Buchstaben auf
-     * [TrailLogic.TrailKind.CORRECTED]; der zweite `s`-Tap lief danach durch
+     * [TrailLogic.TrailKind.ACCEPTED]; der zweite `s`-Tap lief danach durch
      * [snap] und überschrieb `kinds['s']` mit [TrailLogic.TrailKind.TYPED],
-     * während `steps['s'] = 0` stehen blieb. Ergebnis: `s` blau, `haus` rot –
+     * während `steps['s'] = 0` stehen blieb. Ergebnis: `s` blau, `haus` grün –
      * und weil alle Vorkommen eines Buchstabens auf dieselbe Taste zeigen,
      * überlagerte sich die Färbung sichtbar.
      *
@@ -163,16 +163,14 @@ class TrailManager(
         val kind = TrailLogic.classifyTypedWord(typed, engine) ?: return
         // Bisherigen Trace dieses Wortes verwerfen – atomarer Neuzustand.
         clearTrace()
-        // Roter Korrektur-Hinweis nur mit Trace-Pref. Der GRÜNE Vollwort-Markierer
-        // (ACCEPTED) ist ein fester Bestandteil des Trails — er erscheint nur,
-        // wenn das getippte Wort exakt dem Top-Vorschlag entspricht ("wie
-        // Vorschlag"); dann färben wir alle Buchstaben grün und blenden schnell
-        // (max. 2 Stufen) aus.
-        if (kind == TrailLogic.TrailKind.ACCEPTED &&
-            topSuggestion != null &&
+        // Treffer-Markierung: nur mit Pref UND nur, wenn das getippte Wort exakt
+        // dem Top-Vorschlag entspricht ("wie Vorschlag"); dann färben wir alle
+        // Buchstaben grün und blenden schnell (max. 2 Stufen) aus.
+        // Es gibt KEINE rote Warnfärbung mehr.
+        if (! traceEnabled()) return
+        if (topSuggestion == null ||
             ! typed.equals(topSuggestion, ignoreCase = true)
         ) return
-        if (kind == TrailLogic.TrailKind.CORRECTED && ! traceEnabled()) return
         for (ch in typed.lowercase()) {
             if (ch.isLetter()) {
                 steps[ch] = 0
@@ -185,20 +183,12 @@ class TrailManager(
         fadeHandler.removeCallbacksAndMessages(null)
         fadePending = false
         scheduleTraceFade()
-    }
+        }
 
-    /**
-     * Selbstständiges Ausblenden des Wort-Traces: Nach einer kurzen Pause
-     * ([TRACE_FADE_START_MS]) decays jeder Trace-Eintrag ([TrailKind.ACCEPTED]/
-     * [TrailKind.CORRECTED]) stufenweise weiter – unabhängig von weiteren
-     * Eingaben – bis er verschwunden ist ([TrailLogic.nextStep]). Die Tippspur
-     * ([TrailKind.TYPED]) wird nicht angetastet; die normale Decay-Logik in
-     * [snap] läuft parallel weiter.
-     */
     /**
      * Selbstständiges Ausblenden des Wort-Traces in **maximal 2 Stufen**: Nach
      * einer kurzen Pause ([TRACE_FADE_START_MS]) springt jeder Trace-Eintrag
-     * ([TrailKind.ACCEPTED]/[TrailKind.CORRECTED]) auf die Halbstufe, nach einem
+     * ([TrailKind.ACCEPTED]) auf die Halbstufe, nach einem
      * weiteren Tick ([TRACE_FADE_TICK_MS]) ist er vollständig verschwunden –
      * unabhängig von weiteren Eingaben. Die Tippspur ([TrailKind.TYPED]) wird
      * nicht angetastet; die normale Decay-Logik in [snap] läuft parallel weiter.
@@ -278,12 +268,11 @@ class TrailManager(
      *  Das Overlay liegt ÜBER dem Text → Alpha ist gedeckelt
      *  ([TrailLogic.ALPHA_LIMIT]), damit die Beschriftung immer lesbar bleibt.
      *  Die Grundfarbe hängt an der Betriebsart: Tippspur = Theme-Farbe,
-     *  Korrektur-Trace = grün (akzeptiert) bzw. rot (korrigiert). */
+     *  Treffer-Markierung = grün. */
     private fun colorForStep(stepForChar: Int, kind: TrailLogic.TrailKind): Int? {
         val alpha = TrailLogic.alphaForStep(stepForChar, maxSteps)
         if (alpha <= 0) return null
         val base = when (kind) {
-            TrailLogic.TrailKind.CORRECTED -> ThemePrefs.trailCorrectedColor(prefs)
             TrailLogic.TrailKind.ACCEPTED -> ThemePrefs.trailAcceptedColor(prefs)
             TrailLogic.TrailKind.TYPED -> ThemePrefs.trailColor(prefs)
         }
@@ -324,7 +313,7 @@ class TrailManager(
     companion object {
         /** Standard-Max-Steps (v0.9.7). */
         const val DEFAULT_STEPS = TrailLogic.DEFAULT_STEPS
-        /** Ab dieser Wortlänge bewertet der Korrektur-Trace (Engine-Grenze). */
+        /** Ab dieser Wortlänge bewertet die Treffer-Markierung (Engine-Grenze). */
         const val MIN_TRACE_WORD = 3
         /** Pause nach dem grünen Vollwort-Marker, bevor das Ausblenden startet (ms). */
         const val TRACE_FADE_START_MS = 500L

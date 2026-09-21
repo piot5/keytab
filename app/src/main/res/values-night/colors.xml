@@ -27,9 +27,8 @@
     <color name="divider">#262626</color>
     <!-- Trail-Effekt (Tippspur): Standardfarbe Blau -->
     <color name="trail_color">#2196F3</color>
-    <!-- Korrektur-Trace: grün = Engine kennt das Wort, rot = Korrektur würde greifen -->
+    <!-- Treffer-Markierung: grün = Wort entspricht exakt dem Top-Vorschlag (kein Rot mehr) -->
     <color name="trail_accepted_color">#4CAF50</color>
-    <color name="trail_corrected_color">#F44336</color>
     <!-- Swipe (Gleit-Eingabe + Schaltplan-Preview): Pfad-Knoten + Kanten -->
     <color name="swipe_color">#4CAF50</color>
     <color name="swipe_edge_color">#8038B04A</color>

@@ -139,15 +139,6 @@ class MainActivity : AppCompatActivity() {
             else R.string.settings_emoji_off, Toast.LENGTH_SHORT).show()
         }
 
-        // Aktive Autokorrektur ein-/ausschalten (wirkt sofort)
-        val swAutoCorrect = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_autocorrect)
-        swAutoCorrect.isChecked = prefs.getBoolean(Prefs.KEY_AUTOCORRECT, true)
-        swAutoCorrect.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(Prefs.KEY_AUTOCORRECT, checked).apply()
-            Toast.makeText(this, if (checked) R.string.settings_autocorrect_on
-            else R.string.settings_autocorrect_off, Toast.LENGTH_SHORT).show()
-        }
-
         // Dynamische Tastengröße ein-/ausblenden (wirkt beim nächsten Öffnen)
         val swDynamic = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_dynamic_keys)
         swDynamic.isChecked = prefs.getBoolean(Prefs.KEY_DYNAMIC_KEYS, true)
@@ -164,15 +155,6 @@ class MainActivity : AppCompatActivity() {
             prefs.edit().putBoolean(Prefs.KEY_SWIPE, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_swipe_on
             else R.string.settings_swipe_off, Toast.LENGTH_SHORT).show()
-        }
-
-        // Schaltplan-Preview (passiver Pfad, v0.11) ein-/ausblenden
-        val swSwipePreview = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_swipe_preview)
-        swSwipePreview.isChecked = prefs.getBoolean(Prefs.KEY_SWIPE_PREVIEW, false)
-        swSwipePreview.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(Prefs.KEY_SWIPE_PREVIEW, checked).apply()
-            Toast.makeText(this, if (checked) R.string.settings_swipe_preview_on
-            else R.string.settings_swipe_preview_off, Toast.LENGTH_SHORT).show()
         }
 
         // Konfigurationsdatei schreiben/aktualisieren (Werte direkt editierbar)

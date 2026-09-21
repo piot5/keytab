@@ -72,12 +72,6 @@
     <string name="settings_swipe">Swipe typing (glide over keys, offline)</string>
     <string name="settings_swipe_on">Swipe typing enabled</string>
     <string name="settings_swipe_off">Swipe typing disabled</string>
-    <string name="settings_swipe_preview">Circuit preview ⚠️ experimental (likely keys shown as a path)</string>
-    <string name="settings_swipe_preview_on">Circuit preview enabled</string>
-    <string name="settings_swipe_preview_off">Circuit preview disabled</string>
-    <string name="settings_autocorrect">Auto-correction (fix typos on space)</string>
-    <string name="settings_autocorrect_on">Auto-correction enabled</string>
-    <string name="settings_autocorrect_off">Auto-correction disabled</string>
     <string name="settings_emoji">Emoji suggestions (optional, appended to word suggestions)</string>
     <string name="sug_back_desc">Back to word suggestions</string>
     <string name="sug_grid_desc">Select from full emoji catalog</string>
@@ -104,8 +98,8 @@
     <string name="theme_trail_toggle">🌊 Typing Trail</string>
     <string name="theme_trail_hint">The last clicked letter is highlighted and fades step by step with each new input until it disappears completely. Default color: Blue. The trail stays off in password fields.</string>
     <string name="theme_trail_steps">Steps: %1$d</string>
-    <string name="theme_trail_trace_toggle">🔎 Correction trace</string>
-    <string name="theme_trail_trace_hint">Shows while typing what word prediction is about to do: red = it would auto-correct, green = it accepts the word. Indicator only, nothing is changed. Normal text fields only.</string>
+    <string name="theme_trail_trace_toggle">✅ Green-mark suggestion matches</string>
+    <string name="theme_trail_trace_hint">When the typed word matches the top suggestion exactly, its letters are briefly marked green. Nothing is changed — it is only a confirmation. Normal text fields only.</string>
     <string name="theme_color_trail">Trail</string>
     <string name="theme_section_trail">Trail (typing trace)</string>
     <!-- === v0.11 sync: previously missing strings (71), translated 2026-09-21 === -->

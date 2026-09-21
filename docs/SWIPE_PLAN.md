@@ -1,9 +1,10 @@
-# Swipe-Plan: Gleit-Eingabe + Schaltplan-Pfad (v0.11/v0.12-Kandidat)
+# Swipe-Plan: Gleit-Eingabe + Schaltplan-Pfad (v0.11)
 
-> **Status: PLAN** — es ist noch nichts implementiert. Dieses Dokument
-> spezifiziert das Feature „Swipe“ als Erweiterung des bestehenden
-> Likely-/Key-Scale-Systems: **Skalierte, einfarbig gefärbte Tasten (wie
-> „most likely“, aber in eigener Farbe) werden mit den nächsten
+> **Status: S1–S5 DONE (2026-09-19).** Alle fünf Slices sind implementiert,
+> getestet und in den Mainline-Build integriert (Version 0.11, versionCode 26).
+> Dieses Dokument spezifiziert das Feature „Swipe“ als Erweiterung des
+> bestehenden Likely-/Key-Scale-Systems: **Skalierte, einfarbig gefärbte Tasten
+> (wie „most likely“, aber in eigener Farbe) werden mit den nächsten
 > wahrscheinlichen Tasten zu einem Schaltplan verbunden** — passiv als
 > Prognose-Vorschau, aktiv als echte Gleit-Eingabe.
 
@@ -56,28 +57,68 @@ Passwort-Felder).
 - **Knoten:** Buchstaben-Taste, die Teil des Pfades ist. Darstellung:
   einfarbig (flache Farbe `KIND_SWIPE`), Skalierung übernimmt die bestehenden
   `KeyScaleLogic`-Stufen (Prognose-Stärke → 1.21×/1.15×).
-- **Kante:** Verbindungslinie zwischen zwei Knoten (Zentrum → Zentrum),
-  Farbe `KIND_SWIPE_EDGE`. **Solid** = bereits gefahren (aktiver Swipe) bzw.
-  gesichert (Preview ab getipptem Wort), **gestrichelt** = reine Prognose.
+- **Kante:** Verbindungsbahn zwischen zwei Knoten — **keine simple Gerade**,
+  sondern PCB-Leiterbahn (Manhattan + 45°-Ecken, Via-Pads, Junction-Dots,
+  2 Lagen — Details §3.5), Farbe `KIND_SWIPE_EDGE`. **Solid** = bereits
+  gefahren (aktiver Swipe) bzw. gesichert (Preview ab getipptem Wort),
+  **gestrichelt** = reine Prognose.
 - **Pfad:** geordnete Zeichenfolge. Zwei Quellen:
   - *Prognose-Pfad* (Preview): `getipptes Wort` → bester Folgebuchstabe →
     dessen bester Folgebuchstabe (Tiefe 2–3, konfigurierbar).
   - *Fahr-Pfad* (Swipe): gesampelte Zeichen der Finger-Route.
-- **Schaltplan:** die Gesamtdarstellung — Knoten + Kanten auf dem Tastatur-Layout.
+- **Schaltplan:** die Gesamtdarstellung — Knoten + Kanten auf dem Tastatur-
+  Layout. Visuelles Vorbild ist eine **Leiterplatte (PCB)**: Pads/Vias,
+  45°-Leiterbahnen mit runden Ecken, Abzweigpunkte — verbindliche Specs in
+  §3.5 (Verdrahtungs-Look).
 
 ### 3.2 ASCII-Skizze (Prognose-Pfad beim Tippen von „hau“)
 
 ```
- q   w   e   r   t   z   u   i   o   p   ü
-                     ◌ u ← Knoten (1.15×, Pfad-Farbe)
-                     ┆
- a   s   d   f   g   h ┄┄┄┄┄┄┄┄┄┄┄┄┘  gestrichelt = Prognose-Kante
- ▲┆
- ┆└ solid: h ── a (1.21×, beide Knoten, Pfad-Farbe)
+ q    w    e    r    t    z    u    i    o    p    ü
+                    ╭┄┄┄┄┄┄┄╮
+                    ┊   ╭┄┄┄◉ u     ← Prognose: Ring-Pad ◉ + gestrichelte
+                    ┊   ┊              45°-Leiterbahn (Lage 2, −3dp)
+ a ━━━ s ━━━━━━━━━━ h ┛  └─ Junction-Dot an h (Abzweig zur Prognose)
+ ╰ Via-Pads ● auf a, s, h; solide Bahn Lage 1, 45°-Ecken gerundet
 ```
 
-Lesart: `h` und `a` sind bereits Teil des Worts (solid verbunden), `u` ist
-die Prognose (gestrichelt, skaliert, Pfad-Farbe statt Likely-Farbe).
+Lesart: `h` und `a` sind bereits Teil des Worts (solide Bahn, Via-Pads),
+`u` ist die Prognose (Ring-Pad, gestrichelte Leiterbahn, skaliert,
+Pfad-Farbe statt Likely-Farbe). Verbindliche Darstellungs-Specs: §3.5.
+
+### 3.5 Verdrahtungs-Look (PCB-Ästhetik — verbindlich)
+
+Der Schaltplan muss wie eine **echte Leiterplatten-Verdrahtung** wirken,
+nicht wie verbundene Punkte. Alle Geometrie ist reine Funktion (in
+`SwipePathLogic` getestet), das Zeichnen übernimmt `SwipeOverlayView`:
+
+1. **Leiterbahnen (Traces), keine Geraden:** Kanten werden als
+   Manhattan-Pfad mit **45°-Ecken** geroutet (PCB-Stil): vom Startzentrum
+   auf die Ziel-Achse, dann 45°-Diagonale zum Ziel — Ecken als
+   Viertelkreis-Bögen abgerundet (Radius 6 dp). Diagonal-Nachbarn
+   (häufigster Fall auf QWERTZ) bekommen eine einzige 45°-Linie mit
+   gerundeten Enden; orthogonal/L-förmige Verbindungen einen klassischen
+   „Z-“ bzw. „L-Lauf“.
+2. **Via-Pads an jedem Knoten:** An jeder beteiligten Taste zeichnet das
+   Overlay ein **Pad**: gefüllter Kreis (Ø 10 dp) + konzentrischer Ring
+   (1,5 dp Strich, 3 dp Abstand). Gefülltes Pad = gesichert/gefahren
+   (solid), Ring-Only = Prognose (gestrichelt). Das Pad sitzt auf dem
+   Tastenzentrum und bildet visuell den „Löt-Punkt“ der Leiterbahn.
+3. **Junction-Dots (Abzweig-Punkte):** Verzweigt eine Bahn (ein Quell-
+   knoten, mehrere Ziele — z. B. Tiefe-2-Preview), bekommt die Abzweig-
+   stelle einen Punkt (Ø 5 dp) — wie bei echten Bauteil-Pins. Keine
+   Verzweigung → kein Dot.
+4. **Zwei Lagen (2-Layer-Board):** Prognose- und Fahr-Lage sind zwei
+   „Kupfer-Lagen“: Preview-Kanten laufen leicht versetzt (−3 dp Y-Versatz)
+   und gestrichelt, Fahr-Kanten solid auf der Hauptlage. Kreuzen sich
+   Lagen, gewinnt die obere (Fahr-Pfad) — wie ein Via-Übergang, ohne dass
+   die Linien visuell verschmelzen.
+5. **Leiterbahn-Dicke nach „Stromstärke“:** Kanten-Stärke skaliert mit der
+   Prognose-Stärke (score-relativ, 2 dp schwach → 4 dp stark) — dickeres
+   „Kupfer“ = sicherere Verbindung. Fahr-Kanten: konstant 3,5 dp.
+6. **Drill-Stop („Lötauge“):** Die aktuell aktive Taste (letzter Pfad-
+   punkt) bekommt einen hellen Drill-Punkt (Ø 3 dp) im Pad-Zentrum — der
+   „Strom fließt hier“-Indikator, statisch (kein Animations-Budget).
 
 ### 3.3 Aktiv-Swipe (Finger)
 
@@ -251,13 +292,13 @@ Finger-Move ─▶ SwipePathLogic.charAt ─▶ dedupe ─▶ SwipeManager (Stat
 
 ## 9. Umsetzungs-Reihenfolge (empfohlene Slices)
 
-| Slice | Inhalt | Gate |
-|---|---|---|
-| S1 | `SwipePathLogic` + `SwipeScorer` (rein) + Tests | alle grün, keine Android-Imports |
-| S2 | `SwipeManager` + Overlay + Knoten-Färbung (Preview-only) | Schaltplan sichtbar beim Tippen, Theme-Wechsel stabil |
-| S3 | Touch-Delegation in `KeyboardBinder` + Auto-Commit | Swipe tippt „haus“ in Termux korrekt |
-| S4 | Settings (`swipe`, `swipe_preview`, …) + Theme-Kinds + Color-Wheel | Drift-Gate grün, CONFIG.md aktuell |
-| S5 | Performance-Benchmark + Passwort-Tests + README/CHANGELOG | 50-ms-Budget nachgewiesen, 4 Passwort-Tests grün |
+| Slice | Inhalt | Gate | Status |
+|---|---|---|---|
+| S1 | `SwipePathLogic` + `SwipeScorer` (rein) + Tests | alle grün, keine Android-Imports | ✅ done (19+19 Tests) |
+| S2 | `SwipeManager` + Overlay + Knoten-Färbung (Preview-only) | Schaltplan sichtbar beim Tippen, Theme-Wechsel stabil | ✅ done |
+| S3 | Touch-Delegation in `KeyboardBinder` + Auto-Commit | Swipe tippt „haus“ in Termux korrekt | ✅ done |
+| S4 | Settings (`swipe`, `swipe_preview`, …) + Theme-Kinds + Color-Wheel | Drift-Gate grün, CONFIG.md aktuell | ✅ done |
+| S5 | Performance-Benchmark + Passwort-Tests + README/CHANGELOG | 50-ms-Budget nachgewiesen, 4 Passwort-Tests grün | ✅ done (`SwipePerformanceTest`, 4 Passwort-Tests in `SwipePathLogicTest`) |
 
 Schätzung: S1 ~1 h, S2 ~2–3 h, S3 ~2 h (Touch-Konflikte), S4 ~1 h, S5 ~1 h.
 

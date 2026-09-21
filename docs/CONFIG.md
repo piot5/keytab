@@ -27,6 +27,12 @@ welcher Schlüssel wohin gehört.
 - `num_row`, `term_tab`, `clip_tab`, `snippet_tab`, `suggestions`, `autocorrect`,
   `dynamic_keys`, `emoji_suggestions` (Default `false` — hängt bis zu 2
   thematische Emojis hinten an die Wortvorschläge an; immer offline).
+- `swipe`, `swipe_preview` (Default `false` — v0.11). `swipe` aktiviert die
+  Gleit-Eingabe: der Finger gleitet über die Tastatur, die Route wird gegen die
+  Engine bewertet (Auto-Commit bei klarem Ergebnis, sonst Kandidaten-Leiste).
+  `swipe_preview` zeigt die wahrscheinlichen Folge-Tasten des aktuell getippten
+  Worts als verbundenen Pfad (passiv). Beide sind in Passwort-Feldern hart
+  deaktiviert (gleiche Regel wie `trail`). Siehe `docs/SWIPE_PLAN.md`.
 - `trail`, `trail_trace`: Tippspur an/aus und Korrektur-Trace an/aus
   (Default `false`). Der Korrektur-Trace färbt getippte Wörter
   rot, wenn sie automatisch ersetzt würden (Hinweis, es wird nichts geändert).
@@ -55,6 +61,9 @@ welcher Schlüssel wohin gehört.
 - `theme_dark_bg`, `theme_dark_key`, `theme_dark_hl`, `theme_dark_text`,
   `theme_dark_gaming` sowie dieselben Schlüssel mit `theme_light_`.
   `default` entfernt den Override.
+- `theme_dark_swipe`, `theme_dark_swipe_edge` sowie dieselben Schlüssel mit
+  `theme_light_` (v0.11): Farbe der Swipe-Pfad-Knoten bzw. -Kanten
+  (Schaltplan-Preview + Swipe-Eingabe). `default` entfernt den Override.
 
 **Pfade / Zeichenketten**, Importer `SettingsConfig`:
 
@@ -80,6 +89,8 @@ Beispiel:
 ```ini
 term_tab = false
 snippet_tab = true
+swipe = true
+swipe_preview = true
 trail = true
 trail_trace = true
 trail_steps = 7
@@ -88,6 +99,8 @@ gradient_color2 = #800D47A1 # Alpha 128
 gradient_mode = top_down
 gradient_off_dark = false
 theme_dark_bg = default
+theme_dark_swipe = #FF4CAF50
+theme_dark_swipe_edge = #8038B04A
 bg_image_fill = cover
 max_scale = 1.30
 ```

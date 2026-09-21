@@ -12,6 +12,76 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 
 ## Unreleased
+- **Refactor: detekt-Baseline aufgeräumt und neu generiert** — Quick-Wins-Paket
+  (staerkster Hebel der externen Pruefung, §8.3): 26x `NewLineAtEndOfFile`
+  (fehlende Datei-Newlines, automatisiert), 6x `WildcardImport` → explizite
+  Imports, 3x `UnusedPrivateProperty` + 1x `UnusedPrivateMember` (toter Code
+  entfernt: `PreviewSection.onChange`, `ThemePrefs.INT_DEF_GRADIENT`,
+  `ColorSection.updateColorFromWheel`, ungenutzte Schleifenvariable in
+  `LiftSpanTest`), 3x `MaxLineLength` (umbrochen), 1x `VariableNaming`
+  (`DEBOUNCE` → `debounce`), 2x `SwallowedException` (`Log.e` ergänzt in
+  `FileManagerFragment` + `TerminalPanel`) und der veraltete `PanelsTest`-Eintrag.
+  Danach Baseline **neu generiert** (`:app:detektBaseline`): die 156 verbliebenen
+  + 42 neue Funde aus dem v0.11-Swipe-Code (CyclomaticComplexMethod in
+  `SwipeManager.drawEdges`/`KeyTabImeService.hideKeyboard`, MagicNumbers in der
+  neuen Prediction-Logik) = **198 Eintraege**, detekt-Gate wieder gruen.
+
+
+
+- **Fix: Autokorrektur verdoppelte/zerstoerte Text statt zu ersetzen** — die
+  Vorschlags-Uebernahme entschied allein ueber
+  `before.takeLast(n).equals(typed, ignoreCase = true)`. Schlug das nur
+  *scheinbar* fehl (Unicode-Normalisierung, kombinierende Umlaute, abweichende
+  Feld-Repraesentation), wurde der Vorschlag **angehaengt statt ersetzt**
+  (`hauss` → `hauss haus `); eine zu lockere Loesch-Pruefung konnte umgekehrt
+  Zeichen zu viel entfernen. Neu: reine, getestete
+  `SuggestionReplaceLogic` (NFC-normalisierter Vergleich, `action()`,
+  `deleteWorked()`, `endsWith()`), `WordPredictionManager.applySuggestion`
+  entscheidet darueber und **fuegt nie ein, wenn das Loeschen nicht
+  nachweislich geklappt hat**; die Loesch-Menge ist die **Roh-Laenge im Feld**
+  (`rawWordLength`, NFC/NFD-tolerant) statt `typed.length`. (+21 Tests:
+  `SuggestionReplaceLogicTest` 17, `WordPredictionManagerSuggestionTest` 6
+  inkl. Fake-Feld fuer beide Loesch-Wege).
+
+- **Fix: Schaltplan-Preview stuerzte die App ab** (Dropbox:
+  `NullPointerException: Context.getResources() on a null object reference` in
+  `View.<init>` ← `SwipeManager$EdgeOverlay` ← `drawEdges` ← `applyPreview` ←
+  `updateSwipePreview`). Ursache: Der Container wurde via
+  `Button.findViewById(kb_container)` gesucht (ein Button hat keine Kinder →
+  immer `null`) und fiel auf `rootView` zurueck; der Context konnte null werden.
+  Jetzt: Container ueber den **Root-View**, Context explizit geprueft,
+  `EdgeOverlay` verlangt einen **nicht-null** Context, Overlay nur in einen
+  **angehaengten, gemessenen** Container und nur bei **≥ 2 Knoten**;
+  neuer idempotenter Helfer `removeEdgeOverlay()`.
+- **Fix: Swipe-Koordinaten lagen daneben** — `centersFor` bezog die
+  Tasten-Zentren auf `kb_container`, waehrend die Touch-Koordinaten aus
+  `KeyboardBinder` **fenster-relativ** sind. Die Buchstaben-Erkennung lag damit
+  um die Position der Tab-Leiste verschoben (falsche Buchstaben beim Wischen).
+  `centersFor` liefert jetzt Fenster-Koordinaten; nur `drawEdges` rechnet die
+  Container-Relation um.
+- **Swipe: most-likely-Ziele ab der ersten Taste + gruener Trail live** —
+  `SwipeManager.seedFirstKey()` belegt beim Druecken die gedrueckte Taste als
+  erstes Routen-Sample vor, sodass die Ziele **sofort** sichtbar sind (nicht
+  erst nach dem ersten Tastenwechsel). Ein reiner Tap (nur Seeding) bleibt ein
+  Tap: neue Methode `hasSwiped()` (≥ 2 Samples) ersetzt `hasSamples()` in der
+  Touch-Delegation. Wird ein most-likely-Ziel erreicht, faerbt `KeyboardBinder`
+  den Trail gruen (`TrailKind.ACCEPTED`) statt blau (`TYPED`).
+- **Swipe-Abschluss schreibt jetzt wie ein normales Wort** — Auto-Commit lief
+  ueber rohes `commitText(auto)` (kein Leerzeichen, kein Lernen, keine
+  Vorschlaege). Jetzt ueber `SuggestionController.applySuggestion(auto)`:
+  **Leerzeichen**, Wort-Lernen und **frische Wortvorschlaege** — konsistent zum
+  Tippen und zur Vorschlags-Uebernahme.
+
+- **Konsistenz Trail ↔ Swipe ↔ Autokorrektur** — während des Swipens werden die
+  wahrscheinlichen Folge-Tasten (most-likely) als Schaltplan mit Kanten
+  angezeigt, damit der Finger dem Pfad folgen kann; wird ein most-likely-Ziel
+  erreicht, leuchtet der Trail grün (`TrailKind.ACCEPTED`) statt blau
+  (`TYPED`). Die gefahrene Route färbt sich also konsistent zur
+  Wortvorhersage. Neu: `SwipePathLogic.isLikelyHit` (rein),
+  `SwipeManager.wasLikelyHit`, `applySwipeLikely` zeichnet jetzt Kanten und
+  liefert die Likely-Knoten für den nächsten Treffer; `KeyboardBinder` MOVE
+  fragt `wasLikelyHit` vor `snap` ab (+7 Unit-Tests: `SwipePathLogicTest`,
+  `SwipeManagerTest`).
 
 
 - **Feature: optionale Emoji-Vorschläge** (Einstellungen-Schalter, **Standard aus**):
@@ -37,6 +107,35 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 - **Tests: 208 → 231 in 27 Suiten** — `PanelsTest` in `EditorPanelTest` +
   `ClipboardPanelTest` aufgeteilt (Name = Klasse); Kover re-messen:
   **47,6 % line / 36,4 % branch** (`ime` 42,9 %, `sections` 92,5 %, `file` 78,7 %).
+
+
+## 0.11
+
+
+- **Feature: Swipe-Eingabe (Gleit-Eingabe, offline)** — der Finger gleitet über die
+  Tastatur; die gefahrene Route wird gesampelt und gegen die bestehende Engine
+  bewertet (Teilfolge-Match: Buchstabenfolge des Kandidaten muss in der Route
+  enthalten sein, Reihenfolge erhalten, Lücken erlaubt). Score aus Treffer-Quote,
+  Wortfrequenz (Basis + User + Bigram), Kompaktheit und Längenanpassung. Bei
+  klarer Dominanz (Top ≥ 1.35, ≥ 1.3× Zweitbester) Auto-Commit, sonst die besten
+  Kandidaten in der Vorschlags-Leiste (tapbar wie Wortvorschläge). Default **aus**,
+  in Passwort-Feldern hart deaktiviert (gleiche Regel wie der Trail). Neu:
+  `Prefs.KEY_SWIPE`, `SwipePathLogic` (rein), `SwipeScorer` (rein),
+  `SwipeManager` (Overlay + Sampling), Touch-Delegation in `KeyboardBinder`,
+  `SuggestionController.showSwipeCandidates`, Config-Key `swipe`.
+- **Feature: Schaltplan-Preview (passiv)** — die wahrscheinlichen Folge-Tasten
+  des aktuell getippten Worts werden als verbundener Pfad sichtbar (Knoten =
+  skalierte Tasten in der Pfad-Farbe `KIND_SWIPE`, Kanten = Verbindungslinien
+  `KIND_SWIPE_EDGE` unter den Tasten). Nutzt `SwipePathLogic.previewNodes` aus den
+  Top-Vorschlägen; aktualisiert sich bei jedem Suggest-Update. Default **aus**.
+  Neu: `Prefs.KEY_SWIPE_PREVIEW`, Theme-Kinds `KIND_SWIPE`/`KIND_SWIPE_EDGE`
+  (inkl. Export/Import/Reset), Config-Key `swipe_preview`, Farben
+  `swipe_color`/`swipe_edge_color` in `colors.xml` (Hell/Dunkel).
+- **Tests: 231 → 288 in 31 Suiten** — neue Suiten `SwipePathLogicTest` (19,
+  rein), `SwipeScorerTest` (19, rein), `SwipePerformanceTest` (3, Hot-Path-
+  Benchmark: `charAt`/`dedup`/`scorer` mit Hard-Assertion < 5 ms / < 50 ms),
+  `SwipeManagerTest` (12, Robolectric: Preview-Färbung, Clear, Prefs, Passwort-Feld,
+  Engine-Set, Sampling-Reset).
 
 
 ## 0.10

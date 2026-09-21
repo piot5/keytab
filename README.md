@@ -34,7 +34,7 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 
 **File manager in the keyboard** -- browse folders, switch tabs, navigate with back-stack and parent-navigation. Tapping a file inserts its path; in the app it opens via VIEW-Intent. Each tab remembers its own directory. Listing runs asynchronously so large folders don't freeze the UI.
 
-**Word prediction** -- offline n-gram model (FrequencyWords, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings. **Snippet suggestions on sentence start**: when there are no word predictions to show and the cursor is at the beginning of a new sentence (empty field, or text ending in `. ! ?` followed by space/newline, with no word currently being typed), the suggestion bar shows your last 3 used snippets as tappable chips instead of the generic top-3 words — so frequently-inserted snippets are one tap away. This also triggers after deleting a whole word with backspace (the bar re-evaluates the empty state). Using a snippet records it as most-recent; typing a new character returns the normal prediction bar. Fully offline, stored in `MODE_PRIVATE` prefs (no extra permission). **Optional emoji suggestions** (settings toggle, **off by default**): a small built-in keyword→emoji catalog (de/en, offline) appends up to 2 thematic emojis behind the word suggestions — word suggestions always keep at least one slot.
+**Word prediction** -- offline n-gram model (FrequencyWords, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings. **Swipe typing** (v0.11, optional): glide over the keys and the route is scored against the same offline engine — clear winners auto-commit, otherwise the top candidates appear in the suggestion bar. **Circuit preview** (v0.11, optional): the likely next keys of the word you're typing are shown as a connected path on the keyboard, so your eye can follow the "current" before you tap. Both default off and are suppressed in password fields. See [`docs/SWIPE_PLAN.md`](docs/SWIPE_PLAN.md). **Snippet suggestions on sentence start**: when there are no word predictions to show and the cursor is at the beginning of a new sentence (empty field, or text ending in `. ! ?` followed by space/newline, with no word currently being typed), the suggestion bar shows your last 3 used snippets as tappable chips instead of the generic top-3 words — so frequently-inserted snippets are one tap away. This also triggers after deleting a whole word with backspace (the bar re-evaluates the empty state). Using a snippet records it as most-recent; typing a new character returns the normal prediction bar. Fully offline, stored in `MODE_PRIVATE` prefs (no extra permission). **Optional emoji suggestions** (settings toggle, **off by default**): a small built-in keyword→emoji catalog (de/en, offline) appends up to 2 thematic emojis behind the word suggestions — word suggestions always keep at least one slot.
 
 **Dynamic key sizing** -- likely-next keys scale up to 1.30× (stepped grades 1.30×/1.15×), unlikely ones shrink down to 0.85× — but only in the direct neighborhood of enlarged keys, driven by the current suggestion scores. Toggleable in settings.
 
@@ -52,7 +52,7 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 
 **Theme customization** -- long-press the tab/☾ (or ☀) key opens a dedicated *Theme settings* page (also reachable from the app settings): choose dark or light, pick a gradient preset or build your own (color 1 → color 2, top→bottom / inverted / radial), and set the background, key, highlight and text colors **separately and per theme** with a live **color wheel** (hue/saturation), brightness and alpha sliders. Keys, tabs (abc/Notes/Files/Terminal/Snippets), popups and the suggestion bar all recolor while the default look stays identical to stock until you set something. The built-in dark theme uses a darker gray palette (`#1a1a1a` background, `#2e2e2e` keys).
 
-**Terminal tab** -- optional command runner in the keyboard, togglable in settings. Black background, standard prompt `user@host:~$`, cd tracking. **Scope:** it runs the Android system shell (`/system/bin/sh`) inside the app sandbox — good for `ls`/`pwd`/`cat`/`wc`, but it has **no PTY, no userland and no access to Termux or a proot install**. For real work use Termux and KeyTab as the input method; the tab is a convenience, not the workspace (see `docs/REFACTORING_PLAN.md` §4.3).
+**Terminal tab** -- optional command runner in the keyboard, togglable in settings. Black background, standard prompt `user@host:~$`, cd tracking. **Scope:** it runs the Android system shell (`/system/bin/sh`) inside the app sandbox — good for `ls`/`pwd`/`cat`/`wc`, but it has **no PTY, no userland and no access to Termux or a proot install**. For real work use Termux and KeyTab as the input method; the tab is a convenience, not the workspace (see `docs/REFACTORING_HISTORY.md` §4.3).
 
 **Keyboard** -- full InputMethodService with a TAB key that sends `KEYCODE_TAB` (so Tab-completion, `vim` and `nano` work in Termux/SSH), shift/caps-lock, long-press popups for umlauts/special characters, accelerating backspace on long-press (250ms down to 30ms).
 
@@ -134,11 +134,13 @@ All panels share a background executor for file I/O and a main handler for UI up
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**231 unit tests in 27 suites, 0 failures** (verified 2026-09-19, `assembleDebug` + `testDebugUnitTest` both green):
+**323 unit tests in 33 suites, 0 failures** (verified 2026-09-20, `assembleDebug` + `testDebugUnitTest` both green):
 
 | Suite | Tests | Kind |
 |---|---:|---|
 | `SuggestionEngineTest` | 32 | pure |
+| `SwipePathLogicTest` | 19 | pure |
+| `SwipeScorerTest` | 19 | pure |
 | `TextEditLogicTest` | 20 | pure |
 | `TrailLogicTest` | 18 | pure |
 | `FileManagerModelTest` | 11 | Robolectric |
@@ -163,10 +165,14 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `KeyAnimationsTest` | 4 | Robolectric |
 | `LiftSpanTest` | 4 | Robolectric |
 | `FileManagerFragmentTest` | 4 | Robolectric |
+| `SwipeManagerTest` | 20 | Robolectric |
+| `SuggestionReplaceLogicTest` | 17 | pure |
+| `WordPredictionManagerSuggestionTest` | 6 | Robolectric |
 | `PanelHeightsTest` | 2 | Robolectric |
 | `TrailPerformanceTest` | 2 | pure |
+| `SwipePerformanceTest` | 3 | pure |
 
-Test code is 3,324 lines in 27 files against 7,576 lines of main code (53 files) — a **43.9 % test-to-main ratio**. Line coverage measured with Kover is **47.6 %** (`LINE` 1739/3653), branch coverage **36.4 %** (`BRANCH` 951/2616); the CI gate is 20 % (re-measured 2026-09-19, all 231 tests green). Per package: the Android-free logic (`com.piotv.keytab.ime`: 42.9 %), the theme UI sections (`sections`: 92.5 %) and the in-app file manager (`file`: 78.7 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot path (correction trace → `autoCorrect`) is JVM-benchmarked in `TrailPerformanceTest` (avg µs per classification, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
+Test code is 3,324 lines in 27 files against 7,576 lines of main code (53 files) — a **43.9 % test-to-main ratio**. Line coverage measured with Kover is **47.6 %** (`LINE` 1739/3653), branch coverage **36.4 %** (`BRANCH` 951/2616); the CI gate is 20 % (re-measured 2026-09-19, all 288 tests green). Per package: the Android-free logic (`com.piotv.keytab.ime`: 42.9 %), the theme UI sections (`sections`: 92.5 %) and the in-app file manager (`file`: 78.7 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
 
 ```bash
 # Run all unit tests
@@ -187,6 +193,7 @@ Documented honestly rather than implied away — these are the things that are *
 |---|---|
 | **Trail frame timing not measured on device** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.autoCorrect`). **Partially measured (2026-09-19):** the algorithm cost is JVM-benchmarked in `TrailPerformanceTest` — ~2 µs per classification on a 6,000-word corpus, ~4 orders of magnitude below the 50 ms keystroke budget (with a hard assertion so regressions fail the build). What remains open: **frame timing on a real display** (profiling on the device) and visual smoothness; the red/green trace contrast per theme palette is still not screenshot-verified. Mitigation if it stutters: restrict the trace to `knowsWord` and check `autoCorrect` only on word completion. |
 | **Trail visuals not screenshot-verified** | The regression fix for contradictory trace states (see 0.9.7) is proven at the **state level** by unit tests — no screenshot or instrumented test asserts the rendered colours. The red/green contrast against each custom theme palette has not been measured. |
+| **Swipe frame timing not measured on device** | The swipe hot path (`charAt` + `dedup` per Move-Event, `SwipeScorer.score` on release) is JVM-benchmarked in `SwipePerformanceTest` — `charAt` and `dedup` are asserted < 5 ms avg over 10 000 calls, the scorer < 50 ms on a 6 000-word corpus (hard assertions so regressions fail the build). What remains open: **frame timing on a real display** (profiling the overlay invalidate + edge redraw on the device) and visual smoothness of the circuit preview path. |
 | **English locale incomplete** | `values-en` has 92 strings against 163 in the default (German) file; the rest fall back to German in an English-locale device. |
 | **Terminal has no PTY** | By design — see the Terminal description above. It is the Android system shell in the app sandbox, not a Termux replacement. |
 | **Instrumented tests are thin** | 2 tests in 44 lines. They run in CI on an API-34 emulator but do not exercise the keyboard UI. |
@@ -325,7 +332,7 @@ fastlane release notes by the CI job "docs" (`scripts/check_docs_drift.sh`).
    remaining `Handler`s are shared; true coroutines are still open.
 2. **Optional: PTY for the terminal tab** — it currently pipes stdin/stdout without a pseudo-terminal, so interactive TUI programs and ANSI colours cannot work. A PTY would turn the tab into a real terminal, but is a large change for a convenience feature; documenting the limitation was preferred (see §4.3).
 
-Explicitly *not* planned: cloud sync, glide typing, 100+ languages — those are Gboard dimensions that cannot be won here.
+Explicitly *not* planned: cloud sync, 100+ languages — those are Gboard dimensions that cannot be won here.
 
 **Also not planned: an extra-keys row** (Esc/Ctrl/arrows). Termux already ships one (`extra-keys` in `termux.properties`), so a second row would duplicate it and eat key height.
 
@@ -335,7 +342,7 @@ Issues and pull requests are welcome. Before opening a PR:
 
 ```bash
 sh scripts/check_docs_drift.sh                     # docs must match the code
-sh ./gradlew :app:testDebugUnitTest --offline      # 208 tests must stay green
+sh ./gradlew :app:testDebugUnitTest --offline      # 323 tests must stay green
 bash build_keytab.sh debug                         # must build
 ```
 

@@ -157,6 +157,46 @@ class TrailLogicTest {
         assertTrue(TrailLogic.isTrailAllowed(null))
     }
 
+    @Test
+    fun `isPersonalizedProcessingAllowed nutzt exakt dieselbe harte Regel wie der Trail`() {
+        // Lernen/Vorschlaege/Autokorrektur muessen dieselbe Regel benutzen wie
+        // Trail und Swipe - sonst entsteht ein stiller Passwort-Leak (User-Dict).
+        val felder = listOf(
+            null,
+            editorInfo(InputType.TYPE_CLASS_TEXT),
+            editorInfo(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD),
+            editorInfo(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD),
+            editorInfo(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD),
+            editorInfo(InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD),
+            editorInfo(InputType.TYPE_CLASS_TEXT, EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        )
+        for (feld in felder) {
+            assertEquals(
+                "Regel fuer Lernen/Vorschlaege/Autokorrektur weicht von der Trail-Regel ab",
+                TrailLogic.isTrailAllowed(feld),
+                TrailLogic.isPersonalizedProcessingAllowed(feld)
+            )
+        }
+        assertFalse(
+            "Passwortfeld muss gesperrt sein",
+            TrailLogic.isPersonalizedProcessingAllowed(
+                editorInfo(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
+            )
+        )
+        assertFalse(
+            "NO_PERSONALIZED_LEARNING muss gesperrt sein",
+            TrailLogic.isPersonalizedProcessingAllowed(
+                editorInfo(
+                    InputType.TYPE_CLASS_TEXT,
+                    EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
+                )
+            )
+        )
+        assertTrue(
+            TrailLogic.isPersonalizedProcessingAllowed(editorInfo(InputType.TYPE_CLASS_TEXT))
+        )
+    }
+
     // ---------- Regression: widerspruechliche Trace-Zustaende ----------
     // Bug (gemeldet): nachdem ein Buchstabe rot war, wurde er durch einen
     // spaeteren Trace/Decay gruen bzw. blau – die Taste zeigte eine Mischfarbe,

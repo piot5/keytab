@@ -48,7 +48,7 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 
 **Typing trail + suggestion-match marking** -- optional (`trail`, default off). The last key you hit stays tinted and fades step by step (3/5/7/10 steps) as you keep typing, drawn as a *foreground overlay* so key background, corner radius and press state stay untouched. With the marking on (`trail_trace`), the letters of the current word turn **green** when the typed word matches the top suggestion exactly — a brief read-only confirmation that never changes what you type. **There is no red warning colour any more:** a word the engine would autocorrect stays unmarked, so typos no longer light up the keyboard. Pure logic in `TrailLogic`, unit-tested.
 
-**Never in password fields** -- the trail is suppressed in password fields and whenever an app sets `IME_FLAG_NO_PERSONALIZED_LEARNING`. This is enforced in code (`TrailLogic.isTrailAllowed`), not by preference: a visible trail over a `•` field would leak keystrokes through a visual side channel. Covered by four unit tests so the rule cannot be removed unnoticed.
+**Never in password fields** -- the trail, the swipe route and the *evaluation* of what you type are all suppressed in password fields and whenever an app sets `IME_FLAG_NO_PERSONALIZED_LEARNING`: no trail, no swipe, **no word learning into the user dictionary, no suggestions in the suggestion bar, no autocorrection**. This is enforced in code (`TrailLogic.isTrailAllowed`, and `TrailLogic.isPersonalizedProcessingAllowed` for learning/suggestions/autocorrection), not by preference: a visible trail over a `•` field would leak keystrokes through a visual side channel, and a learned word would keep a password fragment in the on-device dictionary. Covered by unit tests that also contain **positive controls in normal fields**, so the rule cannot be silently weakened into a dead `return`.
 
 **Theme customization** -- long-press the tab/☾ (or ☀) key opens a dedicated *Theme settings* page (also reachable from the app settings): choose dark or light, pick a gradient preset or build your own (color 1 → color 2, top→bottom / inverted / radial), and set the background, key, highlight and text colors **separately and per theme** with a live **color wheel** (hue/saturation), brightness and alpha sliders. Keys, tabs (abc/Notes/Files/Terminal/Snippets), popups and the suggestion bar all recolor while the default look stays identical to stock until you set something. The built-in dark theme uses a darker gray palette (`#1a1a1a` background, `#2e2e2e` keys).
 
@@ -60,7 +60,7 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 
 ## Architecture
 
-`KeyTabImeService` is the keyboard core (283 lines of orchestration). Every feature lives in its own class —
+`KeyTabImeService` is the keyboard core (417 lines of orchestration). Every feature lives in its own class —
 panels for UI, controllers for stateful wiring, pure modules for logic (Android-free, unit-testable).
 
 ### Panels (UI features)
@@ -134,7 +134,7 @@ All panels share a background executor for file I/O and a main handler for UI up
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**343 unit tests in 36 suites, 0 failures** (verified 2026-09-21, `assembleDebug` + `testDebugUnitTest` both green):
+**483 unit tests in 50 suites, 0 failures** (verified 2026-09-22, `assembleDebug` + `testDebugUnitTest` both green):
 
 | Suite | Tests | Kind |
 |---|---:|---|
@@ -143,7 +143,7 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `SwipeManagerTest` | 20 | Robolectric |
 | `TextEditLogicTest` | 20 | pure |
 | `SwipeScorerTest` | 19 | pure |
-| `TrailLogicTest` | 18 | pure |
+| `TrailLogicTest` | 19 | pure |
 | `SuggestionReplaceLogicTest` | 17 | pure |
 | `EditorHighlightLogicTest` | 11 | pure |
 | `EmojiModuleTest` | 11 | pure |
@@ -163,6 +163,7 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `CapsLogicTest` | 6 | Robolectric |
 | `ShiftControllerTest` | 6 | Robolectric |
 | `WordPredictionManagerSuggestionTest` | 6 | Robolectric |
+| `WordPredictionManagerPrivacyTest` | 8 | Robolectric |
 | `ClipboardPanelTest` | 5 | Robolectric |
 | `FileManagerPanelTest` | 5 | Robolectric |
 | `LikelyHighlightLogicTest` | 5 | pure |
@@ -175,7 +176,7 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `PanelHeightsTest` | 2 | Robolectric |
 | `TrailPerformanceTest` | 2 | pure |
 
-Test code is 4,718 lines in 36 files against 9,380 lines of main code (57 files) — a **50.3 % test-to-main ratio**. Line coverage measured with Kover is **52.2 %** (`LINE` 2300/4404), branch coverage **39.8 %** (`BRANCH` 1287/3237); the CI gate is 20 % (re-measured 2026-09-21, all 343 tests green). Per package: the Android-free logic (`com.piotv.keytab.ime`: 49.7 %), the theme UI sections (`sections`: 93.6 %) and the in-app file manager (`file`: 77.9 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `TerminalPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
+Test code is 7,024 lines in 50 files against 9,436 lines of main code (57 files) — a **74.4 % test-to-main ratio**. Line coverage measured with Kover is **67.0 %** (`LINE` 2947/4401), branch coverage **53.8 %** (`BRANCH` 1742/3238); the CI gate is 20 % (re-measured 2026-09-22, all 483 tests green). Per package: the Android-free logic (`com.piotv.keytab.ime`: 68.7 %), the theme UI sections (`sections`: 93.6 %) and the in-app file manager (`file`: 77.9 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `TerminalPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
 
 ```bash
 # Run all unit tests
@@ -197,7 +198,7 @@ Documented honestly rather than implied away — these are the things that are *
 | **Trail frame timing not measured on device** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.autoCorrect`). **Partially measured (2026-09-19):** the algorithm cost is JVM-benchmarked in `TrailPerformanceTest` — ~2 µs per classification on a 6,000-word corpus, ~4 orders of magnitude below the 50 ms keystroke budget (with a hard assertion so regressions fail the build). What remains open: **frame timing on a real display** (profiling on the device) and visual smoothness; the red/green trace contrast per theme palette is still not screenshot-verified. Mitigation if it stutters: restrict the trace to `knowsWord` and check `autoCorrect` only on word completion. |
 | **Trail visuals not screenshot-verified** | The regression fix for contradictory trace states (see 0.9.7) is proven at the **state level** by unit tests — no screenshot or instrumented test asserts the rendered colours. The red/green contrast against each custom theme palette has not been measured. |
 | **Swipe frame timing not measured on device** | The swipe hot path (`charAt` + `dedup` per Move-Event, `SwipeScorer.score` on release) is JVM-benchmarked in `SwipePerformanceTest` — `charAt` and `dedup` are asserted < 5 ms avg over 10 000 calls, the scorer < 50 ms on a 6 000-word corpus (hard assertions so regressions fail the build). What remains open: **frame timing on a real display** (profiling the overlay invalidate + edge redraw on the device) and visual smoothness of the circuit preview path. |
-| ~~English locale incomplete~~ **Resolved 2026-09-21** | `values-en` now covers all 176 strings (was 92/163); no German fallback in English-locale devices any more. |
+| ~~English locale incomplete~~ **Resolved 2026-09-21** | `values-en` now covers all 170 strings (was 92/163); no German fallback in English-locale devices any more. |
 | **Terminal has no PTY** | By design — see the Terminal description above. It is the Android system shell in the app sandbox, not a Termux replacement. |
 | **Instrumented tests are thin** | 2 tests in 44 lines. They run in CI on an API-34 emulator but do not exercise the keyboard UI. |
 
@@ -270,7 +271,7 @@ app/src/main/java/com/piotv/keytab/            # 51 Kotlin files, 7,020 lines
 │   ├── TrailSection.kt            #   typing trail: on/off, steps, correction trace
 │   └── PreviewSection.kt          #   live preview
 └── ime/
-    ├── KeyTabImeService.kt   # Keyboard core / orchestration (283 lines)
+    ├── KeyTabImeService.kt   # Keyboard core / orchestration (417 lines)
     ├── KeyboardHost.kt       # Interface consumed by the controllers
     ├── KeyboardViewFactory.kt # Builds the keyboard view tree
     ├── KeyboardBinder.kt     # Touch / long-press, backspace repeat
@@ -308,10 +309,10 @@ app/src/main/java/com/piotv/keytab/            # 51 Kotlin files, 7,020 lines
     ├── KeyTabExecutors.kt    # Shared executor + main handler
     └── …                     # InputTargets, LiftSpan, KeyTabConfig
 
-app/src/test/java/com/piotv/keytab/ime/        # 19 test classes, 164 tests, 2,350 lines
+app/src/test/java/com/piotv/keytab/ime/        # 46 test classes, 451 tests, 6,410 lines
 app/src/androidTest/                           # 2 instrumented tests (CI: API 34 emulator)
-app/src/main/res/values/strings.xml            # 163 strings (default = German)
-app/src/main/res/values-en/                    # English locale (176 strings — complete, 2026-09-21)
+app/src/main/res/values/strings.xml            # 170 strings (default = German)
+app/src/main/res/values-en/                    # English locale (170 strings — complete, 2026-09-21)
 app/src/main/res/values-night/                 # Night-mode resource qualifiers
 app/src/main/assets/
 ├── de_freq_top6000.txt              # corpus (CC-BY-SA-4.0)
@@ -345,7 +346,7 @@ Issues and pull requests are welcome. Before opening a PR:
 
 ```bash
 sh scripts/check_docs_drift.sh                     # docs must match the code
-sh ./gradlew :app:testDebugUnitTest --offline      # 323 tests must stay green
+sh ./gradlew :app:testDebugUnitTest --offline      # 483 tests must stay green
 bash build_keytab.sh debug                         # must build
 ```
 

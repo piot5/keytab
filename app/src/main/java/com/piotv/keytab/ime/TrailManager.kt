@@ -250,6 +250,14 @@ class TrailManager(
         maxSteps = trailSteps()
     }
 
+    /**
+     * Test-Hook: Zustand (Decay-Schritt + Betriebsart) je Buchstabe.
+     * Nur für Unit-Tests ([TrailManagerTest]) — außerhalb von Tests nicht
+     * aufrufen (kein Live-State, Momentaufnahme).
+     */
+    fun snapshotForTest(): Map<Char, Pair<Int, TrailLogic.TrailKind>> =
+        steps.mapValues { (c, s) -> s to (kinds[c] ?: TrailLogic.TrailKind.TYPED) }
+
     /** Aktualisiert die BaseLetters-Map (z.B. nach Language-Wechsel oder View-Neuaufbau).
      *  Da der Trail nur Foreground-Overlays nutzt, müssen keine Hintergründe
      *  verwaltet werden; alte Overlays auf entfernten Buttons sind unbeobachtbar. */

@@ -106,7 +106,7 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
          * dedupliziert, leere/Whitespace-Einträge übersprungen.
          */
         fun recentSnippets(raw: String?, max: Int = 3): List<String> =
-            (raw ?: "").split(SEP_RECENT).map { it.trim() }
+            raw.orEmpty().split(SEP_RECENT).map { it.trim() }
                 .filter { it.isNotEmpty() }.distinct().take(max)
 
         /**
@@ -117,8 +117,8 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
          */
         fun recordRecent(raw: String?, text: String, max: Int = 3): String {
             val t = text.trim()
-            if (t.isEmpty()) return raw ?: ""
-            val cur = (raw ?: "").split(SEP_RECENT).map { it.trim() }.filter { it.isNotEmpty() }
+            if (t.isEmpty()) return raw.orEmpty()
+            val cur = raw.orEmpty().split(SEP_RECENT).map { it.trim() }.filter { it.isNotEmpty() }
             val ordered = buildList { add(t); for (e in cur) if (e != t) add(e) }.take(max)
             return ordered.joinToString(SEP_RECENT)
         }

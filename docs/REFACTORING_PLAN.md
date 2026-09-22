@@ -9,17 +9,17 @@ Status: 2026-09-21 · Goal: maintainable, testable modules with no behaviour cha
 
 ---
 
-## 1. Current snapshot (2026-09-21)
+## 1. Current snapshot (2026-09-22)
 
 | Metric | Value |
 |---|---|
-| Unit tests | **343 in 36 suites**, 0 failures (verified 21 Sep; `testDebugUnitTest` + `coverageGate` green) |
-| Coverage (Kover) | **52.2 % line** (2300/4404) / **39.8 % branch** (1287/3237), measured 21 Sep; `sections` 93.6 %, `file` 77.9 %, `ime` 49.7 % |
-| Test:main ratio | **50.3 %** (4,718 test lines / 9,380 main lines; 57 main files) |
-| detekt baseline | **198 Einträge** (156 nach Quick-Win-Aufräumung; + 42 neue v0.11-Swipe-Funde via `detektBaseline`-Regenerierung 21 Sep) |
-| i18n | `values-en` **176/176 Strings** (100 %, 21 Sep) |
-| Service size | ~290 lines (from 908) |
-| Working tree | v0.11 swipe + autocorrect-fix + dict scripts — **commit pending** |
+| Unit tests | **483 in 50 suites**, 0 failures (verified 22 Sep on the device; `testDebugUnitTest` + `detektDebug` + `koverXmlReport` green) |
+| Coverage (Kover) | **67.0 % line** (2947/4401) / **53.8 % branch** (1742/3238), measured 22 Sep (XML report, debug+release); `sections` 93.6 %, `file` 77.9 %, `ime` 68.7 % |
+| Test:main ratio | **74.4 %** (7,024 test lines / 9,436 main lines; 57 main files) |
+| detekt baseline | **198 Einträge** (unverändert; Gate grün) |
+| i18n | `values-en` **170/170 Strings** (100 %) |
+| Service size | 417 lines (from 908) |
+| Working tree | v0.11 + Passwort-Sperre für Lernen/Vorschläge/Autokorrektur (inkl. Emoji-Katalog) — **committet 22 Sep** |
 | Repo hygiene | `KeyAnimations.kt` duplication resolved (only `ime/` copy left) |
 
 ---

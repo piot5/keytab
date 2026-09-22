@@ -13,6 +13,36 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Unreleased
 
+- **Sicherheit: Lernen, Vorschläge und Autokorrektur jetzt auch in Passwort-Feldern
+  gesperrt** — Trail und Swipe respektierten
+  `TrailLogic.isTrailAllowed` (Passwort-Felder + `IME_FLAG_NO_PERSONALIZED_LEARNING`)
+  schon immer; die drei Pfade, die die Eingabe **auswerten oder speichern**, taten
+  es nicht:
+  - getippte Wörter landeten im User-Dictionary (`WordPredictionManager.onWordCompleted`
+    und die Vorschlags-Übernahme `applySuggestion` → `engine.learn` + `persistUserDict`),
+  - die Vorschlagsleiste zeigte Wörter (Gating nur über die Pref),
+  - `autoCorrectBeforeSpace()` ersetzte beim Space auch in `•`-Feldern ein Wort durch
+    einen Wörterbuch-Kandidaten.
+  Neu: `TrailLogic.isPersonalizedProcessingAllowed` — bewusst **dieselbe** harte Regel
+  wie der Trail (per Test gegen `isTrailAllowed` fixiert, damit kein Pfad eine
+  weichere Regel bekommt). Der Service speist sie aus der aktuellen `EditorInfo`
+  (`lastEditorInfo` in `onStartInput`/`onStartInputView` → `KeyboardViewFactory.Deps`
+  → `WordPredictionManager`); Trail/Swipe bekommen dieselbe Instanz über
+  `KeyboardBinder.setEditorInfo`. Ohne Freigabe wird nichts gelernt/persistiert,
+  werden keine Vorschläge gerendert (Leiste `GONE`, Chips geräumt) und nicht
+  korrigiert; der Bigramm-Kontext wird geleert, damit kein Wort aus dem Feld in die
+  nächste Vorhersage leckt. **Auch der Emoji-Katalog** (☺-Button) rendert an
+  `updateSuggestions` vorbei und blieb dadurch in einem gesperrten Feld offen bzw.
+  sichtbar — `SuggestionController.update()` schließt ihn jetzt über
+  `WordPredictionManager.isFieldProcessingAllowed()` (die dynamische Tastengröße und
+  das Likely-Highlighting fallen mit den geleerten `currentSuggestions` automatisch
+  mit weg, also kein Rest-Kanal über die Tastengröße).
+  Tests: neue Suite `WordPredictionManagerPrivacyTest`
+  (8 Tests) mit **Gegenproben in normalen Feldern** (sonst könnte ein stumpfes
+  `return` die Sperre „bestehen“) + Regel-Gleichheit in `TrailLogicTest` +
+  `Emoji-Katalog bleibt in gesperrten Feldern zu` in `SuggestionControllerTest`.
+  Suite jetzt **483 Tests in 50 Suiten**, 0 Failures.
+
 - **Einstellungen entlastet + Rot-Färbung raus** — auf Wunsch des Projekt-Eigners:
   - Die Schalter **„Auto-correction"** und **„Circuit preview"** sind aus dem
     Einstellungs-Screen entfernt (Layout, Verdrahtung, 6 Strings in beiden

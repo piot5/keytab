@@ -34,6 +34,8 @@ class KeyboardViewFactory(private val deps: Deps) {
         fun commitText(text: String)
         fun commitToApp(text: String)
         val isInputViewShown: Boolean
+        /** Harte Sicherheitsregel: Passwort-/Sensibel-Feld? ([TrailLogic.isPersonalizedProcessingAllowed]). */
+        fun isPersonalizedProcessingAllowed(): Boolean
         fun currentInputConnection(): InputConnection?
         fun sendKeyEvents(keyCode: Int)
         val ioExecutor: Executor
@@ -122,7 +124,8 @@ class KeyboardViewFactory(private val deps: Deps) {
                 override fun textBefore(count: Int): String = router.textBefore(count)
                 override fun insert(text: String) = router.insert(text)
                 override fun commitToApp(text: String) = deps.commitToApp(text)
-            }
+            },
+            personalizedProcessingAllowed = { deps.isPersonalizedProcessingAllowed() }
         )
         val keyScaler = DynamicKeyScaler(deps.baseLetters)
         // Generelles Tasten-Animationssystem (v0.9.7): LayoutTransition auf

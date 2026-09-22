@@ -104,6 +104,19 @@ object TrailLogic {
     }
 
     /**
+     * Darf die Eingabe dieses Feldes personalisiert verarbeitet werden?
+     *
+     * Gilt für **alles, was die Eingabe auswertet oder speichert**: Wortlernen
+     * (User-Dictionary), Vorschläge in der Vorschlagsleiste und aktive
+     * Autokorrektur. Bewusst genau dieselbe harte Regel wie [isTrailAllowed]
+     * (Passwort-Felder, `IME_FLAG_NO_PERSONALIZED_LEARNING`, `null` = Feld noch
+     * unbekannt → erlaubt), damit kein Pfad versehentlich eine weichere Regel
+     * bekommt. [SwipePathLogic.isSwipeAllowed] nutzt dieselbe Basis.
+     */
+    fun isPersonalizedProcessingAllowed(attribute: EditorInfo?): Boolean =
+        isTrailAllowed(attribute)
+
+    /**
      * Passwort-Feld? Deckt Text- und Web-Passwort-Varianten ab – dieselbe
      * Menge, die [CapsLogic.wantsCapitalization] ausschließt.
      */

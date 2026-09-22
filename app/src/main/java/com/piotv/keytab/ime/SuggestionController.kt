@@ -101,7 +101,7 @@ internal class SuggestionController(private val host: SuggestionHost) {
             host.hideKeyboard()
             // Symbol passend zum neuen Zustand setzen.
             val collapsed = root.getTag(R.id.sug_hide) as? Boolean ?: false
-            sugHide?.text = if (collapsed) "⇱" else "⇲"
+            sugHide.text = if (collapsed) "⇱" else "⇲"
         }
         sugHide?.visibility =
             if (host.isEditorOrTerminalTab()) View.VISIBLE else View.GONE
@@ -123,11 +123,20 @@ internal class SuggestionController(private val host: SuggestionHost) {
         val bar = host.keyboardRoot?.findViewById<View>(R.id.suggestion_bar) ?: return
         val suggestionEnabled = com.piotv.keytab.Prefs.of(host.context)
             .getBoolean(com.piotv.keytab.Prefs.KEY_SUGGESTIONS, true)
+        // Harte Sicherheitsregel (dieselbe wie beim Trail): in Passwort-Feldern
+        // bzw. bei IME_FLAG_NO_PERSONALIZED_LEARNING wird nichts gerendert. Der
+        // Emoji-Katalog wird dort ebenfalls geschlossen — er rendert an
+        // [WordPredictionManager.updateSuggestions] vorbei, bliebe sonst also
+        // sichtbar, wenn er vor dem Feldwechsel geöffnet wurde.
+        val fieldAllowed = host.predictionManager?.isFieldProcessingAllowed() ?: true
         if (emojiBrowsePage >= 0) {
             // Katalog-Browser aktiv: zeigt anstelle der Wortvorschläge die aktuelle
             // Emoji-Katalog-Seite (jeder ☺-Tap blättert weiter / zurück zu Wörtern).
-            if (suggestionEnabled) renderEmojiPage(bar)
-            else emojiBrowsePage = -1
+            if (suggestionEnabled && fieldAllowed) renderEmojiPage(bar)
+            else {
+                emojiBrowsePage = -1
+                if (!fieldAllowed) bar.visibility = View.GONE
+            }
             return
         }
         host.predictionManager?.updateSuggestions(bar, suggestionEnabled)
@@ -389,7 +398,7 @@ internal class SuggestionController(private val host: SuggestionHost) {
         // aus Kleinbuchstaben besteht.
         val pm = host.predictionManager
         val eng = pm?.engine
-        val typed = pm?.currentTypedWord ?: ""
+        val typed = pm?.currentTypedWord.orEmpty()
         val atSentenceStart = pm?.let {
             SuggestionEngine.isSentenceStartContext(
                 it.textBeforeForSuggestions(16), typed)

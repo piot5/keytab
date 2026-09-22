@@ -35,6 +35,13 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
 
     // ---------- Module ----------
     private val suggestionViews = arrayOfNulls<TextView>(3)
+    /**
+     * Letztes Eingabefeld (EditorInfo) – Quelle der harten Sicherheitsregel
+     * [TrailLogic.isPersonalizedProcessingAllowed] für Lernen, Vorschläge und
+     * Autokorrektur. Trail/Swipe bekommen dieselbe Instanz über
+     * [KeyboardBinder.setEditorInfo] (gesetzt in onStartInput/onStartInputView).
+     */
+    private var lastEditorInfo: android.view.inputmethod.EditorInfo? = null
     override var keyScaler: DynamicKeyScaler? = null
         private set
     override var predictionManager: WordPredictionManager? = null
@@ -67,6 +74,8 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         override fun commitText(text: String) = this@KeyTabImeService.commitText(text)
         override fun commitToApp(text: String) = this@KeyTabImeService.commitToApp(text)
         override val isInputViewShown: Boolean get() = this@KeyTabImeService.isInputViewShown
+        override fun isPersonalizedProcessingAllowed(): Boolean =
+            TrailLogic.isPersonalizedProcessingAllowed(this@KeyTabImeService.lastEditorInfo)
         override fun currentInputConnection() = currentInputConnection
         override fun sendKeyEvents(keyCode: Int) = sendDownUpKeyEvents(keyCode)
         override val ioExecutor: java.util.concurrent.Executor get() = this@KeyTabImeService.ioExecutor
@@ -215,6 +224,8 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         // onStartInput kann VOR onCreateInputView feuern (IME-Start, bevor die
         // Tastatur das erste Mal angezeigt wird) → keyboardBinder ist dann noch
         // nicht initialisiert. Guard verhindert UninitializedPropertyAccessException.
+        // Feld für die harte Sicherheitsregel merken (Lernen/Vorschläge/Autokorrektur).
+        lastEditorInfo = attribute
         if (::keyboardBinder.isInitialized) {
             // Passwort-/Sensibel-Feld: Trail dort hart abschalten (TrailLogic).
             keyboardBinder.setEditorInfo(attribute)
@@ -231,6 +242,7 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         refreshSettings()
         // Feldwechsel: Trail in Passwort-/Sensibel-Feldern abschalten. Das feuert
         // zuverlässiger als onStartInput (z. B. bei Fokuswechsel ohne neues Feld).
+        lastEditorInfo = editorInfo
         if (::keyboardBinder.isInitialized) keyboardBinder.setEditorInfo(editorInfo)
     }
 

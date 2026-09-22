@@ -184,4 +184,75 @@ class FileManagerModelTest {
         m.goBack()
         assertEquals(rootDir, m.dir)
     }
+
+    // ---------- P0-Nachträge (Filter, Dedup, Restore, Kanten) ----------
+
+    @Test
+    fun `navigate zweimal zum Gleichen pusht keinen Stack`() {
+        val m = modelWithRoot()
+        m.navigate(aDir)
+        m.navigate(aDir)
+        assertEquals("kein doppelter Stack-Eintrag", 1, m.stack.size)
+        assertEquals(aDir, m.dir)
+    }
+
+    @Test
+    fun `persist nach Start schreibt das Root-Verzeichnis`() {
+        // init{restore} setzt currentDir immer (Fallback root) — persist
+        // schreibt daher auch ohne navigate() (Vertrag: nie leere Prefs).
+        store.clear()
+        val m = modelWithRoot()
+        m.persist()
+        assertEquals(rootDir.absolutePath, store["fm_dir"])
+    }
+
+    @Test
+    fun `listEntries filtert versteckte Dateien`() {
+        val hidden = File(rootDir, ".hidden")
+        val cache = mapOf(rootDir to listOf(aDir, hidden, cFile))
+        val m = FileManagerModel(
+            prefs = { _, d -> d },
+            put = { _, _ -> },
+            dirs = { cache[it] },
+            rootOverride = rootDir)
+        val entries = m.listEntries()
+        assertTrue("Punkt-Dateien werden ausgeblendet",
+            entries.none { it.name == ".hidden" })
+        assertEquals(2, entries.size)
+    }
+
+    @Test
+    fun `counts bei fehlender Liste liefert null-null`() {
+        val m = FileManagerModel(
+            prefs = { _, d -> d },
+            put = { _, _ -> },
+            dirs = { null },
+            rootOverride = rootDir)
+        assertEquals(0 to 0, m.counts())
+    }
+
+    @Test
+    fun `restore behaelt nur lesbare Stack-Eintraege`() {
+        store["fm_dir"] = aDir.absolutePath
+        store["fm_backstack"] = rootDir.absolutePath + "\n/nicht/existierend"
+        val m = FileManagerModel(
+            prefs = { k, d -> store[k] ?: d },
+            put = { _, _ -> },
+            dirs = { dirCache[it] },
+            rootOverride = rootDir)
+        assertEquals(aDir, m.dir)
+        assertEquals("ungueltige Stack-Pfade werden verworfen",
+            listOf(rootDir), m.stack)
+    }
+
+    @Test
+    fun `goUp am Dateisystem-Root ist noop`() {
+        val m = FileManagerModel(
+            prefs = { _, _ -> null },
+            put = { _, _ -> },
+            dirs = { emptyList() },
+            rootOverride = File("/"))
+        m.goUp()
+        assertEquals(File("/"), m.dir)
+    }
 }

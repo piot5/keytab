@@ -22,7 +22,16 @@ class WordPredictionManager(
     private val ioExecutor: Executor,
     private val mainHandler: Handler,
     private val suggestionViews: Array<TextView?>,
-    private val inputOps: InputOperations
+    private val inputOps: InputOperations,
+    /**
+     * Darf die Eingabe dieses Feldes personalisiert verarbeitet werden (Lernen,
+     * Vorschläge, Autokorrektur)? Default `true` (bisheriges Verhalten);
+     * der Service verdrahtet hier
+     * [TrailLogic.isPersonalizedProcessingAllowed] mit dem aktuellen
+     * EditorInfo – Passwort-Felder und `IME_FLAG_NO_PERSONALIZED_LEARNING`
+     * sind damit auch für diese drei Pfade Tabu.
+     */
+    private val personalizedProcessingAllowed: () -> Boolean = { true }
 ) {
     /** Eingabe-Operationen, die der Service bereitstellt (kontextabhängig: App/Editor/Terminal). */
     interface InputOperations {
@@ -48,6 +57,14 @@ class WordPredictionManager(
 
     /** Text vor dem Cursor (für externe Module wie SuggestionController). */
     fun textBeforeForSuggestions(count: Int): String = inputOps.textBefore(count)
+
+    /**
+     * Aktuelle Feld-Freigabe (Lernen/Vorschläge/Autokorrektur) —
+     * `false` in Passwort-Feldern und bei `IME_FLAG_NO_PERSONALIZED_LEARNING`.
+     * Für Module, die selbst rendern (z. B. der Emoji-Katalog in
+     * [SuggestionController]).
+     */
+    fun isFieldProcessingAllowed(): Boolean = personalizedProcessingAllowed()
 
     /** Lädt die Engine für die aktive Sprache (async). Bei Sprachwechsel: Reload. */
     fun loadEngine(language: KeyboardLanguage, forceReload: Boolean = false) {
@@ -86,6 +103,15 @@ class WordPredictionManager(
     fun updateSuggestions(bar: View?, enabled: Boolean) {
         if (bar == null) return
         if (!enabled) { bar.visibility = View.GONE; return }
+        // Harte Sicherheitsregel (dieselbe wie beim Trail): in Passwort-Feldern
+        // bzw. bei IME_FLAG_NO_PERSONALIZED_LEARNING werden keine Vorschläge
+        // gerendert — und keine Reste des vorherigen Feldes stehen gelassen.
+        if (!personalizedProcessingAllowed()) {
+            currentSuggestions = emptyList()
+            clearSuggestionViews()
+            bar.visibility = View.GONE
+            return
+        }
         val contextBefore = inputOps.textBefore(16)
         // Snippet-Leiste: nur ausblasen, wenn **kein** Wort getippt wird
         // (sentenceStart ist strenger: typedWord != null → false).
@@ -114,12 +140,7 @@ class WordPredictionManager(
         }
         if (list.isEmpty()) {
             currentSuggestions = emptyList()
-            for (i in 0..2) {
-                suggestionViews[i]?.apply {
-                    visibility = View.INVISIBLE; tag = null
-                    setTag(SuggestionEngine.SNIPPET_TAG, null)
-                }
-            }
+            clearSuggestionViews()
             bar.visibility = View.VISIBLE
             return
         }
@@ -138,6 +159,17 @@ class WordPredictionManager(
         }
         currentSuggestions = list
         bar.visibility = View.VISIBLE
+    }
+
+    /** Leert die drei Vorschlags-Slots (Text/Tags konsistent zum leeren Zustand). */
+    private fun clearSuggestionViews() {
+        for (i in 0..2) {
+            suggestionViews[i]?.apply {
+                visibility = View.INVISIBLE
+                tag = null
+                setTag(SuggestionEngine.SNIPPET_TAG, null)
+            }
+        }
     }
 
     /**
@@ -203,10 +235,10 @@ class WordPredictionManager(
                 inputOps.insert("$fullWord ")
             }
         }
-        engine?.learn(prevTypedWord, fullWord)
-        prevTypedWord = fullWord.lowercase()
+        // Kein Lernen/Persistieren in Passwort-/sensiblen Feldern (harte Regel);
+        // der Bigramm-Kontext wird dort ebenfalls geleert (kein Kontext-Leak).
+        learnWord(prevTypedWord, fullWord)
         currentTypedWord = ""
-        persistUserDict()
     }
 
     /**
@@ -261,12 +293,9 @@ class WordPredictionManager(
 
     /** Wort abgeschlossen (Space/Punkt/Enter): lernen + State reset. */
     fun onWordCompleted() {
-        if (currentTypedWord.isNotEmpty()) {
-            engine?.learn(prevTypedWord, currentTypedWord)
-            prevTypedWord = currentTypedWord.lowercase()
-            currentTypedWord = ""
-            persistUserDict()
-        }
+        if (currentTypedWord.isEmpty()) return
+        learnWord(prevTypedWord, currentTypedWord)
+        currentTypedWord = ""
     }
 
     /**
@@ -282,11 +311,32 @@ class WordPredictionManager(
         if (!com.piotv.keytab.Prefs.of(context)
                 .getBoolean(com.piotv.keytab.Prefs.KEY_AUTOCORRECT, true)
         ) return false
+        // Harte Sicherheitsregel: in Passwort-/sensiblen Feldern wird nie
+        // korrigiert — ein Wörterbuchwort darf kein Passwort überschreiben.
+        if (!personalizedProcessingAllowed()) return false
         val typed = currentTypedWord
         if (typed.length < 3) return false
         val corrected = engine?.autoCorrect(typed, prevTypedWord) ?: return false
         applySuggestion(corrected)
         return true
+    }
+
+    /**
+     * Wort übernehmen: lernen, Bigramm-Kontext setzen, persistieren — **nur**
+     * wenn das Feld personalisierte Verarbeitung erlaubt (Passwort-Felder und
+     * `IME_FLAG_NO_PERSONALIZED_LEARNING` ausgenommen — dieselbe harte Regel wie
+     * [TrailLogic.isPersonalizedProcessingAllowed]). Ohne Freigabe wird nichts
+     * gelernt und der Kontext geleert, damit kein Wort aus dem Feld in die
+     * nächste Vorhersage leckt.
+     */
+    private fun learnWord(prev: String?, word: String) {
+        if (!personalizedProcessingAllowed()) {
+            prevTypedWord = null
+            return
+        }
+        engine?.learn(prev, word)
+        prevTypedWord = word.lowercase()
+        persistUserDict()
     }
 
     private fun persistUserDict() {

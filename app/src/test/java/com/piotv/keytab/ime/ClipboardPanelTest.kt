@@ -75,4 +75,56 @@ class ClipboardPanelTest {
         p.onSelected()
         assertTrue(p.entries().isEmpty())
     }
+
+    // ---------- P0-Nachträge (Limit, Clear, Isolation) ----------
+
+    @org.junit.Before
+    fun clearHistoryFile() {
+        // Eigene History-Datei pro Test: persistAsync schreibt synchron
+        // (directExecutor), loadHistory liest im init — ohne Clear würden
+        // Tests derselben Klasse die Datei teilen.
+        val f = java.io.File(app.filesDir, "clipboard_history.txt")
+        if (f.exists()) f.delete()
+    }
+
+    @Test
+    fun `Verlauf ist auf 50 Eintraege begrenzt - aeltester faellt raus`() {
+        val p = panel()
+        for (i in 1..55) {
+            setClipboard("eintrag $i")
+            p.capture()
+        }
+        val entries = p.entries()
+        assertEquals("MAX_ENTRIES aus ClipboardPanel", 50, entries.size)
+        assertEquals("neuester zuerst", "eintrag 55", entries.first())
+        assertEquals("aeltester ueberlebender", "eintrag 6", entries.last())
+        assertTrue(entries.none { it == "eintrag 5" })
+    }
+
+    @Test
+    fun `erneutes Capturen schiebt Eintrag nach vorn ohne Duplikat`() {
+        val p = panel()
+        setClipboard("eins"); p.capture()
+        setClipboard("zwei"); p.capture()
+        setClipboard("eins"); p.capture()
+        assertEquals(listOf("eins", "zwei"), p.entries())
+    }
+
+    @Test
+    fun `clear leert Verlauf und Persistenz`() {
+        setClipboard("bleib"); val p = panel(); p.onSelected()
+        assertEquals(1, p.entries().size)
+        p.clear()
+        assertTrue(p.entries().isEmpty())
+        // zweite Instanz lädt aus der Datei → muss ebenfalls leer sein
+        assertTrue(panel().entries().isEmpty())
+    }
+
+    @Test
+    fun `Blank-Clipboard wird nicht aufgenommen`() {
+        val p = panel()
+        setClipboard("   ")
+        p.capture()
+        assertTrue(p.entries().isEmpty())
+    }
 }

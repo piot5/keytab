@@ -1,4 +1,6 @@
 import java.util.Properties
+import kotlinx.kover.gradle.plugin.dsl.AggregationType
+import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
 
 plugins {
     id("com.android.application")
@@ -17,16 +19,25 @@ detekt {
     parallel = true
 }
 
-// Coverage-Gate: koverVerify ist das harte Gate (Zeilen-Coverage ≥ 20 %).
-// Der Wert ist bewusst ein unteres Limit gegen grobe Regressionen, kein Ziel:
-// Gemessen wird der gesamte :app-Scope (UI/Service inklusive), die reinen
-// Logik-Klassen liegen individuell deutlich höher.
+// Coverage-Gate: koverVerify ist das harte Gate (Zeilen-Coverage ≥ 60 %,
+// Branch-Coverage ≥ 45 %). Die Schwellen liegen bewusst ~5-7 Punkte unter dem
+// gemessenen Stand (22.09.2026: 67,0 % Zeilen / 53,8 % Branch im selben
+// aggregierten "application"-Report, den `koverVerify` prüft; `koverLog` nennt
+// für Zeilen 66,96 %). Sie fangen echte Regressionen, ohne bei kleinen Umbauten
+// zu flattern. Vorher stand hier 20 % — das war kein Schutz, sondern Deko.
 kover {
     reports {
         verify {
             rule {
                 bound {
-                    minValue = 20 // Prozent Zeilen-Coverage
+                    minValue = 60 // Prozent Zeilen-Coverage
+                }
+            }
+            rule {
+                bound {
+                    coverageUnits = CoverageUnit.BRANCH
+                    aggregationForGroup = AggregationType.COVERED_PERCENTAGE
+                    minValue = 45 // Prozent Branch-Coverage
                 }
             }
         }

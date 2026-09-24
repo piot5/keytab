@@ -24,13 +24,6 @@
     <ID>CyclomaticComplexMethod:TabController.kt$TabController$fun setup(root: View)</ID>
     <ID>CyclomaticComplexMethod:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
     <ID>CyclomaticComplexMethod:ThemePrefs.kt$ThemePrefs$fun importColors(prefs: SharedPreferences, json: String): Boolean</ID>
-    <ID>EmptyFunctionBlock:BackgroundSection.kt$BackgroundSection.&lt;no name provided&gt;${}</ID>
-    <ID>EmptyFunctionBlock:ColorSection.kt$ColorSection.&lt;no name provided&gt;${}</ID>
-    <ID>EmptyFunctionBlock:EditorPanel.kt$EditorPanel.&lt;no name provided&gt;${}</ID>
-    <ID>EmptyFunctionBlock:FileManagerFragment.kt$FileManagerFragment.&lt;no name provided&gt;${}</ID>
-    <ID>EmptyFunctionBlock:GradientSection.kt$GradientSection.&lt;no name provided&gt;${}</ID>
-    <ID>EmptyFunctionBlock:MainActivity.kt$MainActivity.&lt;no name provided&gt;${}</ID>
-    <ID>EmptyFunctionBlock:TabController.kt$TabController.&lt;no name provided&gt;${}</ID>
     <ID>LongMethod:KeyTabImeService.kt$KeyTabImeService$override fun hideKeyboard()</ID>
     <ID>LongMethod:KeyboardBinder.kt$KeyboardBinder$private fun setupLetterButton(btn: Button)</ID>
     <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>

@@ -128,6 +128,40 @@ class TrailSectionTest : SectionsTestBase() {
         assertTrue(ThemePrefs.trailTraceEnabled(prefs))
         assertEquals(1, changedCount)
     }
+
+    @Test
+    fun `updateButton setzt Farben nur bei erlaubtem Zustand`() {
+        val s = TrailSection(activity, prefs) { changedCount++ }
+        s.build(col)
+        // Default: Trail aus → Buttons transparent
+        val r = col.getChildAt(0) as LinearLayout
+        assertEquals(
+            android.graphics.Color.TRANSPARENT,
+            (r.getChildAt(0).background as? android.graphics.drawable.ColorDrawable)?.color)
+        assertEquals(
+            android.graphics.Color.TRANSPARENT,
+            (r.getChildAt(1).background as? android.graphics.drawable.ColorDrawable)?.color)
+        // Trail an, Trace aus → erster Button blau, zweiter lila, dritter transparent
+        prefs.edit()
+            .putBoolean(ThemePrefs.KEY_TRAIL, true)
+            .apply()
+        s.updateButton()
+        assertEquals(
+            0xFF2196F3.toInt(),
+            (r.getChildAt(0).background as? android.graphics.drawable.ColorDrawable)?.color)
+        assertEquals(
+            0xFF3F51B5.toInt(),
+            (r.getChildAt(1).background as? android.graphics.drawable.ColorDrawable)?.color)
+        assertEquals(
+            android.graphics.Color.TRANSPARENT,
+            (r.getChildAt(2).background as? android.graphics.drawable.ColorDrawable)?.color)
+        // Trace zusätzlich an → dritter Button grün
+        prefs.edit().putBoolean(ThemePrefs.KEY_TRAIL_TRACE, true).apply()
+        s.updateButton()
+        assertEquals(
+            0xFF4CAF50.toInt(),
+            (r.getChildAt(2).background as? android.graphics.drawable.ColorDrawable)?.color)
+    }
 }
 
 class TopSectionTest : SectionsTestBase() {

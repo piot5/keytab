@@ -97,8 +97,8 @@ class FileManagerFragment : Fragment() {
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) { current = tab.position; reload() }
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
         })
 
         view.findViewById<View>(R.id.btn_new_tab).setOnClickListener { addTab() }
@@ -118,9 +118,8 @@ class FileManagerFragment : Fragment() {
     private fun requestPermissionsIfNeeded() {
         val wanted = buildList {
             if (android.os.Build.VERSION.SDK_INT >= 33) {
+                // Nur Bilder: Audio/Video liest kein Codepfad (siehe Manifest).
                 add(Manifest.permission.READ_MEDIA_IMAGES)
-                add(Manifest.permission.READ_MEDIA_VIDEO)
-                add(Manifest.permission.READ_MEDIA_AUDIO)
             } else {
                 add(Manifest.permission.READ_EXTERNAL_STORAGE)
             }

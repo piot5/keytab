@@ -201,6 +201,83 @@ else
 fi
 printf '\n'
 
+# --------------------------------- 5. Groessen-, Service- und Sprachzahlen
+# Neu 2026-09-22: genau die Zahlen, die zuletzt still veraltet sind. Das README
+# nannte "283 lines" fuer den Service (tatsaechlich 417), 4.718 Testzeilen /
+# 50.3 % Ratio (tatsaechlich 7.038 / 74.5 %) und "176 strings" (tatsaechlich
+# 170). Alles ohne Toolchain berechenbar (find/wc/grep) und damit CI-tauglich.
+printf '5) Groessen-, Service- und Sprachzahlen\n'
+
+kt_files() { find "$1" -name '*.kt' | wc -l | tr -d ' '; }
+kt_lines() { find "$1" -name '*.kt' -exec cat {} + | wc -l | tr -d ' '; }
+uncomma() { printf '%s' "$1" | tr -d ','; }
+
+T_LINES=$(kt_lines app/src/test)
+T_FILES=$(kt_files app/src/test)
+M_LINES=$(kt_lines app/src/main)
+M_FILES=$(kt_files app/src/main)
+RATIO=$(awk -v t="$T_LINES" -v m="$M_LINES" 'BEGIN { printf "%.1f", (m > 0 ? 100 * t / m : 0) }')
+
+SIZES=$(sed -n 's/.*Test code is \([0-9,]*\) lines in \([0-9,]*\) files against \([0-9,]*\) lines of main code (\([0-9,]*\) files).*/\1 \2 \3 \4/p' README.md | head -1)
+if [ -z "$SIZES" ]; then
+    problem 'README enthaelt nicht "Test code is <X> lines in <Y> files against <Z> lines of main code (<N> files)"' \
+            'Formulierung beibehalten - der Waechter liest genau diese Zahlen'
+else
+    C_TL=$(uncomma "$(printf '%s' "$SIZES" | cut -d' ' -f1)")
+    C_TF=$(uncomma "$(printf '%s' "$SIZES" | cut -d' ' -f2)")
+    C_ML=$(uncomma "$(printf '%s' "$SIZES" | cut -d' ' -f3)")
+    C_MF=$(uncomma "$(printf '%s' "$SIZES" | cut -d' ' -f4)")
+    [ "$C_TL" = "$T_LINES" ] || problem "README nennt $C_TL Testzeilen, tatsaechlich $T_LINES" \
+        "Testzeilen im README auf $T_LINES korrigieren"
+    [ "$C_TF" = "$T_FILES" ] || problem "README nennt $C_TF Testdateien, tatsaechlich $T_FILES" \
+        "Testdateien im README auf $T_FILES korrigieren"
+    [ "$C_ML" = "$M_LINES" ] || problem "README nennt $C_ML Main-Zeilen, tatsaechlich $M_LINES" \
+        "Main-Zeilen im README auf $M_LINES korrigieren"
+    [ "$C_MF" = "$M_FILES" ] || problem "README nennt $C_MF Main-Dateien, tatsaechlich $M_FILES" \
+        "Main-Dateien im README auf $M_FILES korrigieren"
+fi
+
+C_RATIO=$(sed -n 's/.*\*\*\([0-9.]*\) % test-to-main ratio\*\*.*/\1/p' README.md | head -1)
+if [ -z "$C_RATIO" ]; then
+    problem 'README enthaelt keine "**X % test-to-main ratio**"' \
+            'Ratio-Angabe (aus Test-/Main-Zeilen berechnet) beibehalten'
+elif [ "$C_RATIO" != "$RATIO" ]; then
+    problem "README nennt $C_RATIO % Test:Main-Ratio, tatsaechlich $RATIO %" \
+            "Ratio im README auf $RATIO korrigieren"
+else
+    ok "Test:Main-Ratio stimmt ($RATIO %, $T_LINES/$M_LINES Zeilen)"
+fi
+
+SVC_ACT=$(wc -l < app/src/main/java/com/piotv/keytab/ime/KeyTabImeService.kt | tr -d ' ')
+SVC_CLAIMS=$( { sed -n 's/.*keyboard core (\([0-9]*\) lines of orchestration).*/\1/p' README.md
+                sed -n 's/.*orchestration (\([0-9]*\) lines).*/\1/p' README.md; } )
+if [ -z "$SVC_CLAIMS" ]; then
+    problem 'README nennt keine Zeilenzahl fuer KeyTabImeService.kt' \
+            'Angabe "(<N> lines)" im README behalten'
+else
+    for C_SVC in $SVC_CLAIMS; do
+        [ "$C_SVC" = "$SVC_ACT" ] || problem "README nennt $C_SVC Zeilen fuer KeyTabImeService.kt, tatsaechlich $SVC_ACT" \
+            "Zahl im README auf $SVC_ACT korrigieren"
+    done
+    ok "Service-Groesse stimmt ($SVC_ACT Zeilen)"
+fi
+
+S_DE=$(grep -c '<string name=' app/src/main/res/values/strings.xml)
+S_EN=$(grep -c '<string name=' app/src/main/res/values-en/strings.xml)
+if [ "$S_DE" != "$S_EN" ]; then
+    problem "values-en ist unvollstaendig: $S_EN/$S_DE Strings" \
+            "Fehlende Uebersetzungen in values-en/strings.xml ergaenzen"
+else
+    ok "i18n vollstaendig ($S_EN/$S_DE Strings)"
+fi
+C_DE=$(sed -n 's/.*# \([0-9]*\) strings (default.*/\1/p' README.md | head -1)
+C_EN=$(sed -n 's/.*# English locale (\([0-9]*\) strings.*/\1/p' README.md | head -1)
+[ "$C_DE" = "$S_DE" ] || problem "README nennt $C_DE Strings fuer values/, tatsaechlich $S_DE" \
+    "Zahl im README auf $S_DE korrigieren"
+[ "$C_EN" = "$S_EN" ] || problem "README nennt $C_EN Strings fuer values-en/, tatsaechlich $S_EN" \
+    "Zahl im README auf $S_EN korrigieren"
+printf '\n'
+
 # ------------------------------------------------------------------- Ergebnis
 if [ "$FAIL" -eq 0 ]; then
     printf '%sDoku-Drift-Check bestanden.%s\n\n' "$GRN" "$RST"

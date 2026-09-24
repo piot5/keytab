@@ -4,16 +4,29 @@ import com.piotv.keytab.ime.SuggestionEngine
 import java.util.UUID
 
 /**
- * Externe Aufräum-API für das gelernte Benutzer-Wörterbuch (user_dict).
+ * Aufräum-API für das gelernte Benutzer-Wörterbuch (`user_dict`) — **in-process,
+ * bewusst nicht nach außen exponiert**.
  *
  * Zuständigkeit (kein Basis-Korpus):
  * - Lesen, vorbereiten und kontrolliert Ändern des gelernten Bereichs.
  * - Kein Ersatz des Basiswortschatzes, kein unkontrolliertes Massenlöschen,
  *   kein automatisches Hochzählen von Gewichten durch externes Programm.
  *
- * Stand: 2026-09-18. V1-Entwurf.
+ * **Entscheidung 2026-09-22: kein `ContentProvider`, kein exportierter Service.**
+ * Begründung: KeyTab ist eine Offline-Tastatur ohne Netzwerk-Permission
+ * (`allowBackup=false`); ein nach außen exponiertes Tor zum gelernten Wörterbuch
+ * wäre genau für die Daten ein neuer Angriffs-/Abflusspfad, die die App bewusst
+ * nur lokal hält — und würde beim Signatur-Schutz für adb/Cline-Werkzeuge nicht
+ * einmal funktionieren. Die API ist damit ein **interner Vertrag** (deshalb
+ * `internal`) und wird heute nur von Tests benutzt; entsteht kein Konsument,
+ * ist sie ein Kandidat für Entfernung.
+ *
+ * Details und Begründung: `docs/API_INTERFACE_EXTERNAL_CLEANUP.md` → Abschnitt
+ * „Entscheidung“.
+ *
+ * Stand: 2026-09-22. V1-Entwurf (nicht verdrahtet).
  */
-object LearnedDictionaryApi {
+internal object LearnedDictionaryApi {
 
     private const val MAX_WORD_LEN = 32
     private const val MAX_ADD_PER_COMMIT = 200

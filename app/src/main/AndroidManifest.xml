@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Dateimanager-Tab + eigenes Hintergrundbild — bewusst minimal gehalten
+         (Feature → Permission):
+         - READ_EXTERNAL_STORAGE: Dateibrowser auf Android ≤ 12 (API 24–32).
+         - READ_MEDIA_IMAGES: Bilder browsen + Hintergrundbild der Themen-
+           Einstellungen decodieren (Android 13+).
+         - READ_MEDIA_AUDIO/READ_MEDIA_VIDEO wurden am 2026-09-22 entfernt: kein
+           Codepfad liest Audio- oder Videodaten; für den Dateibrowser genügt der
+           Name/Pfad einer Datei. Nicht lesbare Medien zeigen weiter den
+           "fm_no_storage_access"-Hinweis.
+         - MANAGE_EXTERNAL_STORAGE: bewusst nicht (Play-/F-Droid-Blocker, viel zu
+           breit) — siehe Roadmap. -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <!-- MANAGE_EXTERNAL_STORAGE entfernt (Roadmap): Play-Store-Blocker und
-         übermäßig breit. Der Dateimanager arbeitet mit READ_MEDIA_* (Dateien)
-         bzw. listet Ordner; nicht lesbare Bereiche zeigen den bestehenden
-         "fm_no_storage_access"-Hinweis. -->
 
     <application
         android:allowBackup="false"

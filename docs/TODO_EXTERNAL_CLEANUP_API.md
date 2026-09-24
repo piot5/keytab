@@ -1,3 +1,5 @@
+> **Status 2026-09-22:** Die API ist `internal` und **nicht verdrahtet** — Entscheidung gegen einen externen Transportweg (kein ContentProvider) siehe `API_INTERFACE_EXTERNAL_CLEANUP.md` §0. Dieses Dokument bleibt als Planungs-/Umsetzungsnachweis erhalten.
+
 # TODO-Checkliste: Externe Aufräum-API für KeyTab
 
 Ziel: Ein externes Programm (z. B. Cline) kann das gelernte Benutzer-Wörterbuch kontrolliert aufräumen, ohne Basis-Korpus zu berühren und ohne unkontrolliertes Massenlöschen oder automatisches Gewicht-Hochzählen.

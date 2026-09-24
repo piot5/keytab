@@ -13,14 +13,14 @@ Status: 2026-09-21 · Goal: maintainable, testable modules with no behaviour cha
 
 | Metric | Value |
 |---|---|
-| Unit tests | **483 in 50 suites**, 0 failures (verified 22 Sep on the device; `testDebugUnitTest` + `detektDebug` + `koverXmlReport` green) |
-| Coverage (Kover) | **67.0 % line** (2947/4401) / **53.8 % branch** (1742/3238), measured 22 Sep (XML report, debug+release); `sections` 93.6 %, `file` 77.9 %, `ime` 68.7 % |
-| Test:main ratio | **74.4 %** (7,024 test lines / 9,436 main lines; 57 main files) |
+| Unit tests | **484 in 50 suites**, 0 failures (verified 22 Sep on the device; `testDebugUnitTest` + `detektDebug` + `coverageGate` green) |
+| Coverage (Kover) | **67.0 % line** (2947/4401) / **53.8 % branch** (1742/3238), measured 22 Sep (XML report, debug+release); **Gate: 60 % line / 45 % branch**; `sections` 93.6 %, `file` 77.9 %, `ime` 68.7 % |
+| Test:main ratio | **74.5 %** (7,038 test lines / 9,450 main lines; 57 main files) |
 | detekt baseline | **198 Einträge** (unverändert; Gate grün) |
-| i18n | `values-en` **170/170 Strings** (100 %) |
+| i18n | `values-en` **170/170 Strings** (100 %, per Drift-Gate erzwungen) |
 | Service size | 417 lines (from 908) |
-| Working tree | v0.11 + Passwort-Sperre für Lernen/Vorschläge/Autokorrektur (inkl. Emoji-Katalog) — **committet 22 Sep** |
-| Repo hygiene | `KeyAnimations.kt` duplication resolved (only `ime/` copy left) |
+| Working tree | v0.11 + Passwort-Sperre + Gate-/Wächter-/Cleanup-Paket — **committet 22 Sep** |
+| Repo hygiene | `KeyAnimations.kt` duplication resolved; `build_*.log` entfernt, Root-Artefakte in `../archive/` |
 
 ---
 
@@ -51,23 +51,39 @@ Status: 2026-09-21 · Goal: maintainable, testable modules with no behaviour cha
 ## 4. Backlog (open items)
 
 ### P1 — Test infrastructure (+3.0 global)
-- [x] Coverage gate (Kover, 20 % threshold) — done 17 Sep (History §3/P1)
+- [x] **Coverage-Gate verschärft (22 Sep):** Kover `koverVerify` erzwingt jetzt
+  **60 % Zeilen- / 45 % Branch-Coverage** statt 20 % (gemessen: 67,0 / 53,8).
+  Zusätzlich deckt das Doku-Gate Größen-/Sprachzahlen ab (Ratio, Service-Zeilen,
+  `values`⇔`values-en`-Parität).
 - [x] **Robolectric panel tests (21 Sep):** `SnippetPanelTest` (5: parser rules, defaults file,
   tap→commit, recent-history), `TerminalPanelTest` (10: prompt, cd tracking + invalid-target
   fallback, insert/delete/delete(word), empty command), `FileManagerPanelTest` (5: navigation,
   back-stack, up, file-tap commit, `fm_dir`/`fm_backstack` persistence).
-  Suite total **343 tests / 36 suites**. Still open from the original P1 list:
+  Suite total **484 tests / 50 suites**. Still open from the original P1 list:
   `InputRouter` focus routing has `InputRouterTest` (8) but no cross-panel routing case.
+- [x] **Sicherheits-Vertrag für gesperrte Felder (22 Sep):** `WordPredictionManagerPrivacyTest`
+  (8 Tests, je Pfad Sperr- + Gegenprobe) + Regel-Matrix in `TrailLogicTest` +
+  Emoji-Katalog-Gate in `SuggestionControllerTest`.
 - [ ] **Instrumented swipe/touch integration test** (external lever #2, +2.0): IME touch
   interaction + swipe path — only 2 instrumented tests exist today
 
 ### P2 — Structure & distribution (+2.0 / +1.5)
 - [x] `keyboard_view.xml` split, `MANAGE_EXTERNAL_STORAGE` replaced — done (History)
+- [x] **Permissions minimiert (22 Sep):** `READ_MEDIA_AUDIO`/`READ_MEDIA_VIDEO` entfernt
+  (kein Codepfad liest Audio/Video); Feature→Permission-Zuordnung steht im Manifest.
+- [x] **`LearnedDictionaryApi` entschieden (22 Sep):** `internal`, kein ContentProvider
+  (Begründung: `docs/API_INTERFACE_EXTERNAL_CLEANUP.md` §0). Entfernung bleibt Option.
 - [ ] **IzzyOnDroid submission** (signing via env is F-Droid compliant; verify reproducible builds)
+- [ ] **`targetSdk 35`** (Play-Vorgabe für Neu-Releases) — in diesem Build-Umfeld blockiert:
+  installiert ist nur `platforms/android-34` + AGP 8.5.2; `compileSdk 35` braucht das
+  API-35-Platform-Paket und AGP ≥ 8.6.
 
 ### P3 — Polish
 - [x] Threading part 1, prefs centralisation, KeyboardHost role split, docs/versioning single
   source, detekt Quick-Wins (21 Sep) — done (History)
+- [x] **Performance (22 Sep):** Prefix-Vervollständigung läuft über `byFirstChar` statt
+  Voll-Scan über ~6.000 Wörter (case-insensitiver Index, Test in `SuggestionEngineTest`).
+- [x] **Hygiene (22 Sep):** 16 `build_*.log` entfernt, Root-Artefakte nach `../archive/`.
 - [ ] Lint warnings ~30 → **< 10**
 - [ ] **IME hardening test matrix:** Termux (neovim) / AndroidIDE / VS Code (proot) —
   cursor, commitText, IME switching

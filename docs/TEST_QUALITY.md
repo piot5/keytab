@@ -1,6 +1,6 @@
 # KeyTab — Testqualität: Einzelbewertung 1–100 + Verbesserungsplan
 
-Stand: 2026-09-22 · Projekt: `projects/keytab` · 36 Testdateien · ~231 Tests / 27 Suites (lt. Git-Log `0b5597d`)
+Stand: 2026-09-22 · Projekt: `projects/keytab` · 50 Testdateien (52 Dateien inkl. 2 Archiv-Kopien) · 487 Tests / 50 Suites · Kover: 67.0 % Line / 53.8 % Branch (Stand 22.09.2026)
 Kover zuletzt: 47.6 % Line / 36.4 % Branch (Log) bzw. 46.5 % / 35.4 % (README-Gap-Messung 19. Sep).
 
 ## Bewertungs-Rubrik (Summe = 100)

@@ -45,8 +45,8 @@ class ColorSection(
                 override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
                     if (fromUser) colorWheel?.setBrightness(p / 100f)
                 }
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
-                override fun onStopTrackingTouch(sb: SeekBar?) {}
+     override fun onStartTrackingTouch(sb: SeekBar?) = Unit
+                override fun onStopTrackingTouch(sb: SeekBar?) = Unit
             })
         }
         col.addView(brightnessBar, LinearLayout.LayoutParams(
@@ -61,8 +61,8 @@ class ColorSection(
                 override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
                     if (fromUser) colorWheel?.setAlphaValue(p)
                 }
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
-                override fun onStopTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) { /* kein Bedarf: Alpha wird über onProgressChanged aktualisiert */ return }
+                override fun onStopTrackingTouch(sb: SeekBar?) { /* kein Bedarf: Alpha wird über onProgressChanged aktualisiert */ return }
             })
         }
         col.addView(alphaSlider, LinearLayout.LayoutParams(

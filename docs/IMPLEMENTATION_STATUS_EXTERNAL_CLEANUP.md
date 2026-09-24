@@ -1,3 +1,5 @@
+> **Status 2026-09-22:** Die API ist `internal` und **nicht verdrahtet** — Entscheidung gegen einen externen Transportweg (kein ContentProvider) siehe `API_INTERFACE_EXTERNAL_CLEANUP.md` §0. Dieses Dokument bleibt als Planungs-/Umsetzungsnachweis erhalten.
+
 # Implementation Status: External Cleanup API (KeyTab)
 
 Stand: 2026-09-18

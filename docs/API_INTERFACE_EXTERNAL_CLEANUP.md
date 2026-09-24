@@ -2,6 +2,29 @@
 
 Stand: 2026-09-18. V1. Vollständige Dokumentation der Programmierschnittstelle.
 
+> **Status-Banner (2026-09-22): NICHT VERDRAHTET — bewusst kein Transportweg.**
+> Die API ist inzwischen `internal` und hat außerhalb der Tests keinen
+> Konsumenten. Ein `ContentProvider`/exportierter Service wurde **abgelehnt**
+> (Begründung in §0). Dieses Dokument beschreibt damit einen **internen Vertrag**,
+> keine von außen erreichbare Schnittstelle.
+
+## 0. Entscheidung (2026-09-22): keine externe Exposition
+
+| Option | Bewertung |
+|---|---|
+| `ContentProvider`, `exported="true"`, normale Permission | **abgelehnt** — jedes App-Paket könnte das gelernte Wörterbuch lesen/schreiben; die App ist bewusst offline und ohne Netzwerk-Permission |
+| `ContentProvider` mit `signature`-Permission | **abgelehnt** — funktioniert für den gedachten Konsumenten (adb/Cline/Shizuku-Werkzeuge) nicht, da die Shell keine Signatur-Permission der App hält; bleibt zusätzlich neue Angriffsfläche |
+| `dangerous`-Permission + Provider | **abgelehnt** — der Nutzer müsste einer Tastatur Zugriff auf „gelernte Wörter“ erlauben; schlechter Deal für ein Nebenfeature |
+| In-App-Weg (Einstellungen/Activity) | **offen** — richtiger Ort, wenn der Nutzer das Aufräumen selbst anstoßen soll |
+| **V1-Status: `internal` API + Tests, nicht verdrahtet** | **gewählt** — kein neuer Abflusspfad, kein toter Transportweg; Entfernung möglich, falls kein Konsument entsteht |
+
+Prüfbar (Kommandozeile):
+
+```bash
+grep -rn "LearnedDictionaryApi" app/src/main   # nur die Datei selbst, kein Aufrufer
+grep -n "provider" app/src/main/AndroidManifest.xml   # kein Provider für die API
+```
+
 ## 1. Zweck
 Diese Schnittstelle ermöglicht es einem externen Programm, das **gelernte Benutzer-Wörterbuch** von KeyTab kontrolliert zu prüfen, vorzubereiten und nach expliziter Bestätigung zu ändern.
 

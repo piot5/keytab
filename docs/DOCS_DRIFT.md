@@ -35,6 +35,17 @@ Sekunden):
    Link auf `CHANGELOG.md`).
 4. **Versions-Singularität** — `versionCode`/`versionName` dürfen nur in
    `app/build.gradle.kts` definiert sein, nicht in weiteren Gradle-Dateien.
+5. **Größen-, Service- und Sprachzahlen** *(neu 2026-09-22)* — der README-Satz
+   „Test code is `<X>` lines in `<Y>` files against `<Z>` lines of main code
+   (`<N>` files)“ inklusive der daraus berechneten Ratio, die beiden
+   Zeilenangaben für `KeyTabImeService.kt` („core (`<N>` lines …)“) sowie die
+   String-Zahlen für `values/` und `values-en/`. Zusätzlich die **Parität**:
+   `values-en` muss genauso viele Strings haben wie `values/` — sonst fällt eine
+   neue String-Ressource ohne Übersetzung auf.
+
+   Grund: genau diese Zahlen waren zuletzt still veraltet (README: „283 lines“
+   Service statt 417, 4.718 statt 7.038 Testzeilen, „176 strings“ statt 170),
+   obwohl der Code grün war.
 
 ## Lokal ausführen
 

@@ -59,7 +59,7 @@ class BackgroundSection(
                         changed()
                     }
                 }
-                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) { /* kein Bedarf: keine Neutralposition */ return }
             }
         }
         col.addView(modes)

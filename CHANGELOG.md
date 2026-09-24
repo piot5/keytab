@@ -13,6 +13,52 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Unreleased
 
+- **Qualitäts-Gates geschärft: Kover 20 % → 60 % Zeilen / 45 % Branch** — das
+  alte Gate war Deko (20 % lagen schon vor der Testoffensive deutlich unter dem
+  Ist-Stand). Gemessen am 22.09.2026: **67,0 % Zeilen** (2947/4401) und **53,8 %
+  Branch** (1742/3238) im selben aggregierten `application`-Report, den
+  `koverVerify` prüft (`koverLog` nennt 66,96 % Zeilen). Die neuen Schwellen
+  liegen 5–7 Punkte darunter und fangen damit echte Regressionen.
+
+- **Doku-Drift-Wächter um Größen- und Sprachzahlen erweitert** — geprüft werden
+  jetzt zusätzlich „Test code is `<X>` lines in `<Y>` files against `<Z>` lines of
+  main code (`<N>` files)“, die daraus berechnete Test:Main-Ratio, beide
+  Zeilenangaben zu `KeyTabImeService.kt` sowie die String-Zahlen von
+  `values/` ⇔ `values-en/` inklusive **Parität** (neue Ressource ohne
+  Übersetzung ⇒ Gate rot). Genau diese Zahlen waren zuletzt veraltet (README:
+  „283 lines“ statt 417, 4.718 statt 7.038 Testzeilen, „176 strings“ statt 170),
+  obwohl der Code grün war. Details: `docs/DOCS_DRIFT.md` §5.
+
+- **Performance: Prefix-Vervollständigung nutzt den Char-Index** —
+  `SuggestionEngine.completeWord` scannte pro Tastendruck alle ~6.000
+  Basiswörter (`for (w in baseFreq.keys) if (w.startsWith(cur))`), obwohl der
+  Index `byFirstChar` schon existierte (bisher nur für Fuzzy-Matches genutzt).
+  Die Prefix-Suche läuft jetzt über diesen Index (~10× weniger Kandidaten,
+  gleiches Ergebnis). Der Index ist zusätzlich **case-insensitiv** aufgebaut,
+  damit ein Korpuswort wie „Haus“ bei der Eingabe „hau“ gefunden wird (Test in
+  `SuggestionEngineTest`).
+
+- **`LearnedDictionaryApi`: Entscheidung dokumentiert, `internal` gemacht** — die
+  API hat außerhalb der Tests keinen Konsumenten, und ein externer Transportweg
+  wurde bewusst **abgelehnt** (kein `ContentProvider`/exportierter Service: neuer
+  Abflusspfad für genau die Daten, die die App offline und ohne
+  Netzwerk-Permission hält; eine Signatur-Permission würde für
+  adb/Shizuku-Werkzeuge nicht funktionieren). Optionen-Vergleich in
+  `docs/API_INTERFACE_EXTERNAL_CLEANUP.md` §0, Status-Banner in den vier
+  Plan-Dokumenten; Entfernung bleibt möglich, falls kein Konsument entsteht.
+
+- **Permissions reduziert** — `READ_MEDIA_AUDIO` und `READ_MEDIA_VIDEO` entfernt
+  (Manifest + beide Request-Stellen in `MainActivity` und
+  `FileManagerFragment`): kein Codepfad liest Audio- oder Videodaten, für den
+  Dateibrowser genügt der Name/Pfad. Es bleiben `READ_EXTERNAL_STORAGE`
+  (API ≤ 32) und `READ_MEDIA_IMAGES` (Bilder browsen + eigenes Hintergrundbild).
+  Die Feature→Permission-Zuordnung steht jetzt als Kommentar im Manifest.
+
+- **Repo-Hygiene** — 16 `build_*.log` gelöscht; die Root-Artefakte des
+  Workspaces (22-MB-Backup-Tar, Git-Bundle, zwei alte APKs, verwaiste
+  `KeyAnimations.kt`-Kopie) liegen unverändert in `../archive/` statt im
+  Wurzelverzeichnis.
+
 - **Sicherheit: Lernen, Vorschläge und Autokorrektur jetzt auch in Passwort-Feldern
   gesperrt** — Trail und Swipe respektierten
   `TrailLogic.isTrailAllowed` (Passwort-Felder + `IME_FLAG_NO_PERSONALIZED_LEARNING`)

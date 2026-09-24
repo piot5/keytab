@@ -146,10 +146,10 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
      * weiterhin gefunden werden.
      */
     private val byFirstChar: Map<Char, List<String>> by lazy {
-        baseFreq.entries.groupBy({ it.key[0] }, { it.key })
+        baseFreq.entries.groupBy({ it.key[0].lowercaseChar() }, { it.key })
     }
     private val bySecondChar: Map<Char, List<String>> by lazy {
-        baseFreq.entries.groupBy({ it.key[1] }, { it.key })
+        baseFreq.entries.groupBy({ it.key[1].lowercaseChar() }, { it.key })
     }
 
     /**
@@ -326,7 +326,7 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         val userBonus: (String) -> Double = { w -> userFreq[w] ?: 0.0 }
         fun consider(w: String, penalty: Double = 0.0) {
             // Exakt getipptes Wort nie vorschlagen ( Nutzer tippt es ja schon )
-            if (w == cur) return
+            if (w.lowercase() == cur) return
             // Längere Kandidaten leicht abwerten: kürzere Vervollständigungen
             // sind näher an der Eingabe (Deterministisch, winziger Faktor).
             val lenPenalty = (w.length - cur.length).coerceAtLeast(0) * 0.01
@@ -335,7 +335,13 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             val existing = results[w]
             if (existing == null || existing < s) results[w] = s
         }
-        for (w in baseFreq.keys) if (w.startsWith(cur)) consider(w)
+        // Prefix-Kandidaten kommen aus dem Char-Index (case-insensitiv aufgebaut,
+        // [cur] ist bereits lowercase) statt aus einem Voll-Scan über alle
+        // ~6.000 Korpuswörter pro Tastendruck — gleiches Ergebnis, ~10x weniger
+        // Kandidaten (vgl. [fuzzyCandidates] für den Fuzzy-Pfad).
+        forEachBaseWordStartingWith(cur[0]) { w ->
+            if (w.lowercase().startsWith(cur)) consider(w)
+        }
         for (w in userFreq.keys) if (w.startsWith(cur)) consider(w)
         if (results.size < max) {
             val maxDist = if (cur.length >= 6) 2 else if (cur.length >= 4) 1 else 0

@@ -49,6 +49,20 @@ class SuggestionEngineTest {
         assertTrue(list.any { it.word == "dies" })
     }
 
+    @Test
+    fun `Prefix-Vervollstaendigung findet Korpuswoerter unabhaengig von der Schreibweise`() {
+        // Die Prefix-Suche laeuft ueber den Char-Index (byFirstChar), dessen
+        // Schluessel case-insensitiv sind. Ohne das wuerde ein Korpuswort wie
+        // "Haus" bei der Eingabe "hau" nie gefunden — vorher fiel das durch den
+        // Voll-Scan ueber alle Basiswoerter nicht auf.
+        val e = SuggestionEngine(
+            listOf("Haus" to 500, "hause" to 400, "baum" to 300)
+        )
+        val words = e.suggest("hau", null, max = 3).map { it.word }
+        assertTrue("Haus muss gefunden werden: $words", words.any { it.equals("Haus", ignoreCase = true) })
+        assertTrue("baum darf nicht erscheinen: $words", words.none { it == "baum" })
+    }
+
     // ---------- Next-Word-Prediction ----------
 
     @Test

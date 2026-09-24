@@ -184,8 +184,11 @@ internal class TabController(private val host: TabHost) {
                         View.VISIBLE else View.GONE
                 sugHideBtn?.text = "⇲"
             }
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
+            // Kein Bedarf für onTabUnselected/onTabReselected: die Sichtbarkeiten, Höhen,
+            // Router und Panel-Zustände sind in onTabSelected vollständig definiert; ein
+            // erneutes Antippen/Zurückschalten soll keine Zusatzwirkung haben.
+            override fun onTabUnselected(tab: TabLayout.Tab) { /* kein Bedarf: Zustand von onTabSelected vollständig */ return }
+            override fun onTabReselected(tab: TabLayout.Tab) { /* kein Bedarf: Zustand von onTabSelected vollständig */ return }
         })
         kb.visibility = View.VISIBLE
         sym.visibility = View.GONE

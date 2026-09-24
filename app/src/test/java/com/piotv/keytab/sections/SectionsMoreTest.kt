@@ -4,9 +4,11 @@ import android.graphics.Color
 import com.piotv.keytab.R
 import com.piotv.keytab.ime.ThemePrefs
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.robolectric.shadows.ShadowLooper
 
 class GradientSectionTest : SectionsTestBase() {
 
@@ -36,6 +38,42 @@ class GradientSectionTest : SectionsTestBase() {
         s.updateGradient()
         // Aktualisierung ohne Crash; Verlauf-Preview wurde erzeugt (aktiv, kein OFF)
         assertTrue(ThemePrefs.hasGradient(prefs, dark = false))
+    }
+
+    @Test
+    fun `Modus-Wechsel schreibt per-mode Pref und setzt die Checkbox fort`() {
+        val s = GradientSection(activity, prefs, { changedCount++ }, { })
+        s.build(col)
+        assertTrue(col.childCount >= 5)
+        assertTrue((col.getChildAt(0) as android.widget.CheckBox).isEnabled)
+        // Modalität: Spinner auf den Radial-Modus legen (Indizes: Top-Down=0, Invert=1, Radial=2)
+        val modes = col.getChildAt(1) as android.widget.Spinner
+        assertEquals(0, modes.selectedItemPosition) // Default Top_Down
+        modes.setSelection(2, true)
+        modes.onItemSelectedListener?.onItemSelected(modes, null, 2, 2L)
+        ShadowLooper.idleMainLooper()
+        assertEquals(
+            ThemePrefs.GRADIENT_RADIAL,
+            ThemePrefs.gradientMode(prefs, dark = false))
+        assertTrue("Spinner-Änderung muss Callback auslösen", changedCount >= 1)
+        // OFF-Schalter nutzt die aktive Modalität für den OFF-Pref
+        assertTrue(ThemePrefs.hasGradient(prefs, dark = false))
+    }
+
+    @Test
+    fun `Checkbox disabled entfernt aktive Verlaufsfarben des aktuellen Modus`() {
+        prefs.edit()
+            .putString(ThemePrefs.gradientModeKey(false), ThemePrefs.GRADIENT_RADIAL)
+            .putInt(ThemePrefs.colorKey(false, ThemePrefs.KIND_GRADIENT1), 0xFF112233.toInt())
+            .putInt(ThemePrefs.colorKey(false, ThemePrefs.KIND_GRADIENT2), 0xFF445566.toInt())
+            .apply()
+        assertTrue(ThemePrefs.hasGradient(prefs, dark = false))
+        val s = GradientSection(activity, prefs, { changedCount++ }, { })
+        s.build(col)
+        val cb = col.getChildAt(0) as android.widget.CheckBox
+        cb.isChecked = false
+        assertFalse(ThemePrefs.hasGradient(prefs, dark = false))
+        assertEquals(1, changedCount)
     }
 }
 

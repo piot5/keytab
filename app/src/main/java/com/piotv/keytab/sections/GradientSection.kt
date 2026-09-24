@@ -52,7 +52,7 @@ class GradientSection(
                         changed()
                     }
                 }
-                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            override fun onNothingSelected(parent: AdapterView<*>?) { /* kein Bedarf: keine Neutralposition */ return }
             }
         }
         col.addView(modes)

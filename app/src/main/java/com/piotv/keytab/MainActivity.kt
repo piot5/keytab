@@ -85,7 +85,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity,
                     getString(R.string.language_changed_to, lang.displayName), Toast.LENGTH_SHORT).show()
             }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) { /* kein Bedarf: keine Neutralposition */ return }
         }
         swNumRow.isChecked = prefs.getBoolean(Prefs.KEY_NUM_ROW, false)
         swNumRow.setOnCheckedChangeListener { _, checked ->
@@ -187,13 +187,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, ThemeSettingsActivity::class.java))
         }
 
-        // Speicher-Berechtigung anstoßen, falls IME Zugriff verweigert
+        // Speicher-Berechtigung anstoßen, falls IME Zugriff verweigert.
+        // Nur READ_MEDIA_IMAGES (Bilder/Hintergrundbild) — Audio/Video werden
+        // nirgends gelesen (siehe AndroidManifest-Kommentar).
         val missingStorage = if (Build.VERSION.SDK_INT >= 33) {
-            neededPermissions(
-                Manifest.permission.READ_MEDIA_IMAGES,
-                Manifest.permission.READ_MEDIA_VIDEO,
-                Manifest.permission.READ_MEDIA_AUDIO
-            )
+            neededPermissions(Manifest.permission.READ_MEDIA_IMAGES)
         } else {
             neededPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
         }

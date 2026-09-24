@@ -46,6 +46,8 @@
     <!-- Clipboard -->
     <string name="clip_empty">Clipboard is empty</string>
     <string name="clip_hint_count">%1$d entries · tap = insert</string>
+    <string name="clip_entry_actions">Clipboard entry</string>
+    <string name="clip_add_to_snippet">Add to snippets</string>
     <string name="fm_properties">ℹ Properties</string>
     <string name="fm_copy_path">📋 Copy path</string>
     <string name="fm_copy_file">📁 Copy file</string>
@@ -127,6 +129,7 @@
     <string name="snip_name_hint">Name</string>
     <string name="snip_text_hint">Text / command</string>
     <string name="snip_added">Snippet added</string>
+    <string name="snip_added_from_clip">Added to snippets from clipboard</string>
     <string name="snip_saved">Snippets saved</string>
     <string name="settings_clip_tab_on">Clipboard tab enabled</string>
     <string name="settings_clip_tab_off">Clipboard tab disabled</string>
@@ -174,4 +177,15 @@
     <string name="theme_gaming_hint">The most likely next key is highlighted; once the typed word matches the top suggestion, it pulses.</string>
     <string name="theme_reset">Reset</string>
     <string name="theme_gradient_hint">Set color 1 / color 2 and their alpha in the color wheel below (target “color 1/2”).</string>
+    <string name="background_title">Background image</string>
+    <string name="background_choose">Choose image</string>
+    <string name="background_remove">Remove image</string>
+    <string name="background_none">No background image</string>
+    <string name="background_fit">Fit – show the whole image</string>
+    <string name="background_cover">Fill – crop proportionally</string>
+    <string name="background_stretch">Stretch – fill without borders</string>
+    <string name="background_error">Could not access the image.</string>
+    <string name="background_ratio">Recommendation: landscape around 2:1 (for example 1600 × 800 px). The ideal ratio depends on your device, orientation, number row, and tab.</string>
+    <string name="terminal_experimental">Experimental: a simple Android shell in the app sandbox, without a PTY or Termux/proot environment. Interactive terminal programs are not supported.</string>
+    <string name="gradient_enabled">Gradient enabled</string>
 </resources>

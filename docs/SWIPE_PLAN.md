@@ -1,7 +1,7 @@
-# Swipe-Plan: Gleit-Eingabe + Schaltplan-Pfad (v0.11)
+# Swipe-Plan: Gleit-Eingabe + Schaltplan-Pfad (v0.12)
 
 > **Status: S1–S5 DONE (2026-09-19).** Alle fünf Slices sind implementiert,
-> getestet und in den Mainline-Build integriert (Version 0.11, versionCode 26).
+> getestet und in den Mainline-Build integriert (Version 0.12, versionCode 27).
 > Dieses Dokument spezifiziert das Feature „Swipe“ als Erweiterung des
 > bestehenden Likely-/Key-Scale-Systems: **Skalierte, einfarbig gefärbte Tasten
 > (wie „most likely“, aber in eigener Farbe) werden mit den nächsten

@@ -34,7 +34,7 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 
 **File manager in the keyboard** -- browse folders, switch tabs, navigate with back-stack and parent-navigation. Tapping a file inserts its path; in the app it opens via VIEW-Intent. Each tab remembers its own directory. Listing runs asynchronously so large folders don't freeze the UI.
 
-**Word prediction** -- offline n-gram model (FrequencyWords, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings. **Swipe typing** (v0.11, optional): glide over the keys and the route is scored against the same offline engine — clear winners auto-commit, otherwise the top candidates appear in the suggestion bar. **Circuit preview** (v0.11, experimental): the likely next keys of the word you're typing are shown as a connected path on the keyboard, so your eye can follow the "current" before you tap. Default off and suppressed in password fields. It is no longer exposed in the settings UI — enable it via the config file (`swipe_preview`, see [`docs/CONFIG.md`](docs/CONFIG.md)). See [`docs/SWIPE_PLAN.md`](docs/SWIPE_PLAN.md). **Snippet suggestions on sentence start**: when there are no word predictions to show and the cursor is at the beginning of a new sentence (empty field, or text ending in `. ! ?` followed by space/newline, with no word currently being typed), the suggestion bar shows your last 3 used snippets as tappable chips instead of the generic top-3 words — so frequently-inserted snippets are one tap away. This also triggers after deleting a whole word with backspace (the bar re-evaluates the empty state). Using a snippet records it as most-recent; typing a new character returns the normal prediction bar. Fully offline, stored in `MODE_PRIVATE` prefs (no extra permission). **Optional emoji suggestions** (settings toggle, **off by default**): a small built-in keyword→emoji catalog (de/en, offline) appends up to 2 thematic emojis behind the word suggestions — word suggestions always keep at least one slot.
+**Word prediction** -- offline n-gram model (FrequencyWords, CC-BY-SA-4.0) with bigrams for next-word prediction, a user dictionary that learns as you type, prefix autocomplete, Damerau-Levenshtein fuzzy correction, and case matching. The top suggestion is rendered 2x wider with a green accent bar for easier tapping. Toggleable in settings. **Swipe typing** (v0.12, optional): glide over the keys and the route is scored against the same offline engine — clear winners auto-commit, otherwise the top candidates appear in the suggestion bar. **Circuit preview** (v0.12, experimental): the likely next keys of the word you're typing are shown as a connected path on the keyboard, so your eye can follow the "current" before you tap. Default off and suppressed in password fields. It is no longer exposed in the settings UI — enable it via the config file (`swipe_preview`, see [`docs/CONFIG.md`](docs/CONFIG.md)). See [`docs/SWIPE_PLAN.md`](docs/SWIPE_PLAN.md). **Snippet suggestions on sentence start**: when there are no word predictions to show and the cursor is at the beginning of a new sentence (empty field, or text ending in `. ! ?` followed by space/newline, with no word currently being typed), the suggestion bar shows your last 3 used snippets as tappable chips instead of the generic top-3 words — so frequently-inserted snippets are one tap away. This also triggers after deleting a whole word with backspace (the bar re-evaluates the empty state). Using a snippet records it as most-recent; typing a new character returns the normal prediction bar. Fully offline, stored in `MODE_PRIVATE` prefs (no extra permission). **Optional emoji suggestions** (settings toggle, **off by default**): a small built-in keyword→emoji catalog (de/en, offline) appends up to 2 thematic emojis behind the word suggestions — word suggestions always keep at least one slot.
 
 **Dynamic key sizing** -- likely-next keys scale up to 1.30× (stepped grades 1.30×/1.15×), unlikely ones shrink down to 0.85× — but only in the direct neighborhood of enlarged keys, driven by the current suggestion scores. Toggleable in settings.
 
@@ -60,7 +60,7 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 
 ## Architecture
 
-`KeyTabImeService` is the keyboard core (417 lines of orchestration). Every feature lives in its own class —
+`KeyTabImeService` is the keyboard core (428 lines of orchestration). Every feature lives in its own class —
 panels for UI, controllers for stateful wiring, pure modules for logic (Android-free, unit-testable).
 
 ### Panels (UI features)
@@ -134,7 +134,7 @@ All panels share a background executor for file I/O and a main handler for UI up
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**487 unit tests in 50 suites, 0 failures** (verified 2026-09-22, `assembleDebug` + `testDebugUnitTest` both green):
+**489 unit tests in 50 suites, 0 failures** (verified 2026-09-24, `assembleDebug` + `testDebugUnitTest` both green):
 
 | Suite | Tests | Kind |
 |---|---:|---|
@@ -189,7 +189,7 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `SwipePerformanceTest` | 3 | pure |
 | `TrailPerformanceTest` | 2 | pure |
 
-Test code is 7,112 lines in 50 files against 9,460 lines of main code (57 files) — a **75.2 % test-to-main ratio**. Line coverage measured with Kover is **67.0 %** (`LINE` 2947/4401), branch coverage **53.8 %** (`BRANCH` 1742/3238); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-09-22, all 487 tests green). Per package: the Android-free logic (`com.piotv.keytab.ime`: 68.7 %), the theme UI sections (`sections`: 93.6 %) and the in-app file manager (`file`: 77.9 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `TerminalPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
+Test code is 7,133 lines in 50 files against 9,492 lines of main code (57 files) — a **75.1 % test-to-main ratio**. Line coverage measured with Kover is **67.0 %** (`LINE` 2947/4401), branch coverage **53.8 %** (`BRANCH` 1742/3238); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-09-22, all 489 tests green). Per package: the Android-free logic (`com.piotv.keytab.ime`: 68.7 %), the theme UI sections (`sections`: 93.6 %) and the in-app file manager (`file`: 77.9 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `TerminalPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
 
 ```bash
 # Run all unit tests
@@ -284,7 +284,7 @@ app/src/main/java/com/piotv/keytab/            # 51 Kotlin files, 7,020 lines
 │   ├── TrailSection.kt            #   typing trail: on/off, steps, correction trace
 │   └── PreviewSection.kt          #   live preview
 └── ime/
-    ├── KeyTabImeService.kt   # Keyboard core / orchestration (417 lines)
+    ├── KeyTabImeService.kt   # Keyboard core / orchestration (428 lines)
     ├── KeyboardHost.kt       # Interface consumed by the controllers
     ├── KeyboardViewFactory.kt # Builds the keyboard view tree
     ├── KeyboardBinder.kt     # Touch / long-press, backspace repeat
@@ -322,10 +322,10 @@ app/src/main/java/com/piotv/keytab/            # 51 Kotlin files, 7,020 lines
     ├── KeyTabExecutors.kt    # Shared executor + main handler
     └── …                     # InputTargets, LiftSpan, KeyTabConfig
 
-app/src/test/java/com/piotv/keytab/ime/        # 50 test classes, 487 tests, 7,109 lines
+app/src/test/java/com/piotv/keytab/ime/        # 50 test classes, 489 tests, 7,133 lines
 app/src/androidTest/                           # 2 instrumented tests (CI: API 34 emulator)
-app/src/main/res/values/strings.xml            # 170 strings (default = German)
-app/src/main/res/values-en/                    # English locale (170 strings — complete, 2026-09-21)
+app/src/main/res/values/strings.xml            # 184 strings (default = German)
+app/src/main/res/values-en/                    # English locale (184 strings — complete, 2026-09-24)
 app/src/main/res/values-night/                 # Night-mode resource qualifiers
 app/src/main/assets/
 ├── de_freq_top6000.txt              # corpus (CC-BY-SA-4.0)
@@ -359,7 +359,7 @@ Issues and pull requests are welcome. Before opening a PR:
 
 ```bash
 sh scripts/check_docs_drift.sh                     # docs must match the code
-sh ./gradlew :app:testDebugUnitTest --offline      # 487 tests must stay green
+sh ./gradlew :app:testDebugUnitTest --offline      # 489 tests must stay green
 bash build_keytab.sh debug                         # must build
 ```
 

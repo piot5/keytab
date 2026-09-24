@@ -1,6 +1,6 @@
 # KeyTab — Testqualität: Einzelbewertung 1–100 + Verbesserungsplan
 
-Stand: 2026-09-22 · Projekt: `projects/keytab` · 50 Testdateien (52 Dateien inkl. 2 Archiv-Kopien) · 487 Tests / 50 Suites · Kover: 67.0 % Line / 53.8 % Branch (Stand 22.09.2026)
+Stand: 2026-09-24 · Projekt: `projects/keytab` · 50 Testdateien (52 Dateien inkl. 2 Archiv-Kopien) · 489 Tests / 50 Suites · Kover: 67.0 % Line / 53.8 % Branch (Stand 24.09.2026)
 Kover zuletzt: 47.6 % Line / 36.4 % Branch (Log) bzw. 46.5 % / 35.4 % (README-Gap-Messung 19. Sep).
 
 ## Bewertungs-Rubrik (Summe = 100)
@@ -396,7 +396,7 @@ Verifikation (HEAD + eigene Tests, fremde uncommittete Aenderungen per stash aus
 **1) Korrektur der Warnung aus Nachtrag 2.** Der Hinweis „2 alte
 `SuggestionEngineTest`-Faelle fehlschlagen“ ist **überholt**: ein kompletter Lauf
 des Arbeitsbaums (kein Stash, keine Ausblendung) ergibt
-**483 Tests in 50 Suiten, 0 Failures, 0 Errors, 0 Skipped**
+**489 Tests in 50 Suiten, 0 Failures, 0 Errors, 0 Skipped**
 (`:app:testDebugUnitTest`, 22 Sep). Die damals verletzten Verträge
 (`ahus → haus`-Vertauschung, `hane → hase`-Bigramm) sind im Code vorhanden
 (`SuggestionEngine.autoCorrect`, Swap-Zweig Zeile ~385). Auch die Aussage

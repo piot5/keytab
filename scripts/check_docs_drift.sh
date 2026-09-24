@@ -262,8 +262,8 @@ else
     ok "Service-Groesse stimmt ($SVC_ACT Zeilen)"
 fi
 
-S_DE=$(grep -c '<string name=' app/src/main/res/values/strings.xml)
-S_EN=$(grep -c '<string name=' app/src/main/res/values-en/strings.xml)
+S_DE=$(cat app/src/main/res/values/*.xml | grep -c '<string name=')
+S_EN=$(cat app/src/main/res/values-en/*.xml | grep -c '<string name=')
 if [ "$S_DE" != "$S_EN" ]; then
     problem "values-en ist unvollstaendig: $S_EN/$S_DE Strings" \
             "Fehlende Uebersetzungen in values-en/strings.xml ergaenzen"

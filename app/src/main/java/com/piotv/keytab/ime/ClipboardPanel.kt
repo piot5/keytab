@@ -26,7 +26,8 @@ class ClipboardPanel(
     private val ioExecutor: Executor,
     private val mainHandler: Handler,
     private val onCommit: (String) -> Unit,
-    private val canAutoCapture: () -> Boolean
+    private val canAutoCapture: () -> Boolean,
+    private val onAddToSnippet: (String) -> Unit = {}
 ) {
 
     private companion object {
@@ -76,6 +77,25 @@ class ClipboardPanel(
         list.adapter = themedAdapter(context, items)
         list.setOnItemClickListener { _, _, position, _ ->
             history.getOrNull(position)?.let { onCommit(it) }
+        }
+        list.setOnItemLongClickListener { _, _, position, _ ->
+            history.getOrNull(position)?.let { entry ->
+                android.app.AlertDialog.Builder(context)
+                    .setTitle(R.string.clip_entry_actions)
+                    .setItems(arrayOf(context.getString(R.string.clip_add_to_snippet))) { _, which ->
+                        if (which == 0) onAddToSnippet(entry)
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .create()
+                .also { dialog ->
+                    dialog.window?.apply {
+                        setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+                        attributes.token = root.windowToken
+                    }
+                }
+                .show()
+            }
+            true
         }
         // Clear-Button
         root.findViewById<Button>(R.id.btn_clip_clear)?.setOnClickListener {

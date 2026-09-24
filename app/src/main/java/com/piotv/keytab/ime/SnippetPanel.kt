@@ -25,6 +25,7 @@ class SnippetPanel(
     private val context: Context,
     private val ioExecutor: Executor,
     private val mainHandler: Handler,
+    private val onEdit: (File) -> Unit = {},
     private val onCommit: (String) -> Unit
 ) {
 
@@ -115,69 +116,28 @@ class SnippetPanel(
         setupHeader(root)
     }
 
-    /** ＋/✎-Buttons: Snippet hinzufügen bzw. keytab_snippets.txt direkt bearbeiten. */
+    /** ✎-Button: Datei im Editor-Tab öffnen. */
     private fun setupHeader(root: View) {
-        root.findViewById<View>(R.id.snip_add)?.setOnClickListener { showAddDialog() }
-        root.findViewById<View>(R.id.snip_edit)?.setOnClickListener { showEditDialog() }
+        root.findViewById<View>(R.id.snip_edit)?.setOnClickListener { onEdit(file()) }
     }
 
-    /** Dialog: neues Snippet (Name + Text) ans Ende der Datei anhängen. */
-    private fun showAddDialog() {
-        val name = android.widget.EditText(context).apply {
-            hint = context.getString(R.string.snip_name_hint)
-            setSingleLine(true)
-        }
-        val text = android.widget.EditText(context).apply {
-            hint = context.getString(R.string.snip_text_hint)
-            minLines = 2
-        }
-        val box = android.widget.LinearLayout(context).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding((16 * resources.displayMetrics.density).toInt(), 0,
-                (16 * resources.displayMetrics.density).toInt(), 0)
-            addView(name)
-            addView(text)
-        }
-        android.app.AlertDialog.Builder(context)
-            .setTitle(R.string.snip_add)
-            .setView(box)
-            .setPositiveButton(R.string.snip_save) { _, _ ->
-                val n = name.text.toString().trim()
-                val t = text.text.toString().trim().replace("\n", "\\n")
-                if (n.isNotEmpty() && t.isNotEmpty()) {
-                    appendAsync("$n = $t")
-                    Toast.makeText(context, R.string.snip_added, Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton(R.string.snip_cancel, null)
-            .show()
-    }
-
-    /** Dialog: komplette Datei als Text bearbeiten (mehrzeilig) und speichern. */
-    private fun showEditDialog() {
-        ioExecutor.execute {
-            val f = file()
-            val content = runCatching {
-                if (f.isFile) f.readText() else DEFAULTS.joinToString("\n") { "${it.first} = ${it.second}" }
-            }.getOrDefault("")
-            mainHandler.post {
-                val editor = android.widget.EditText(context).apply {
-                    setText(content)
-                    minLines = 8
-                    setHorizontallyScrolling(false)
-                    gravity = android.view.Gravity.TOP
-                }
-                android.app.AlertDialog.Builder(context)
-                    .setTitle(R.string.snip_edit)
-                    .setView(editor)
-                    .setPositiveButton(R.string.snip_save) { _, _ ->
-                        writeAsync(editor.text.toString())
-                        Toast.makeText(context, R.string.snip_saved, Toast.LENGTH_SHORT).show()
-                    }
-                    .setNegativeButton(R.string.snip_cancel, null)
-                    .show()
-            }
-        }
+    /** Fügt einen Clipboard-Eintrag als benanntes Snippet hinzu. */
+    fun addFromClipboard(text: String) {
+        val clean = text.trim()
+        if (clean.isEmpty()) return
+        val normalized = clean.replace("\\n", "\n")
+        val firstPart = normalized.lineSequence()
+            .map(String::trim)
+            .firstOrNull { it.isNotEmpty() }
+            .orEmpty()
+            .take(40)
+            .replace('=', '-')
+            .replace('#', '-')
+            .trim()
+        val name = firstPart.ifEmpty { "clip_${System.currentTimeMillis()}" }
+        val escaped = clean.replace("\\", "\\\\").replace("\n", "\\n")
+        appendAsync("$name = $escaped")
+        Toast.makeText(context, R.string.snip_added_from_clip, Toast.LENGTH_SHORT).show()
     }
 
     /** Zeile anhängen und Liste neu laden. */

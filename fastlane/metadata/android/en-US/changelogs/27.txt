@@ -1,0 +1,3 @@
+- Version 0.12: snippet editing now opens the file in the Editor tab; clipboard snippets use the first content line as their name
+- Editor and Terminal maximize/restore their normal panel height reliably
+- Android 14 selected-photo access, English resource parity, and snippet regression tests

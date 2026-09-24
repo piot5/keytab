@@ -72,6 +72,16 @@ class SnippetPanelTest {
     }
 
     @Test
+    fun `onSelected zeigt nur Bearbeiten und keinen Neu-Button`() {
+        snippetsFile().writeText("ok = value")
+        val root = inflateKeyboardRoot(app)
+        val panel = SnippetPanel(app, directExecutor, mainHandler) {}
+        panel.onSelected(root)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(root.findViewById<View>(R.id.snip_edit).isEnabled)
+    }
+
+    @Test
     fun `Tap auf Eintrag commitet den Text und entschaedelt escaped newline`() {
         val committed = mutableListOf<String>()
         snippetsFile().writeText("greet = hallo welt\nmulti = a\\nb\n")
@@ -100,6 +110,17 @@ class SnippetPanelTest {
         val prefs = com.piotv.keytab.Prefs.of(app)
         val recent = prefs.getString(com.piotv.keytab.Prefs.KEY_RECENT_SNIPPETS, null)
         assertTrue("Recent-History sollte den Snippet-Text enthalten", recent?.contains("merk mich") == true)
+    }
+
+    @Test
+    fun `addFromClipboard escaped Mehrzeiler und fuegt Snippet an`() {
+        snippetsFile().delete()
+        val panel = SnippetPanel(app, directExecutor, mainHandler) {}
+        panel.addFromClipboard("  erste\\nzeile  ")
+        shadowOf(Looper.getMainLooper()).idle()
+        val content = snippetsFile().readText()
+        assertTrue(content.startsWith("erste"))
+        assertTrue(content.contains("= erste\\\\nzeile"))
     }
 
     @Test

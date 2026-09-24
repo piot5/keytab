@@ -13,13 +13,13 @@ Status: 2026-09-21 · Goal: maintainable, testable modules with no behaviour cha
 
 | Metric | Value |
 |---|---|
-| Unit tests | **484 in 50 suites**, 0 failures (verified 22 Sep on the device; `testDebugUnitTest` + `detektDebug` + `coverageGate` green) |
+| Unit tests | **489 in 50 suites**, 0 failures (verified 24 Sep; `testDebugUnitTest` + `lintDebug` green) |
 | Coverage (Kover) | **67.0 % line** (2947/4401) / **53.8 % branch** (1742/3238), measured 22 Sep (XML report, debug+release); **Gate: 60 % line / 45 % branch**; `sections` 93.6 %, `file` 77.9 %, `ime` 68.7 % |
-| Test:main ratio | **74.5 %** (7,038 test lines / 9,450 main lines; 57 main files) |
+| Test:main ratio | **75.2 %** (7,133 test lines / 9,492 main lines; 57 main files) |
 | detekt baseline | **198 Einträge** (unverändert; Gate grün) |
-| i18n | `values-en` **170/170 Strings** (100 %, per Drift-Gate erzwungen) |
-| Service size | 417 lines (from 908) |
-| Working tree | v0.11 + Passwort-Sperre + Gate-/Wächter-/Cleanup-Paket — **committet 22 Sep** |
+| i18n | `values-en` **184/184 Strings** (100 %, per Drift-Gate erzwungen) |
+| Service size | 428 lines (from 908) |
+| Working tree | **v0.12** — Snippet-Editor-Workflow, Clipboard-Namen, stabile Maximierung, Android-14-Bildzugriff |
 | Repo hygiene | `KeyAnimations.kt` duplication resolved; `build_*.log` entfernt, Root-Artefakte in `../archive/` |
 
 ---

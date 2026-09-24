@@ -38,6 +38,7 @@ class KeyboardViewFactory(private val deps: Deps) {
         fun isPersonalizedProcessingAllowed(): Boolean
         fun currentInputConnection(): InputConnection?
         fun sendKeyEvents(keyCode: Int)
+        fun selectEditor()
         val ioExecutor: Executor
         val mainHandler: Handler
         val suggestionViews: Array<TextView?>
@@ -69,7 +70,7 @@ class KeyboardViewFactory(private val deps: Deps) {
         val inflater = themedContext.getSystemService(android.view.LayoutInflater::class.java)
             ?: android.view.LayoutInflater.from(ctx)
         val root = inflater.cloneInContext(themedContext)
-            .inflate(R.layout.keyboard_view, null)
+            .inflate(R.layout.keyboard_view, android.widget.FrameLayout(themedContext), false)
         // Konfiguration laden (Skalierung, Verschiebung, Seiten-Hinweise)
         val config = KeyTabConfig.load(deps.configFile())
         KeyScaleLogic.params = KeyScaleLogic.Params(
@@ -102,10 +103,21 @@ class KeyboardViewFactory(private val deps: Deps) {
         val fileManager = FileManagerPanel(ctx, root, deps.ioExecutor, deps.mainHandler) { deps.commitText(it) }
         val editor = EditorPanel(ctx, root, deps.ioExecutor, deps.mainHandler) { deps.commitToApp(it) }
         val terminal = TerminalPanel(ctx, root, deps.mainHandler)
+        val snippets = SnippetPanel(
+            ctx,
+            deps.ioExecutor,
+            deps.mainHandler,
+            onEdit = {
+                // Der Tab-Wechsel muss vor dem asynchronen Editor-Laden erfolgen.
+                deps.selectEditor()
+                editor.openFile(it)
+            },
+            onCommit = { deps.commitText(it) }
+        )
         val clipboard = ClipboardPanel(ctx, deps.ioExecutor, deps.mainHandler,
             onCommit = { deps.commitToApp(it) },
-            canAutoCapture = { deps.isInputViewShown })
-        val snippets = SnippetPanel(ctx, deps.ioExecutor, deps.mainHandler) { deps.commitText(it) }
+            canAutoCapture = { deps.isInputViewShown },
+            onAddToSnippet = { snippets.addFromClipboard(it) })
         // Eingabe-Routing (Phase 2): Ziele App/Editor/Terminal hinter einem Router;
         // die editorActive/terminalActive-Verzweigungsketten entfallen damit.
         val router = InputRouter(

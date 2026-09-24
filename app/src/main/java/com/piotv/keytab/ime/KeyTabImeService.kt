@@ -78,6 +78,7 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
             TrailLogic.isPersonalizedProcessingAllowed(this@KeyTabImeService.lastEditorInfo)
         override fun currentInputConnection() = currentInputConnection
         override fun sendKeyEvents(keyCode: Int) = sendDownUpKeyEvents(keyCode)
+        override fun selectEditor() { tabController.select(TabController.TabKind.EDITOR) }
         override val ioExecutor: java.util.concurrent.Executor get() = this@KeyTabImeService.ioExecutor
         override val mainHandler: Handler get() = this@KeyTabImeService.mainHandler
         override val suggestionViews: Array<TextView?> get() = this@KeyTabImeService.suggestionViews
@@ -207,6 +208,11 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
 
     private fun configFile(): java.io.File = SettingsConfig.configFile(this)
 
+    private fun openEditor(file: java.io.File) {
+        tabController.select(TabController.TabKind.EDITOR)
+        editorPanel?.openFile(file)
+    }
+
     /** Covers every UI preference, not just color edits that bump theme_version. */
     private fun refreshSettings() {
         SettingsConfig.importIfChanged(this)
@@ -307,10 +313,13 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
             // Panel MAXIMIEREN: Editor-Normalhöhe + Tastatur + Funktionsleiste.
             val maxH = editorH + kbH + bottomH
             if (maxH > 0) {
+                // Normalhöhen für das zuverlässige Wiederherstellen merken.
                 if (kind == TabController.TabKind.EDITOR && ed != null) {
+                    root.setTag(R.id.editor_normal_height, ed.layoutParams.height)
                     ed.layoutParams = ed.layoutParams.apply { height = maxH }
                 }
                 if (kind == TabController.TabKind.TERMINAL && term != null) {
+                    root.setTag(R.id.terminal_normal_height, term.layoutParams.height)
                     term.layoutParams = term.layoutParams.apply { height = maxH }
                 }
             }
@@ -341,10 +350,12 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
             val h = PanelHeights.terminalPanelHeight(ed, width)
             if (h > 0) {
                 if (kind == TabController.TabKind.EDITOR && ed != null) {
-                    ed.layoutParams = ed.layoutParams.apply { height = h }
+                    val normal = root.getTag(R.id.editor_normal_height) as? Int ?: h
+                    ed.layoutParams = ed.layoutParams.apply { height = normal }
                 }
                 if (kind == TabController.TabKind.TERMINAL && term != null) {
-                    term.layoutParams = term.layoutParams.apply { height = h }
+                    val normal = root.getTag(R.id.terminal_normal_height) as? Int ?: h
+                    term.layoutParams = term.layoutParams.apply { height = normal }
                 }
             }
         }

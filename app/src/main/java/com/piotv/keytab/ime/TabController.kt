@@ -35,6 +35,16 @@ internal class TabController(private val host: TabHost) {
     /** Aktiver Tab — öffentlich für SuggestionController (⌄ nur bei Editor/Terminal). */
     fun currentTabKind(): TabKind = currentKind
 
+    /** Wählt einen Tab programmatisch aus, z. B. nach einer Aktion in einem Panel. */
+    fun select(kind: TabKind) {
+        val index = kinds.indexOf(kind)
+        if (index >= 0) {
+            currentTabs?.getTabAt(index)?.select()
+        }
+    }
+
+    private var currentTabs: TabLayout? = null
+
     /** Symbol-Status zurücksetzen (beim Rebuild der Tastatur). */
     fun resetSymbols() {
         showSymbols = false
@@ -71,6 +81,7 @@ internal class TabController(private val host: TabHost) {
 
     fun setup(root: View) {
         val tabs = root.findViewById<TabLayout>(R.id.ime_tabs) ?: return
+        currentTabs = tabs
         val kb = root.findViewById<View>(R.id.kb_panel) ?: return
         val sym = root.findViewById<View>(R.id.sym_panel) ?: return
         val fm = root.findViewById<View>(R.id.file_panel) ?: return
@@ -135,6 +146,18 @@ internal class TabController(private val host: TabHost) {
                 sym.visibility = if (keyboardVisible && showSymbols) View.VISIBLE else View.GONE
                 ed.visibility = if (kind == TabKind.EDITOR) View.VISIBLE else View.GONE
                 term.visibility = if (kind == TabKind.TERMINAL) View.VISIBLE else View.GONE
+                if (kind == TabKind.EDITOR || kind == TabKind.TERMINAL) {
+                    val width = root.resources.displayMetrics.widthPixels
+                    val normal = PanelHeights.terminalPanelHeight(ed, width)
+                    if (normal > 0) {
+                        if (kind == TabKind.EDITOR && ed != null) {
+                            ed.layoutParams = ed.layoutParams.apply { height = normal }
+                        }
+                        if (kind == TabKind.TERMINAL && term != null) {
+                            term.layoutParams = term.layoutParams.apply { height = normal }
+                        }
+                    }
+                }
                 fm.visibility = if (kind == TabKind.FILES) View.VISIBLE else View.GONE
                 clip.visibility = if (kind == TabKind.CLIP) View.VISIBLE else View.GONE
                 snip.visibility = if (kind == TabKind.SNIPPET) View.VISIBLE else View.GONE

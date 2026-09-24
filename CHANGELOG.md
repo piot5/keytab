@@ -11,6 +11,14 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
+## 0.12
+
+- **Snippet-Workflow überarbeitet:** Der Snippet-Tab enthält keinen „Neu“-Button mehr. „Bearbeiten“ öffnet `keytab_snippets.txt` direkt im Editor-Tab.
+- **Clipboard-Snippets benannt:** Beim Hinzufügen aus dem Clipboard wird der erste nichtleere Inhaltsteil als Name verwendet; mehrzeilige Inhalte bleiben escaped erhalten.
+- **Editor-/Terminal-Maximierung stabilisiert:** Normalhöhen werden gespeichert und beim Minimieren zuverlässig wiederhergestellt.
+- **Qualität:** Lint-Fehler behoben, englische Ressourcen vervollständigt und Android-14-Selected-Photo-Zugriff integriert.
+- **Tests:** Regressionstests für Snippet-Editor und Clipboard-Namen ergänzt; Unit-Tests, Lint und Doku-Drift-Gate erfolgreich.
+
 ## Unreleased
 
 - **Qualitäts-Gates geschärft: Kover 20 % → 60 % Zeilen / 45 % Branch** — das

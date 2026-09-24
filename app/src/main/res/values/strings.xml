@@ -60,6 +60,8 @@
     <!-- Clipboard -->
     <string name="clip_empty">Clipboard is empty</string>
     <string name="clip_hint_count">%1$d entries · tap = insert</string>
+    <string name="clip_entry_actions">Clipboard entry</string>
+    <string name="clip_add_to_snippet">Add to snippets</string>
 
     <!-- Files: long-press context menu -->
     <string name="fm_properties">ℹ Properties</string>
@@ -116,6 +118,7 @@
     <string name="snip_name_hint">Name</string>
     <string name="snip_text_hint">Text / Befehl</string>
     <string name="snip_added">Snippet hinzugefügt</string>
+    <string name="snip_added_from_clip">Aus Zwischenablage als Snippet hinzugefügt</string>
     <string name="snip_saved">Snippets gespeichert</string>
     <string name="settings_clip_tab_on">Clipboard tab enabled</string>
     <string name="settings_clip_tab_off">Clipboard tab disabled</string>

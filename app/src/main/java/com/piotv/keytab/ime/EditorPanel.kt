@@ -235,6 +235,9 @@ class EditorPanel(
         dir?.let { refreshList(it) }
     }
 
+    /** Lädt eine Datei in den Editor; der Tab bleibt beim Editor. */
+    fun openFile(f: File) { loadFile(f) }
+
     /** Lädt [f] asynchron in den Editor und merkt sie als Save-Ziel. */
     private fun loadFile(f: File) {
         ioExecutor.execute {

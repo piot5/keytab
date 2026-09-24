@@ -61,8 +61,8 @@ android {
         applicationId = "com.piotv.keytab"
         minSdk = 24
         targetSdk = 34
-        versionCode = 26
-        versionName = "0.11"
+        versionCode = 27
+        versionName = "0.12"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

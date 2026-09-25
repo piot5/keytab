@@ -9,7 +9,7 @@ Status: 2026-09-25 · Goal: maintainable, testable, release-ready modules with n
 
 ---
 
-## 1. Current snapshot (2026-09-24)
+## 1. Current snapshot (2026-09-25)
 
 | Metric | Value |
 |---|---|
@@ -31,7 +31,7 @@ Status: 2026-09-25 · Goal: maintainable, testable, release-ready modules with n
 - [ ] Extract orchestration only when it enables a concrete test or removes real coupling:
   panel lifecycle (`releasePanels()`), `commitText`/`commitToApp` routing and `KeyboardHost` delegation.
 - [ ] Measure changed cyclomatic complexity and baseline findings before/after; do not pursue a line-count quota.
-- Main size reduction (908→424) is banked; **do not trade test work for this**.
+- Main size reduction (908→432) is banked; **do not trade test work for this**.
 
 ### Phase 8 — Threading & coroutines *(open)*
 - [x] Part 1 done: `KeyTabExecutors` centralises the pools; the 2 `Handler`s are centralised, not gone.
@@ -61,7 +61,7 @@ Status: 2026-09-25 · Goal: maintainable, testable, release-ready modules with n
   tap→commit, recent-history), `TerminalPanelTest` (10: prompt, cd tracking + invalid-target
   fallback, insert/delete/delete(word), empty command), `FileManagerPanelTest` (5: navigation,
   back-stack, up, file-tap commit, `fm_dir`/`fm_backstack` persistence).
-  Historical snapshot: 484 tests / 50 suites. The suite now has 491 tests; remaining from
+  Historical snapshot: 484 tests / 50 suites. The suite now has 492 tests; remaining from
   the original P1 list: `InputRouter` cross-panel routing.
 - [x] **Sicherheits-Vertrag für gesperrte Felder (22 Sep):** `WordPredictionManagerPrivacyTest`
   (8 Tests, je Pfad Sperr- + Gegenprobe) + Regel-Matrix in `TrailLogicTest` +

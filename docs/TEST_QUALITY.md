@@ -1,6 +1,6 @@
 # KeyTab — Testqualität: Einzelbewertung 1–100 + Verbesserungsplan
 
-Stand: 2026-09-25 · Projekt: `projects/keytab` · 50 Testdateien (52 Dateien inkl. 2 Archiv-Kopien) · 491 Tests / 50 Suites · Kover: 67.0 % Line / 53.8 % Branch (zuletzt gemessen 24.09.2026)
+Stand: 2026-09-25 · Projekt: `projects/keytab` · 50 Testdateien (52 Dateien inkl. 2 Archiv-Kopien) · 492 Tests / 50 Suites · Kover: 67.0 % Line / 53.8 % Branch (zuletzt gemessen 24.09.2026)
 Kover zuletzt: 47.6 % Line / 36.4 % Branch (Log) bzw. 46.5 % / 35.4 % (README-Gap-Messung 19. Sep).
 
 ## Bewertungs-Rubrik (Summe = 100)
@@ -344,7 +344,7 @@ Umgesetzt (nur eigene Aenderungen, fremde uncommittete Aenderungen unangetastet)
 
 | Massnahme | Datei | Neue Tests | Ergebnis |
 |---|---|---:|---|
-| Clipboard-Limit + Clear + Isolation | `ime/ClipboardPanelTest.kt` | 5 → 9 | PASS |
+| Clipboard-Limit + Clear + Isolation | `ime/ClipboardPanelTest.kt` | 5 → 10 | PASS |
 | measureHeight/Terminal/fontScale/schmal | `ime/PanelHeightsTest.kt` | 2 → 5 | PASS |
 | Dedup/persist/Filter/counts-null/Restore/Root-Up | `ime/FileManagerModelTest.kt` | 11 → 17 | PASS |
 | Rig-Dataclass, ktfmt-Einrueckung, TERMINAL voll | `ime/InputRouterTest.kt` | 8 → 10 | PASS |
@@ -352,7 +352,7 @@ Umgesetzt (nur eigene Aenderungen, fremde uncommittete Aenderungen unangetastet)
 | Neue Suite mit echten Calls (statt Map-Sim) | `ime/TrailManagerTest.kt` | 0 → 12 | PASS |
 
 Verifikation (SDK `/opt/android-sdk`, Java 17 arm64):
-- Eigene 5 Suites isoliert: `ClipboardPanelTest` 9/9, `PanelHeightsTest` 5/5, `FileManagerModelTest` 17/17, `InputRouterTest` 10/10, `TrailManagerTest` 12/12 — 0 Failures.
+- Eigene 5 Suites isoliert: `ClipboardPanelTest` 10/10, `PanelHeightsTest` 5/5, `FileManagerModelTest` 17/17, `InputRouterTest` 10/10, `TrailManagerTest` 12/12 — 0 Failures.
 - Volle Suite NACH Stash fremder Aenderungen (reiner HEAD + eigene Tests): **370 Tests, 0 Failures, 0 Errors** — BUILD SUCCESSFUL.
 - Hinweis: im Arbeitsbaum liegen fremde uncommittete Aenderungen (u.a. `SuggestionEngine.autoCorrect`-Entfernung + angepasste `SuggestionEngineTest`), die 2 Failures verursachen (`ahus→haus`-Fuzzy, `hane→hase`-Bigramm). Diese stammen NICHT aus meinen Aenderungen; mit meinen Aenderungen allein ist alles gruen. Details in `app/build/test-results/`.
 
@@ -396,7 +396,7 @@ Verifikation (HEAD + eigene Tests, fremde uncommittete Aenderungen per stash aus
 **1) Korrektur der Warnung aus Nachtrag 2.** Der Hinweis „2 alte
 `SuggestionEngineTest`-Faelle fehlschlagen“ ist **überholt**: ein kompletter Lauf
 des Arbeitsbaums (kein Stash, keine Ausblendung) ergibt
-**489 Tests in 50 Suiten, 0 Failures, 0 Errors, 0 Skipped**
+**492 Tests in 50 Suiten, 0 Failures, 0 Errors, 0 Skipped**
 (`:app:testDebugUnitTest`, 22 Sep). Die damals verletzten Verträge
 (`ahus → haus`-Vertauschung, `hane → hase`-Bigramm) sind im Code vorhanden
 (`SuggestionEngine.autoCorrect`, Swap-Zweig Zeile ~385). Auch die Aussage

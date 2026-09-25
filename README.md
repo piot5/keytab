@@ -163,7 +163,7 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `EditorPanelTest` | 10 | Robolectric |
 | `KeyTabConfigTest` | 8 | pure |
 | `WordPredictionManagerPrivacyTest` | 8 | Robolectric |
-| `ClipboardPanelTest` | 9 | Robolectric |
+| `ClipboardPanelTest` | 10 | Robolectric |
 | `ThemePrefsTest` | 14 | pure |
 | `EmojiSuggestionsTest` | 7 | pure |
 | `LanguageModuleTest` | 7 | pure |
@@ -322,7 +322,7 @@ app/src/main/java/com/piotv/keytab/            # 51 Kotlin files, 7,020 lines
     ├── KeyTabExecutors.kt    # Shared executor + main handler
     └── …                     # InputTargets, LiftSpan, KeyTabConfig
 
-app/src/test/java/com/piotv/keytab/ime/        # 50 test classes, 491 tests, 7,157 lines
+app/src/test/java/com/piotv/keytab/ime/        # 50 test classes, 492 tests, 7,183 lines
 app/src/androidTest/                           # 2 instrumented tests (CI: API 34 emulator)
 app/src/main/res/values/strings.xml            # 185 strings (default = German)
 app/src/main/res/values-en/                    # English locale (185 strings — complete, 2026-09-25)
@@ -358,7 +358,7 @@ Issues and pull requests are welcome. Before opening a PR:
 
 ```bash
 sh scripts/check_docs_drift.sh                     # docs must match the code
-sh ./gradlew :app:testDebugUnitTest --offline      # 491 tests must stay green
+sh ./gradlew :app:testDebugUnitTest --offline      # 492 tests must stay green
 bash build_keytab.sh debug                         # must build
 ```
 

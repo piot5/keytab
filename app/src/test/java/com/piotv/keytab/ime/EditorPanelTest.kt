@@ -104,6 +104,30 @@ class EditorPanelTest {
     }
 
     @Test
+    fun `Pfeil nach oben sendet ohne Auswahl den gesamten Editorinhalt`() {
+        val root = inflateKeyboardRoot(app)
+        val sent = mutableListOf<String>()
+        EditorPanel(app, root, directExecutor, Handler(Looper.getMainLooper()), sent::add)
+        val et = root.findViewById<EditText>(R.id.editor_input)
+        et.setText("ganzer Text")
+        et.setSelection(et.length())
+        root.findViewById<View>(R.id.btn_editor_send_up).performClick()
+        assertEquals(listOf("ganzer Text"), sent)
+    }
+
+    @Test
+    fun `Pfeil nach oben sendet nur die markierte Stelle`() {
+        val root = inflateKeyboardRoot(app)
+        val sent = mutableListOf<String>()
+        EditorPanel(app, root, directExecutor, Handler(Looper.getMainLooper()), sent::add)
+        val et = root.findViewById<EditText>(R.id.editor_input)
+        et.setText("vorher markiert nachher")
+        et.setSelection(7, 15)
+        root.findViewById<View>(R.id.btn_editor_send_up).performClick()
+        assertEquals(listOf("markiert"), sent)
+    }
+
+    @Test
     fun `Gutter nummeriert logische Zeilen vor dem ersten Layout`() {
         val root = inflateKeyboardRoot(app)
         EditorPanel(app, root, directExecutor, Handler(Looper.getMainLooper()))

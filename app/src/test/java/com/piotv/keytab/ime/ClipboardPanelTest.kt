@@ -12,6 +12,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLooper
 
 /**
  * Clipboard-Panel: Capture aus dem System-Clipboard, Persistenz über
@@ -29,9 +30,16 @@ class ClipboardPanelTest {
         cm.setPrimaryClip(ClipData.newPlainText("test", text))
     }
 
-    private fun panel(canAutoCapture: Boolean = true) =
-        ClipboardPanel(app, directExecutor, Handler(Looper.getMainLooper()),
-            onCommit = {}, canAutoCapture = { canAutoCapture })
+    private fun panel(
+        canAutoCapture: Boolean = true,
+        onError: (String) -> Unit = {}
+    ) =
+        ClipboardPanel(
+            app, directExecutor, Handler(Looper.getMainLooper()),
+            ClipboardPanel.Callbacks(
+                onCommit = {}, canAutoCapture = { canAutoCapture }, onError = onError
+            )
+        )
 
     @Test
     fun `capture nimmt Clipboard auf und Liste zeigt es`() {
@@ -118,6 +126,20 @@ class ClipboardPanelTest {
         assertTrue(p.entries().isEmpty())
         // zweite Instanz lädt aus der Datei → muss ebenfalls leer sein
         assertTrue(panel().entries().isEmpty())
+    }
+
+    @Test
+    fun `Persistenzfehler meldet Fehler statt still zu scheitern`() {
+        val errors = mutableListOf<String>()
+        val p = panel(onError = { errors += it })
+        val historyFile = java.io.File(app.filesDir, "clipboard_history.txt")
+        historyFile.delete()
+        historyFile.mkdirs()
+        setClipboard("captured")
+        p.capture()
+        ShadowLooper.runUiThreadTasks()
+        assertEquals(listOf(app.getString(com.piotv.keytab.R.string.clip_history_save_failed)), errors)
+        historyFile.delete()
     }
 
     @Test

@@ -104,10 +104,19 @@ class EditorPanel(
         }
     }
 
-    /** ↑: Editor-Inhalt direkt ins Zielfeld der App darüber einfügen. */
+    /** ↑: markierten Text oder – ohne Auswahl – den gesamten Editor-Inhalt senden. */
     private fun setupSendUp(root: View) {
         root.findViewById<Button>(R.id.btn_editor_send_up)?.setOnClickListener {
-            val text = (input?.text?.toString()).orEmpty()
+            val et = input
+            val editable = et?.text
+            val text = if (et == null || editable == null) {
+                ""
+            } else {
+                val start = et.selectionStart.coerceIn(0, editable.length)
+                val end = et.selectionEnd.coerceIn(0, editable.length)
+                if (start != end) editable.substring(minOf(start, end), maxOf(start, end)).toString()
+                else editable.toString()
+            }
             if (text.isEmpty()) {
                 Toast.makeText(context, R.string.editor_empty_nothing, Toast.LENGTH_SHORT).show()
             } else {

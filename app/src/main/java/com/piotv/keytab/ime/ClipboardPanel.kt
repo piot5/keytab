@@ -3,6 +3,7 @@ package com.piotv.keytab.ime
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Handler
+import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -25,13 +26,17 @@ class ClipboardPanel(
     private val context: Context,
     private val ioExecutor: Executor,
     private val mainHandler: Handler,
-    private val onCommit: (String) -> Unit,
-    private val canAutoCapture: () -> Boolean,
-    private val onAddToSnippet: (String) -> Unit = {}
+    private val callbacks: Callbacks
 ) {
-
+    data class Callbacks(
+        val onCommit: (String) -> Unit,
+        val canAutoCapture: () -> Boolean,
+        val onAddToSnippet: (String) -> Unit = {},
+        val onError: (String) -> Unit = {}
+    )
     private companion object {
         const val MAX_ENTRIES = 50
+        const val TAG = "KeyTabClipboard"
     }
 
     private val history = mutableListOf<String>()
@@ -45,7 +50,7 @@ class ClipboardPanel(
 
     /** Wird beim Wechsel auf den Ablage-/Editor-Tab aufgerufen. */
     fun onSelected() {
-        if (canAutoCapture()) capture()
+        if (callbacks.canAutoCapture()) capture()
         refresh()
     }
 
@@ -76,14 +81,14 @@ class ClipboardPanel(
         }
         list.adapter = themedAdapter(context, items)
         list.setOnItemClickListener { _, _, position, _ ->
-            history.getOrNull(position)?.let { onCommit(it) }
+            history.getOrNull(position)?.let { callbacks.onCommit(it) }
         }
         list.setOnItemLongClickListener { _, _, position, _ ->
             history.getOrNull(position)?.let { entry ->
                 android.app.AlertDialog.Builder(context)
                     .setTitle(R.string.clip_entry_actions)
                     .setItems(arrayOf(context.getString(R.string.clip_add_to_snippet))) { _, which ->
-                        if (which == 0) onAddToSnippet(entry)
+                        if (which == 0) callbacks.onAddToSnippet(entry)
                     }
                     .setNegativeButton(android.R.string.cancel, null)
                     .create()
@@ -144,7 +149,12 @@ class ClipboardPanel(
         val encoded = TextEditLogic.encodeClipHistory(history)
         val f = historyFile()
         ioExecutor.execute {
-            try { f.writeText(encoded) } catch (_: Exception) {}
+            try {
+                f.writeText(encoded)
+            } catch (e: Exception) {
+                Log.w(TAG, "Clipboard history could not be persisted", e)
+                mainHandler.post { callbacks.onError(context.getString(R.string.clip_history_save_failed)) }
+            }
         }
         mainHandler.post { refresh() }
     }
@@ -156,6 +166,8 @@ class ClipboardPanel(
                 history.clear()
                 history.addAll(TextEditLogic.decodeClipHistory(f.readText()))
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.w(TAG, "Clipboard history could not be loaded", e)
+        }
     }
 }

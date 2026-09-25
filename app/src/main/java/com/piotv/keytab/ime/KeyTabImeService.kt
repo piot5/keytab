@@ -208,10 +208,6 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
 
     private fun configFile(): java.io.File = SettingsConfig.configFile(this)
 
-    private fun openEditor(file: java.io.File) {
-        tabController.select(TabController.TabKind.EDITOR)
-        editorPanel?.openFile(file)
-    }
 
     /** Covers every UI preference, not just color edits that bump theme_version. */
     private fun refreshSettings() {

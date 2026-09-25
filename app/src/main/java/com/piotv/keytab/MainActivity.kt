@@ -36,6 +36,8 @@ class MainActivity : AppCompatActivity() {
         }
 
     companion object {
+        private const val ANDROID_14 = 34
+
         /** Alias-Kompatibilität: `MainActivity.PREFS` == `Prefs.FILE` (alter Aufrufer). */
         const val PREFS = Prefs.FILE
 
@@ -191,7 +193,7 @@ class MainActivity : AppCompatActivity() {
         // Nur READ_MEDIA_IMAGES (Bilder/Hintergrundbild) — Audio/Video werden
         // nirgends gelesen (siehe AndroidManifest-Kommentar).
         val missingStorage = when {
-            Build.VERSION.SDK_INT >= 34 -> neededPermissions(
+            Build.VERSION.SDK_INT >= ANDROID_14 -> neededPermissions(
                 Manifest.permission.READ_MEDIA_IMAGES,
                 Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
             )

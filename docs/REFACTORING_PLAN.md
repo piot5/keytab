@@ -1,6 +1,6 @@
 # KeyTab — Refactoring Plan: open Todos
 
-Status: 2026-09-21 · Goal: maintainable, testable modules with no behaviour change.
+Status: 2026-09-24 · Goal: maintainable, testable, release-ready modules with no unintended behaviour change.
 
 > **This file tracks only OPEN work.** Everything completed — measured audits, phases 0–7,
 > chaos cleanup R1–R3, evaluation model, external review (74/100 vs. internal 82/100),
@@ -9,27 +9,29 @@ Status: 2026-09-21 · Goal: maintainable, testable modules with no behaviour cha
 
 ---
 
-## 1. Current snapshot (2026-09-22)
+## 1. Current snapshot (2026-09-24)
 
 | Metric | Value |
 |---|---|
-| Unit tests | **489 in 50 suites**, 0 failures (verified 24 Sep; `testDebugUnitTest` + `lintDebug` green) |
-| Coverage (Kover) | **67.0 % line** (2947/4401) / **53.8 % branch** (1742/3238), measured 22 Sep (XML report, debug+release); **Gate: 60 % line / 45 % branch**; `sections` 93.6 %, `file` 77.9 %, `ime` 68.7 % |
-| Test:main ratio | **75.2 %** (7,133 test lines / 9,492 main lines; 57 main files) |
-| detekt baseline | **198 Einträge** (unverändert; Gate grün) |
+| Unit tests | **491 in 50 suites**, 0 failures (`testDebugUnitTest` verified 24 Sep) |
+| Coverage (Kover) | **67.0 % line** (2947/4401) / **53.8 % branch** (1742/3238), measured 22 Sep; **Gate: 60 % line / 45 % branch** |
+| Test:main ratio | **75.4 %** (7,157 test lines / 9,498 main lines; 57 main files) |
+| detekt baseline | **191 Einträge**; new findings remain CI-blocking |
+| Android Lint | **0 errors / 174 warnings**; explicit CI gate added 24 Sep |
 | i18n | `values-en` **184/184 Strings** (100 %, per Drift-Gate erzwungen) |
-| Service size | 428 lines (from 908) |
-| Working tree | **v0.12** — Snippet-Editor-Workflow, Clipboard-Namen, stabile Maximierung, Android-14-Bildzugriff |
-| Repo hygiene | `KeyAnimations.kt` duplication resolved; `build_*.log` entfernt, Root-Artefakte in `../archive/` |
+| Service size | 424 lines (from 908) |
+| Working tree | **v0.12** plus locally verified Editor selection/send-up change |
+| Repo hygiene | Local SDK/signing files are ignored; Gradle distribution SHA-256 pinned |
 
 ---
 
 ## 2. Open phases
 
-### Phase 6 (remainder) — IME ~290 → ~150 lines *(downgraded, low priority)*
-- [ ] Extract the remaining ~110 lines of pure wiring: panel lifecycle (`releasePanels()`),
-  `commitText`/`commitToApp` routing (`editorActive`/`terminalActive`), `KeyboardHost` delegation.
-- Main gain (908→~290) is banked; do **not** trade test work for this.
+### Phase 6 (remainder) — IME orchestration *(low priority, no arbitrary LOC target)*
+- [ ] Extract orchestration only when it enables a concrete test or removes real coupling:
+  panel lifecycle (`releasePanels()`), `commitText`/`commitToApp` routing and `KeyboardHost` delegation.
+- [ ] Measure changed cyclomatic complexity and baseline findings before/after; do not pursue a line-count quota.
+- Main size reduction (908→424) is banked; **do not trade test work for this**.
 
 ### Phase 8 — Threading & coroutines *(open)*
 - [x] Part 1 done: `KeyTabExecutors` centralises the pools; the 2 `Handler`s are centralised, not gone.
@@ -59,13 +61,14 @@ Status: 2026-09-21 · Goal: maintainable, testable modules with no behaviour cha
   tap→commit, recent-history), `TerminalPanelTest` (10: prompt, cd tracking + invalid-target
   fallback, insert/delete/delete(word), empty command), `FileManagerPanelTest` (5: navigation,
   back-stack, up, file-tap commit, `fm_dir`/`fm_backstack` persistence).
-  Suite total **484 tests / 50 suites**. Still open from the original P1 list:
-  `InputRouter` focus routing has `InputRouterTest` (8) but no cross-panel routing case.
+  Historical snapshot: 484 tests / 50 suites. The suite now has 491 tests; remaining from
+  the original P1 list: `InputRouter` cross-panel routing.
 - [x] **Sicherheits-Vertrag für gesperrte Felder (22 Sep):** `WordPredictionManagerPrivacyTest`
   (8 Tests, je Pfad Sperr- + Gegenprobe) + Regel-Matrix in `TrailLogicTest` +
   Emoji-Katalog-Gate in `SuggestionControllerTest`.
-- [ ] **Instrumented swipe/touch integration test** (external lever #2, +2.0): IME touch
-  interaction + swipe path — only 2 instrumented tests exist today
+- [x] **Clipboard persistence errors are observable (24 Sep):** `ClipboardPanel` logs
+  load/save failures and forwards save errors to a localized UI callback; `ClipboardPanelTest`
+  covers the failure path (10 tests green). Session-only retention remains open.
 
 ### P2 — Structure & distribution (+2.0 / +1.5)
 - [x] `keyboard_view.xml` split, `MANAGE_EXTERNAL_STORAGE` replaced — done (History)
@@ -100,39 +103,78 @@ Status: 2026-09-21 · Goal: maintainable, testable modules with no behaviour cha
 
 ---
 
-## 5. detekt baseline — the hard remainder (198 entries; 156 legacy + 42 new v0.11 findings)
+## 5. detekt baseline — hard remainder (191 findings, measured 24 Sep)
 
 | Rule | Count | Approach |
+|---|---:|---|
+| `MagicNumber` | 139 | Review as policy/config debt; change only where names improve domain clarity |
+| `CyclomaticComplexMethod` | 17 | Extract named predicates/routing helpers with unit tests |
+| `LoopWithTooManyJumpStatements` | 9 | Extract loop bodies/state transitions |
+| `NestedBlockDepth` | 7 | Early returns and guard clauses |
+| `LongMethod` | 7 | Extract cohesive operations, pairing with complexity work |
+| `ComplexCondition` | 5 | Named boolean helpers |
+| `TooManyFunctions` | 3 | Split only cohesive service/activity responsibilities |
+| Other | 4 | `VariableNaming`, `SwallowedException`, `NewLineAtEndOfFile`, `LongParameterList` |
+
+Strategy: reduce **real** complexity findings before cosmetic `MagicNumber` cleanup. One cycle may
+pair cyclomatic complexity and long methods, then nested depth and conditions. Never regenerate the
+whole baseline merely to make a count look better; compare IDs before and after each cycle.
+
+---
+
+## 6. External-review levers still open
+
+| Rank | Lever | Acceptance criterion |
 |---|---|---|
-| `MagicNumber` | 111 | Config decision: raise thresholds / add `ignoreAnnotated` for UI constants — do **not** pollute code with 111 named constants |
-| `CyclomaticComplexMethod` | 14 | Real smell; extract predicate helpers (external lever #1 remainder, ~+1.0) |
-| `LoopWithTooManyJumpStatements` | 8 | Extract loop bodies into helpers |
-| `NestedBlockDepth` | 6 | Early-return / guard clauses |
-| `LongMethod` | 4 | Function extraction (pairs with CCM work) |
-| `ComplexCondition` | 4 | Named boolean helpers |
-| `EmptyFunctionBlock` | 7 | Anonymous listeners `{}` — replace with SAM/interface or targeted `@Suppress` |
-| `TooManyFunctions` | 2 | Service + MainActivity; folds into Phase 6 |
-| `MaxLineLength`/misc | 0–2 | Ongoing |
+| 1 | detekt baseline reduction | Real complexity IDs removed without suppression; baseline decreases in reviewed commits |
+| 2 | Real IME integration tests | API-34 tests commit characters, Tab, Enter, Backspace and sensitive-field behavior through an active IME |
+| 3 | Android Lint backlog | 0 errors maintained; warning baseline categorized and reduced from 174, prioritizing accessibility/resources |
+| 4 | Clipboard privacy | Session-only mode or expiry, selective deletion, transparent user-facing disclosure, robust I/O errors |
+| 5 | Supply-chain hardening | Dependency locking/verification and immutable action references; release SHA-256/provenance published |
+| 6 | Signing hygiene | Production credentials only in CI/secret store; locally exposed passwords rotated |
 
-Strategy: one cycle = CCM+LongMethod together, then NestedBlockDepth+ComplexCondition,
-then decide MagicNumber via config. The 42 new v0.11 findings (SwipeManager,
-SuggestionEngine/WordPredictionManager prediction lines, `hideKeyboard` growth) were
-baselined by regeneration on 21 Sep — they join the same cleanup cycles.
+Coverage and static-analysis reports are now uploaded with `if: always()`, so that former cheap CI
+lever is closed. Values-en completeness is closed at 184/184.
 
 ---
 
-## 6. External-review levers still open (§8.3 of History)
+## 7. Prioritised execution plan (not implemented in this pass)
 
-| Rank | Lever | Est. score | Tracked in |
-|---|---|---|---|
-| 1 | detekt baseline reduction (hard cases) | +2.0 | §5 above |
-| 2 | Instrumented swipe/touch tests | +2.0 | P1 above |
-| 3 | ~~`values-en` completeness~~ **DONE 2026-09-21: 176/176 strings** | ✅ | i18n item closed |
-| 4 | Kover report as CI artifact **on success** too (not only on failure) | +1.0 (partial) | CI tweak, cheap |
+### P0 — real IME confidence
+- [x] **Real IME E2E harness compiled (24 Sep):** `ImeTargetActivity` and
+  `KeyTabImeEndToEndTest` cover character, Space, Tab, Enter, Backspace, password and
+  `NO_PERSONALIZED_LEARNING` behavior. Device execution is blocked on the connected
+  Android-16 device by `INSTALL_FAILED_USER_RESTRICTED`; rerun on a CI emulator or a
+  device allowing ADB test-package installation.
+- [ ] Verify commit paths for characters, Space, Tab, Enter and Backspace against plain and
+  `EditText` targets on a runnable emulator.
+- [ ] Verify password and `IME_FLAG_NO_PERSONALIZED_LEARNING` on-device: no prediction, autocorrect, learning, swipe trail or cross-field context leak.
+- [ ] Add rotation, configuration-change and service-recreation scenarios.
+- **Done when:** CI proves the real service lifecycle and sensitive-field contract, not only activity smoke tests.
+
+### P1 — security and accessibility
+- [ ] Add TalkBack/Accessibility Scanner coverage for keyboard controls and file/editor panels.
+- [ ] Triage the 174 Lint warnings; fix accessibility, hardcoded text, plural and unused-resource warnings first.
+- [ ] Add clipboard session-only/retention controls, selective delete and an explicit privacy disclosure.
+- [ ] Stop silently swallowing clipboard/file exceptions; log safely or surface a recoverable error.
+- [ ] Rotate any signing password ever stored in local plaintext and restrict production signing to CI secrets.
+- **Done when:** Lint warnings have a tracked budget and no critical accessibility/privacy issue remains.
+
+### P2 — maintainability and supply chain
+- [ ] Reduce real detekt findings in `KeyboardBinder`, `KeyTabImeService`, `SuggestionController`, `ThemePrefs` and `ClipboardPanel`.
+- [ ] Enable dependency locking and Gradle dependency verification; test clean-cache resolution.
+- [ ] Pin GitHub Actions to immutable commit SHAs with an update process.
+- [ ] Publish release APK SHA-256 and provenance/attestation.
+- **Done when:** clean and warm builds resolve identical verified inputs and no new baseline IDs are accepted silently.
+
+### P3 — deferred refactors
+- [ ] Migrate bounded I/O from shared executors/handlers to lifecycle-aware coroutines one module at a time.
+- [ ] Fix `ColorWheelView` multi-touch and migrate `clip_tab_enabled` with a tested fallback.
+- [ ] Consider PTY support for the terminal; retain the documented non-PTY limitation until implemented.
 
 ---
 
-## 7. Risks & mitigation
+## 8. Risks & mitigation
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
@@ -144,7 +186,7 @@ baselined by regeneration on 21 Sep — they join the same cleanup cycles.
 
 ---
 
-## 8. Best practices for agent refactoring
+## 9. Best practices for agent refactoring
 
 1. **Always commit** — agent work must end in clean commits
 2. **One branch per agent run** — `agent/<feature>-<date>` isolates the chaos
@@ -160,9 +202,9 @@ baselined by regeneration on 21 Sep — they join the same cleanup cycles.
 
 ---
 
-## 9. Score targets
+## 10. Score targets
 
 | Frame | Current | Target | Levers |
 |---|---|---|---|
 | Internal | 82 | ~88 global / ~91 niche | P1 + P2 + P3 |
-| External | 74 | ~85 | §6 levers (detekt, instrumented tests, i18n, CI artifact) |
+| External | 72 | ~85 | Real IME tests, Lint backlog, clipboard privacy, supply-chain/signing hardening, baseline reduction |

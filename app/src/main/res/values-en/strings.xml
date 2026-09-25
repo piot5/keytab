@@ -47,6 +47,7 @@
     <string name="clip_empty">Clipboard is empty</string>
     <string name="clip_hint_count">%1$d entries · tap = insert</string>
     <string name="clip_entry_actions">Clipboard entry</string>
+    <string name="clip_history_save_failed">Clipboard history could not be saved</string>
     <string name="clip_add_to_snippet">Add to snippets</string>
     <string name="fm_properties">ℹ Properties</string>
     <string name="fm_copy_path">📋 Copy path</string>

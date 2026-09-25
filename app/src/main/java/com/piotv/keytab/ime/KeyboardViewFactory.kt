@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.view.inputmethod.InputConnection
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.piotv.keytab.R
 import java.util.concurrent.Executor
@@ -114,31 +115,13 @@ class KeyboardViewFactory(private val deps: Deps) {
             },
             onCommit = { deps.commitText(it) }
         )
-        val clipboard = ClipboardPanel(ctx, deps.ioExecutor, deps.mainHandler,
-            onCommit = { deps.commitToApp(it) },
-            canAutoCapture = { deps.isInputViewShown },
-            onAddToSnippet = { snippets.addFromClipboard(it) })
+        val clipboard = createClipboard(ctx, snippets)
         // Eingabe-Routing (Phase 2): Ziele App/Editor/Terminal hinter einem Router;
         // die editorActive/terminalActive-Verzweigungsketten entfallen damit.
-        val router = InputRouter(
-            AppInputTarget(
-                connection = { deps.currentInputConnection() },
-                sendKey = { deps.sendKeyEvents(it) }),
-            EditorInputTarget(editor),
-            TerminalInputTarget(terminal))
+        val router = createRouter(editor, terminal)
         // Aktive Sprache aus den Einstellungen übernehmen (wirkt beim nächsten Öffnen)
         val language = com.piotv.keytab.MainActivity.activeLanguage(ctx)
-        val predictionManager = WordPredictionManager(
-            ctx, deps.ioExecutor, deps.mainHandler, deps.suggestionViews,
-            inputOps = object : WordPredictionManager.InputOperations {
-                override fun deleteBefore(count: Int) = router.deleteBefore(count)
-                override fun deleteBeforeKeys(count: Int) = router.deleteBeforeKeys(count)
-                override fun textBefore(count: Int): String = router.textBefore(count)
-                override fun insert(text: String) = router.insert(text)
-                override fun commitToApp(text: String) = deps.commitToApp(text)
-            },
-            personalizedProcessingAllowed = { deps.isPersonalizedProcessingAllowed() }
-        )
+        val predictionManager = createPredictionManager(ctx, router)
         val keyScaler = DynamicKeyScaler(deps.baseLetters)
         // Generelles Tasten-Animationssystem (v0.9.7): LayoutTransition auf
         // dem abc-Container — jede Platzänderung (Extra-Keys-Zeile ein/aus,
@@ -152,6 +135,43 @@ class KeyboardViewFactory(private val deps: Deps) {
         return Result(root, fileManager, editor, terminal, clipboard, snippets,
             router, predictionManager, keyScaler, language)
     }
+
+    private fun createClipboard(
+        context: Context,
+        snippets: SnippetPanel
+    ): ClipboardPanel = ClipboardPanel(
+        context, deps.ioExecutor, deps.mainHandler,
+        ClipboardPanel.Callbacks(
+            onCommit = { deps.commitToApp(it) },
+            canAutoCapture = { deps.isInputViewShown },
+            onAddToSnippet = { snippets.addFromClipboard(it) },
+            onError = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+        )
+    )
+
+    private fun createRouter(editor: EditorPanel, terminal: TerminalPanel): InputRouter =
+        InputRouter(
+            AppInputTarget(
+                connection = { deps.currentInputConnection() },
+                sendKey = { deps.sendKeyEvents(it) }),
+            EditorInputTarget(editor),
+            TerminalInputTarget(terminal)
+        )
+
+    private fun createPredictionManager(
+        context: Context,
+        router: InputRouter
+    ): WordPredictionManager = WordPredictionManager(
+        context, deps.ioExecutor, deps.mainHandler, deps.suggestionViews,
+        inputOps = object : WordPredictionManager.InputOperations {
+            override fun deleteBefore(count: Int) = router.deleteBefore(count)
+            override fun deleteBeforeKeys(count: Int) = router.deleteBeforeKeys(count)
+            override fun textBefore(count: Int): String = router.textBefore(count)
+            override fun insert(text: String) = router.insert(text)
+            override fun commitToApp(text: String) = deps.commitToApp(text)
+        },
+        personalizedProcessingAllowed = { deps.isPersonalizedProcessingAllowed() }
+    )
 
     private fun disableClipping(v: View?) {
         var cur: View? = v

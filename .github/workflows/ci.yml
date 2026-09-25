@@ -14,7 +14,7 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
 
       - name: Doku-Drift pruefen
         run: sh scripts/check_docs_drift.sh
@@ -22,10 +22,10 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
 
       - name: JDK 17 einrichten
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           distribution: temurin
           java-version: '17'
@@ -37,62 +37,69 @@ jobs:
           ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon --stacktrace
 
       - name: APK als Artifact hochladen
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: keytab-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Test-Report als Artifact hochladen (bei Fehlern)
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: test-reports
           path: app/build/reports/tests/testDebugUnitTest/**
           if-no-files-found: warn
 
-  # Static-Analysis-Gate: detekt (Baseline fixiert bestehende Befunde,
-  # neue Code-Smells schlagen fehl)
-  lint:
+  # Statische Analyse: Android Lint + detekt. Lint blockiert Fehler,
+  # detekt verhindert mit der Baseline neue Code-Smells.
+  static-analysis:
     needs: build-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
 
       - name: JDK 17 einrichten
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Android Lint
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:lintDebug --no-daemon --stacktrace
 
       - name: detekt
         run: |
           chmod +x gradlew
           ./gradlew :app:detektDebug --no-daemon --stacktrace
 
-      - name: detekt-Report als Artifact hochladen (bei Fehlern)
-        if: failure()
-        uses: actions/upload-artifact@v6
+      - name: Analyse-Reports hochladen
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: detekt-report
-          path: app/build/reports/detekt/**
+          name: static-analysis-reports
+          path: |
+            app/build/reports/lint-results-debug.*
+            app/build/reports/detekt/**
           if-no-files-found: warn
 
-  # Coverage-Gate (Roadmap Punkt 1): koverVerify schlägt fehl, wenn die
-  # Zeilen-Coverage von :app unter 20 % fällt. Läuft nach build-test, damit
-  # im Fehlerfall zuerst die Klartext-Testergebnisse vorliegen.
+  # Coverage-Gate: koverVerify schlägt fehl, wenn die Zeilen-Coverage unter
+  # 60 % oder die Branch-Coverage unter 45 % fällt.
   coverage:
     needs: build-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
 
       - name: JDK 17 einrichten
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           distribution: temurin
           java-version: '17'
 
-      # coverageGate = koverHtmlReport + koverLog + koverVerify (Schwelle 20 %)
+      # coverageGate = koverHtmlReport + koverLog + koverVerify
+      # Schwellen: 60 % Zeilen / 45 % Branches.
       - name: Coverage-Gate
         run: |
           chmod +x gradlew
@@ -100,7 +107,7 @@ jobs:
 
       - name: Coverage-Report als Artifact hochladen
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: coverage-report
           path: app/build/reports/kover/**
@@ -111,10 +118,10 @@ jobs:
     needs: build-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
 
       - name: JDK 17 einrichten
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           distribution: temurin
           java-version: '17'
@@ -127,7 +134,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Instrumented-Tests (Emulator API 34)
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@4c44018e59b437e86cdfc41da381398f93ed8808
         with:
           api-level: 34
           arch: x86_64
@@ -139,7 +146,7 @@ jobs:
 
       - name: Instrumented-Report als Artifact hochladen (bei Fehlern)
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: instrumented-reports
           path: app/build/reports/androidTests/**

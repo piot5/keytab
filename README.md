@@ -60,7 +60,7 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 
 ## Architecture
 
-`KeyTabImeService` is the keyboard core (428 lines of orchestration). Every feature lives in its own class —
+`KeyTabImeService` is the keyboard core (424 lines of orchestration). Every feature lives in its own class —
 panels for UI, controllers for stateful wiring, pure modules for logic (Android-free, unit-testable).
 
 ### Panels (UI features)
@@ -134,7 +134,7 @@ All panels share a background executor for file I/O and a main handler for UI up
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**489 unit tests in 50 suites, 0 failures** (verified 2026-09-24, `assembleDebug` + `testDebugUnitTest` both green):
+**491 unit tests in 50 suites, 0 failures** (verified 2026-09-24, `testDebugUnitTest` green):
 
 | Suite | Tests | Kind |
 |---|---:|---|
@@ -160,7 +160,7 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `BackgroundImageTest` | 9 | Robolectric |
 | `KeyTabImeServiceTest` | 8 | Robolectric |
 | `LearnedDictionaryApiTest` | 8 | pure |
-| `EditorPanelTest` | 8 | Robolectric |
+| `EditorPanelTest` | 10 | Robolectric |
 | `KeyTabConfigTest` | 8 | pure |
 | `WordPredictionManagerPrivacyTest` | 8 | Robolectric |
 | `ClipboardPanelTest` | 9 | Robolectric |
@@ -189,7 +189,7 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `SwipePerformanceTest` | 3 | pure |
 | `TrailPerformanceTest` | 2 | pure |
 
-Test code is 7,133 lines in 50 files against 9,492 lines of main code (57 files) — a **75.1 % test-to-main ratio**. Line coverage measured with Kover is **67.0 %** (`LINE` 2947/4401), branch coverage **53.8 %** (`BRANCH` 1742/3238); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-09-22, all 489 tests green). Per package: the Android-free logic (`com.piotv.keytab.ime`: 68.7 %), the theme UI sections (`sections`: 93.6 %) and the in-app file manager (`file`: 77.9 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `TerminalPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 44 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
+Test code is 7,157 lines in 50 files against 9,498 lines of main code (57 files) — a **75.4 % test-to-main ratio**. Line coverage measured with Kover is **67.0 %** (`LINE` 2947/4401), branch coverage **53.8 %** (`BRANCH` 1742/3238); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-09-22). Per package: the Android-free logic (`com.piotv.keytab.ime`: 68.7 %), the theme UI sections (`sections`: 93.6 %) and the in-app file manager (`file`: 77.9 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `TerminalPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 131 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
 
 ```bash
 # Run all unit tests
@@ -284,7 +284,7 @@ app/src/main/java/com/piotv/keytab/            # 51 Kotlin files, 7,020 lines
 │   ├── TrailSection.kt            #   typing trail: on/off, steps, correction trace
 │   └── PreviewSection.kt          #   live preview
 └── ime/
-    ├── KeyTabImeService.kt   # Keyboard core / orchestration (428 lines)
+    ├── KeyTabImeService.kt   # Keyboard core / orchestration (424 lines)
     ├── KeyboardHost.kt       # Interface consumed by the controllers
     ├── KeyboardViewFactory.kt # Builds the keyboard view tree
     ├── KeyboardBinder.kt     # Touch / long-press, backspace repeat
@@ -322,7 +322,7 @@ app/src/main/java/com/piotv/keytab/            # 51 Kotlin files, 7,020 lines
     ├── KeyTabExecutors.kt    # Shared executor + main handler
     └── …                     # InputTargets, LiftSpan, KeyTabConfig
 
-app/src/test/java/com/piotv/keytab/ime/        # 50 test classes, 489 tests, 7,133 lines
+app/src/test/java/com/piotv/keytab/ime/        # 50 test classes, 491 tests, 7,157 lines
 app/src/androidTest/                           # 2 instrumented tests (CI: API 34 emulator)
 app/src/main/res/values/strings.xml            # 184 strings (default = German)
 app/src/main/res/values-en/                    # English locale (184 strings — complete, 2026-09-24)
@@ -359,7 +359,7 @@ Issues and pull requests are welcome. Before opening a PR:
 
 ```bash
 sh scripts/check_docs_drift.sh                     # docs must match the code
-sh ./gradlew :app:testDebugUnitTest --offline      # 489 tests must stay green
+sh ./gradlew :app:testDebugUnitTest --offline      # 491 tests must stay green
 bash build_keytab.sh debug                         # must build
 ```
 

@@ -31,6 +31,7 @@ class SnippetPanel(
 
     private companion object {
         const val FILE_NAME = "keytab_snippets.txt"
+        const val MAX_DERIVED_NAME_LENGTH = 40
         val DEFAULTS = listOf(
             "git status" to "git status",
             "git log" to "git log --oneline -10",
@@ -130,7 +131,7 @@ class SnippetPanel(
             .map(String::trim)
             .firstOrNull { it.isNotEmpty() }
             .orEmpty()
-            .take(40)
+            .take(MAX_DERIVED_NAME_LENGTH)
             .replace('=', '-')
             .replace('#', '-')
             .trim()
@@ -152,15 +153,4 @@ class SnippetPanel(
         }
     }
 
-    /** Datei komplett überschreiben und Liste neu laden. */
-    private fun writeAsync(content: String) {
-        ioExecutor.execute {
-            runCatching {
-                val f = file()
-                f.parentFile?.mkdirs()
-                f.writeText(content)
-            }
-            lastRoot?.let { root -> mainHandler.post { onSelected(root) } }
-        }
-    }
 }

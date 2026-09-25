@@ -13,6 +13,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 /**
  * Clipboard-Panel: Capture aus dem System-Clipboard, Persistenz über
@@ -35,10 +37,12 @@ class ClipboardPanelTest {
         onError: (String) -> Unit = {}
     ) =
         ClipboardPanel(
-            app, directExecutor, Handler(Looper.getMainLooper()),
+            app, Handler(Looper.getMainLooper()),
+            CoroutineScope(Dispatchers.Unconfined),
             ClipboardPanel.Callbacks(
                 onCommit = {}, canAutoCapture = { canAutoCapture }, onError = onError
-            )
+            ),
+            ioDispatcher = Dispatchers.Unconfined
         )
 
     @Test

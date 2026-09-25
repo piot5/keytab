@@ -4,6 +4,13 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Handler
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -12,11 +19,12 @@ import android.widget.TextView
 import android.widget.Toast
 import com.piotv.keytab.R
 import java.io.File
-import java.util.concurrent.Executor
 
 /**
  * Ablage-Panel der IME: Clipboard-Historie (max. [MAX_ENTRIES] Einträge),
- * persistiert in clipboard_history.txt. I/O auf [ioExecutor], UI über [mainHandler].
+ * persistiert in clipboard_history.txt. Persistenz läuft coroutine-basiert auf
+ * dem übergebenen Scope; Datei-I/O nutzt [ioDispatcher], UI-Callbacks laufen
+ * auf dem Main-Scope.
  *
  * Hinweis Android 10+: Das Lesen fremder Clipboards ist nur der fokussierten App
  * bzw. dem aktiven IME erlaubt. Auto-Capture passiert daher nur, wenn
@@ -24,9 +32,10 @@ import java.util.concurrent.Executor
  */
 class ClipboardPanel(
     private val context: Context,
-    private val ioExecutor: Executor,
     private val mainHandler: Handler,
-    private val callbacks: Callbacks
+    private val coroutineScope: CoroutineScope,
+    private val callbacks: Callbacks,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
     data class Callbacks(
         val onCommit: (String) -> Unit,
@@ -40,6 +49,7 @@ class ClipboardPanel(
     }
 
     private val history = mutableListOf<String>()
+    private val persistMutex = Mutex()
 
     init {
         loadHistory()
@@ -148,12 +158,14 @@ class ClipboardPanel(
     private fun persistAsync() {
         val encoded = TextEditLogic.encodeClipHistory(history)
         val f = historyFile()
-        ioExecutor.execute {
+        coroutineScope.launch {
             try {
-                f.writeText(encoded)
+                persistMutex.withLock {
+                    withContext(ioDispatcher) { f.writeText(encoded) }
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "Clipboard history could not be persisted", e)
-                mainHandler.post { callbacks.onError(context.getString(R.string.clip_history_save_failed)) }
+                callbacks.onError(context.getString(R.string.clip_history_save_failed))
             }
         }
         mainHandler.post { refresh() }

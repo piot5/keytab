@@ -10,6 +10,10 @@ import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import com.piotv.keytab.R
 
 /**
@@ -81,6 +85,7 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         override fun selectEditor() { tabController.select(TabController.TabKind.EDITOR) }
         override val ioExecutor: java.util.concurrent.Executor get() = this@KeyTabImeService.ioExecutor
         override val mainHandler: Handler get() = this@KeyTabImeService.mainHandler
+        override val coroutineScope: CoroutineScope get() = this@KeyTabImeService.serviceScope
         override val suggestionViews: Array<TextView?> get() = this@KeyTabImeService.suggestionViews
         override val baseLetters: MutableMap<Button, Char> get() = this@KeyTabImeService.baseLetters
     })
@@ -108,6 +113,8 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
     // RejectedExecutionException bei erneuter IME-Sitzung).
     private val mainHandler = KeyTabExecutors.main
     private val ioExecutor: java.util.concurrent.Executor = KeyTabExecutors.io
+    /** Scope für lifecycle-bewusste Panel-Arbeit; wird beim Service-Lifecycle beendet. */
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     override val baseLetters = mutableMapOf<Button, Char>()
 
     /** Eingabe-Routing (Phase 2): wohin Text fließt (App/Editor/Terminal). */
@@ -418,6 +425,7 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         swipeManager = null
         letterPopup.dismiss()
         longPressHandler.removeCallbacksAndMessages(null)
+        serviceScope.cancel()
         super.onDestroy()
         releasePanels()
     }

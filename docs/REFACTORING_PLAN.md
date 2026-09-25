@@ -35,9 +35,9 @@ Status: 2026-09-24 · Goal: maintainable, testable, release-ready modules with n
 
 ### Phase 8 — Threading & coroutines *(open)*
 - [x] Part 1 done: `KeyTabExecutors` centralises the pools; the 2 `Handler`s are centralised, not gone.
+- [x] `ClipboardPanel` migrated to a service-owned lifecycle-aware coroutine scope; I/O runs on `Dispatchers.IO`, UI/error callbacks stay on the main scope.
 - [ ] `SuggestionEngine` → `suspend fun` with `Dispatchers.Default`
-- [ ] `FileManagerPanel` → `lifecycleScope.launch` for I/O
-- [ ] `ClipboardPanel` → `lifecycleScope.launch` for clipboard access
+- [ ] `FileManagerPanel` → lifecycle-aware I/O
 - Risk: medium (race conditions) — refactoring for consistency, **must not block higher-impact work**.
 
 ---

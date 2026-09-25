@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.view.inputmethod.InputConnection
 import android.widget.Button
 import android.widget.TextView
+import kotlinx.coroutines.CoroutineScope
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.piotv.keytab.R
@@ -42,6 +43,7 @@ class KeyboardViewFactory(private val deps: Deps) {
         fun selectEditor()
         val ioExecutor: Executor
         val mainHandler: Handler
+        val coroutineScope: CoroutineScope
         val suggestionViews: Array<TextView?>
         val baseLetters: MutableMap<Button, Char>
     }
@@ -140,7 +142,7 @@ class KeyboardViewFactory(private val deps: Deps) {
         context: Context,
         snippets: SnippetPanel
     ): ClipboardPanel = ClipboardPanel(
-        context, deps.ioExecutor, deps.mainHandler,
+        context, deps.mainHandler, deps.coroutineScope,
         ClipboardPanel.Callbacks(
             onCommit = { deps.commitToApp(it) },
             canAutoCapture = { deps.isInputViewShown },

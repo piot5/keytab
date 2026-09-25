@@ -60,7 +60,7 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 
 ## Architecture
 
-`KeyTabImeService` is the keyboard core (424 lines of orchestration). Every feature lives in its own class —
+`KeyTabImeService` is the keyboard core (432 lines of orchestration). Every feature lives in its own class —
 panels for UI, controllers for stateful wiring, pure modules for logic (Android-free, unit-testable).
 
 ### Panels (UI features)
@@ -129,12 +129,12 @@ which makes them directly unit-testable with Robolectric and no service mock.
 | `ThemeSettingsActivity` | Theme settings page, split into section classes (Top / Color / Gradient / Background / Preview / LikelyHighlight / Trail) |
 | `MainActivity, file/FileManagerFragment` | App settings, in-app file manager |
 
-All panels share a background executor for file I/O and a main handler for UI updates; stale results are discarded on navigation.
+All panels use the shared main handler for UI updates. File/background work still uses the shared `KeyTabExecutors.io` / image executors, while `ClipboardPanel` persistence is now lifecycle-aware coroutine work; stale results remain discarded on navigation.
 ## Tests
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**491 unit tests in 50 suites, 0 failures** (verified 2026-09-24, `testDebugUnitTest` green):
+**492 unit tests in 50 suites, 0 failures** (verified 2026-09-25, `testDebugUnitTest` green):
 
 | Suite | Tests | Kind |
 |---|---:|---|
@@ -189,7 +189,7 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `SwipePerformanceTest` | 3 | pure |
 | `TrailPerformanceTest` | 2 | pure |
 
-Test code is 7,157 lines in 50 files against 9,498 lines of main code (57 files) — a **75.4 % test-to-main ratio**. Line coverage measured with Kover is **67.0 %** (`LINE` 2947/4401), branch coverage **53.8 %** (`BRANCH` 1742/3238); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-09-22). Per package: the Android-free logic (`com.piotv.keytab.ime`: 68.7 %), the theme UI sections (`sections`: 93.6 %) and the in-app file manager (`file`: 77.9 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `TerminalPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 131 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
+Test code is 7,183 lines in 50 files against 9,543 lines of main code (57 files) — a **75.3 % test-to-main ratio**. Line coverage measured with Kover is **67.0 %** (`LINE` 2947/4401), branch coverage **53.8 %** (`BRANCH` 1742/3238); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-09-22). Per package: the Android-free logic (`com.piotv.keytab.ime`: 68.7 %), the theme UI sections (`sections`: 93.6 %) and the in-app file manager (`file`: 77.9 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `TerminalPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 131 lines) run in CI on an API-34 emulator via `./gradlew :app:connectedDebugAndroidTest`.
 
 ```bash
 # Run all unit tests
@@ -211,7 +211,7 @@ Documented honestly rather than implied away — these are the things that are *
 | **Trail frame timing not measured on device** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.autoCorrect`). **Partially measured (2026-09-19):** the algorithm cost is JVM-benchmarked in `TrailPerformanceTest` — ~2 µs per classification on a 6,000-word corpus, ~4 orders of magnitude below the 50 ms keystroke budget (with a hard assertion so regressions fail the build). What remains open: **frame timing on a real display** (profiling on the device) and visual smoothness; the red/green trace contrast per theme palette is still not screenshot-verified. Mitigation if it stutters: restrict the trace to `knowsWord` and check `autoCorrect` only on word completion. |
 | **Trail visuals not screenshot-verified** | The regression fix for contradictory trace states (see 0.9.7) is proven at the **state level** by unit tests — no screenshot or instrumented test asserts the rendered colours. The red/green contrast against each custom theme palette has not been measured. |
 | **Swipe frame timing not measured on device** | The swipe hot path (`charAt` + `dedup` per Move-Event, `SwipeScorer.score` on release) is JVM-benchmarked in `SwipePerformanceTest` — `charAt` and `dedup` are asserted < 5 ms avg over 10 000 calls, the scorer < 50 ms on a 6 000-word corpus (hard assertions so regressions fail the build). What remains open: **frame timing on a real display** (profiling the overlay invalidate + edge redraw on the device) and visual smoothness of the circuit preview path. |
-| ~~English locale incomplete~~ **Resolved 2026-09-21** | `values-en` now covers all 170 strings (was 92/163); no German fallback in English-locale devices any more. |
+| ~~English locale incomplete~~ **Resolved 2026-09-21** | `values-en` now covers all 185 strings (was 92/163); no German fallback in English-locale devices any more. |
 | **Terminal has no PTY** | By design — see the Terminal description above. It is the Android system shell in the app sandbox, not a Termux replacement. |
 | **Instrumented tests are thin** | 2 tests in 44 lines. They run in CI on an API-34 emulator but do not exercise the keyboard UI. |
 
@@ -284,7 +284,7 @@ app/src/main/java/com/piotv/keytab/            # 51 Kotlin files, 7,020 lines
 │   ├── TrailSection.kt            #   typing trail: on/off, steps, correction trace
 │   └── PreviewSection.kt          #   live preview
 └── ime/
-    ├── KeyTabImeService.kt   # Keyboard core / orchestration (424 lines)
+    ├── KeyTabImeService.kt   # Keyboard core / orchestration (432 lines)
     ├── KeyboardHost.kt       # Interface consumed by the controllers
     ├── KeyboardViewFactory.kt # Builds the keyboard view tree
     ├── KeyboardBinder.kt     # Touch / long-press, backspace repeat
@@ -324,8 +324,8 @@ app/src/main/java/com/piotv/keytab/            # 51 Kotlin files, 7,020 lines
 
 app/src/test/java/com/piotv/keytab/ime/        # 50 test classes, 491 tests, 7,157 lines
 app/src/androidTest/                           # 2 instrumented tests (CI: API 34 emulator)
-app/src/main/res/values/strings.xml            # 184 strings (default = German)
-app/src/main/res/values-en/                    # English locale (184 strings — complete, 2026-09-24)
+app/src/main/res/values/strings.xml            # 185 strings (default = German)
+app/src/main/res/values-en/                    # English locale (185 strings — complete, 2026-09-25)
 app/src/main/res/values-night/                 # Night-mode resource qualifiers
 app/src/main/assets/
 ├── de_freq_top6000.txt              # corpus (CC-BY-SA-4.0)
@@ -345,8 +345,7 @@ The version itself is defined in exactly one place (`app/build.gradle.kts`,
 `versionCode`/`versionName`) and is checked against the changelog and the
 fastlane release notes by the CI job "docs" (`scripts/check_docs_drift.sh`).
 
-1. **Finish the coroutine migration** — threading is centralised in `KeyTabExecutors`, the two
-   remaining `Handler`s are shared; true coroutines are still open.
+1. **Finish the coroutine migration** — `ClipboardPanel` now uses a service-owned lifecycle-aware scope with `Dispatchers.IO`; `FileManagerPanel` and `SuggestionEngine` remain on the shared executor/manager path.
 2. **Optional: PTY for the terminal tab** — it currently pipes stdin/stdout without a pseudo-terminal, so interactive TUI programs and ANSI colours cannot work. A PTY would turn the tab into a real terminal, but is a large change for a convenience feature; documenting the limitation was preferred (see §4.3).
 
 Explicitly *not* planned: cloud sync, 100+ languages — those are Gboard dimensions that cannot be won here.

@@ -1,6 +1,6 @@
 # KeyTab — Refactoring Plan: open Todos
 
-Status: 2026-09-24 · Goal: maintainable, testable, release-ready modules with no unintended behaviour change.
+Status: 2026-09-25 · Goal: maintainable, testable, release-ready modules with no unintended behaviour change.
 
 > **This file tracks only OPEN work.** Everything completed — measured audits, phases 0–7,
 > chaos cleanup R1–R3, evaluation model, external review (74/100 vs. internal 82/100),
@@ -13,14 +13,14 @@ Status: 2026-09-24 · Goal: maintainable, testable, release-ready modules with n
 
 | Metric | Value |
 |---|---|
-| Unit tests | **491 in 50 suites**, 0 failures (`testDebugUnitTest` verified 24 Sep) |
+| Unit tests | **492 in 50 suites**, 0 failures (`testDebugUnitTest` verified 25 Sep) |
 | Coverage (Kover) | **67.0 % line** (2947/4401) / **53.8 % branch** (1742/3238), measured 22 Sep; **Gate: 60 % line / 45 % branch** |
-| Test:main ratio | **75.4 %** (7,157 test lines / 9,498 main lines; 57 main files) |
+| Test:main ratio | **75.3 %** (7,183 test lines / 9,543 main lines; 57 main files) |
 | detekt baseline | **191 Einträge**; new findings remain CI-blocking |
 | Android Lint | **0 errors / 174 warnings**; explicit CI gate added 24 Sep |
-| i18n | `values-en` **184/184 Strings** (100 %, per Drift-Gate erzwungen) |
-| Service size | 424 lines (from 908) |
-| Working tree | **v0.12** plus locally verified Editor selection/send-up change |
+| i18n | `values-en` **185/185 Strings** (100 %, per Drift-Gate erzwungen) |
+| Service size | 432 lines (from 908) |
+| Working tree | **v0.12** plus verified editor and Clipboard coroutine changes (commits `80549e5`) |
 | Repo hygiene | Local SDK/signing files are ignored; Gradle distribution SHA-256 pinned |
 
 ---

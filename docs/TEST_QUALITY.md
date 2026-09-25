@@ -1,6 +1,6 @@
 # KeyTab — Testqualität: Einzelbewertung 1–100 + Verbesserungsplan
 
-Stand: 2026-09-24 · Projekt: `projects/keytab` · 50 Testdateien (52 Dateien inkl. 2 Archiv-Kopien) · 489 Tests / 50 Suites · Kover: 67.0 % Line / 53.8 % Branch (Stand 24.09.2026)
+Stand: 2026-09-25 · Projekt: `projects/keytab` · 50 Testdateien (52 Dateien inkl. 2 Archiv-Kopien) · 491 Tests / 50 Suites · Kover: 67.0 % Line / 53.8 % Branch (zuletzt gemessen 24.09.2026)
 Kover zuletzt: 47.6 % Line / 36.4 % Branch (Log) bzw. 46.5 % / 35.4 % (README-Gap-Messung 19. Sep).
 
 ## Bewertungs-Rubrik (Summe = 100)
@@ -49,7 +49,7 @@ Skala: 90–100 exzellent · 80–89 gut · 70–79 ok mit Lücken · 60–69 sc
 | 27 | `ime/SettingsRegressionTest.kt` | 5 | **80** | Gut — Farbrad/Tabs/Bildmodi |
 | 28 | `ime/CapsLogicTest.kt` | 6 | **80** | Gut — klein, vollständig im Scope |
 | 29 | `ime/FileManagerFragmentTest.kt` | 4 | **78** | Ok — Tabs/Pfad, Sandbox-abhängig |
-| 30 | `ime/ClipboardPanelTest.kt` | 5 | **76** | Ok — Capture/Persist/Dedup |
+| 30 | `ime/ClipboardPanelTest.kt` | 10 | **85** | Gut — Capture/Persist/Dedup/Fehlerpfad |
 | 31 | `sections/SectionsTest.kt` (3 Klassen) | 10 | **76** | Ok — Toggle/Steps/Icons |
 | 32 | `sections/SectionsMoreTest.kt` (4 Klassen) | 10 | **74** | Ok — Build/Refresh, oberflächlich |
 | 33 | `ime/TrailPerformanceTest.kt` | 2 | **73** | Ok — Micro-Benchmark, kein Funktions-Assert |
@@ -57,7 +57,7 @@ Skala: 90–100 exzellent · 80–89 gut · 70–79 ok mit Lücken · 60–69 sc
 | 35 | `ime/FileManagerModelTest.kt` | ~7 | **71** | Ok — falsches Paket (`ime/` statt `file/`) |
 | 36 | `ime/PanelHeightsTest.kt` | 2 | **68** | Schwach — nur Happy + Null |
 
-Durchschnitt (ungewichtet): **~82.4 / 100** — gut, mit klaren Lücken bei Perf-Tests, Clipboard-Limits und PanelHeights.
+Durchschnitt (ungewichtet): **~83.5 / 100** — gut; Clipboard-Persistenz ist durch Coroutine-Migration und den getesteten Fehlerpfad abgedeckt.
 
 ---
 

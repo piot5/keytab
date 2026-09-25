@@ -21,6 +21,8 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Unreleased
 
+- **Phase 8 begonnen: Clipboard-Persistenz auf Coroutines migriert** — `ClipboardPanel` erhält einen service-eigenen `SupervisorJob`-Scope mit `Dispatchers.Main.immediate`; Datei-I/O läuft über `Dispatchers.IO` und wird per `Mutex` serialisiert. Der Scope wird beim IME-Service-Lifecycle beendet. Clipboard-Fehlerpfade bleiben geloggt und liefern lokalisierte UI-Fehler. `ClipboardPanelTest` umfasst jetzt 10 Tests.
+
 - **Qualitäts-Gates geschärft: Kover 20 % → 60 % Zeilen / 45 % Branch** — das
   alte Gate war Deko (20 % lagen schon vor der Testoffensive deutlich unter dem
   Ist-Stand). Gemessen am 22.09.2026: **67,0 % Zeilen** (2947/4401) und **53,8 %

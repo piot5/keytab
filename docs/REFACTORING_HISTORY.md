@@ -267,7 +267,7 @@ continuation — but **not a score lever**, since all consumers live in the same
 
 ### Phase 8: Threading & coroutines
 
-Open work has been moved to [REFACTORING_PLAN.md](REFACTORING_PLAN.md) (-> "Open Phases").
+`ClipboardPanel` persistence was migrated on 2026-09-25 to the service-owned `SupervisorJob`/`Dispatchers.Main.immediate` scope. File writes use `Dispatchers.IO` and a `Mutex` to preserve ordering. `FileManagerPanel` and `SuggestionEngine` remain open; they are intentionally migrated one module at a time with tests after each change. See [`REFACTORING_PLAN.md`](REFACTORING_PLAN.md).
 
 ## 4. Evaluation: KeyTab vs. other Android keyboards (audit 2026-09-16)
 

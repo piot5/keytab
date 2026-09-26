@@ -1,8 +1,6 @@
 <resources>
     <string name="app_name">KeyTab</string>
     <string name="ime_label">KeyTab Keyboard</string>
-    <string name="tab_files">Files</string>
-    <string name="tab_keyboard">abc</string>
     <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Files</string>
             <string name="ime_tab_editor">Editor</string>
@@ -12,11 +10,8 @@
     <string name="clip_hint_empty">No entries yet – copy something and tap 📋.</string>
     <string name="new_tab">＋</string>
     <string name="up_dir">▲</string>
-    <string name="keyboard_not_enabled">KeyTab is not enabled as a keyboard yet.</string>
     <string name="enable_keyboard">Enable keyboard</string>
     <string name="switch_keyboard">Switch keyboard</string>
-    <string name="hint_tab_key">The TAB key sends KEYCODE_TAB – perfect for Termux &amp; SSH.</string>
-    <string name="key_tab_label">⇥</string>
     <string name="key_shift_label">⇧</string>
     <string name="key_del_label">⌫</string>
     <string name="key_space_label">␣</string>
@@ -24,10 +19,6 @@
     <string name="key_enter_label">↵</string>
     <string name="close_tab">✕</string>
     <string name="app_subtitle">Keyboard with tabbed file manager</string>
-    <string name="ime_tab_files_desc">Tabbed file manager – multiple tabs, navigation, open files</string>
-    <string name="theme_label">Theme</string>
-    <string name="theme_dark">🌙 Dark</string>
-    <string name="theme_light">☀️ Light</string>
     <string name="storage_denied">Storage access denied – grant the permission in Settings.</string>
     <string name="btn_back_label">‹</string>
     <string name="btn_up_label">▲</string>
@@ -44,8 +35,6 @@
     <string name="editor_file_empty">File is empty</string>
     <string name="editor_load_failed">Loading failed: %1$s</string>
     <!-- Clipboard -->
-    <string name="clip_empty">Clipboard is empty</string>
-    <string name="clip_hint_count">%1$d entries · tap = insert</string>
     <string name="clip_entry_actions">Clipboard entry</string>
     <string name="clip_history_save_failed">Clipboard history could not be saved</string>
     <string name="clip_add_to_snippet">Add to snippets</string>
@@ -63,12 +52,12 @@
     <string name="settings_num_row">Number row above letters</string>
     <string name="settings_num_row_on">Number row enabled</string>
     <string name="settings_num_row_off">Number row disabled</string>
-    <string name="settings_term_tab">Terminal tab in keyboard</string>
-    <string name="settings_term_on">Terminal tab enabled</string>
-    <string name="settings_term_off">Terminal tab disabled</string>
     <string name="settings_suggestions">Word suggestions (click = insert)</string>
     <string name="settings_suggestions_on">Suggestions enabled</string>
     <string name="settings_suggestions_off">Suggestions disabled</string>
+    <string name="settings_autocorrect">Auto-correct after space</string>
+    <string name="settings_autocorrect_on">Auto-correction after space enabled</string>
+    <string name="settings_autocorrect_off">Auto-correction after space disabled</string>
     <string name="settings_dynamic_keys">Dynamic key size (likely keys bigger)</string>
     <string name="settings_dynamic_keys_on">Dynamic key sizing enabled</string>
     <string name="settings_dynamic_keys_off">Dynamic key sizing disabled</string>
@@ -82,21 +71,20 @@
     <string name="settings_emoji_on">Emoji suggestions enabled</string>
     <string name="settings_emoji_off">Emoji suggestions disabled</string>
     <string name="settings_update_config">⚙️ Konfiguration schreiben (keytab_config.txt)</string>
+    <string name="settings_cleanup_learned_dictionary">🧹 Gelerntes Wörterbuch prüfen</string>
+    <string name="settings_cleanup_dictionary_title">Gelerntes Wörterbuch</string>
+    <string name="settings_cleanup_dictionary_empty">Keine verdächtigen gelernten Einträge gefunden.</string>
+    <string name="settings_cleanup_dictionary_found">%1$d verdächtige gelernte Einträge gefunden. Löschen?</string>
+    <string name="settings_cleanup_dictionary_done">Wörterbuch bereinigt: %1$d Einträge entfernt.</string>
+    <string name="settings_cleanup_dictionary_failed">Das gelernte Wörterbuch konnte nicht bereinigt werden.</string>
     <string name="config_ready">Konfiguration bereit: %1$s</string>
-    <string name="config_exists">Datei existiert bereits — Werte direkt editieren, wirkt beim nächsten Öffnen der Tastatur</string>
-    <string name="terminal_start_failed">Could not start shell.</string>
-    <string name="terminal_shell_dead">Shell is not running.</string>
     <string name="ime_tab_editor_short">Editor</string>
     <string name="ime_tab_clip_short">Clip</string>
-    <string name="ime_tab_term_short">Terminal</string>
     <!-- Editor: Ordnerauswahl beim Laden -->
     <string name="editor_load_title">📂 Load file</string>
     <string name="editor_pick_parent">▲ …</string>
     <string name="editor_pick_empty">Empty folder</string>
-    <string name="terminal_send">Send</string>
-    <string name="terminal_hint">command…</string>
     <string name="settings_language_label">Keyboard language</string>
-    <string name="settings_suggestions_label">Suggestions</string>
     <string name="language_changed_to">Language: %1$s</string>
     <string name="theme_trail_toggle">🌊 Typing Trail</string>
     <string name="theme_trail_hint">The last clicked letter is highlighted and fades step by step with each new input until it disappears completely. Default color: Blue. The trail stays off in password fields.</string>
@@ -106,7 +94,6 @@
     <string name="theme_color_trail">Trail</string>
     <string name="theme_section_trail">Trail (typing trace)</string>
     <!-- === v0.11 sync: previously missing strings (71), translated 2026-09-21 === -->
-    <string name="clip_add">＋ Add</string>
     <string name="clip_pick_title">Clipboard history</string>
     <string name="settings_version_fallback">Version …</string>
     <string name="settings_version_label">Version %1$s</string>
@@ -115,23 +102,14 @@
     <string name="settings_section_storage">💾 Storage &amp; config</string>
     <string name="settings_section_test">🧪 Test area</string>
     <string name="settings_test_hint">Type here to test the keyboard …</string>
-    <string name="editor_clip_pasted">Clipboard inserted</string>
-    <string name="editor_clip_empty">Clipboard is empty</string>
     <string name="ime_tab_snip_short">Snip</string>
     <string name="settings_clip_tab">📋 Clipboard tab</string>
     <string name="settings_snippet_tab">⚡ Snippet tab</string>
     <string name="settings_snippet_tab_on">Snippet tab enabled</string>
     <string name="settings_snippet_tab_off">Snippet tab disabled</string>
     <string name="snippet_hint_empty">No snippets — create keytab_snippets.txt in the Files tab (format: name = text)</string>
-    <string name="snip_add">＋ New</string>
     <string name="snip_edit">✎ Edit</string>
-    <string name="snip_save">Save</string>
-    <string name="snip_cancel">Cancel</string>
-    <string name="snip_name_hint">Name</string>
-    <string name="snip_text_hint">Text / command</string>
-    <string name="snip_added">Snippet added</string>
     <string name="snip_added_from_clip">Added to snippets from clipboard</string>
-    <string name="snip_saved">Snippets saved</string>
     <string name="settings_clip_tab_on">Clipboard tab enabled</string>
     <string name="settings_clip_tab_off">Clipboard tab disabled</string>
     <string name="clip_clear">🗑 Clear</string>
@@ -144,17 +122,8 @@
     <string name="editor_cleared">Editor cleared</string>
     <string name="editor_copied">Copied to clipboard</string>
     <string name="editor_empty_nothing">Editor is empty</string>
-    <string name="theme_section_theme">Theme</string>
-    <string name="theme_section_gradient">Gradient</string>
     <string name="theme_section_colors">Colors</string>
     <string name="theme_section_preview">Preview</string>
-    <string name="theme_pick_sun">Sun (Light)</string>
-    <string name="theme_pick_moon">Moon (Dark)</string>
-    <string name="theme_color_bg">Background</string>
-    <string name="theme_color_key">Keys</string>
-    <string name="theme_color_hl">Highlight</string>
-    <string name="theme_color_text">Text color</string>
-    <string name="theme_color_gaming">Likely-key highlight</string>
     <string name="settings_gradient_color1">Color 1 (top)</string>
     <string name="settings_gradient_color2">Color 2 (bottom)</string>
     <string name="gradient_mode_top_down">Top→Bottom</string>
@@ -165,17 +134,9 @@
     <string name="theme_import">Import Theme</string>
     <string name="theme_import_ok">Theme imported (theme-export.json)</string>
     <string name="theme_import_fail">Import failed — theme-export.json not found/invalid</string>
-    <string name="theme_done">Done</string>
-    <string name="theme_preview_word">word suggestion</string>
     <string name="theme_settings_title">🎨 Theme settings</string>
     <string name="settings_theme_button">🎨 Theme settings</string>
-    <string name="theme_longpress_hint">Long-press ☀/☾ on the keyboard opens this page too. Default look = 0.9.7 (no gradient/colors until you set them).</string>
-    <string name="theme_brightness">Brightness</string>
-    <string name="theme_alpha">Alpha</string>
     <string name="theme_section_gaming">Likely Highlighting</string>
-    <string name="theme_gaming_toggle">🎯 Highlight the next key</string>
-    <string name="theme_gaming_effect">✨ Effect on completion</string>
-    <string name="theme_gaming_hint">The most likely next key is highlighted; once the typed word matches the top suggestion, it pulses.</string>
     <string name="theme_reset">Reset</string>
     <string name="theme_gradient_hint">Set color 1 / color 2 and their alpha in the color wheel below (target “color 1/2”).</string>
     <string name="background_title">Background image</string>
@@ -187,6 +148,5 @@
     <string name="background_stretch">Stretch – fill without borders</string>
     <string name="background_error">Could not access the image.</string>
     <string name="background_ratio">Recommendation: landscape around 2:1 (for example 1600 × 800 px). The ideal ratio depends on your device, orientation, number row, and tab.</string>
-    <string name="terminal_experimental">Experimental: a simple Android shell in the app sandbox, without a PTY or Termux/proot environment. Interactive terminal programs are not supported.</string>
     <string name="gradient_enabled">Gradient enabled</string>
 </resources>

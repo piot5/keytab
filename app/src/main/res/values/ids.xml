@@ -1,4 +1,3 @@
 <resources>
     <item name="editor_normal_height" type="id" />
-    <item name="terminal_normal_height" type="id" />
 </resources>

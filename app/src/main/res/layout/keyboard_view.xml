@@ -8,7 +8,7 @@
     android:paddingTop="0dp"
     android:paddingBottom="4dp">
 
-    <!-- Tab-Leiste: Dark/Light-Umschalter | abc/Notes/Files/Terminal | Einstellungen -->
+    <!-- Tab-Leiste: Dark/Light-Umschalter | abc/Notes/Files | Einstellungen -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -83,10 +83,6 @@
                 android:layout_height="wrap_content"
                 android:text="@string/ime_tab_clip_short" />
 
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/ime_tab_term_short" />
 
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
@@ -328,7 +324,7 @@
     <!-- Snippets ÜBER den Buchstaben (nur im Snip-Tab sichtbar):
          benannte Befehle/Snippets aus keytab_snippets.txt (Format: name = text),
          Tap = einfügen. Höhe wird beim Tab-Wechsel an Editor+Tastatur
-         angeglichen (PanelHeights), wie Files/Clip/Terminal. -->
+         angeglichen (PanelHeights), wie Files/Clip. -->
     <LinearLayout
         android:id="@+id/snippet_panel"
         android:layout_width="match_parent"
@@ -365,71 +361,6 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:background="@color/list_bg" />
-    </LinearLayout>
-
-    <!-- Terminal ÜBER den Buchstaben (nur im Terminal-Tab sichtbar):
-         Ausgabeverlauf (interaktive Shell) + Eingabezeile darunter -->
-    <LinearLayout
-        android:id="@+id/term_panel"
-        android:layout_width="match_parent"
-        android:layout_height="180dp"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <ScrollView
-            android:id="@+id/term_scroll"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:background="@color/term_bg"
-            android:fillViewport="true">
-
-            <TextView
-                android:id="@+id/term_output"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:textSize="10sp"
-                android:textColor="@color/term_text"
-                android:padding="4dp"
-                android:textIsSelectable="false" />
-        </ScrollView>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="@color/term_bg">
-
-            <EditText
-                android:id="@+id/terminal_input"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:singleLine="true"
-                android:inputType="textNoSuggestions"
-                android:background="@color/term_bg"
-                android:fontFamily="monospace"
-                android:textSize="11sp"
-                android:textColor="@color/term_text"
-                android:hint="@string/terminal_hint"
-                android:textColorHint="@color/term_prompt"
-                android:padding="6dp" />
-
-            <Button
-                android:id="@+id/btn_term_send"
-                style="@style/KeyDark"
-                android:layout_width="wrap_content"
-                android:layout_weight="0"
-                android:minWidth="56dp"
-                android:textSize="12sp"
-                android:gravity="center"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="0dp"
-                android:text="@string/terminal_send" />
-        </LinearLayout>
     </LinearLayout>
 
     <FrameLayout

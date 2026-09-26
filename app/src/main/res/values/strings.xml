@@ -1,12 +1,9 @@
 <resources>
     <string name="app_name">KeyTab</string>
     <string name="ime_label">KeyTab Keyboard</string>
-    <string name="tab_files">Files</string>
-    <string name="tab_keyboard">abc</string>
             <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Files</string>
     <string name="ime_tab_editor">Editor</string>
-    <string name="clip_add">＋ Add</string>
     <string name="clip_hint_empty">No entries yet — copy something, then tap 📋.</string>
     <string name="clip_pick_title">Clipboard history</string>
     <string name="editor_save">⤓ Save</string>
@@ -14,11 +11,8 @@
     <string name="editor_hint">Type here …</string>
     <string name="new_tab">＋</string>
     <string name="up_dir">▲</string>
-    <string name="keyboard_not_enabled">KeyTab is not enabled as a keyboard yet.</string>
     <string name="enable_keyboard">Enable keyboard</string>
     <string name="switch_keyboard">Switch keyboard</string>
-    <string name="hint_tab_key">TAB sends KEYCODE_TAB — perfect for Termux &amp; SSH.</string>
-    <string name="key_tab_label">⇥</string>
     <string name="key_shift_label">⇧</string>
     <string name="key_del_label">⌫</string>
     <string name="key_space_label">␣</string>
@@ -33,12 +27,6 @@
     <string name="settings_section_storage">💾 Storage &amp; config</string>
     <string name="settings_section_test">🧪 Test area</string>
     <string name="settings_test_hint">Type here to test the keyboard …</string>
-    <string name="editor_clip_pasted">Clipboard inserted</string>
-    <string name="editor_clip_empty">Clipboard is empty</string>
-    <string name="ime_tab_files_desc">Tabbed file manager — multiple tabs, navigation, open files</string>
-    <string name="theme_label">Theme</string>
-    <string name="theme_dark">🌙 Dark</string>
-    <string name="theme_light">☀️ Light</string>
     <string name="storage_denied">Storage access denied — grant permission in settings.</string>
     <string name="btn_back_label">‹</string>
     <string name="btn_up_label">▲</string>
@@ -58,8 +46,6 @@
     <string name="editor_load_failed">Load failed: %1$s</string>
 
     <!-- Clipboard -->
-    <string name="clip_empty">Clipboard is empty</string>
-    <string name="clip_hint_count">%1$d entries · tap = insert</string>
     <string name="clip_entry_actions">Clipboard entry</string>
     <string name="clip_history_save_failed">Clipboard history could not be saved</string>
     <string name="clip_add_to_snippet">Add to snippets</string>
@@ -79,12 +65,12 @@
     <string name="settings_num_row">Number row above letters</string>
     <string name="settings_num_row_on">Number row enabled</string>
     <string name="settings_num_row_off">Number row disabled</string>
-    <string name="settings_term_tab">Terminal tab in keyboard</string>
-    <string name="settings_term_on">Terminal tab enabled</string>
-    <string name="settings_term_off">Terminal tab disabled</string>
     <string name="settings_suggestions">Word suggestions (click = insert)</string>
     <string name="settings_suggestions_on">Suggestions enabled</string>
     <string name="settings_suggestions_off">Suggestions disabled</string>
+    <string name="settings_autocorrect">Auto-correct after space</string>
+    <string name="settings_autocorrect_on">Auto-correction after space enabled</string>
+    <string name="settings_autocorrect_off">Auto-correction after space disabled</string>
     <string name="settings_emoji">Emoji suggestions (optional, appended to word suggestions)</string>
     <string name="sug_back_desc">Back to word suggestions</string>
     <string name="sug_grid_desc">Select from full emoji catalog</string>
@@ -99,28 +85,23 @@
     <string name="settings_swipe_on">Swipe typing enabled</string>
     <string name="settings_swipe_off">Swipe typing disabled</string>
     <string name="settings_update_config">⚙️ Write config (keytab_config.txt)</string>
+    <string name="settings_cleanup_learned_dictionary">🧹 Check learned dictionary</string>
+    <string name="settings_cleanup_dictionary_title">Learned dictionary</string>
+    <string name="settings_cleanup_dictionary_empty">No suspicious learned entries found.</string>
+    <string name="settings_cleanup_dictionary_found">%1$d suspicious learned entries found. Delete them?</string>
+    <string name="settings_cleanup_dictionary_done">Learned dictionary cleaned: %1$d entries removed.</string>
+    <string name="settings_cleanup_dictionary_failed">The learned dictionary could not be cleaned.</string>
     <string name="config_ready">Config ready: %1$s</string>
-    <string name="config_exists">file already exists — edit values directly, effective on next keyboard open</string>
-    <string name="terminal_start_failed">Could not start shell.</string>
-    <string name="terminal_shell_dead">Shell is not running.</string>
     <string name="ime_tab_editor_short">Editor</string>
     <string name="ime_tab_clip_short">Clip</string>
-    <string name="ime_tab_term_short">Term</string>
     <string name="ime_tab_snip_short">Snip</string>
     <string name="settings_clip_tab">📋 Clipboard tab</string>
     <string name="settings_snippet_tab">⚡ Snippet tab</string>
     <string name="settings_snippet_tab_on">Snippet tab enabled</string>
     <string name="settings_snippet_tab_off">Snippet tab disabled</string>
     <string name="snippet_hint_empty">Keine Snippets – keytab_snippets.txt im Files-Tab anlegen (Format: name = text)</string>
-    <string name="snip_add">＋ Neu</string>
     <string name="snip_edit">✎ Bearbeiten</string>
-    <string name="snip_save">Speichern</string>
-    <string name="snip_cancel">Abbrechen</string>
-    <string name="snip_name_hint">Name</string>
-    <string name="snip_text_hint">Text / Befehl</string>
-    <string name="snip_added">Snippet hinzugefügt</string>
     <string name="snip_added_from_clip">Aus Zwischenablage als Snippet hinzugefügt</string>
-    <string name="snip_saved">Snippets gespeichert</string>
     <string name="settings_clip_tab_on">Clipboard tab enabled</string>
     <string name="settings_clip_tab_off">Clipboard tab disabled</string>
     <string name="clip_clear">🗑 Clear</string>
@@ -135,17 +116,8 @@
     <string name="editor_empty_nothing">Editor is empty</string>
     <!-- Editor: Ordnerauswahl beim Laden -->
     <string name="editor_load_title">⤒ Load file</string>
-    <string name="theme_section_theme">Theme</string>
-    <string name="theme_section_gradient">Gradient</string>
     <string name="theme_section_colors">Colors</string>
     <string name="theme_section_preview">Preview</string>
-    <string name="theme_pick_sun">Sun (Light)</string>
-    <string name="theme_pick_moon">Moon (Dark)</string>
-    <string name="theme_color_bg">Background</string>
-    <string name="theme_color_key">Taste</string>
-    <string name="theme_color_hl">Highlight</string>
-    <string name="theme_color_text">Text color</string>
-    <string name="theme_color_gaming">Hervorhebung</string>
     <string name="theme_color_trail">Trail</string>
     <string name="settings_gradient_color1">Color 1 (top)</string>
     <string name="settings_gradient_color2">Color 2 (bottom)</string>
@@ -157,18 +129,10 @@
     <string name="theme_import">Import Theme</string>
     <string name="theme_import_ok">Theme importiert (theme-export.json)</string>
     <string name="theme_import_fail">Import fehlgeschlagen – theme-export.json nicht gefunden/ungültig</string>
-    <string name="theme_done">Done</string>
-    <string name="theme_preview_word">word suggestion</string>
     <string name="theme_settings_title">🎨 Theme settings</string>
     <string name="settings_theme_button">🎨 Theme settings</string>
-    <string name="theme_longpress_hint">Long-press ☀/☾ on the keyboard opens this page too. Default look = 0.9.7 (no gradient/colors until you set them).</string>
-    <string name="theme_brightness">Brightness</string>
-    <string name="theme_alpha">Alpha</string>
     <string name="theme_section_gaming">Likely Highlighting</string>
     <string name="theme_section_trail">Trail (Tipp trace)</string>
-    <string name="theme_gaming_toggle">🎯 Nächste Taste hervorheben</string>
-    <string name="theme_gaming_effect">✨ Effekt bei Vervollständigung</string>
-    <string name="theme_gaming_hint">Die wahrscheinlichste nächste Taste wird hervorgehoben; sobald das getippte Wort dem Top-Vorschlag entspricht, gibt es einen Puls-Effekt.</string>
     <string name="theme_trail_toggle">🌊 Tippspur (Trail)</string>
     <string name="theme_trail_hint">Der zuletzt geklickte Buchstabe wird farblich markiert und mit jeder neuen Eingabe stufenweise weniger sichtbar, bis er ganz verschwindet. Standardfarbe: Blau. In Passwort-Feldern bleibt die Spur aus.</string>
     <string name="theme_trail_steps">Stufen: %1$d</string>
@@ -178,9 +142,6 @@
     <string name="theme_gradient_hint">Farbe 1 / Farbe 2 und deren Alpha stellst du im Farbwahlrad unten ein (Ziel „Farbe 1/2").</string>
     <string name="editor_pick_parent">▲ …</string>
     <string name="editor_pick_empty">Empty folder</string>
-    <string name="terminal_send">Send</string>
-    <string name="terminal_hint">command…</string>
     <string name="settings_language_label">Keyboard language</string>
-    <string name="settings_suggestions_label">Suggestions</string>
     <string name="language_changed_to">Language: %1$s</string>
 </resources>

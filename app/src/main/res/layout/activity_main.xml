@@ -75,17 +75,6 @@
             android:layout_marginTop="8dp"
             android:text="@string/settings_num_row" />
         <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/sw_term_tab"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/settings_term_tab" />
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/terminal_experimental"
-            android:textSize="12sp" />
-        <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/sw_clip_tab"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -103,6 +92,12 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/settings_suggestions" />
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_autocorrect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_autocorrect" />
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/sw_emoji"
             android:layout_width="match_parent"
@@ -131,6 +126,11 @@
         style="@style/SettingsKeyButton"
 
             android:text="@string/settings_update_config" />
+        <Button
+            android:id="@+id/btn_cleanup_learned_dictionary"
+            style="@style/SettingsKeyButton"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_cleanup_learned_dictionary" />
 
         <!-- ── Testbereich ──────────────────────────────────────────── -->
         <TextView

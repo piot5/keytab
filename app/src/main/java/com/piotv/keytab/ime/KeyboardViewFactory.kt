@@ -53,7 +53,6 @@ class KeyboardViewFactory(private val deps: Deps) {
         val root: View,
         val fileManagerPanel: FileManagerPanel,
         val editorPanel: EditorPanel,
-        val terminalPanel: TerminalPanel,
         val clipboardPanel: ClipboardPanel,
         val snippetPanel: SnippetPanel,
         val router: InputRouter,
@@ -105,7 +104,6 @@ class KeyboardViewFactory(private val deps: Deps) {
                     .getBoolean(com.piotv.keytab.Prefs.KEY_NUM_ROW, false)) View.VISIBLE else View.GONE
         val fileManager = FileManagerPanel(ctx, root, deps.ioExecutor, deps.mainHandler) { deps.commitText(it) }
         val editor = EditorPanel(ctx, root, deps.ioExecutor, deps.mainHandler) { deps.commitToApp(it) }
-        val terminal = TerminalPanel(ctx, root, deps.mainHandler)
         val snippets = SnippetPanel(
             ctx,
             deps.ioExecutor,
@@ -118,9 +116,8 @@ class KeyboardViewFactory(private val deps: Deps) {
             onCommit = { deps.commitText(it) }
         )
         val clipboard = createClipboard(ctx, snippets)
-        // Eingabe-Routing (Phase 2): Ziele App/Editor/Terminal hinter einem Router;
-        // die editorActive/terminalActive-Verzweigungsketten entfallen damit.
-        val router = createRouter(editor, terminal)
+        // Eingabe-Routing für App und Editor.
+        val router = createRouter(editor)
         // Aktive Sprache aus den Einstellungen übernehmen (wirkt beim nächsten Öffnen)
         val language = com.piotv.keytab.MainActivity.activeLanguage(ctx)
         val predictionManager = createPredictionManager(ctx, router)
@@ -134,7 +131,7 @@ class KeyboardViewFactory(private val deps: Deps) {
         // View-Hierarchie deaktivieren (sonst werden vergrößerte Tasten an den
         // Container-Grenzen abgeschnitten).
         disableClipping(root)
-        return Result(root, fileManager, editor, terminal, clipboard, snippets,
+        return Result(root, fileManager, editor, clipboard, snippets,
             router, predictionManager, keyScaler, language)
     }
 
@@ -151,13 +148,12 @@ class KeyboardViewFactory(private val deps: Deps) {
         )
     )
 
-    private fun createRouter(editor: EditorPanel, terminal: TerminalPanel): InputRouter =
+    private fun createRouter(editor: EditorPanel): InputRouter =
         InputRouter(
             AppInputTarget(
                 connection = { deps.currentInputConnection() },
                 sendKey = { deps.sendKeyEvents(it) }),
-            EditorInputTarget(editor),
-            TerminalInputTarget(terminal)
+            EditorInputTarget(editor)
         )
 
     private fun createPredictionManager(

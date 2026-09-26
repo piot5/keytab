@@ -50,7 +50,6 @@ object EmojiModule {
         "rakete" to listOf("🚀"),
         "rocket" to listOf("🚀"),
         "code" to listOf("💻"),
-        "terminal" to listOf("🖥️"),
         "shell" to listOf("🖥️"),
         "kaffee" to listOf("☕"),
         "coffee" to listOf("☕"),

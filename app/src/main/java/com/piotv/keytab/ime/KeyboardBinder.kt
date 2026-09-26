@@ -19,7 +19,8 @@ import com.piotv.keytab.R
  * Refactoring (docs/REFACTORING_PLAN.md Phase 3): aus [KeyTabImeService] extrahiert.
  * Kapselt die Touch-/Long-Press-Logik aller Tasten:
  * - [hook]              – Haupteinstieg: alle Tasten gemäß Tag/ID binden
- * - [setupLetterButton] – Buchstaben-Taste mit Long-Press-Popup (Drag-Auswahl)
+ * - [setupLetterButton] – Buchstaben-Taste mit Long-Press-Popup (Drag-Auswahl);
+ *   die Touch-/Swipe-Logik liegt im [LetterButtonTouchHandler]
  * - [setupDelButton]    – Del-Taste mit Einzellöschung + Long-Press-Wort-Löschung +
  *   beschleunigendem Auto-Repeat (Zeitlogik im puren [RepeatScheduler])
  * - [tapLetter]         – Hauptbuchstabe unter Shift/Caps
@@ -41,9 +42,10 @@ internal class KeyboardBinder(
 
     private companion object {
         // Beschleunigendes Wort-Löschen: Startintervall, Faktor pro Repeat, Minimum
-        const val WORD_DELETE_START_MS = 250L
-        const val WORD_DELETE_ACCEL = 0.85f
-        const val WORD_DELETE_MIN_MS = 30L
+        // (Werte + Intervall-Rechnung liegen in [WordDeleteRepeat]).
+        const val WORD_DELETE_START_MS = WordDeleteRepeat.WORD_DELETE_START_MS
+        const val WORD_DELETE_ACCEL = WordDeleteRepeat.WORD_DELETE_ACCEL
+        const val WORD_DELETE_MIN_MS = WordDeleteRepeat.WORD_DELETE_MIN_MS
     }
 
     /** Alle Tasten des Roots gemäß Tag/ID an Listener binden. */
@@ -114,160 +116,20 @@ internal class KeyboardBinder(
 
     private fun setupLetterButton(btn: Button) {
         host.baseLetters[btn] = btn.text?.toString()?.firstOrNull() ?: ' '
-        var pendingLongPress: Runnable? = null
-        var longPressFired = false
-        var autoSelected = false
-        var swipeActive = false
-        btn.setOnTouchListener { _, event ->
-            // Swipe-Koordinaten in Fenster-Relativ (wie Trail/LetterPopup).
-            val loc = IntArray(2); btn.getLocationInWindow(loc)
-            val x = loc[0] + event.x
-            val y = loc[1] + event.y
-            val swipeOn = swipeManager != null && swipeManager.swipeEnabled()
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    longPressFired = false
-                    autoSelected = false
-                    swipeActive = false
-                    btn.isPressed = true
-                    // Swipe starten (Manager prüft selbst Pref + Passwort-Feld).
-                    swipeManager?.startSwipe(x, y)
-                    // Most-likely-Ziel schon ab der ersten Taste anzeigen: die
-                    // gedrückte Taste als erstes Routen-Sample vorbelegen, damit
-                    // sofort sichtbar ist, wohin der Finger fahren sollte.
-                    // Wichtig: Das ist noch KEIN Swipe — ein reiner Tap hat genau
-                    // dieses eine Sample und wird über hasSwiped() als Tap erkannt.
-                    if (swipeOn) {
-                        host.baseLetters[btn]?.let { letter ->
-                            swipeManager?.seedFirstKey(letter, x, y)
-                            swipeManager?.applySwipeLikely()
-                        }
-                    }
-                    pendingLongPress = Runnable {
-                        longPressFired = true
-                        if (swipeOn) {
-                            // Swipe-Modus: Long-Press öffnet KEIN Drag-Popup (das
-                            // würde den Swipe nach 400ms abbrechen). Stattdessen wird
-                            // das erste Sonderzeichen automatisch ausgewählt und
-                            // committet — Drücken-und-Halten ohne Bewegung gibt also
-                            // direkt das erste Sonderzeichen. Bewegt sich der Finger
-                            // (Swipe), wurde dieser Runnable bereits in MOVE abgebrochen.
-                            autoSelected = true
-                            swipeManager?.clearSwipeSamples()
-                            swipeActive = false
-                            autoSelectExtra(btn)
-                        } else {
-                            // Kein Swipe-Modus: klassisches Drag-Popup wie bisher.
-                            swipeManager?.clearSwipeSamples()
-                            swipeActive = false
-                            showLetterExtras(btn)
-                        }
-                    }
-                    pendingLongPress?.let { host.longPressHandler.postDelayed(it, longPressTimeout) }
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    if (longPressFired) {
-                        // Nur im Popup-Modus (nicht swipeOn) gibt es Zellen zu highlighten.
-                        if (!autoSelected) host.letterPopup.highlightCellUnder(event) { host.haptic() }
-                    } else if (swipeOn) {
-                        val hit = swipeManager?.onSwipeMove(x, y)
-                        swipeActive = swipeManager?.hasSwiped() ?: false
-                        // Sobald der Swipe wirklich losgeht (Samples gesammelt),
-                        // den Auto-Select-LongPress abbrechen — sonst würde nach
-                        // 400ms ein Sonderzeichen committet, obwohl der Nutzer wischt.
-                        if (swipeActive) {
-                            pendingLongPress?.let { host.longPressHandler.removeCallbacks(it) }
-                            // Trail-Snap pro Tastenwechsel: die gefahrene Route wird
-                            // live als farbige Spur sichtbar — so sieht man, welche
-                            // Tasten bereits aktiviert wurden (wie beim normalen Tippen).
-                            if (hit != null) {
-                                // Konsistenz Trail ↔ Swipe: war die erreichte Taste
-                                // ein zuvor als most-likely angezeigtes Ziel, wird
-                                // der Trail grün (ACCEPTED) statt blau (TYPED) – die
-                                // gefahrene Route leuchtet grün, solange man dem
-                                // Schaltplan folgt. wasLikelyHit muss VOR
-                                // applySwipeLikely stehen, weil jenes die Likely-
-                                // Knoten für die verlängerte Route neu berechnet.
-                                val wasLikely = swipeManager?.wasLikelyHit(hit) == true
-                                trailManager?.snap(
-                                    hit,
-                                    if (wasLikely) TrailLogic.TrailKind.ACCEPTED
-                                    else TrailLogic.TrailKind.TYPED
-                                )
-                                // Likely-Grün: die wahrscheinlichen Folge-Tasten der
-                                // bisherigen Route einfärben (wie beim Tippen).
-                                swipeManager?.applySwipeLikely()
-                            }
-                        }
-                    }
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    btn.isPressed = false
-                    pendingLongPress?.let { host.longPressHandler.removeCallbacks(it) }
-                    if (longPressFired) {
-                        if (autoSelected) {
-                            // Swipe-Modus: Auto-Select hat bereits committet (kein
-                            // Popup). Nur aufräumen — nichts doppelt committen.
-                        } else {
-                            // Drag-Auswahl: markierte Zelle committen, sonst Tooltip nur schließen
-                            val picked = host.letterPopup.pickedChar()
-                            host.letterPopup.dismiss()
-                            host.letterPopup.clearPicked()
-                            if (picked != null) {
-                                host.commitText(picked.toString())
-                                trailManager?.snap(picked.lowercaseChar())
-                                traceTrail()
-                            }
-                        }
-                    } else if (swipeActive) {
-                        // Swipe-Release: Route bewerten, Auto-Commit oder Kandidaten-Leiste.
-                        // Likely-Marks (während des Wischens gesetzt) entfernen.
-                        swipeManager?.clearPreview()
-                        val candidates = swipeManager?.onSwipeRelease().orEmpty()
-                        val auto = swipeManager?.autoCommitCandidate(candidates)
-                        if (auto != null) {
-                            // Konsistent zum normalen Wort-Abschluss: das Swipe-Wort
-                            // über den Vorschlags-Weg einfügen → Leerzeichen,
-                            // Wort-Lernen und frische Wortvorschläge (statt rohem
-                            // commitText ohne Trenner und ohne Lernschritt).
-                            suggestionController.applySuggestion(auto)
-                        } else if (candidates.isNotEmpty()) {
-                            suggestionController.showSwipeCandidates(
-                                candidates.take(3).map { it.word })
-                        } else {
-                            // Swipe ohne Kandidat → Fallback auf normalen Tap (kein Buchstabe verloren).
-                            val letter = tapLetter(btn)
-                            host.commitText(letter)
-                            trailManager?.snap(letter.first().lowercaseChar())
-                            traceTrail()
-                        }
-                    } else {
-                        // SwipeSamples verwerfen (Mindestbewegung nicht erreicht → Tap).
-                        swipeManager?.clearSwipeSamples()
-                        val letter = tapLetter(btn)
-                        host.commitText(letter)
-                        trailManager?.snap(letter.first().lowercaseChar())
-                        traceTrail()
-                    }
-                    btn.clearFocus()
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    btn.isPressed = false
-                    pendingLongPress?.let { host.longPressHandler.removeCallbacks(it) }
-                    host.letterPopup.dismiss()
-                    host.letterPopup.clearPicked()
-                    swipeManager?.clearSwipeSamples()
-                    swipeManager?.clearPreview()
-                    swipeActive = false
-                    btn.clearFocus()
-                    true
-                }
-                else -> false
-            }
-        }
+        // Touch-Logik (Tap / Long-Press / Swipe) liegt in [LetterButtonTouchHandler].
+        LetterButtonTouchHandler(
+            host = host,
+            longPressTimeout = longPressTimeout,
+            suggestionController = suggestionController,
+            trailManager = trailManager,
+            swipeManager = swipeManager,
+            handlers = LetterButtonTouchHandler.Handlers(
+                onTapLetter = { b -> tapLetter(b) },
+                onAutoSelectExtra = { b -> autoSelectExtra(b) },
+                onShowLetterExtras = { b -> showLetterExtras(b) },
+                onTraceTrail = { traceTrail() }
+            )
+        ).attach(btn)
     }
 
     /**
@@ -332,12 +194,7 @@ internal class KeyboardBinder(
     private fun tapLetter(btn: Button): String {
         val base = host.baseLetters[btn] ?: btn.text?.toString()?.firstOrNull() ?: return ""
         val upper = host.isShifted() || host.isCapsLock()
-        val ch = when {
-            upper && base == 'ß' -> 'ẞ'
-            upper -> base.uppercaseChar()
-            else -> base.lowercaseChar()
-        }
-        return ch.toString()
+        return LetterCaseRenderer.letterFor(base, upper).toString()
     }
 
     private fun showLetterExtras(anchor: Button) {
@@ -388,18 +245,8 @@ internal class KeyboardBinder(
             val base = host.baseLetters[btn]
                 ?: btn.text?.toString()?.firstOrNull()
                 ?: return@forEachView
-            // ß hat kein echtes Großbuchstaben per uppercaseChar → ẞ als Sonderfall
-            val letter = when {
-                upper && base == 'ß' -> 'ẞ'
-                upper -> base.uppercaseChar()
-                else -> base.lowercaseChar()
-            }
-            val letterExtras = when {
-                upper && base == 'ß' -> emptyList()
-                // Interpunktion-Extras gibt es nur am lowercase-Key → Shift fällt darauf zurück
-                upper -> (extras[base.uppercaseChar()] ?: extras[base]).orEmpty()
-                else -> extras[base].orEmpty()
-            }
+            val letter = LetterCaseRenderer.letterFor(base, upper)
+            val letterExtras = LetterCaseRenderer.extrasFor(base, upper, extras)
             val sb = SpannableStringBuilder(letter.toString())
             // Hauptbuchstabe: etwas kleiner + leicht angehoben
             sb.setSpan(RelativeSizeSpan(0.85f), 0, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)

@@ -23,12 +23,7 @@ import java.util.concurrent.Executor
  * hineinnavigieren, "▲ …" = nach oben, Datei antippen = laden. Save schreibt
  * in die zuletzt geladene/gewählte Datei (Default: keytab_editor.txt).
  * Datei-I/O läuft auf [ioExecutor], UI-Updates kehren über [mainHandler] zurück.
- *
- * Toolbar: ⤓Save · ⤒Load · ↑Send-to-App · ✕Clear · ⎘Copy · ↻Reload
- * - ↑ sendet den Editor-Inhalt direkt ins Zielfeld der App darüber (InputConnection)
- * - ✕ leert das Editorfeld
- * - ⎘ kopiert den Editor-Inhalt ins System-Clipboard
- * - ↻ lädt die Datei neu in den Editor
+ * Toolbar und Editor-Chrome siehe [setupToolbar] und [setupEditorChrome].
  */
 class EditorPanel(
     private val context: Context,
@@ -47,12 +42,7 @@ class EditorPanel(
 
     init {
         fileLabel?.text = editorFile.name
-        setupSave(rootView)
-        setupLoad(rootView)
-        setupSendUp(rootView)
-        setupClear(rootView)
-        setupCopy(rootView)
-        setupReload(rootView)
+        setupToolbar(rootView)
         setupEditorChrome()
     }
 
@@ -67,119 +57,86 @@ class EditorPanel(
     fun deleteBefore(count: Int) {
         val et = input ?: return
         val editable = et.text ?: return
-        val cursor = et.selectionEnd.coerceIn(0, editable.length)
-        val start = (cursor - count.coerceAtLeast(0)).coerceAtLeast(0)
-        if (start < cursor) editable.delete(start, cursor)
+        val r = EditorTextState.deleteBeforeRange(editable.length, et.selectionEnd, count)
+        if (r.start < r.end) editable.delete(r.start, r.end)
     }
 
     /** Fügt Text an der Cursorposition ein (ersetzt eine Selektion). */
     fun insert(text: String) {
         val et = input ?: return
         val editable = et.text ?: return
-        var start = et.selectionStart.coerceIn(0, editable.length)
-        val end = et.selectionEnd.coerceIn(start, editable.length)
-        editable.replace(start, end, text)
-        start += text.length
-        et.setSelection(start)
+        val r = EditorTextState.replaceRange(editable.length, et.selectionStart, et.selectionEnd)
+        editable.replace(r.start, r.end, text)
+        et.setSelection(r.start + text.length)
     }
 
     /** Löscht im Editor: ein Zeichen oder bis zum Wortanfang ([word] = true). */
     fun delete(word: Boolean) {
         val et = input ?: return
         val editable = et.text ?: return
-        val cursor = et.selectionEnd.coerceIn(0, editable.length)
-        if (cursor == 0) return
-        if (word) {
-            val start = TextEditLogic.wordStartIndex(editable, cursor)
-            if (start < cursor) {
-                editable.delete(start, cursor)
-                et.setSelection(start)
-            } else {
-                editable.delete(cursor - 1, cursor)
-                et.setSelection(cursor - 1)
-            }
-        } else {
-            editable.delete(cursor - 1, cursor)
-            et.setSelection(cursor - 1)
+        val r = EditorTextState.deleteRange(editable, et.selectionEnd, word)
+        if (r.start < r.end) {
+            editable.delete(r.start, r.end)
+            et.setSelection(r.start)
         }
     }
 
-    /** ↑: markierten Text oder – ohne Auswahl – den gesamten Editor-Inhalt senden. */
-    private fun setupSendUp(root: View) {
-        root.findViewById<Button>(R.id.btn_editor_send_up)?.setOnClickListener {
-            val et = input
-            val editable = et?.text
-            val text = if (et == null || editable == null) {
-                ""
-            } else {
-                val start = et.selectionStart.coerceIn(0, editable.length)
-                val end = et.selectionEnd.coerceIn(0, editable.length)
-                if (start != end) editable.substring(minOf(start, end), maxOf(start, end)).toString()
-                else editable.toString()
-            }
-            if (text.isEmpty()) {
-                Toast.makeText(context, R.string.editor_empty_nothing, Toast.LENGTH_SHORT).show()
-            } else {
-                sendToApp(text)
-                Toast.makeText(context, R.string.editor_sent_to_app, Toast.LENGTH_SHORT).show()
-            }
-        }
+    /** Klick-Handler auf eine optional vorhandene Toolbar-Schaltfläche. */
+    private fun onClick(root: View, id: Int, action: () -> Unit) {
+        root.findViewById<Button>(id)?.setOnClickListener { action() }
     }
 
-    /** ✕: Editorfeld leeren. */
-    private fun setupClear(root: View) {
-        root.findViewById<Button>(R.id.btn_editor_clear)?.setOnClickListener {
-            input?.setText("")
-            Toast.makeText(context, R.string.editor_cleared, Toast.LENGTH_SHORT).show()
-        }
+    private fun toast(resId: Int) {
+        Toast.makeText(context, resId, Toast.LENGTH_SHORT).show()
     }
 
-    /** ⎘: Editor-Inhalt ins System-Clipboard kopieren. */
-    private fun setupCopy(root: View) {
-        root.findViewById<Button>(R.id.btn_editor_copy)?.setOnClickListener {
-            val text = (input?.text?.toString()).orEmpty()
-            if (text.isEmpty()) {
-                Toast.makeText(context, R.string.editor_empty_nothing, Toast.LENGTH_SHORT).show()
-            } else {
-                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                cm?.setPrimaryClip(android.content.ClipData.newPlainText("KeyTab", text))
-                Toast.makeText(context, R.string.editor_copied, Toast.LENGTH_SHORT).show()
-            }
-        }
+    private fun toast(resId: Int, arg: String) {
+        Toast.makeText(context, context.getString(resId, arg), Toast.LENGTH_SHORT).show()
     }
 
-    /** ↻: Aktuelle Datei neu in den Editor laden. */
-    private fun setupReload(root: View) {
-        root.findViewById<Button>(R.id.btn_editor_reload)?.setOnClickListener {
-            loadFile(editorFile)
-        }
-    }
-
-    private fun setupSave(root: View) {
-        root.findViewById<Button>(R.id.btn_editor_save)?.setOnClickListener {
+    /**
+     * Toolbar verdrahten: ⤓Save · ⤒Load · ↑Send-to-App · ✕Clear · ⎘Copy · ↻Reload
+     * (alle Schaltflächen optional). ↑ sendet Auswahl bzw. den gesamten Inhalt
+     * an die App darüber, ✕ leert das Feld, ⎘ kopiert ins Clipboard, ↻ lädt neu.
+     */
+    private fun setupToolbar(root: View) {
+        onClick(root, R.id.btn_editor_save) {
             val f = editorFile
-            val text = input?.text?.toString() ?: return@setOnClickListener
+            val text = input?.text?.toString() ?: return@onClick
             ioExecutor.execute {
                 try {
-                    f.parentFile?.mkdirs()
-                    f.writeText(text)
-                    mainHandler.post {
-                        Toast.makeText(context, context.getString(R.string.editor_saved, f.name), Toast.LENGTH_SHORT).show()
-                    }
+                    EditorTextState.writeFile(f, text)
+                    mainHandler.post { toast(R.string.editor_saved, f.name) }
                 } catch (e: Exception) {
-                    mainHandler.post {
-                        Toast.makeText(context, context.getString(R.string.editor_save_failed, e.message.orEmpty()),
-                        Toast.LENGTH_SHORT).show()
-                    }
+                    mainHandler.post { toast(R.string.editor_save_failed, e.message.orEmpty()) }
                 }
             }
         }
-    }
-
-    private fun setupLoad(root: View) {
-        root.findViewById<Button>(R.id.btn_editor_load)?.setOnClickListener {
-            showFilePicker()
+        onClick(root, R.id.btn_editor_load) { showFilePicker() }
+        onClick(root, R.id.btn_editor_send_up) {
+            val text = input?.let { et ->
+                et.text?.let { e -> EditorTextState.sendUpText(e, et.selectionStart, et.selectionEnd) }
+            }.orEmpty()
+            if (text.isEmpty()) toast(R.string.editor_empty_nothing)
+            else {
+                sendToApp(text)
+                toast(R.string.editor_sent_to_app)
+            }
         }
+        onClick(root, R.id.btn_editor_clear) {
+            input?.setText("")
+            toast(R.string.editor_cleared)
+        }
+        onClick(root, R.id.btn_editor_copy) {
+            val text = (input?.text?.toString()).orEmpty()
+            if (text.isEmpty()) toast(R.string.editor_empty_nothing)
+            else {
+                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                cm?.setPrimaryClip(android.content.ClipData.newPlainText("KeyTab", text))
+                toast(R.string.editor_copied)
+            }
+        }
+        onClick(root, R.id.btn_editor_reload) { loadFile(editorFile) }
     }
 
     /** Ordneransicht zur Datei-Auswahl (Load): Dialog mit navigierbarer ListView. */
@@ -191,24 +148,18 @@ class EditorPanel(
         val listView = ListView(context)
         listView.background = android.graphics.drawable.ColorDrawable(
             androidx.core.content.ContextCompat.getColor(context, R.color.list_bg))
-        fun label(f: File) = if (f.isDirectory) "📁 ${f.name}/" else "📄 ${f.name}"
         fun refreshList(d: File) {
             dir = d
             ioExecutor.execute {
-                val raw = try { d.listFiles() } catch (_: Exception) { null }
-                val visible = raw?.filter { !it.isHidden }
-                    ?.sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase() })
-                    .orEmpty()
-                val items = visible.map { label(it) }
+                val items = EditorTextState.visibleEntries(d).map { EditorTextState.entryLabel(it) }
                 mainHandler.post {
                     // Veraltetes Ergebnis verwerfen, falls weiter navigiert wurde
                     if (dir?.absolutePath != d.absolutePath) return@post
-                    val withUp = if (d.parentFile != null)
-                        listOf(context.getString(R.string.editor_pick_parent)) + items
-                    else if (items.isEmpty())
-                        listOf(context.getString(R.string.editor_pick_empty))
-                    else items
-                    listView.adapter = themedAdapter(context, withUp)
+                    val labels = EditorTextState.pickerItems(
+                        d.parentFile != null, items, context.getString(R.string.editor_pick_parent),
+                        context.getString(R.string.editor_pick_empty)
+                    )
+                    listView.adapter = themedAdapter(context, labels)
                     dialog?.setTitle("${context.getString(R.string.editor_load_title)} · ${d.name}")
                 }
             }
@@ -220,7 +171,7 @@ class EditorPanel(
                 dir?.parentFile?.let { refreshList(it) }
                 return@setOnItemClickListener
             }
-            val target = dir?.listFiles()?.firstOrNull { label(it) == item }
+            val target = dir?.listFiles()?.firstOrNull { EditorTextState.entryLabel(it) == item }
                 ?: return@setOnItemClickListener
             if (target.isDirectory) {
                 refreshList(target)
@@ -251,26 +202,23 @@ class EditorPanel(
     private fun loadFile(f: File) {
         ioExecutor.execute {
             try {
-                val content = if (f.exists()) f.readText() else ""
+                val content = EditorTextState.readFile(f)
                 mainHandler.post {
                     editorFile = f
                     fileLabel?.text = f.name
                     input?.setText(content)
-                    Toast.makeText(context, if (f.exists()) context.getString(R.string.editor_loaded, f.name)
-                    else context.getString(R.string.editor_file_empty), Toast.LENGTH_SHORT).show()
+                    if (f.exists()) toast(R.string.editor_loaded, f.name)
+                    else toast(R.string.editor_file_empty)
                 }
             } catch (e: Exception) {
-                mainHandler.post {
-                    Toast.makeText(context, context.getString(R.string.editor_load_failed, e.message.orEmpty()), Toast.LENGTH_SHORT).show()
-                }
+                mainHandler.post { toast(R.string.editor_load_failed, e.message.orEmpty()) }
             }
         }
     }
 
-
     private fun defaultFile(): File {
-        // Default-Startverzeichnis = externes Files-Dir der App (keine Storage-
-        // Berechtigung nötig, immer beschreibbar). Fallback: internes Files-Dir.
+        // Default-Startverzeichnis = externes Files-Dir der App (immer beschreibbar,
+        // keine Storage-Berechtigung nötig). Fallback: internes Files-Dir.
         val dir = context.getExternalFilesDir(null) ?: context.filesDir
         return File(dir, "keytab_editor.txt")
     }
@@ -286,13 +234,8 @@ class EditorPanel(
     private fun setupEditorChrome() {
         val et = input ?: return
         et.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(
-                s: CharSequence?, start: Int, count: Int, after: Int
-            ) = Unit
-
-            override fun onTextChanged(
-                s: CharSequence?, start: Int, before: Int, count: Int
-            ) = Unit
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
             override fun afterTextChanged(s: android.text.Editable?) {
                 refreshGutter()
                 applyHighlight()
@@ -316,24 +259,16 @@ class EditorPanel(
         val g = gutter ?: return
         val et = input ?: return
         val text = et.text ?: return
-        val sb = StringBuilder()
         val width = et.width - et.paddingLeft - et.paddingRight
-        if (width > 0 && text.isNotEmpty()) {
+        val numbers = if (width > 0 && text.isNotEmpty()) {
             val layout = android.text.StaticLayout.Builder
                 .obtain(text, 0, text.length, et.paint, width).build()
-            var logical = 1
-            for (v in 0 until layout.lineCount) {
-                val start = layout.getLineStart(v)
-                val wrapped = start > 0 && text[start - 1] != '\n'
-                if (wrapped) sb.append(' ') else { sb.append(logical); logical++ }
-                sb.append('\n')
-            }
+            val starts = IntArray(layout.lineCount) { layout.getLineStart(it) }
+            EditorTextState.gutterForLineStarts(text, starts)
         } else {
-            var count = 1
-            for (c in text) if (c == '\n') count++
-            for (i in 1..count) sb.append(i).append('\n')
+            EditorTextState.gutterLogical(text)
         }
-        g.text = sb.toString().trimEnd('\n')
+        g.text = numbers
         if (et.width == 0 && text.isNotEmpty()) et.post { refreshGutter() }
     }
 
@@ -349,12 +284,9 @@ class EditorPanel(
         // Performance-Guard: große Dateien bleiben einfarbig statt UI zu blockieren
         if (text.length > EditorHighlightLogic.MAX_SCAN_CHARS) return
         for (span in EditorHighlightLogic.spans(text)) {
-            val color = androidx.core.content.ContextCompat.getColor(context, when (span.kind) {
-                EditorHighlightLogic.Kind.COMMENT -> R.color.editor_comment
-                EditorHighlightLogic.Kind.STRING -> R.color.editor_string
-                EditorHighlightLogic.Kind.NUMBER -> R.color.editor_number
-                EditorHighlightLogic.Kind.KEYWORD -> R.color.editor_keyword
-            })
+            val color = androidx.core.content.ContextCompat.getColor(
+                context, EditorTextState.colorRes(span.kind)
+            )
             val fg = ForegroundColorSpan(color)
             editable.setSpan(fg, span.start, span.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             highlightSpans.add(fg)

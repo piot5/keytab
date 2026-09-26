@@ -23,105 +23,35 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         const val MAX_SUGGESTIONS = 3
         const val MAX_USER_WORDS = 500
         const val MAX_BIGRAMS = 2000
-        private const val DECAY_FACTOR = 0.98
-        private const val MAX_WORD_LEN = 32
-        /** Trenner für die Serialisierung des User-Dictionary. */
-        private const val SEP_ENTRY = "\u0001"
-        private const val SEP_FIELD = "\u0002"
-
-        fun isLearnable(word: String): Boolean =
-            word.length in 2..MAX_WORD_LEN && word.all { it.isLetter() }
-
-        /** Damerau-Levenshtein-Distanz (Restricted Edit Distance, +Transposition). */
-        fun editDistance(a: String, b: String): Int {
-            val n = a.length
-            val m = b.length
-            val d = Array(n + 1) { IntArray(m + 1) }
-            for (i in 0..n) d[i][0] = i
-            for (j in 0..m) d[0][j] = j
-            for (i in 1..n) {
-                for (j in 1..m) {
-                    val cost = if (a[i - 1] == b[j - 1]) 0 else 1
-                    d[i][j] = minOf(
-                        d[i - 1][j] + 1,      // deletion
-                        d[i][j - 1] + 1,      // insertion
-                        d[i - 1][j - 1] + cost // substitution
-                    )
-                    if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1]) {
-                        d[i][j] = minOf(d[i][j], d[i - 2][j - 2] + 1) // transposition
-                    }
-                }
-            }
-                        return d[n][m]
-        }
+        private const val DECAY_FACTOR = SuggestionTextRules.DECAY_FACTOR
+        private const val SEP_ENTRY = SuggestionTextRules.SEP_ENTRY
+        private const val SEP_FIELD = SuggestionTextRules.SEP_FIELD
 
         /** Trenner für die Snippet-History in SharedPreferences (NUL, wie Clipboard). */
-        internal const val SEP_RECENT = "\u0000"
+        internal const val SEP_RECENT = SuggestionTextRules.SEP_RECENT
 
         /** Sichtbarer Marker-Tag, damit [SuggestionController] Snippet-Chips von
-         *  Wortvorschlägen unterscheiden kann (`tv.setTag(SNIPPET_TAG, text)`,
-         *  vs. `tv.tag = word` für normale Vorschläge). */
-        internal const val SNIPPET_TAG: Int = 0x7f000001
+         *  Wortvorschlägen unterscheiden kann. */
+        internal const val SNIPPET_TAG: Int = SuggestionTextRules.SNIPPET_TAG
 
         /** Marker-Tag für Emoji-Katalog-Chips (Klick → Emoji einfügen statt Wort). */
-        internal const val EMOJI_TAG: Int = 0x7f000002
+        internal const val EMOJI_TAG: Int = SuggestionTextRules.EMOJI_TAG
 
-        /**
-         * Satzanfang-Erkennung für die Snippet-Leiste: gilt als Satzanfang, wenn
-         * gerade kein Wort in der Eingabe (Zwischen-Wörter-Puffer leer) ist und
-         * das, was vor dem Cursor steht, leer ist oder mit einem Satz-Terminator
-         * (. ! ?) endet (optional gefolgt von Leer-/Zeilenwechsel).
-         *
-         * Wird von [WordPredictionManager.updateSuggestions] genutzt, um zu
-         * entscheiden, ob die Vorschlags-Leiste durch zuletzt eingefügte
-         * Snippets ersetzt wird (statt der generischen Top-3-Wortvorschläge).
-         */
-                fun sentenceStart(textBefore: String, typedWord: String): Boolean {
-            if (typedWord.isNotEmpty()) return false
-            val b = textBefore.trimEnd()
-            return b.isEmpty() || b.last() in ".!?"
-        }
+        fun isLearnable(word: String): Boolean = SuggestionTextRules.isLearnable(word)
 
-        /**
-         * Satzanfang-Erkennung **auch während des Tippens**: wie [sentenceStart],
-         * aber das aktuell getippte Wort wird aus dem Kontext entfernt, bevor
-         * geprüft wird. Damit wird erkannt, dass der Nutzer gerade am Satzanfang
-         * tippt (z. B. nach "Hallo. w" → Kontext "Hallo." → Satzanfang), auch
-         * wenn [typedWord] nicht leer ist.
-         *
-         * Wird für die Großschreibung von Vorschlägen während des Tippens
-         * verwendet ([WordPredictionManager.updateSuggestions] / [applySuggestion]).
-         */
-        fun isSentenceStartContext(textBefore: String, typedWord: String): Boolean {
-            if (typedWord.isEmpty()) return sentenceStart(textBefore, "")
-            val stripped = if (textBefore.endsWith(typedWord))
-                textBefore.removeSuffix(typedWord) else textBefore
-            val b = stripped.trimEnd()
-            return b.isEmpty() || b.last() in ".!?"
-        }
+        fun editDistance(a: String, b: String): Int = SuggestionTextRules.editDistance(a, b)
 
-        /**
-         * Parst die persistente Snippet-History (SEP_RECENT-getrennt,
-         * most-recent-first) und liefert höchstens [max] Einäge zurück —
-         * dedupliziert, leere/Whitespace-Einträge übersprungen.
-         */
+        fun sentenceStart(textBefore: String, typedWord: String): Boolean =
+            SuggestionTextRules.sentenceStart(textBefore, typedWord)
+
+        fun isSentenceStartContext(textBefore: String, typedWord: String): Boolean =
+            SuggestionTextRules.isSentenceStartContext(textBefore, typedWord)
+
         fun recentSnippets(raw: String?, max: Int = 3): List<String> =
-            raw.orEmpty().split(SEP_RECENT).map { it.trim() }
-                .filter { it.isNotEmpty() }.distinct().take(max)
+            SuggestionTextRules.recentSnippets(raw, max)
 
-        /**
-         * Fügt [text] an den Anfang der History (most-recent-first), entfernt
-         * Duplikate (Move-to-Front) und begrenzt auf [max] Einäge → liefert den
-         * neuen Roh‑String zum Schreiben in SharedPreferences. Leer/Whitespace
-         * wird nicht aufgenommen.
-         */
-        fun recordRecent(raw: String?, text: String, max: Int = 3): String {
-            val t = text.trim()
-            if (t.isEmpty()) return raw.orEmpty()
-            val cur = raw.orEmpty().split(SEP_RECENT).map { it.trim() }.filter { it.isNotEmpty() }
-            val ordered = buildList { add(t); for (e in cur) if (e != t) add(e) }.take(max)
-            return ordered.joinToString(SEP_RECENT)
-        }
+        fun recordRecent(raw: String?, text: String, max: Int = 3): String =
+            SuggestionTextRules.recordRecent(raw, text, max)
     }
 
     private var revisionCounter: Long = 0
@@ -297,25 +227,9 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             .map { Suggestion(it.key, it.value) }
     }
 
-    /**
-     * Satzanfang-Boost: Am Satzanfang werden typische Satzanfangs­wörter
-     * (Nomen, Verben, häufige Einleitungen) bevorzugt, reine Funktions­wörter
-     * (Kurzpräpositionen/Konjunktionen), die selten allein einen Satz
-     * eröffnen, leicht abgewertet. Der Faktor ist absichtlich moderat,
-     * damit seltene, aber wirklich passende Bigramme nicht ausgeblendet werden.
-     */
-    private fun sentenceStartBoost(word: String): Double {
-        val lower = word.lowercase()
-        // Reine Funktionswörter, die typischerweise nicht als Satzanfang dienen
-        val weakStarters = setOf(
-            // Deutsch: Kurzpräpositionen / -konjunktionen
-            "in", "auf", "von", "zu", "mit", "bei", "nach", "vor", "um",
-            "aus", "seit", "durch", "für", "gegen", "ohne", "per",
-            // Englisch: Kurzpräpositionen / Artikeln / Konjunktionen
-            "of", "to", "in", "on", "at", "by", "for", "and", "or", "but", "the"
-        )
-        return if (weakStarters.contains(lower)) 0.75 else 1.15
-    }
+    /** Satzanfang-Boost, siehe [SuggestionCorrection.sentenceStartBoost]. */
+    private fun sentenceStartBoost(word: String): Double =
+        SuggestionCorrection.sentenceStartBoost(word)
 
     /** Autovervollständigung + Fehlerkorrektur für das aktuelle Teilwort. */
     private fun completeWord(cur: String, prev: String?, max: Int): List<Suggestion> {
@@ -360,15 +274,9 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             .map { Suggestion(it.key, it.value) }
     }
 
-        /**
-     * Groß-/Kleinschreibung des Getippten auf den Vorschlag übertragen.
-     * @param sentenceStart true am Satzanfang → Vorschlag großschreiben,
-     *   auch wenn der Nutzer noch ein Kleinbuchstabe getippt hat
-     */
+    /** Groß-/Kleinschreibung übertragen, siehe [SuggestionCorrection.matchCase]. */
     fun matchCase(suggestion: String, typed: String, sentenceStart: Boolean = false): String =
-        if (typed.isEmpty() || typed[0].isUpperCase() || sentenceStart) {
-            suggestion.replaceFirstChar { it.uppercase() }
-        } else suggestion
+        SuggestionCorrection.matchCase(suggestion, typed, sentenceStart)
 
     // ---------- Aktive Autokorrektur (v0.9.1) ----------
 
@@ -416,7 +324,6 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
                 (userFreq.containsKey(it) && bestScore > 0.3)
         }
     }
-
 
     // ---------- Persistenz ----------
 

@@ -117,14 +117,13 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     override val baseLetters = mutableMapOf<Button, Char>()
 
-    /** Eingabe-Routing (Phase 2): wohin Text fließt (App/Editor/Terminal). */
+    /** Eingabe-Routing (Phase 2): wohin Text fließt (App/Editor). */
     override var inputRouter: InputRouter? = null
         private set
 
     override var fileManagerPanel: FileManagerPanel? = null
         private set
     private var editorPanel: EditorPanel? = null
-    private var terminalPanel: TerminalPanel? = null
     override var clipboardPanel: ClipboardPanel? = null
         private set
     override var snippetPanel: SnippetPanel? = null
@@ -149,10 +148,8 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         // hängen und ist nicht mehr removebar („Verbindung geht nicht weg"-Bug).
         swipeManager?.clearPreview()
         swipeManager = null
-        terminalPanel?.shutdown()
         fileManagerPanel = null
         editorPanel = null
-        terminalPanel = null
         clipboardPanel = null
         snippetPanel = null
         keyboardRoot = null
@@ -176,7 +173,6 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         keyboardRoot = result.root
         fileManagerPanel = result.fileManagerPanel
         editorPanel = result.editorPanel
-        terminalPanel = result.terminalPanel
         clipboardPanel = result.clipboardPanel
         snippetPanel = result.snippetPanel
         inputRouter = result.router
@@ -277,91 +273,21 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
 
     override fun isShifted(): Boolean = shiftController.isUpper()
     override fun isCapsLock(): Boolean = shiftController.state().capsLock
-    override fun isEditorOrTerminalTab(): Boolean =
+    override fun isEditorTab(): Boolean =
         tabController.currentTabKind().let {
-            it == TabController.TabKind.EDITOR || it == TabController.TabKind.TERMINAL
+            it == TabController.TabKind.EDITOR
         }
+    /**
+     * Tastatur im Editor-Tab ein-/ausklappen. Die reine Sichtbarkeits- und
+     * Höhenlogik steckt in [KeyboardCollapse].
+     */
     override fun hideKeyboard() {
-        // Nur der Tastatur-Block UNTER der Wortvorhersage-Zeile wird ausgeblendet:
-        // alle Tastenreihen (Buchstaben/Symbole/Zahlen) + Funktionsleiste + Datei-Panel.
-        // Die Wortvorhersage-Zeile (mit ☺ und ⌄) bleibt sichtbar → Einblenden per ⌄.
-        // Das Editor-/Terminal-Panel wird MAXIMIERT: es füllt den gesamten bisherigen
-        // Tastatur-Platz aus (Editor-Normalhöhe + Tastatur + Funktionsleiste).
         val root = keyboardRoot ?: return
         val collapsed = root.getTag(R.id.sug_hide) as? Boolean ?: false
         val next = !collapsed
         root.setTag(R.id.sug_hide, next)
-        val ed = root.findViewById<View>(R.id.editor_panel)
-        val kb = root.findViewById<View>(R.id.kb_panel)
-        val term = root.findViewById<View>(R.id.term_panel)
-        val bottomRow = root.findViewById<View>(R.id.bottom_row)
-        val width = root.resources.displayMetrics.widthPixels
         val kind = tabController.currentTabKind()
-        if (next) {
-            // HÖHEN VOR dem Ausblenden messen (GONE-Views haben Höhe 0)!
-            val editorH = PanelHeights.terminalPanelHeight(ed, width)
-            val kbH = PanelHeights.measureHeight(kb, width)
-            val bottomH = PanelHeights.measureHeight(bottomRow, width)
-            // Tastenreihen ausblenden (alle Geschwister der Suggestion-Bar).
-            val sugBar = root.findViewById<View>(R.id.suggestion_bar)
-            val lettersRoot = sugBar?.parent as? android.view.ViewGroup
-            if (lettersRoot != null) {
-                for (i in 0 until lettersRoot.childCount) {
-                    val child = lettersRoot.getChildAt(i)
-                    if (child.id == R.id.suggestion_bar) continue
-                    child.visibility = View.GONE
-                }
-            }
-            bottomRow?.visibility = View.GONE
-            // Panel MAXIMIEREN: Editor-Normalhöhe + Tastatur + Funktionsleiste.
-            val maxH = editorH + kbH + bottomH
-            if (maxH > 0) {
-                // Normalhöhen für das zuverlässige Wiederherstellen merken.
-                if (kind == TabController.TabKind.EDITOR && ed != null) {
-                    root.setTag(R.id.editor_normal_height, ed.layoutParams.height)
-                    ed.layoutParams = ed.layoutParams.apply { height = maxH }
-                }
-                if (kind == TabController.TabKind.TERMINAL && term != null) {
-                    root.setTag(R.id.terminal_normal_height, term.layoutParams.height)
-                    term.layoutParams = term.layoutParams.apply { height = maxH }
-                }
-            }
-        } else {
-            // WIEDER EINBLENDEN: nur die Tastenreihen + Funktionsleiste sichtbar
-            // machen. Panels (editor/term/file/clip/snip) NICHT anfassen — der
-            // TabController verwaltet deren Sichtbarkeit. Ein unbedachtes VISIBLE
-            // würde z. B. im ABC-Tab das Editor-Panel zeigen und die Tastatur nach
-            // oben drücken! Nur die echten Tastatur-Views wieder auf VISIBLE setzen.
-            val sugBar = root.findViewById<View>(R.id.suggestion_bar)
-            val lettersRoot = sugBar?.parent as? android.view.ViewGroup
-            if (lettersRoot != null) {
-                for (i in 0 until lettersRoot.childCount) {
-                    val child = lettersRoot.getChildAt(i)
-                    if (child.id == R.id.suggestion_bar) continue
-                    // Nur Tastatur-Elemente (kb_panel, sym_panel, num_row) und die
-                    // Buchstabenreihen wieder sichtbar — Panels bleiben wie sie sind.
-                    val id = child.id
-                    if (id == R.id.editor_panel || id == R.id.term_panel ||
-                        id == R.id.file_panel || id == R.id.clip_panel ||
-                        id == R.id.snippet_panel
-                    ) continue
-                    child.visibility = View.VISIBLE
-                }
-            }
-            bottomRow?.visibility = View.VISIBLE
-            // Panel zurück auf reine Editor-Höhe.
-            val h = PanelHeights.terminalPanelHeight(ed, width)
-            if (h > 0) {
-                if (kind == TabController.TabKind.EDITOR && ed != null) {
-                    val normal = root.getTag(R.id.editor_normal_height) as? Int ?: h
-                    ed.layoutParams = ed.layoutParams.apply { height = normal }
-                }
-                if (kind == TabController.TabKind.TERMINAL && term != null) {
-                    val normal = root.getTag(R.id.terminal_normal_height) as? Int ?: h
-                    term.layoutParams = term.layoutParams.apply { height = normal }
-                }
-            }
-        }
+        if (next) KeyboardCollapse.collapse(root, kind) else KeyboardCollapse.expand(root, kind)
     }
 
     /** Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt) + View aktualisieren. */

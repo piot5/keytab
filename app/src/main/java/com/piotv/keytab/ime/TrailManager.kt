@@ -1,7 +1,6 @@
 package com.piotv.keytab.ime
 
 import android.content.SharedPreferences
-import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.widget.Button
@@ -11,21 +10,18 @@ import android.widget.Button
  * farblich markiert und mit jeder neuen Eingabe stufenweise weniger sichtbar,
  * bis sie verschwinden ([TrailLogic.alphaForStep]).
  *
- * Implementierung als **Foreground-Overlay** ([Button.setForeground]):
- * Der Button-Hintergrund (Theme, Rundung, Press-State) bleibt UNBERÜHRT –
- * damit kann der Trail die Taste weder unsichtbar machen noch dauerhaft
- * einfärben (früherer Bug: SRC_IN-Tint auf dem geteilten Hintergrund-Drawable).
+ * Implementierung als **Foreground-Overlay** – die View-/Farb-Application
+ * liegt in [TrailKeyboardPainter] (früherer Bug: SRC_IN-Tint auf dem geteilten
+ * Hintergrund-Drawable).
  *
  * **Zwei Betriebsarten** (Details in [TrailLogic.TrailKind]):
  *  - Tippspur: Standardfarbe Blau #2196F3, pro Buchstabe verblassend.
  *  - Treffer-Markierung: grün, wenn das getippte Wort exakt dem obersten
- *    Vorschlag entspricht — reine Bestätigung, **kein Rot** mehr. Optional
- *    (Pref `trail_trace`).
+ *    Vorschlag entspricht — reine Bestätigung, **kein Rot** (Pref `trail_trace`).
  *
  * **Sicherheit:** In Passwort-Feldern erscheint nichts, weil Android-IME-
  * Verträge (`inputType`-Variation, IME_FLAG_NO_PERSONALIZED_LEARNING) das
- * verbieten – siehe [TrailLogic.isTrailAllowed]. Der [editorInfo] wird über
- * [setEditorInfo] vom Service bei jedem Feldwechsel gesetzt.
+ * verbieten – siehe [TrailLogic.isTrailAllowed].
  */
 class TrailManager(
     private val prefs: SharedPreferences,
@@ -42,6 +38,9 @@ class TrailManager(
     private val kinds = mutableMapOf<Char, TrailLogic.TrailKind>()
     /** Aktuelles Feld (Passwort-Schutz). null = unbekannt → Trail erlaubt. */
     private var editorInfo: android.view.inputmethod.EditorInfo? = null
+
+    /** View-/Farb-Application des Zustands auf die Buttons (zustandslos). */
+    private val painter = TrailKeyboardPainter(prefs, baseLetters)
 
     private val fadeHandler = Handler(Looper.getMainLooper())
     private var fadePending = false
@@ -115,12 +114,7 @@ class TrailManager(
         // Einträge über maxSteps werden entfernt.
         for (c in steps.keys.toList()) {
             val next = TrailLogic.nextStep(steps[c] ?: 0, maxSteps)
-            if (next == null) {
-                steps.remove(c)
-                kinds.remove(c)
-            } else {
-                steps[c] = next
-            }
+            if (next == null) { steps.remove(c); kinds.remove(c) } else { steps[c] = next }
         }
         // Neuen Buchstaben mit Schritt 0 hinzufügen.
         // Achtung: `kinds` wird pro Buchstabe gehalten, nicht pro Vorkommen.
@@ -148,9 +142,7 @@ class TrailManager(
      * `hauss`, so setzte `traceWord("haus")` alle vier Buchstaben auf
      * [TrailLogic.TrailKind.ACCEPTED]; der zweite `s`-Tap lief danach durch
      * [snap] und überschrieb `kinds['s']` mit [TrailLogic.TrailKind.TYPED],
-     * während `steps['s'] = 0` stehen blieb. Ergebnis: `s` blau, `haus` grün –
-     * und weil alle Vorkommen eines Buchstabens auf dieselbe Taste zeigen,
-     * überlagerte sich die Färbung sichtbar.
+     * während `steps['s'] = 0` stehen blieb – sichtbar als `s` blau, `haus` grün.
      *
      * **Tippspur bleibt erhalten:** [TrailLogic.TrailKind.TYPED]-Einträge werden
      * nicht angetastet – der Trace ist eine Zusatzinformation, kein Ersatz für
@@ -242,7 +234,7 @@ class TrailManager(
         steps.clear()
         kinds.clear()
         lastChar = null
-        clearKeyboard()
+        painter.clear()
     }
 
     /** Aktualisiert die Trail-Einstellungen aus den Prefs (z.B. nach Theme-Änderung). */
@@ -262,61 +254,18 @@ class TrailManager(
      *  Da der Trail nur Foreground-Overlays nutzt, müssen keine Hintergründe
      *  verwaltet werden; alte Overlays auf entfernten Buttons sind unbeobachtbar. */
     @Suppress("UNUSED_PARAMETER")
-    fun updateBaseLetters(newBaseLetters: Map<Button, Char>) {
-        // Nichts zu tun – Overlays hängen an den Buttons selbst.
-    }
+    fun updateBaseLetters(newBaseLetters: Map<Button, Char>) = Unit
 
     // ---------- Interne Hilfsmethoden ----------
-
     private fun trailEnabled(): Boolean = ThemePrefs.trailEnabled(prefs)
     private fun traceEnabled(): Boolean = ThemePrefs.trailTraceEnabled(prefs)
     private fun trailSteps(): Int = ThemePrefs.trailSteps(prefs)
 
-    /** Farbe für einen spezifischen Decay-Schritt (0 = am deutlichsten, maxSteps = weg).
-     *  Das Overlay liegt ÜBER dem Text → Alpha ist gedeckelt
-     *  ([TrailLogic.ALPHA_LIMIT]), damit die Beschriftung immer lesbar bleibt.
-     *  Die Grundfarbe hängt an der Betriebsart: Tippspur = Theme-Farbe,
-     *  Treffer-Markierung = grün. */
-    private fun colorForStep(stepForChar: Int, kind: TrailLogic.TrailKind): Int? {
-        val alpha = TrailLogic.alphaForStep(stepForChar, maxSteps)
-        if (alpha <= 0) return null
-        val base = when (kind) {
-            TrailLogic.TrailKind.ACCEPTED -> ThemePrefs.trailAcceptedColor(prefs)
-            TrailLogic.TrailKind.TYPED -> ThemePrefs.trailColor(prefs)
-        }
-        return ThemePrefs.withAlpha(base, alpha)
-    }
-
-    /** Wendet den Trail auf die Tastatur-Buttons an. */
-    fun applyToKeyboard() {
-        clearKeyboard()
-        // Trail als FOREGROUND-Overlay: der Button-Hintergrund (Theme, Rundung,
-        // Press-State) bleibt unberührt → Taste wird nie unsichtbar/tintiert.
-        for ((btn, letter) in baseLetters) {
-            val key = letter.lowercaseChar()
-            val stepForChar = steps[key] ?: continue
-            val kind = kinds[key] ?: TrailLogic.TrailKind.TYPED
-            val color = colorForStep(stepForChar, kind) ?: continue
-            applyTrailToButton(btn, color)
-        }
-    }
-
-    private fun applyTrailToButton(btn: Button, color: Int) {
-        // Halbtransparente, abgerundete Overlay-Fläche ÜBER der Taste.
-        // Alpha steckt in der Trail-Farbe (step 0 = voll, maxSteps = weg);
-        // Text bleibt voll sichtbar, da nur das Overlay halbtransparent ist.
-        btn.foreground = GradientDrawable().apply {
-            cornerRadius = 8f * btn.context.resources.displayMetrics.density
-            setColor(color)
-        }
-    }
-
-    /** Entfernt alle Trail-Overlays (Original-Hintergründe bleiben unberührt). */
-    private fun clearKeyboard() {
-        for ((btn, _) in baseLetters) {
-            btn.foreground = null
-        }
-    }
+    /**
+     * Wendet den Trail auf die Tastatur-Buttons an. Die View-/Farb-Application
+     * liegt in [TrailKeyboardPainter] – hier nur die Weitergabe des Zustands.
+     */
+    fun applyToKeyboard() = painter.apply(steps, kinds, maxSteps)
 
     companion object {
         /** Standard-Max-Steps (v0.9.7). */

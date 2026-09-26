@@ -12,14 +12,11 @@ import java.util.UUID
  * - Kein Ersatz des Basiswortschatzes, kein unkontrolliertes Massenlöschen,
  *   kein automatisches Hochzählen von Gewichten durch externes Programm.
  *
- * **Entscheidung 2026-09-22: kein `ContentProvider`, kein exportierter Service.**
- * Begründung: KeyTab ist eine Offline-Tastatur ohne Netzwerk-Permission
- * (`allowBackup=false`); ein nach außen exponiertes Tor zum gelernten Wörterbuch
- * wäre genau für die Daten ein neuer Angriffs-/Abflusspfad, die die App bewusst
- * nur lokal hält — und würde beim Signatur-Schutz für adb/Cline-Werkzeuge nicht
- * einmal funktionieren. Die API ist damit ein **interner Vertrag** (deshalb
- * `internal`) und wird heute nur von Tests benutzt; entsteht kein Konsument,
- * ist sie ein Kandidat für Entfernung.
+ * **Entscheidung 2026-09-25:** Die API bleibt `internal`, wird aber durch den
+ * In-App-Wartungsweg in den Einstellungen verwendet. Ein externer Transportweg
+ * (`ContentProvider`/exportierter Service) bleibt bewusst abgelehnt: KeyTab ist
+ * eine Offline-Tastatur ohne Netzwerk-Permission; ein exportiertes Tor wäre ein
+ * neuer Angriffs-/Abflusspfad. Details: `docs/API_INTERFACE_EXTERNAL_CLEANUP.md`.
  *
  * Details und Begründung: `docs/API_INTERFACE_EXTERNAL_CLEANUP.md` → Abschnitt
  * „Entscheidung“.

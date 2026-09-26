@@ -1,9 +1,6 @@
 package com.piotv.keytab.ime
 
 import android.content.SharedPreferences
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.view.ViewGroup
@@ -39,7 +36,7 @@ class SwipeManager(
     /** Original-Hintergründe der als Knoten gefärbten Tasten (Restore). */
     private val nodeBackgrounds = mutableListOf<Pair<Button, android.graphics.drawable.Drawable>>()
     /** Overlay-View für die Kanten (wird unter die Tasten gelegt). */
-    private var edgeOverlay: EdgeOverlay? = null
+    private var edgeOverlay: SwipeEdgeOverlay? = null
 
     // Swipe-Eingabe-Sampling (nur wenn Swipe aktiv)
     private val swipeSamples = mutableListOf<SwipePathLogic.Sample>()
@@ -179,38 +176,21 @@ class SwipeManager(
         if (!previewEnabled()) return
         if (!SwipePathLogic.isSwipeAllowed(editorInfo)) return
         if (nodes.isEmpty()) return
-        previewNodes = nodes
-        val color = ThemePrefs.swipeColor(prefs)
-        val dip = baseDip()
-        for ((btn, letter) in baseLetters) {
-            if (nodes.contains(letter.lowercaseChar())) {
-                nodeBackgrounds.add(btn to btn.background)
-                btn.background = GradientDrawable().apply {
-                    cornerRadius = 8f * dip
-                    setColor(color)
-                }
-            }
-        }
-        drawEdges()
+        paintNodes(nodes, ThemePrefs.swipeColor(prefs))
     }
 
     /**
      * Während des Wischens (aktiv): die wahrscheinlichen Folge-Tasten der
-     * bisher gefahrenen Route in der Likely-Grün-Farbe markieren — wie das
-     * normale Likely-Highlighting beim Tippen, aber datengetrieben aus der
-     * Swipe-Route statt aus getippten Vorschlägen. Unabhängig vom Schaltplan-
-     * Preview-Pref (das ist eine separate, experimentelle Anzeige); nutzt
-     * denselben Restore-Mechanismus wie [applyPreview] (nodeBackgrounds).
+     * bisher gefahrenen Route als Schaltplan anzeigen – Knoten in der
+     * Likely-Farbe (KIND_LIKELY) plus Kanten ([drawEdges]), damit der Finger
+     * dem Pfad folgen kann. Die Likely-Knoten landen in [previewNodes] und sind
+     * über [wasLikelyHit] abfragbar (gegen den Stand **vor** dem nächsten Treffer).
+     * Unabhängig vom Schaltplan-Preview-Pref (das ist eine separate,
+     * experimentelle Anzeige); nutzt denselben Restore-Mechanismus wie
+     * [applyPreview] (nodeBackgrounds).
      *
      * Wird pro Tastenwechsel (neues Sample) vom KeyboardBinder aufgerufen.
      * Leere Route / keine Engine / Passwort-Feld → nichts (alte Marks bleiben).
-     */
-    /**
-     * Während des Swipens die wahrscheinlichen Folge-Tasten (most-likely) der
-     * bisherigen Route als Schaltplan anzeigen – Knoten in der Likely-Farbe
-     * (KIND_LIKELY) plus Kanten ([drawEdges]), damit der Finger dem Pfad folgen
-     * kann. Die Likely-Knoten landen in [previewNodes] und sind über
-     * [wasLikelyHit] abfragbar (gegen den Stand **vor** dem nächsten Treffer).
      *
      * Früher wurde hier abgebrochen, wenn die passive Schaltplan-Preview jemals
      * an war (`previewNodes.isNotEmpty() && previewEnabled()`) – dann erschienen
@@ -232,7 +212,6 @@ class SwipeManager(
             route.length
         )
         if (nodes.isEmpty()) return
-        previewNodes = nodes
         // Likely-Farbe (dieselbe wie beim Tippen: KIND_LIKELY). Dark-Mode und
         // Default-Farbe aus dem Button-Kontext ableiten; falls kein Button
         // verfügbar (sollte nicht passieren), harter Light-Default (#4CAF50 grün).
@@ -244,6 +223,22 @@ class SwipeManager(
                 ThemePrefs.defaultColor(ctx, dark, ThemePrefs.KIND_LIKELY)
             )
         } else 0xFF4CAF50.toInt()
+        paintNodes(nodes, color)
+    }
+
+    /**
+     * Gemeinsamer Kern von [applyPreview] und [applySwipeLikely]: die Knoten
+     * merken, ihre Tasten in [color] einfärben (Original-Background in
+     * [nodeBackgrounds] sichern) und die Kanten zeichnen.
+     *
+     * Die Guards (Pref, Passwort-Feld, leere Nodes) bleiben bewusst in den
+     * Aufrufern – sie unterscheiden sich je Methode. [color] wird vom Aufrufer
+     * aufgelöst, weil die beiden Farbquellen verschieden sind: die Preview
+     * nutzt den Legacy-Pref [ThemePrefs.swipeColor], die Likely-Knoten das
+     * Theme-Kolor-Schema (KIND_LIKELY, dark/light, Default aus colors.xml).
+     */
+    private fun paintNodes(nodes: List<Char>, color: Int) {
+        previewNodes = nodes
         val dip = baseDip()
         for ((btn, letter) in baseLetters) {
             if (nodes.contains(letter.lowercaseChar())) {
@@ -254,8 +249,6 @@ class SwipeManager(
                 }
             }
         }
-        // Schaltplan-Kanten zwischen den most-likely-Zielen zeichnen, damit der
-        // Finger dem Pfad folgen kann (konsistent mit der passiven Preview).
         drawEdges()
     }
 
@@ -298,30 +291,12 @@ class SwipeManager(
             removeEdgeOverlay(); return
         }
         val ctx = container.context ?: run { removeEdgeOverlay(); return }
-        val rootLoc = IntArray(2)
-        container.getLocationInWindow(rootLoc)
-        val centers = LinkedHashMap<Char, SwipePathLogic.KeyCenter>()
-        for ((btn, letter) in baseLetters) {
-            val loc = IntArray(2)
-            btn.getLocationInWindow(loc)
-            centers[letter.lowercaseChar()] = SwipePathLogic.KeyCenter(
-                letter.lowercaseChar(),
-                loc[0] + btn.width / 2f - rootLoc[0],
-                loc[1] + btn.height / 2f - rootLoc[1]
-            )
-        }
-        val path = Path()
-        var moved = false
-        for (ch in previewNodes) {
-            val c = centers[ch] ?: continue
-            if (!moved) { path.moveTo(c.x, c.y); moved = true }
-            else path.lineTo(c.x, c.y)
-        }
-        if (!moved) { removeEdgeOverlay(); return }
+        val path = SwipeEdgeDrawing.buildEdgePath(previewNodes, container, baseLetters)
+        if (path == null) { removeEdgeOverlay(); return }
         // Nicht doppelt einfügen: falls noch ein altes Overlay hängt (z. B. nach
         // schnell aufeinanderfolgenden Updates), erst entfernen.
         removeEdgeOverlay()
-        val ov = EdgeOverlay(ctx, path, ThemePrefs.swipeEdgeColor(prefs))
+        val ov = SwipeEdgeOverlay(ctx, path, ThemePrefs.swipeEdgeColor(prefs))
         container.addView(ov, ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT))
@@ -362,38 +337,20 @@ class SwipeManager(
      */
     fun hasSwiped(): Boolean = swipeSamples.size >= 2
 
-    private fun baseDip(): Float {
-        val ctx = baseLetters.keys.firstOrNull()?.context ?: return 1f
-        return ctx.resources?.displayMetrics?.density ?: 1f
-    }
+    /** @see SwipeKeyGeometry.baseDip */
+    private fun baseDip(): Float = SwipeKeyGeometry.baseDip(baseLetters)
 
+    /** @see SwipeKeyGeometry.minSwipeDistPx */
     private fun minSwipeDistPx(): Float =
-        SwipePathLogic.SWIPE_THRESHOLD_DP * baseDip()
+        SwipeKeyGeometry.minSwipeDistPx(baseLetters)
 
-    /**
-     * Tasten-Zentren in **Fenster**-Koordinaten (für Sampling & Routen-Ableitung).
-     *
-     * **Konsistenz-Fix (Koordinaten-Mismatch):** Die Touch-Koordinaten aus
-     * [KeyboardBinder] (`btn.getLocationInWindow(loc) + event.x/y`) sind
-     * fenster-relativ. Früher wurden die Zentren hier auf den Container
-     * (`kb_container`) bezogen (Subtraktion der Container-Position), während der
-     * Touch fenster-relativ blieb — dadurch lag die Buchstaben-Erkennung um die
-     * Position der Tab-Leiste daneben (falsche Buchstaben beim Wischen).
-     * Zeichnen ([drawEdges]) rechnet die Container-Relation separat um.
-     */
+    /** @see SwipeKeyGeometry.centersFor */
     private fun centersFor(baseLetters: Map<Button, Char>): List<SwipePathLogic.KeyCenter> =
-        baseLetters.mapNotNull { (btn, letter) ->
-            val loc = IntArray(2)
-            btn.getLocationInWindow(loc)
-            SwipePathLogic.KeyCenter(
-                letter.lowercaseChar(),
-                loc[0] + btn.width / 2f,
-                loc[1] + btn.height / 2f
-            )
-        }
+        SwipeKeyGeometry.centersFor(baseLetters)
 
+    /** @see SwipeKeyGeometry.charAt */
     private fun charAt(x: Float, y: Float): Char? =
-        SwipePathLogic.charAt(x, y, centersFor(baseLetters))
+        SwipeKeyGeometry.charAt(x, y, baseLetters)
 
     /** Setzt die aktuelle Engine (vom Service bei Engine-Ready / Feldwechsel). */
     fun setEngine(e: SuggestionEngine?) { engine = e }
@@ -401,16 +358,5 @@ class SwipeManager(
     /** Aktuelle Engine (vom Service gesetzt). */
     var engine: SuggestionEngine? = null
         private set
-
-    private class EdgeOverlay(context: android.content.Context, val path: Path, color: Int) : View(context) {
-        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = color
-            style = Paint.Style.STROKE
-            strokeWidth = 6f
-            strokeCap = Paint.Cap.ROUND
-        }
-        override fun onDraw(canvas: Canvas) {
-            canvas.drawPath(path, paint)
-        }
-    }
-} 
+}
+ 

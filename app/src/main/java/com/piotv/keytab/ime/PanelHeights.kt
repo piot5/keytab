@@ -20,7 +20,7 @@ object PanelHeights {
 
     /**
      * Misst die natürliche Höhe eines Views (auch wenn GONE). 0 wenn nicht
-     * ermittelbar. Util für das Maximieren des Editor-/Terminal-Panels beim
+     * ermittelbar. Util für das Maximieren des Editor-Panels beim
      * Ausblenden der Tastatur.
      */
     fun measureHeight(view: View?, widthPx: Int): Int {
@@ -32,11 +32,9 @@ object PanelHeights {
     }
 
     /**
-     * Zielhöhe des Terminal-Panels = gemessene Höhe des [editorPanel] allein —
-     * im Terminal-Tab bleibt die Buchstaben-Tastatur sichtbar (Eingabezeile),
-     * daher Panel + Tastatur = gleiche Gesamthöhe wie Editor/Files/Clip.
-     */
-    fun terminalPanelHeight(editorPanel: View?, widthPx: Int): Int =
+     * Gemessene Editorhöhe = gemessene Höhe des [editorPanel] allein —
+     *     */
+    fun editorPanelHeight(editorPanel: View?, widthPx: Int): Int =
         measureHeight(editorPanel, widthPx)
 
     /**

@@ -130,7 +130,7 @@ object ThemeApplier {
                 view.setTextColor(text)
         }
         }
-        // Tab-Leiste (ABC/Notes/Files/Terminal): Material legt sein eigenes Drawable
+        // Tab-Leiste (ABC/Notes/Files): Material legt sein eigenes Drawable
         // (Ripple/tabBackground) um die TabViews → constantState-Match schlägt fehl.
         // Explizit pro TabView setzen (SlidingTabIndicator → TabView-Kinder).
         v.findViewById<TabLayout>(R.id.ime_tabs)?.let { tabs ->

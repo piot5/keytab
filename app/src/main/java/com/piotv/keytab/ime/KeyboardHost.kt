@@ -59,7 +59,7 @@ interface ThemeHost : KeyboardHost {
  */
 interface TabHost : KeyboardHost {
 
-    /** Aktiver Input-Router (Ziel: App/Editor/Terminal). */
+    /** Aktiver Input-Router (Ziel: App/Editor). */
     val inputRouter: InputRouter?
 
     /** Long-Press-Popup (für dismiss beim Tab-Wechsel). */
@@ -103,8 +103,8 @@ interface SuggestionHost : KeyboardHost {
     fun isShifted(): Boolean
     fun isCapsLock(): Boolean
 
-    /** Aktiver Tab ist Editor oder Terminal? (⌄-Hide-Button nur dort sichtbar.) */
-    fun isEditorOrTerminalTab(): Boolean
+    /** Aktiver Tab ist Editor? (⌄-Hide-Button nur dort sichtbar.) */
+    fun isEditorTab(): Boolean
 
     /** Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt). */
     fun consumeSingleShift()
@@ -139,7 +139,7 @@ interface KeyboardInputHost : KeyboardHost {
     /** Haptisches Feedback auf dem Tastatur-Root. */
     fun haptic()
 
-    /** Text an das aktive Eingabeziel senden (App/Editor/Terminal via Router). */
+    /** Text an das aktive Eingabeziel senden (App/Editor via Router). */
     fun commitText(text: String)
 
     /** Wort vor dem Cursor löschen + Vorhersage reset (Del-LongPress-Repeat). */

@@ -6,7 +6,8 @@ package com.piotv.keytab.ime
  * Refactoring (docs/REFACTORING_PLAN.md Phase 3): die Zeit-/Intervall-Berechnung
  * aus [KeyTabImeService.setupDelButton] extrahiert. Der Service ruft [interval]
  * nach jedem Repeat; [next] liefert das nächste Intervall (kleiner werdend,
- * bis zum Minimum) – die Handler-Post-Logik bleibt beim Aufrufer ([KeyboardBinder]).
+ * bis zum Minimum) – die Handler-Post-Logik bleibt beim Aufrufer ([KeyboardBinder]),
+ * die Rechnung selbst in [WordDeleteRepeat.nextDelayMs].
  *
  * Verhalten bleibt bit-identisch zum Original („Umziehen statt Umschreiben").
  */
@@ -22,7 +23,7 @@ class RepeatScheduler(
 
     /** Nächstes Intervall berechnen (ab nächstem Repeat gültig). */
     fun next() {
-        current = (current * accel).toLong().coerceAtLeast(minMs)
+        current = WordDeleteRepeat.nextDelayMs(current, accel, minMs)
     }
 
     /** Reset auf Startintervall (neuer Long-Press-Beginn). */

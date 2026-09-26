@@ -44,8 +44,6 @@ object Prefs {
     /** Optionale Zahlenreihe an/aus. */
     const val KEY_NUM_ROW = "num_row"
 
-    /** Terminal-Tab sichtbar an/aus. */
-    const val KEY_TERM_TAB = "term_tab_enabled"
 
     /** Clipboard-Tab sichtbar an/aus. */
     const val KEY_CLIP_TAB = "clip_tab_enabled"

@@ -1,6 +1,7 @@
 package com.piotv.keytab
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -19,6 +20,7 @@ import androidx.core.content.ContextCompat
 import com.piotv.keytab.ime.KeyboardLanguage
 import com.piotv.keytab.ime.Languages
 import com.piotv.keytab.ime.SettingsConfig
+import com.piotv.keytab.ime.SuggestionEngine
 import com.piotv.keytab.ime.ThemePrefs
 
 /**
@@ -96,15 +98,6 @@ class MainActivity : AppCompatActivity() {
             else R.string.settings_num_row_off, Toast.LENGTH_SHORT).show()
         }
 
-        // Terminal-Tab in der Tastatur ein-/ausblenden (wirkt beim nächsten Öffnen)
-        val swTermTab = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_term_tab)
-        swTermTab.isChecked = prefs.getBoolean(Prefs.KEY_TERM_TAB, true)
-        swTermTab.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(Prefs.KEY_TERM_TAB, checked).apply()
-            Toast.makeText(this, if (checked) R.string.settings_term_on
-            else R.string.settings_term_off, Toast.LENGTH_SHORT).show()
-        }
-
         // Clipboard-Tab in der Tastatur ein-/ausblenden (wirkt beim nächsten Öffnen)
         val swClipTab = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_clip_tab)
         swClipTab.isChecked = prefs.getBoolean(Prefs.KEY_CLIP_TAB, true)
@@ -132,6 +125,15 @@ class MainActivity : AppCompatActivity() {
             else R.string.settings_suggestions_off, Toast.LENGTH_SHORT).show()
         }
 
+        // Autokorrektur beim Leerzeichen ein-/ausschalten
+        val swAutocorrect = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_autocorrect)
+        swAutocorrect.isChecked = prefs.getBoolean(Prefs.KEY_AUTOCORRECT, true)
+        swAutocorrect.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(Prefs.KEY_AUTOCORRECT, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_autocorrect_on
+            else R.string.settings_autocorrect_off, Toast.LENGTH_SHORT).show()
+        }
+
         // Emoji-Vorschläge (optional, Default aus; wirkt beim nächsten Vorschlags-Update)
         val swEmoji = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_emoji)
         swEmoji.isChecked = prefs.getBoolean(Prefs.KEY_EMOJI_SUGGESTIONS, false)
@@ -157,6 +159,10 @@ class MainActivity : AppCompatActivity() {
             prefs.edit().putBoolean(Prefs.KEY_SWIPE, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_swipe_on
             else R.string.settings_swipe_off, Toast.LENGTH_SHORT).show()
+        }
+
+        findViewById<Button>(R.id.btn_cleanup_learned_dictionary).setOnClickListener {
+            cleanupLearnedDictionary()
         }
 
         // Konfigurationsdatei schreiben/aktualisieren (Werte direkt editierbar)
@@ -222,6 +228,42 @@ class MainActivity : AppCompatActivity() {
                 AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
         } else AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
         AppCompatDelegate.setDefaultNightMode(mode)
+    }
+
+    /** Prüft das gelernte Feld offline und entfernt nur bestätigte Artefakte. */
+    private fun cleanupLearnedDictionary() {
+        val prefs = Prefs.of(this)
+        val engine = SuggestionEngine(emptyList())
+        val raw = prefs.getString(Prefs.KEY_USER_DICT, null)
+        if (raw != null) engine.restoreUserDict(raw)
+        val entries = LearnedDictionaryApi.listAll(engine)
+        val suspicious = entries.filter { LearnedDictionaryApi.looksLikeArtifact(it.word) }
+        if (suspicious.isEmpty()) {
+            Toast.makeText(this, R.string.settings_cleanup_dictionary_empty, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val revision = engine.revision
+        val preview = LearnedDictionaryApi.batchPreview(
+            engine,
+            suspicious.map { LearnedDictionaryApi.CleanupOperation.Delete(it.word, revision) },
+            emptyList()
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_cleanup_dictionary_title)
+            .setMessage(getString(R.string.settings_cleanup_dictionary_found, preview.wouldDelete.size))
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                when (val result = LearnedDictionaryApi.applyPreview(engine, preview, confirm = true)) {
+                    is LearnedDictionaryApi.CleanupResult.Ok -> {
+                        prefs.edit().putString(Prefs.KEY_USER_DICT, engine.serializeUserDict()).apply()
+                        Toast.makeText(this, getString(R.string.settings_cleanup_dictionary_done,
+                            result.deletedCount), Toast.LENGTH_SHORT).show()
+                    }
+                    is LearnedDictionaryApi.CleanupResult.Rejected ->
+                        Toast.makeText(this, R.string.settings_cleanup_dictionary_failed, Toast.LENGTH_LONG).show()
+                }
+            }
+            .show()
     }
 
     private fun neededPermissions(vararg perms: String): Array<String> {

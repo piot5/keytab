@@ -20,7 +20,6 @@ object SettingsConfig {
 
     private val settings = linkedMapOf<String, Setting>().apply {
         put("num_row", Setting(Prefs.KEY_NUM_ROW, "false", "boolean"))
-        put("term_tab", Setting(Prefs.KEY_TERM_TAB, "true", "boolean"))
         put("clip_tab", Setting(Prefs.KEY_CLIP_TAB, "true", "boolean"))
         put("snippet_tab", Setting(Prefs.KEY_SNIPPET_TAB, "true", "boolean"))
         put("suggestions", Setting(Prefs.KEY_SUGGESTIONS, "true", "boolean"))

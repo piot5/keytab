@@ -33,7 +33,7 @@ class WordPredictionManager(
      */
     private val personalizedProcessingAllowed: () -> Boolean = { true }
 ) {
-    /** Eingabe-Operationen, die der Service bereitstellt (kontextabhängig: App/Editor/Terminal). */
+    /** Eingabe-Operationen, die der Service bereitstellt (kontextabhängig: App/Editor). */
     interface InputOperations {
         fun deleteBefore(count: Int)
         /** Löscht via KEYCODE_DEL-Key-Events (Fallback für Felder ohne deleteSurroundingText). */
@@ -74,23 +74,7 @@ class WordPredictionManager(
         engineLanguage = language.code
         engineLoading = true
         ioExecutor.execute {
-            val words = mutableListOf<Pair<String, Int>>()
-            try {
-                context.assets.open(language.assetName).bufferedReader().useLines { lines ->
-                    for (line in lines) {
-                        val sp = line.trim().split(' ')
-                        if (sp.size == 2) {
-                            val f = sp[1].toIntOrNull() ?: continue
-                            words.add(sp[0] to f)
-                        }
-                    }
-                }
-            } catch (_: Exception) { /* Asset fehlt: nur gelernte Wörter */ }
-            val loaded = SuggestionEngine(words)
-            val saved = com.piotv.keytab.Prefs.of(context)
-                .getString(com.piotv.keytab.Prefs.KEY_USER_DICT, null)
-            if (saved != null) loaded.restoreUserDict(saved)
-            engine = loaded
+            engine = WordCorpusLoader.load(context, context.assets, language)
             engineLoading = false
             mainHandler.post { onEngineReady?.invoke() }
         }
@@ -197,7 +181,7 @@ class WordPredictionManager(
     }
 
     /**
-     * Setzt einen Vorschlag ein (Editor/Terminal/App via inputOps).
+     * Setzt einen Vorschlag ein (Editor/App via inputOps).
      *
      * **Bugfix Verdopplung/Zerstörung:** Die Ersetzung wird über
      * [SuggestionReplaceLogic] entschieden und das Löschen **verifiziert**.
@@ -268,7 +252,7 @@ class WordPredictionManager(
     /**
      * Emoji aus dem Vorschlags-Leisten-Katalog einfügen (v0.11): bewusst KEIN
      * Wort-Lernen und keine Autokorrektur — Emojis gehören nicht ins User-
-     * Dictionary. Einfügen via [inputOps.insert] (App/Editor/Terminal-Routing,
+     * Dictionary. Einfügen via [inputOps.insert] (App/Editor-Routing,
      * wie bei den Wortvorschlägen) ohne Trailing-Space; danach Buffer-Reset,
      * damit Engine-State und Feld nicht desynchronisieren.
      */
@@ -342,9 +326,6 @@ class WordPredictionManager(
     private fun persistUserDict() {
         val eng = engine ?: return
         val raw = eng.serializeUserDict()
-        ioExecutor.execute {
-            com.piotv.keytab.Prefs.of(context)
-                .edit().putString(com.piotv.keytab.Prefs.KEY_USER_DICT, raw).apply()
-        }
+        ioExecutor.execute { WordCorpusLoader.saveUserDict(context, raw) }
     }
 }

@@ -25,7 +25,7 @@ class TextCommitController(private val host: Host) {
         host.haptic()
         // Aktive Autokorrektur (v0.9.1): Space nach unbekanntem Wort → Wort
         // ersetzen, wenn ein klarer Wörterbuch-Kandidat existiert (nur App-Felder;
-        // Editor/Terminal buchen ihren Text selbst).
+        // Editor buchen ihren Text selbst).
         if (text == " " && host.inputRouter?.isApp == true &&
             host.predictionManager?.autoCorrectBeforeSpace() == true
         ) {

@@ -61,8 +61,8 @@ android {
         applicationId = "com.piotv.keytab"
         minSdk = 24
         targetSdk = 34
-        versionCode = 27
-        versionName = "0.12"
+        versionCode = 29
+        versionName = "0.14"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -88,10 +88,14 @@ android {
             val keyPassword = credential("KEYTAB_KEY_PASSWORD", "KEYTAB_KEY_PASSWORD")
             if (ksPassword != null && keyPassword != null) {
                 signingConfig = signingConfigs.create("release") {
+                    // Relativpfade aus keystore.properties sind relativ zum
+                    // Repository-Root, nicht zum app-Modul.
                     storeFile = file(
-                        System.getenv("KEYTAB_KEYSTORE")
-                            ?: props.getProperty("KEYTAB_KEYSTORE")
-                            ?: rootProject.file("keystore/keytab-release.jks").absolutePath
+                        rootProject.file(
+                            System.getenv("KEYTAB_KEYSTORE")
+                                ?: props.getProperty("KEYTAB_KEYSTORE")
+                                ?: "keystore/keytab-release.jks"
+                        )
                     )
                     storePassword = ksPassword
                     this.keyAlias = credential("KEYTAB_KEY_ALIAS", "KEYTAB_KEY_ALIAS") ?: "keytab"

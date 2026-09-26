@@ -35,6 +35,14 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          test -s app/build/outputs/apk/release/app-release.apk
+          apksigner verify --verbose app/build/outputs/apk/release/app-release.apk
+          sha256sum app/build/outputs/apk/release/app-release.apk > app/build/outputs/apk/release/app-release.apk.sha256
+
+      - name: Release-Artefakte anzeigen
+        run: |
+          cat app/build/outputs/apk/release/output-metadata.json
+          cat app/build/outputs/apk/release/app-release.apk.sha256
 
       - name: Release Notes aus Fastlane-Changelog lesen
         id: notes
@@ -51,14 +59,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp app/build/outputs/apk/release/app-release.apk "KeyTab-${GITHUB_REF_NAME#v}.apk"
-          # Idempotent: existiert das Release schon (Tag neu gepusht), Asset nur ersetzen
+          APK="KeyTab-${GITHUB_REF_NAME#v}.apk"
+          SUM="KeyTab-${GITHUB_REF_NAME#v}.apk.sha256"
+          cp app/build/outputs/apk/release/app-release.apk "$APK"
+          cp app/build/outputs/apk/release/app-release.apk.sha256 "$SUM"
+          # Idempotent: existiert das Release schon (Tag neu gepusht), Assets nur ersetzen
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber "KeyTab-${GITHUB_REF_NAME#v}.apk"
+            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber "$APK" "$SUM"
           else
             gh release create "$GITHUB_REF_NAME" \
               --repo "$GITHUB_REPOSITORY" \
               --title "KeyTab ${GITHUB_REF_NAME}" \
               --notes "${{ steps.notes.outputs.body }}" \
-              "KeyTab-${GITHUB_REF_NAME#v}.apk"
+              "$APK" "$SUM"
           fi

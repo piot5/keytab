@@ -105,6 +105,41 @@ class KeyTabImeEndToEndTest {
         assertNoSuggestions()
     }
 
+    @Test
+    fun fieldSwitch_keepsTargetsSeparateAndKeepsKeyboardUsable() {
+        val activity = activityRule.activity
+        focus(activity.normalField)
+        waitForKeyboard()
+        typeThroughVisibleIme("normal")
+        assertEquals("normal", activity.normalField.text.toString())
+
+        focus(activity.passwordField)
+        typeThroughVisibleIme("secret")
+        assertEquals("secret", activity.passwordField.text.toString())
+        assertNoSuggestions()
+
+        focus(activity.normalField)
+        assertEquals("normal", activity.normalField.text.toString())
+        typeThroughVisibleIme("x")
+        assertEquals("normalx", activity.normalField.text.toString())
+    }
+
+    @Test
+    fun activityRecreation_keepsImeUsableForNewField() {
+        val activity = activityRule.activity
+        focus(activity.normalField)
+        waitForKeyboard()
+        typeThroughVisibleIme("before")
+
+        instrumentation.runOnMainSync { activity.recreate() }
+        instrumentation.waitForIdleSync()
+        val recreated = activityRule.activity
+        focus(recreated.normalField)
+        waitForKeyboard()
+        typeThroughVisibleIme("after")
+        assertEquals("after", recreated.normalField.text.toString())
+    }
+
     private fun focus(field: EditText) {
         instrumentation.runOnMainSync {
             field.requestFocus()

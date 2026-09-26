@@ -149,7 +149,7 @@ class ThemeApplierTest {
     }
 
     @Test
-    fun `Taste-Farbe ueberfaerbt die Tab-Leiste (ABC-Notes-Files-Terminal)`() {
+    fun `Taste-Farbe ueberfaerbt die Tab-Leiste (ABC-Notes-Files)`() {
         val cfg = nightContext()
         val root = inflateRoot(cfg)
         val prefs = app.getSharedPreferences(ThemePrefs.PREFS, android.content.Context.MODE_PRIVATE)
@@ -172,7 +172,7 @@ class ThemeApplierTest {
 
         val unchanged = tabViews.filterIndexed { i, v -> v.background?.constantState == before[i] }.size
         assertTrue(
-            "Taste-Farbe muss die Tab-Leiste (ABC/Notes/Files/Terminal) ueberfaerben, aber " +
+            "Taste-Farbe muss die Tab-Leiste (ABC/Notes/Files) ueberfaerben, aber " +
                 "$unchanged von ${tabViews.size} behalten ihren Default-Hintergrund",
             unchanged == 0)
         // Vollständig ausgefüllt: flacher StateListDrawable-Hintergrund (kein Inset/Ripple)

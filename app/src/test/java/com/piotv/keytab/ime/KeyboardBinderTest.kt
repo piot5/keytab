@@ -35,7 +35,7 @@ class KeyboardBinderTest {
 
     private class FakeHost(val ctx: Context, val popup: LetterPopup) : KeyboardInputHost {
         override val context: Context get() = ctx
-        override fun hideKeyboard() {}
+        override fun hideKeyboard() = Unit
         override val letterPopup: LetterPopup get() = popup
         override val longPressHandler = Handler(Looper.getMainLooper())
         var router: InputRouter? = null
@@ -47,11 +47,11 @@ class KeyboardBinderTest {
         var root: View? = null
         override val keyboardRoot get() = root
         val commits = mutableListOf<String>()
-        override fun haptic() {}
+        override fun haptic() = Unit
         override fun commitText(text: String) { commits += text }
         var deletedWords = 0
         override fun deleteLastWord() { deletedWords++ }
-        override fun openSettings() {}
+        override fun openSettings() = Unit
         var shifted = false
         var caps = false
         override fun isShifted() = shifted
@@ -72,8 +72,8 @@ class KeyboardBinderTest {
         override fun insert(text: String) { ops += "ins:$text" }
         override fun deleteBackspace() { ops += "del" }
         override fun deleteWord() { ops += "delWord" }
-        override fun deleteBefore(count: Int) {}
-        override fun deleteBeforeKeys(count: Int) {}
+        override fun deleteBefore(count: Int) = Unit
+        override fun deleteBeforeKeys(count: Int) = Unit
         override fun textBefore(count: Int) = ""
         override fun onEnter() { ops += "enter" }
         override fun onTab() { ops += "tab" }
@@ -87,7 +87,7 @@ class KeyboardBinderTest {
 
     private class FakeTabHost(val ctx: Context, popup: LetterPopup) : TabHost {
         override val context: Context get() = ctx
-        override fun hideKeyboard() {}
+        override fun hideKeyboard() = Unit
         override val inputRouter: InputRouter? = null
         override val letterPopup: LetterPopup = popup
         override val fileManagerPanel: FileManagerPanel? = null
@@ -97,36 +97,36 @@ class KeyboardBinderTest {
 
     private class FakeThemeHost(val ctx: Context, popup: LetterPopup) : ThemeHost {
         override val context: Context get() = ctx
-        override fun hideKeyboard() {}
+        override fun hideKeyboard() = Unit
         override fun isDarkMode() = true
         override fun rebuildInputView(): View = View(ctx)
-        override fun setInputView(view: View) {}
+        override fun setInputView(view: View) = Unit
         override val keyboardRoot: View? = null
         override val longPressHandler = Handler(Looper.getMainLooper())
         override val letterPopup: LetterPopup = popup
-        override fun haptic() {}
+        override fun haptic() = Unit
     }
 
     private class FakeSuggHost(val ctx: Context) : SuggestionHost {
         override val context: Context get() = ctx
-        override fun hideKeyboard() {}
+        override fun hideKeyboard() = Unit
         override val predictionManager: WordPredictionManager? = null
         override val keyScaler: DynamicKeyScaler? = null
         override val baseLetters = mutableMapOf<android.widget.Button, Char>()
         override val keyboardRoot: View? = null
         override fun isDarkMode() = true
-        override fun haptic() {}
+        override fun haptic() = Unit
         override fun isShifted() = false
         override fun isCapsLock() = false
-        override fun isEditorOrTerminalTab() = false
-        override fun consumeSingleShift() {}
+        override fun isEditorTab() = false
+        override fun consumeSingleShift() = Unit
     }
 
     @Before
     fun setUp() {
         host = FakeHost(app,
             LetterPopup(Robolectric.buildService(KeyTabImeService::class.java).get()))
-        host.router = InputRouter(FakeRouterTarget(), FakeRouterTarget(), FakeRouterTarget())
+        host.router = InputRouter(FakeRouterTarget(), FakeRouterTarget())
         root = LayoutInflater.from(ContextThemeWrapper(app, R.style.Theme_KeyTab))
             .inflate(R.layout.keyboard_view, null)
         host.root = root

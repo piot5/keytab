@@ -70,8 +70,8 @@ class SuggestionControllerTest {
         var caps = false
         override fun isShifted() = shifted
         override fun isCapsLock() = caps
-        var editorOrTerminal = false
-        override fun isEditorOrTerminalTab() = editorOrTerminal
+        var editorTab = false
+        override fun isEditorTab() = editorTab
         var shifts = 0
         override fun consumeSingleShift() { shifts++; shifted = false }
     }
@@ -228,12 +228,12 @@ class SuggestionControllerTest {
     }
 
     @Test
-    fun `Hide-Button nur im Editor-Terminal-Tab sichtbar`() {
-        host.editorOrTerminal = true
+    fun `Hide-Button nur im Editor-Tab sichtbar`() {
+        host.editorTab = true
         controller.setup(root, arrayOfNulls(3), Languages.de)
         assertEquals(View.VISIBLE,
             root.findViewById<TextView>(R.id.sug_hide).visibility)
-        host.editorOrTerminal = false
+        host.editorTab = false
         controller.setup(root, arrayOfNulls(3), Languages.de)
         assertEquals(View.GONE,
             root.findViewById<TextView>(R.id.sug_hide).visibility)
@@ -241,7 +241,7 @@ class SuggestionControllerTest {
 
     @Test
     fun `Hide-Button blendet Tastatur aus und wechselt Symbol`() {
-        host.editorOrTerminal = true
+        host.editorTab = true
         controller.setup(root, arrayOfNulls(3), Languages.de)
         val btn = root.findViewById<TextView>(R.id.sug_hide)
         assertEquals("Start-Symbol", "⇲", btn.text.toString())

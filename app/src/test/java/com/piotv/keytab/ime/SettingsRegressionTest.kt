@@ -84,21 +84,19 @@ class SettingsRegressionTest {
                 else -> null
             }
         } as TabHost
-        for (mask in 0..7) {
+        for (mask in 0..3) {
             val prefs = app.getSharedPreferences(Prefs.FILE, 0)
             prefs.edit().clear().putBoolean(Prefs.KEY_CLIP_TAB, mask and 1 != 0)
-                .putBoolean(Prefs.KEY_TERM_TAB, mask and 2 != 0)
-                .putBoolean(Prefs.KEY_SNIPPET_TAB, mask and 4 != 0).apply()
+                .putBoolean(Prefs.KEY_SNIPPET_TAB, mask and 2 != 0).apply()
             val root = LayoutInflater.from(ctx).inflate(R.layout.keyboard_view, null)
             val controller = TabController(host)
             repeat(2) { controller.setup(root) }
             val tabs = root.findViewById<TabLayout>(R.id.ime_tabs)
             assertEquals(3 + Integer.bitCount(mask), tabs.tabCount)
-            if (mask and 4 != 0) {
+            if (mask and 2 != 0) {
                 tabs.getTabAt(tabs.tabCount - 1)!!.select()
                 assertEquals(View.VISIBLE, root.findViewById<View>(R.id.snippet_panel).visibility)
-                assertEquals(View.GONE, root.findViewById<View>(R.id.term_panel).visibility)
-            }
+                }
         }
     }
 

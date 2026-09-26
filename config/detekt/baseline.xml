@@ -4,7 +4,6 @@
   <CurrentIssues>
     <ID>ComplexCondition:BackgroundImage.kt$BackgroundImage$iw &lt;= 0 || ih &lt;= 0 || width &lt;= 0 || height &lt;= 0</ID>
     <ID>ComplexCondition:EditorHighlightLogic.kt$EditorHighlightLogic$c == '0' &amp;&amp; i + 1 &lt; n &amp;&amp; (text[i + 1] == 'x' || text[i + 1] == 'X')</ID>
-    <ID>ComplexCondition:KeyTabImeService.kt$KeyTabImeService$id == R.id.editor_panel || id == R.id.term_panel || id == R.id.file_panel || id == R.id.clip_panel || id == R.id.snippet_panel</ID>
     <ID>ComplexCondition:LetterPopup.kt$LetterPopup$event.rawX &gt;= loc[0] &amp;&amp; event.rawX &lt; loc[0] + cell.width &amp;&amp; event.rawY &gt;= loc[1] &amp;&amp; event.rawY &lt; loc[1] + cell.height</ID>
     <ID>ComplexCondition:SuggestionEngine.kt$SuggestionEngine.Companion$i &gt; 1 &amp;&amp; j &gt; 1 &amp;&amp; a[i - 1] == b[j - 2] &amp;&amp; a[i - 2] == b[j - 1]</ID>
     <ID>CyclomaticComplexMethod:DynamicKeyScaler.kt$DynamicKeyScaler$private fun computeNeighbors(): (Char) -&gt; Set&lt;Char&gt;</ID>
@@ -21,13 +20,10 @@
     <ID>CyclomaticComplexMethod:SuggestionEngine.kt$SuggestionEngine$private fun completeWord(cur: String, prev: String?, max: Int): List&lt;Suggestion&gt;</ID>
     <ID>CyclomaticComplexMethod:SuggestionEngine.kt$SuggestionEngine$private fun predictNext(prev: String?, max: Int, sentenceStart: Boolean = false): List&lt;Suggestion&gt;</ID>
     <ID>CyclomaticComplexMethod:SwipeManager.kt$SwipeManager$private fun drawEdges()</ID>
-    <ID>CyclomaticComplexMethod:TabController.kt$TabController$fun setup(root: View)</ID>
     <ID>CyclomaticComplexMethod:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
     <ID>CyclomaticComplexMethod:ThemePrefs.kt$ThemePrefs$fun importColors(prefs: SharedPreferences, json: String): Boolean</ID>
-    <ID>LongMethod:KeyTabImeService.kt$KeyTabImeService$override fun hideKeyboard()</ID>
     <ID>LongMethod:KeyboardBinder.kt$KeyboardBinder$private fun setupLetterButton(btn: Button)</ID>
     <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
-    <ID>LongMethod:TabController.kt$TabController.&lt;no name provided&gt;$override fun onTabSelected(tab: TabLayout.Tab)</ID>
     <ID>LongMethod:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
     <ID>LongMethod:TopSection.kt$TopSection$fun build(col: LinearLayout)</ID>
     <ID>LongMethod:TrailSection.kt$TrailSection$fun build(col: LinearLayout)</ID>
@@ -36,7 +32,6 @@
     <ID>LoopWithTooManyJumpStatements:EditorHighlightLogic.kt$EditorHighlightLogic$while</ID>
     <ID>LoopWithTooManyJumpStatements:KeyScaleLogic.kt$KeyScaleLogic$for</ID>
     <ID>LoopWithTooManyJumpStatements:KeyTabConfig.kt$KeyTabConfig.Companion$for</ID>
-    <ID>LoopWithTooManyJumpStatements:KeyTabImeService.kt$KeyTabImeService$for</ID>
     <ID>LoopWithTooManyJumpStatements:LearnedDictionaryApi.kt$LearnedDictionaryApi$for</ID>
     <ID>LoopWithTooManyJumpStatements:SnippetPanel.kt$SnippetPanel$for</ID>
     <ID>LoopWithTooManyJumpStatements:SuggestionEngine.kt$SuggestionEngine$for</ID>
@@ -94,8 +89,6 @@
     <ID>MagicNumber:SettingsConfig.kt$SettingsConfig$16</ID>
     <ID>MagicNumber:SettingsConfig.kt$SettingsConfig$7</ID>
     <ID>MagicNumber:ShiftController.kt$ShiftController$1_000_000_000L</ID>
-    <ID>MagicNumber:SnippetPanel.kt$SnippetPanel$16</ID>
-    <ID>MagicNumber:SnippetPanel.kt$SnippetPanel$8</ID>
     <ID>MagicNumber:SuggestionController.kt$SuggestionController$1.3f</ID>
     <ID>MagicNumber:SuggestionController.kt$SuggestionController$10f</ID>
     <ID>MagicNumber:SuggestionController.kt$SuggestionController$130</ID>
@@ -135,8 +128,6 @@
     <ID>MagicNumber:SwipeScorer.kt$SwipeScorer$1.2</ID>
     <ID>MagicNumber:SwipeScorer.kt$SwipeScorer$1.3</ID>
     <ID>MagicNumber:SwipeScorer.kt$SwipeScorer$1.5</ID>
-    <ID>MagicNumber:TerminalPanel.kt$TerminalPanel$100000</ID>
-    <ID>MagicNumber:TerminalPanel.kt$TerminalPanel$512</ID>
     <ID>MagicNumber:TextEditLogic.kt$TextEditLogic$1024</ID>
     <ID>MagicNumber:TextEditLogic.kt$TextEditLogic$1024.0</ID>
     <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$0.6f</ID>
@@ -188,7 +179,6 @@
     <ID>NestedBlockDepth:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
     <ID>NestedBlockDepth:ThemePrefs.kt$ThemePrefs$fun importColors(prefs: SharedPreferences, json: String): Boolean</ID>
     <ID>NewLineAtEndOfFile:SwipeManager.kt$com.piotv.keytab.ime.SwipeManager.kt</ID>
-    <ID>SwallowedException:TerminalPanel.kt$TerminalPanel$e: Exception</ID>
     <ID>TooManyFunctions:KeyTabImeService.kt$KeyTabImeService : InputMethodServiceThemeHostTabHostSuggestionHostKeyboardInputHost</ID>
     <ID>TooManyFunctions:SwipeManager.kt$SwipeManager</ID>
     <ID>TooManyFunctions:ThemePrefs.kt$ThemePrefs</ID>

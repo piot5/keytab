@@ -62,7 +62,7 @@ class PanelHeightsTest {
         assertEquals(0, PanelHeights.filesPanelHeight(ed, kb, -5))
     }
 
-    // ---------- P0-Nachträge (measureHeight, Terminal, Robustheit) ----------
+    // ---------- P0-Nachträge (measureHeight, Robustheit) ----------
 
     @Test
     fun `measureHeight misst auch GONE-Views und schuetzt vor Unsinn`() {
@@ -80,18 +80,18 @@ class PanelHeightsTest {
     }
 
     @Test
-    fun `terminalPanelHeight entspricht der Editor-Hoehe`() {
-        // Im Terminal-Tab bleibt die Buchstaben-Tastatur sichtbar —
-        // Terminal-Panel + Tastatur = gleiche Gesamthöhe wie Notes/Files.
+    fun `editorPanelHeight entspricht der Editor-Hoehe`() {
+        // Die Editorhöhe wird unabhängig vom aktuellen Tab gemessen —
+        // Editor-Panel + Tastatur = gleiche Gesamthöhe wie Notes/Files.
         val root = inflateRoot(nightContext())
         val ed = root.findViewById<View>(R.id.editor_panel)
         val width = app.resources.displayMetrics.widthPixels
-        val term = PanelHeights.terminalPanelHeight(ed, width)
-        assertTrue("Terminal-Panel muss gemessen worden sein", term > 0)
-        assertEquals("Terminal-Höhe = Editor-Höhe",
+        val term = PanelHeights.editorPanelHeight(ed, width)
+        assertTrue("Editor-Panel muss gemessen worden sein", term > 0)
+        assertEquals("Editor-Höhe = Editor-Höhe",
             ed.measuredHeight, term)
-        assertEquals(0, PanelHeights.terminalPanelHeight(null, width))
-        assertEquals(0, PanelHeights.terminalPanelHeight(ed, 0))
+        assertEquals(0, PanelHeights.editorPanelHeight(null, width))
+        assertEquals(0, PanelHeights.editorPanelHeight(ed, 0))
     }
 
     @Test

@@ -124,7 +124,6 @@ class LearnedDictionaryApiTest {
         assertFalse(LearnedDictionaryApi.looksLikeArtifact("script"))
         assertFalse(LearnedDictionaryApi.looksLikeArtifact("code"))
         assertFalse(LearnedDictionaryApi.looksLikeArtifact("editor"))
-        assertFalse(LearnedDictionaryApi.looksLikeArtifact("terminal"))
     }
 
     @Test

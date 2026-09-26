@@ -15,7 +15,7 @@ import org.robolectric.annotation.Config
 /**
  * KeyTabImeService: schmale Orchestrations-Vertraege (kein Full-Service).
  * Caps-Entscheidung, Trail-Passwortschutz-Spiegel, Shift-Delegation,
- * Dark-Mode-Pref-Override, Editor/Terminal-Tab-Mapping.
+ * Dark-Mode-Pref-Override, Editor-Tab-Mapping.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -94,7 +94,7 @@ class KeyTabImeServiceTest {
     }
 
     @Test
-    fun `isEditorOrTerminalTab startet false (ABC-Tab)`() {
-        assertFalse(service().isEditorOrTerminalTab())
+    fun `isEditorTab startet false (ABC-Tab)`() {
+        assertFalse(service().isEditorTab())
     }
 }

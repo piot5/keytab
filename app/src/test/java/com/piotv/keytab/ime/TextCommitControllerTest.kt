@@ -72,7 +72,7 @@ class TextCommitControllerTest {
     private fun rig(withPm: Boolean = true): Triple<TextCommitController, FakeHost, FakeTarget> {
         val appT = FakeTarget()
         val host = FakeHost()
-        host.router = InputRouter(appT, FakeTarget(), FakeTarget())
+        host.router = InputRouter(appT, FakeTarget())
         if (withPm) {
             host.pm = WordPredictionManager(app, { it.run() },
                 Handler(Looper.getMainLooper()), arrayOfNulls(3), FakeField())

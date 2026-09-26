@@ -45,7 +45,6 @@ class SettingsConfigTest {
         assertEquals("cover", prefs.getString(Prefs.KEY_BG_IMAGE_FILL, null))
         assertFalse(prefs.contains(ThemePrefs.colorKey(true, ThemePrefs.KIND_BG)))
         assertFalse(prefs.contains("keyboard_height_ratio"))
-        assertFalse(prefs.contains(Prefs.KEY_TERM_TAB))
     }
 
     @Test fun colorsAndUriFragmentsSurviveComments() {
@@ -99,11 +98,11 @@ class SettingsConfigTest {
 
     @Test fun fullExportImportsAllUiSettingsWithoutCreatingColorOverrides() {
         val completed = SettingsConfig.completeText("", prefs)
-        // 40 Alt-Keys + 2 Verlauf-Modi (dark/light) + 4 Verlaufs-Farben (je Modus)
-        assertEquals(46, KeyTabConfig.entries(completed).size)
+        // 45 Alt-Keys + 2 Verlauf-Modi (dark/light) + 4 Verlaufs-Farben (je Modus)
+        assertEquals(45, KeyTabConfig.entries(completed).size)
         assertTrue(SettingsConfig.importTextIfChanged(completed, prefs))
         assertFalse(prefs.getBoolean(Prefs.KEY_NUM_ROW, true))
-        for (key in listOf(Prefs.KEY_TERM_TAB, Prefs.KEY_CLIP_TAB, Prefs.KEY_SNIPPET_TAB,
+        for (key in listOf(Prefs.KEY_CLIP_TAB, Prefs.KEY_SNIPPET_TAB,
             Prefs.KEY_SUGGESTIONS, Prefs.KEY_AUTOCORRECT, Prefs.KEY_DYNAMIC_KEYS)) {
             assertTrue(key, prefs.getBoolean(key, false))
         }

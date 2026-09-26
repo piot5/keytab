@@ -166,6 +166,22 @@ class WordPredictionManagerPrivacyTest {
     }
 
     @Test
+    fun `abgeschaltete Autokorrektur ersetzt beim Space nicht`() {
+        val prefs = com.piotv.keytab.Prefs.of(RuntimeEnvironment.getApplication())
+        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_AUTOCORRECT, false).commit()
+        try {
+            val rig = Rig("hauss", allowed = true, withViews = false)
+            rig.loadEngine()
+            rig.type("hauss")
+
+            assertFalse("Einstellung muss Autokorrektur deaktivieren", rig.manager.autoCorrectBeforeSpace())
+            assertEquals("hauss", rig.field.value())
+        } finally {
+            prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_AUTOCORRECT, true).commit()
+        }
+    }
+
+    @Test
     fun `normales Feld korrigiert weiterhin (Gegenprobe)`() {
         val rig = Rig("hauss", allowed = true, withViews = false)
         rig.loadEngine()

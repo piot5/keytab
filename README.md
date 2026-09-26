@@ -28,6 +28,23 @@ Every tagged release (`v*`) is built and published automatically by CI:
 
 Install: open the APK in a file manager (allow "install unknown apps"), then enable KeyTab in *Settings → System → Languages & input → On-screen keyboard* and switch to it in any text field.
 
+## Screenshots
+
+The images are generated from the real resources by `scripts/make_screens.py`
+(colours from `values/colors.xml` and `values-night/colors.xml`, layout from
+`panel_keyboard_letters.xml`), so they drift with the code instead of against
+it. They show the keyboard view, not a photo of a device:
+
+| Light theme (QWERTZ, de) | Dark theme (default) | Snippet bar |
+|---|---|---|
+| ![Light theme](docs/images/keyboard-light.png) | ![Dark theme](docs/images/keyboard-dark.png) | ![Snippets at sentence start](docs/images/keyboard-snippets.png) |
+
+The top suggestion is rendered 2× wider with a green accent bar, the likely
+next key is scaled up (dynamic key sizing, `s` in the light picture) and at a
+sentence start with no word typed the bar falls back to your last used
+snippets. Device captures — frame timing, animations, per-theme contrast —
+remain an open gap (see [Known gaps](#known-gaps)).
+
 ## What it does
 
 KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab on the keyboard strip, so the keyboard itself is the launch point for a *local‑first* dev environment — open the file manager, editor, snippets directly, and what you type still lands in the app field you're in. This is **deliberately not an AI keyboard**: word prediction and fuzzy correction run fully on‑device on a small n‑gram model plus Damerau‑Levenshtein heuristics (no network, no cloud, no data collection), and a 50 ms‑per‑keystroke performance budget keeps prediction off the main thread. If you work from Termux/Ubuntu‑proot, the keyboard becomes your shell launcher, file browser and snippet library in one input view.
@@ -361,6 +378,18 @@ app/src/main/assets/
 ├── pt_freq_top6000.txt              # corpus (CC-BY-SA-4.0)
 └── nl_freq_top6000.txt              # Dutch corpus (CC-BY-SA-4.0)
 ```
+## Distribution
+
+| Channel | Status |
+|---|---|
+| GitHub Releases (signed APK + SHA-256 checksum) | ✅ every `v*` tag, built and published by CI |
+| IzzyOnDroid | ⏳ submission prepared — see [`docs/IZZYONDROID_SUBMISSION.md`](docs/IZZYONDROID_SUBMISSION.md) |
+| F-Droid | not requested (needs a reproducible-build verification recipe) |
+
+Both the Fastlane metadata (`fastlane/metadata/android/en-US/`) and the
+screenshots are part of the repository, so a store listing never drifts from
+the code.
+
 ## Changelog
 
 Release history and all notable changes live in **[CHANGELOG.md](CHANGELOG.md)** —

@@ -27,9 +27,11 @@ welcher Schlüssel wohin gehört.
 - `num_row`, `term_tab`, `clip_tab`, `snippet_tab`, `suggestions`, `autocorrect`,
   `dynamic_keys`, `emoji_suggestions` (Default `false` — hängt bis zu 2
   thematische Emojis hinten an die Wortvorschläge an; immer offline).
-  **Hinweis:** `autocorrect` (Default `true`) ist seit 2026-09-21 nicht mehr im
-  Einstellungs-Screen (die Autokorrektur läuft fest); über diese Config-Datei
-  lässt sie sich weiterhin gezielt abschalten.
+  `autocorrect` (Default `true`) steuert die automatische Korrektur beim
+  Leerzeichen und ist auch im Einstellungs-Screen als Schalter verfügbar. Die
+  Reinigung des gelernten Feldes erfolgt separat über **🧹 Gelerntes Wörterbuch
+  prüfen**: Vorschau und Bestätigung sind erforderlich, der Basiswortschatz bleibt
+  unverändert.
 - `swipe` (Default `false` — v0.11): Gleit-Eingabe; der Finger gleitet über die
   Tastatur, die Route wird gegen die Engine bewertet (Auto-Commit bei klarem
   Ergebnis, sonst Kandidaten-Leiste). `swipe_preview` (Default `false`,
@@ -128,5 +130,6 @@ Tab, Zahlenreihe, Ausrichtung und Gerät verändern dieses Verhältnis. Es wird 
 zusätzliche Tastaturhöhen-Einstellung eingeführt. Große Bilder werden vor dem Laden
 herunterskaliert (maximal 2048 Pixel je Seite).
 
-Der Terminal-Tab ist experimentell: Android-Shell in der App-Sandbox, kein PTY,
-keine Termux-/proot-Umgebung. Snippets sind davon unabhängig.
+Hinweis: Der Terminal-Tab wurde in v0.14 entfernt; `term_tab` wird in alten
+`keytab_config.txt`-Dateien als unbekannter Schlüssel ignoriert. Snippets bleiben
+unverändert.

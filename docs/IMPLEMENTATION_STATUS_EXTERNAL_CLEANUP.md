@@ -1,8 +1,11 @@
-> **Status 2026-09-22:** Die API ist `internal` und **nicht verdrahtet** — Entscheidung gegen einen externen Transportweg (kein ContentProvider) siehe `API_INTERFACE_EXTERNAL_CLEANUP.md` §0. Dieses Dokument bleibt als Planungs-/Umsetzungsnachweis erhalten.
-
 # Implementation Status: External Cleanup API (KeyTab)
 
-Stand: 2026-09-18
+> **Status-Banner (2026-09-25):** Die API ist jetzt über den In-App-Weg in
+> `MainActivity` erreichbar: `LearnedDictionaryApi` erzeugt eine Preview und
+> `applyPreview(..., confirm = true)` schreibt nur nach Benutzerbestätigung.
+> Ein externer Transportweg bleibt bewusst nicht vorhanden.
+
+Stand: 2026-09-25
 
 ## Neu
 - `app/src/main/java/com/piotv/keytab/LearnedDictionaryApi.kt`

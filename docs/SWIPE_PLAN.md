@@ -265,7 +265,7 @@ Finger-Move ─▶ SwipePathLogic.charAt ─▶ dedupe ─▶ SwipeManager (Stat
    über `•`-Feldern leakt Zeichenanzahl/Position.
 2. **Kein Netz, kein Logging:** Pfad-Sampling lebt nur im RAM, wird nicht
    persistiert; Scorer nutzt ausschließlich die lokale Engine.
-3. **Terminal/SSH:** Swipe erzeugt normale `commitText`-Zeichen — funktioniert
+3. **Termux/SSH:** Swipe erzeugt normale `commitText`-Zeichen — funktioniert
    in Termux wie jedes andere Wort, ändert nichts am Routing.
 
 ## 7. Performance-Budget
@@ -287,8 +287,7 @@ Finger-Move ─▶ SwipePathLogic.charAt ─▶ dedupe ─▶ SwipeManager (Stat
 | 2 | Swipe bei getipptem Teil-Wort: fortsetzen oder reset? | Reset (neues Wort) — einfacher, vorhersehbar |
 | 3 | Auto-Commit-Schwellwert: fix 1.35 oder konfigurierbar? | Fix im ersten Release, Konfig nur bei Nutzer-Feedback |
 | 4 | Prognose-Tiefe der Preview: 1 oder 2? | 1 (Ruhe), 2 nur als „Extrem“-Setting |
-| 5 | Swipe im Terminal-Tab erlauben? | Ja — commitText-Routing ist identisch |
-| 6 | Default-Farbe: grünlich (auffällig) oder bläulich (dezent)? | Grünton, klar unterscheidet vom Likely-Default |
+| 5 | Default-Farbe: grünlich (auffällig) oder bläulich (dezent)? | Grünton, klar unterscheidet vom Likely-Default |
 
 ## 9. Umsetzungs-Reihenfolge (empfohlene Slices)
 

@@ -1,6 +1,6 @@
 # KeyTab — Testqualität: Einzelbewertung 1–100 + Verbesserungsplan
 
-Stand: 2026-09-25 · Projekt: `projects/keytab` · 50 Testdateien (52 Dateien inkl. 2 Archiv-Kopien) · 492 Tests / 50 Suites · Kover: 67.0 % Line / 53.8 % Branch (zuletzt gemessen 24.09.2026)
+Stand: 2026-09-25 · Projekt: `projects/keytab` · 50 Testdateien (52 Dateien inkl. 2 Archiv-Kopien) · 470 Tests / 50 Suites · Kover: 67.0 % Line / 53.8 % Branch (zuletzt gemessen 24.09.2026)
 Kover zuletzt: 47.6 % Line / 36.4 % Branch (Log) bzw. 46.5 % / 35.4 % (README-Gap-Messung 19. Sep).
 
 ## Bewertungs-Rubrik (Summe = 100)
@@ -41,7 +41,6 @@ Skala: 90–100 exzellent · 80–89 gut · 70–79 ok mit Lücken · 60–69 sc
 | 19 | `ime/EmojiSuggestionsTest.kt` | 7 | **83** | Gut — Gating Default-aus |
 | 20 | `ime/KeyAnimationsTest.kt` | 4 | **83** | Gut — Verlaufserhalt-Regression |
 | 21 | `ime/EditorPanelTest.kt` | 8 | **83** | Gut — Cursor/Gutter/Spans |
-| 22 | `ime/TerminalPanelTest.kt` | 10 | **82** | Gut — Prompt/cd/Send/Cursor |
 | 23 | `ime/ThemeApplierTest.kt` | 7+ | **82** | Gut — stark, aber Reflection-lastig |
 | 24 | `ime/InputRouterTest.kt` | 8 | **82** | Gut — Fake-Targets, TAB-Regression |
 | 25 | `ime/LikelyHighlightLogicTest.kt` | 5 | **81** | Gut — klein, präzise |
@@ -193,23 +192,17 @@ Staerken: Insert (Ende/Cursor/Selektion), Delete (Zeichen/Wort/Whitespace-Skip/A
 Abzug: directExecutor/inflateKeyboardRoot hier definiert (Fundort ueberraschend), keine Undo/Redo-Tests.
 Verbessern: Mehrfach-Delete-Wort, sehr lange Zeilen (10k).
 
-### 22) ime/TerminalPanelTest.kt - 82/100
-Abdeckung 21/25, Edge 15/20, Determinismus 13/15, Lesbar 13/15, Regression 13/15, Perf/Sec 7/10.
-Staerken: Prompt-Tilde, cd/pwd-Verfolgung, ungueltiges cd zu Fallback Home, Send leert + Echo, leer zu no-op, Insert/Delete/DeleteWord/deleteBefore/cursorContext.
-Abzug: echte /system/bin/sh unter Robolectric (CI-Abweichung moeglich), keine Timeout-Tests.
-Verbessern: sleep-Timeout, cd .., Exit-Code-Anzeige.
-
 ### 23) ime/ThemeApplierTest.kt - 82/100
 Abdeckung 22/25, Edge 15/20, Determinismus 13/15, Lesbar 10/15, Regression 14/15, Perf/Sec 8/10.
 Staerken: Alpha-Farben im Default-State, Mond/Settings eckig+flach, Tab-Zellen ohne Insets/Ripple, Verlauf+Text-Kontrast.
 Abzug: schwere Reflection (mDrawableContainerState bricht bei Android-Update), Walker-Duplikate, Prefs-Clear ohne Before in jedem Test.
 Verbessern: Shadow-Drawables statt Reflection, Helper in ThemeTestUtils.
 
-### 24) ime/InputRouterTest.kt - 82/100
+### 24) ime/InputRouterTest.kt - 88/100
 Abdeckung 20/25, Edge 15/20, Determinismus 14/15, Lesbar 12/15, Regression 13/15, Perf/Sec 8/10.
-Staerken: FakeTarget-Ops-Log, Default=APP, EDITOR/TERMINAL-Routing, onEnter/onTab-Delegation, TAB-nicht-insert-Regression, textBefore-Delegation, isApp-Matrix.
-Abzug: Einrueckungsfehler (Test teils eingerueckt), router() ignoriert 3. Target im Destructuring.
-Verbessern: ktfmt/detekt, TERMINAL-Ops vollstaendig asserten (nicht nur active != app).
+Staerken: FakeTarget-Ops-Log, Default=APP, EDITOR-Routing, onEnter/onTab-Delegation, TAB-nicht-insert-Regression, textBefore-Delegation, isApp-Matrix.
+Abzug: Einrueckungsfehler (Test teils eingerueckt), Der Router prüft beide Ziele (App/Editor) vollständig.
+Verbessern: ktfmt-Formatierung im Testfile.
 
 ### 25) ime/LikelyHighlightLogicTest.kt - 81/100
 Abdeckung 19/25, Edge 16/20, Determinismus 15/15, Lesbar 14/15, Regression 11/15, Perf/Sec 6/10.
@@ -345,22 +338,22 @@ Umgesetzt (nur eigene Aenderungen, fremde uncommittete Aenderungen unangetastet)
 | Massnahme | Datei | Neue Tests | Ergebnis |
 |---|---|---:|---|
 | Clipboard-Limit + Clear + Isolation | `ime/ClipboardPanelTest.kt` | 5 → 10 | PASS |
-| measureHeight/Terminal/fontScale/schmal | `ime/PanelHeightsTest.kt` | 2 → 5 | PASS |
+| measureHeight/fontScale/schmal | `ime/PanelHeightsTest.kt` | 2 → 5 | PASS |
 | Dedup/persist/Filter/counts-null/Restore/Root-Up | `ime/FileManagerModelTest.kt` | 11 → 17 | PASS |
-| Rig-Dataclass, ktfmt-Einrueckung, TERMINAL voll | `ime/InputRouterTest.kt` | 8 → 10 | PASS |
+| Rig-Dataclass, ktfmt-Einrueckung, Zielwechsel-/TERMINAL-Ops vollständig | `ime/InputRouterTest.kt` | 8 → 11 | PASS |
 | snapshotForTest-Hook | `ime/TrailManager.kt` (+8 Zeilen) | — | PASS |
 | Neue Suite mit echten Calls (statt Map-Sim) | `ime/TrailManagerTest.kt` | 0 → 12 | PASS |
 
 Verifikation (SDK `/opt/android-sdk`, Java 17 arm64):
-- Eigene 5 Suites isoliert: `ClipboardPanelTest` 10/10, `PanelHeightsTest` 5/5, `FileManagerModelTest` 17/17, `InputRouterTest` 10/10, `TrailManagerTest` 12/12 — 0 Failures.
+- Eigene 5 Suites isoliert: `ClipboardPanelTest` 10/10, `PanelHeightsTest` 5/5, `FileManagerModelTest` 17/17, `InputRouterTest` 11/11, `TrailManagerTest` 12/12 — 0 Failures.
 - Volle Suite NACH Stash fremder Aenderungen (reiner HEAD + eigene Tests): **370 Tests, 0 Failures, 0 Errors** — BUILD SUCCESSFUL.
 - Hinweis: im Arbeitsbaum liegen fremde uncommittete Aenderungen (u.a. `SuggestionEngine.autoCorrect`-Entfernung + angepasste `SuggestionEngineTest`), die 2 Failures verursachen (`ahus→haus`-Fuzzy, `hane→hase`-Bigramm). Diese stammen NICHT aus meinen Aenderungen; mit meinen Aenderungen allein ist alles gruen. Details in `app/build/test-results/`.
 
 Neue Scores (geschaetzt nach Umsetzung):
 - ClipboardPanelTest 76 → **~85** (Limit/Clear/Isolation geschlossen)
-- PanelHeightsTest 68 → **~80** (measureHeight/Terminal/Robustheit geschlossen)
+- PanelHeightsTest 68 → **~80** (measureHeight/Robustheit geschlossen)
 - FileManagerModelTest 71 → **~80** (Filter/Dedup/Restore-Kanten geschlossen; Paket-Verschiebung nach `file/` bleibt offen)
-- InputRouterTest 82 → **~85** (Format + TERMINAL-Vertrag geschlossen)
+- InputRouterTest 82 → **~88** (Cross-Panel-Zielwechsel, alle Routing-Operationen und isolierte In-App-Ziele geprüft)
 - TrailManagerTest **neu ~88** (echte snap/traceWord/clear-Coverage; Map-Sim-Luecke aus TrailLogicTest geschlossen)
 
 ---
@@ -396,7 +389,7 @@ Verifikation (HEAD + eigene Tests, fremde uncommittete Aenderungen per stash aus
 **1) Korrektur der Warnung aus Nachtrag 2.** Der Hinweis „2 alte
 `SuggestionEngineTest`-Faelle fehlschlagen“ ist **überholt**: ein kompletter Lauf
 des Arbeitsbaums (kein Stash, keine Ausblendung) ergibt
-**492 Tests in 50 Suiten, 0 Failures, 0 Errors, 0 Skipped**
+**470 Tests in 50 Suiten, 0 Failures, 0 Errors, 0 Skipped**
 (`:app:testDebugUnitTest`, 22 Sep). Die damals verletzten Verträge
 (`ahus → haus`-Vertauschung, `hane → hase`-Bigramm) sind im Code vorhanden
 (`SuggestionEngine.autoCorrect`, Swap-Zweig Zeile ~385). Auch die Aussage

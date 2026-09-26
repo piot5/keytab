@@ -1,4 +1,6 @@
-> **Status 2026-09-22:** Die API ist `internal` und **nicht verdrahtet** — Entscheidung gegen einen externen Transportweg (kein ContentProvider) siehe `API_INTERFACE_EXTERNAL_CLEANUP.md` §0. Dieses Dokument bleibt als Planungs-/Umsetzungsnachweis erhalten.
+> **Status 2026-09-25:** Für die Benutzerwartung ist ein In-App-Weg in den
+> Einstellungen ergänzt. Die API bleibt `internal`; es gibt weiterhin keinen
+> ContentProvider und keinen exportierten Service.
 
 # TODO-Checkliste: Externe Aufräum-API für KeyTab
 

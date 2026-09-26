@@ -1,0 +1,4 @@
+- Version 0.14: removed the optional Terminal tab and Android shell panel
+- Release builds now verify signing, SHA-256 and APK metadata
+- Technical cleanup reduced the input router and panel contracts
+- Documentation aligned with the terminal-free build, including a new release guide

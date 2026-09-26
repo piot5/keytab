@@ -2,11 +2,10 @@
 
 Stand: 2026-09-18. V1. Vollständige Dokumentation der Programmierschnittstelle.
 
-> **Status-Banner (2026-09-22): NICHT VERDRAHTET — bewusst kein Transportweg.**
-> Die API ist inzwischen `internal` und hat außerhalb der Tests keinen
-> Konsumenten. Ein `ContentProvider`/exportierter Service wurde **abgelehnt**
-> (Begründung in §0). Dieses Dokument beschreibt damit einen **internen Vertrag**,
-> keine von außen erreichbare Schnittstelle.
+> **Status-Banner (2026-09-25): In-App-Weg ergänzt.** Die API bleibt `internal`;
+> die Einstellungen laden das gelernte Wörterbuch, erzeugen eine Vorschau und
+> wenden nur nach expliziter Bestätigung eine Bereinigung an. Ein externer
+> `ContentProvider`/exportierter Service bleibt bewusst abgelehnt.
 
 ## 0. Entscheidung (2026-09-22): keine externe Exposition
 
@@ -15,8 +14,8 @@ Stand: 2026-09-18. V1. Vollständige Dokumentation der Programmierschnittstelle.
 | `ContentProvider`, `exported="true"`, normale Permission | **abgelehnt** — jedes App-Paket könnte das gelernte Wörterbuch lesen/schreiben; die App ist bewusst offline und ohne Netzwerk-Permission |
 | `ContentProvider` mit `signature`-Permission | **abgelehnt** — funktioniert für den gedachten Konsumenten (adb/Cline/Shizuku-Werkzeuge) nicht, da die Shell keine Signatur-Permission der App hält; bleibt zusätzlich neue Angriffsfläche |
 | `dangerous`-Permission + Provider | **abgelehnt** — der Nutzer müsste einer Tastatur Zugriff auf „gelernte Wörter“ erlauben; schlechter Deal für ein Nebenfeature |
-| In-App-Weg (Einstellungen/Activity) | **offen** — richtiger Ort, wenn der Nutzer das Aufräumen selbst anstoßen soll |
-| **V1-Status: `internal` API + Tests, nicht verdrahtet** | **gewählt** — kein neuer Abflusspfad, kein toter Transportweg; Entfernung möglich, falls kein Konsument entsteht |
+| In-App-Weg (Einstellungen/Activity) | **umgesetzt (v0.13)** — der Nutzer prüft das gelernte Feld, sieht eine Vorschau und bestätigt das Löschen |
+| **V1-Status: `internal` API + In-App-Weg, kein externer Transport** | **gewählt** — lokale Wartung ohne neuen Abflusspfad; die API bleibt nicht exportiert |
 
 Prüfbar (Kommandozeile):
 

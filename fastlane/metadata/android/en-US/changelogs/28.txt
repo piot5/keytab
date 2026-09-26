@@ -1,0 +1,3 @@
+- Version 0.13: learned dictionary cleanup in Settings with offline preview and explicit confirmation
+- Auto-correction after space can be enabled or disabled directly in Settings
+- Documentation updated for the in-app dictionary cleanup and version 0.13

@@ -11,6 +11,19 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
+## 0.14
+
+- **Terminal entfernt:** Der optionale Terminal-Tab, die Android-Shell und alle zugehörigen Ressourcen, Prozesse und Tests wurden vollständig entfernt. Die App bleibt eine fokussierte IME mit Editor, Dateien, Clipboard und Snippets.
+- **Release-Reife:** Release-Builds werden zusätzlich auf Signatur, SHA-256 und APK-Metadaten geprüft; Keystore-Pfadauflösung im Release-Build korrigiert, Dependency-Verification für Lint vervollständigt. Neuer Release-Leitfaden: `docs/RELEASE.md`; Doku, Installations- und Debug/Release-Hinweise vollständig angepasst.
+- **Technische Bereinigung:** Terminal-Routing, Panel-Höhenlogik und Editor/Terminal-Schnittstellen wurden auf die verbleibenden App- und Editor-Ziele reduziert. Zusätzlich wurden 47 tote Ressourcen entfernt (40 ungenutzte Strings aus Legacy-Theme-UI, 7 Farben inkl. Night-Varianten) — Lint meldet damit keine ungenutzten Ressourcen mehr, die Detekt-Baseline von 191 auf **181** echte Befunde verkleinert (u. a. `LongMethod`/`CyclomaticComplexMethod` in Service und TabController) und Test-Fakes ohne leere Funktionsblöcke formatiert.
+
+## 0.13
+
+- **Gelerntes Wörterbuch prüfen:** Der Einstellungs-Screen bietet jetzt eine sichere, explizite Bereinigung learned-word-Artefakte an. Die Änderung erfolgt offline, zeigt eine Vorschau und verlangt eine Bestätigung; der Basiswortschatz bleibt unverändert.
+- **Autokorrektur-Schalter:** Die automatische Korrektur nach dem Leerzeichen ist wieder direkt in den Einstellungen ein-/ausschaltbar.
+- **Dokumentation:** API-, Konfigurations-, Datenschutz- und Installationshinweise auf den In-App-Bereinigungsweg aktualisiert.
+- **Tests:** UI-/Bereinigungs- und Autokorrektur-Regressionstests ergänzt; vollständige JVM-Testsuite erfolgreich.
+
 ## 0.12
 
 - **Snippet-Workflow überarbeitet:** Der Snippet-Tab enthält keinen „Neu“-Button mehr. „Bearbeiten“ öffnet `keytab_snippets.txt` direkt im Editor-Tab.
@@ -21,6 +34,7 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Unreleased
 
+- **IME-Vertragstests erweitert:** `KeyTabImeEndToEndTest` deckt nun zusätzlich Feldwechsel sowie Activity-Recreation und die Nutzbarkeit der Tastatur nach dem Lifecycle-Wechsel ab. Die Instrumented-Test-CI verwendet ein begrenztes Boot-Wait und gibt bei Fehlern Instrumentierungsstatus und Logcat aus; die API-34-Ausführung wird im nächsten CI-Lauf verifiziert.
 - **Phase 8 begonnen: Clipboard-Persistenz auf Coroutines migriert** — `ClipboardPanel` erhält einen service-eigenen `SupervisorJob`-Scope mit `Dispatchers.Main.immediate`; Datei-I/O läuft über `Dispatchers.IO` und wird per `Mutex` serialisiert. Der Scope wird beim IME-Service-Lifecycle beendet. Clipboard-Fehlerpfade bleiben geloggt und liefern lokalisierte UI-Fehler. `ClipboardPanelTest` umfasst jetzt 10 Tests.
 
 - **Qualitäts-Gates geschärft: Kover 20 % → 60 % Zeilen / 45 % Branch** — das

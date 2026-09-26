@@ -12,9 +12,6 @@ Likely-next keys scale up to 1.15x, unlikely ones down to 0.85x, driven by the c
 <b>Notes &amp; clipboard</b>
 An editor tab with save/load plus a persistent clipboard history (up to 50 entries) — tap an entry to insert it directly into the target field.
 
-<b>Terminal tab</b>
-Optional interactive shell right inside the keyboard.
-
 <b>Keyboard features</b>
 Dedicated TAB key (great for Termux/SSH), shift/caps-lock, long-press popups for umlauts and special characters, accelerating backspace on long-press (250ms down to 30ms).
 

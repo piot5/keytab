@@ -1,4 +1,6 @@
-# KeyTab — Refactoring History (Archiv)
+# KeyTab — Refactoring History
+
+> **Feature removal (v0.14):** The optional Terminal tab and its Android-shell panel were removed. Historical scoring entries below remain unchanged as historical records. (Archiv)
 
 > **Status: 2026-09-21.** Dieses Dokument ist das **historische Archiv** der Refactoring-Arbeit:
 > vermessene Audits, abgeschlossene Phasen, Bewertungs-Modelle und die externe Pruefung.

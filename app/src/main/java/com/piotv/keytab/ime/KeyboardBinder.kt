@@ -3,10 +3,6 @@ package com.piotv.keytab.ime
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.SystemClock
-import android.text.SpannableStringBuilder
-import android.text.Spanned
-import android.text.style.ForegroundColorSpan
-import android.text.style.RelativeSizeSpan
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
@@ -46,6 +42,9 @@ internal class KeyboardBinder(
         const val WORD_DELETE_START_MS = WordDeleteRepeat.WORD_DELETE_START_MS
         const val WORD_DELETE_ACCEL = WordDeleteRepeat.WORD_DELETE_ACCEL
         const val WORD_DELETE_MIN_MS = WordDeleteRepeat.WORD_DELETE_MIN_MS
+
+        // Alpha der Shift-Taste, solange weder Shift noch CapsLock aktiv ist.
+        const val SHIFT_DIM_ALPHA = 0.6f
     }
 
     /** Alle Tasten des Roots gemäß Tag/ID an Listener binden. */
@@ -245,29 +244,18 @@ internal class KeyboardBinder(
             val base = host.baseLetters[btn]
                 ?: btn.text?.toString()?.firstOrNull()
                 ?: return@forEachView
-            val letter = LetterCaseRenderer.letterFor(base, upper)
-            val letterExtras = LetterCaseRenderer.extrasFor(base, upper, extras)
-            val sb = SpannableStringBuilder(letter.toString())
-            // Hauptbuchstabe: etwas kleiner + leicht angehoben
-            sb.setSpan(RelativeSizeSpan(0.85f), 0, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            sb.setSpan(LiftSpan(-0.2f), 0, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            if (letterExtras.isNotEmpty()) {
-                // FlorisBoard-Style: Hinweis-Zeichen klein + abgedunkelt deutlich
-                // rechts-UNTEN (LiftSpan senkt die Basislinie stark ab)
-                val start = sb.length
-                sb.append("\u00A0" + letterExtras.first())
-                sb.setSpan(RelativeSizeSpan(0.5f), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                sb.setSpan(ForegroundColorSpan(secondary), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                sb.setSpan(LiftSpan(0.55f), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            }
-            btn.text = sb
+            btn.text = LetterLabelComposer.compose(
+                letter = LetterCaseRenderer.letterFor(base, upper),
+                letterExtras = LetterCaseRenderer.extrasFor(base, upper, extras),
+                secondary = secondary
+            )
         }
     }
 
     /** Shift-Taste visuell aktualisieren (Alpha/Bold nach Zustand). */
     fun updateShiftVisual(root: View?) {
         val shift = root?.findViewById<Button>(R.id.key_shift) ?: return
-        shift.alpha = if (host.isShifted() || host.isCapsLock()) 1f else 0.6f
+        shift.alpha = if (host.isShifted() || host.isCapsLock()) 1f else SHIFT_DIM_ALPHA
         shift.setTypeface(null, if (host.isCapsLock()) Typeface.BOLD else Typeface.NORMAL)
     }
 }

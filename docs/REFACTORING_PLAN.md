@@ -9,19 +9,31 @@ Status: 2026-09-25 · Goal: maintainable, testable, release-ready modules with n
 
 ---
 
-## 1. Current snapshot (2026-09-25)
+## 1. Current snapshot (2026-09-27)
 
 | Metric | Value |
 |---|---|
-| Unit tests | **470 in 50 suites**, 0 failures (`testDebugUnitTest` verified 25 Sep; includes the new InputRouter cross-panel transition test) |
-| Coverage (Kover) | **67.0 % line** (2947/4401) / **53.8 % branch** (1742/3238), measured 22 Sep; **Gate: 60 % line / 45 % branch** |
-| Test:main ratio | **75.4 %** (6,866 test lines / 9,111 main lines; 56 main files) |
-| detekt baseline | **181 Einträge** (von 191 reduziert, v0.14); new findings remain CI-blocking |
+| Unit tests | **477 in 51 suites**, 0 failures (`testDebugUnitTest` + `koverVerify` verified 27 Sep; +7 from `LetterLabelComposerTest`) |
+| Coverage (Kover) | **67.0 % line** (2947/4401) / **53.8 % branch** (1742/3238), measured 22 Sep; **Gate: 60 % line / 45 % branch** — `koverVerify` re-run green 27 Sep |
+| Test:main ratio | **70.2 %** (6,965 test lines / 9,916 main lines; 71 main files, 51 test files) — re-measured 27 Sep |
+| detekt baseline | **152 Einträge** (re-measured 27 Sep; 181 in the repo, of which **24 were already stale**) — see the note below |
 | Android Lint | **0 errors / 174 warnings**; explicit CI gate added 24 Sep |
 | i18n | `values-en` **145/145 Strings** (100 %, per Drift-Gate erzwungen) |
-| Service size | 390 lines (from 908) |
-| Working tree | **v0.14** plus verified editor and Clipboard coroutine changes (commits `80549e5`) |
+| Service size | **358 lines** (from 908) — re-measured 27 Sep; the earlier "390" figure was stale |
+| Working tree | **v0.14** plus verified editor and Clipboard coroutine changes (commits `80549e5`); docs-only commits through `06fb81c` |
 | Repo hygiene | Local SDK/signing files are ignored; Gradle distribution SHA-256 pinned |
+
+> **Baseline-Neumessung (27.09):** Die eingecheckte Baseline nannte 181 Befunde,
+> tatsächlich existieren **157** — 24 Einträge zeigten auf Code, der es nicht
+> mehr gibt (u. a. `CATALOG_PER_PAGE`, das nach `SuggestionEmojiBrowser`
+> umgezogen ist). Eine Baseline, die nicht mehr auflösbare IDs enthält, ist
+> kein Schutz: neue Befunde mit *bekanntem* Muster werden stillschweigend
+> durchgewunken. Baseline deshalb nach Struktur-Umbauten neu erzeugen
+> (`:app:detektBaseline`) statt sie zu pflegen.
+>
+> Snapshot-Tabelle und Code-Stand werden **nicht** vom Doku-Drift-Wächter
+> geprüft — der vergleicht README ↔ Code. Diese Tabelle daher bei jedem
+> Struktur-Commit (neue Klasse, Test-Datei, Zeilen im Service) nachziehen.
 
 ---
 
@@ -46,10 +58,10 @@ Status: 2026-09-25 · Goal: maintainable, testable, release-ready modules with n
 - **Done when:** warning categories have a tracked budget, no critical accessibility/privacy issue remains, and failure paths are visible.
 
 ### P2 — maintainability and supply chain
-- [ ] Reduce real detekt findings in `KeyboardBinder`, `KeyTabImeService`, `SuggestionController`, `ThemePrefs` and `ClipboardPanel`; do not chase the baseline quota mechanically.
+- [ ] Reduce real detekt findings in `KeyboardBinder`, `KeyTabImeService`, `SuggestionController`, `ThemePrefs` and `ClipboardPanel`; do not chase the baseline quota mechanically. **Progress 27 Sep:** `KeyboardBinder` done — the label layout (5 Magic Numbers + the cyclomatic complexity) moved to `LetterLabelComposer`, covered by 7 new tests; verified finding delta **exactly −5, +0 new**. Remaining: `KeyTabImeService` (3), `SuggestionController` (15), `ThemePrefs` (9); `ClipboardPanel` is already finding-free.
 - [x] Gradle dependency verification enabled and the verification metadata completed for the Lint toolchain (v0.14).
 - [ ] Test a clean-cache resolution on a fresh machine.
-- [ ] Pin GitHub Actions to immutable commit SHAs with a documented update process.
+- [x] Pin GitHub Actions to immutable commit SHAs with a documented update process (`docs/SUPPLY_CHAIN.md`; checkout/setup-java/upload-artifact/emulator-runner all on 40-hex SHAs).
 - [x] Release workflow publishes an SHA-256 checksum next to the APK (v0.14).
 - [ ] Add SLSA provenance/attestation for the release artifact.
 - **Done when:** clean and warm builds resolve verified inputs and no new baseline IDs are accepted silently.
@@ -75,7 +87,7 @@ Status: 2026-09-25 · Goal: maintainable, testable, release-ready modules with n
 ## 5. Done already — do not repeat
 
 - Coverage gate: 60% line / 45% branch; measured 67.0% / 53.8%.
-- 470 unit tests in 50 suites; panel/security regression tests, including the InputRouter cross-panel transition test.
+- 477 unit tests in 51 suites; panel/security regression tests, including the InputRouter cross-panel transition test.
 - Service reduced from 908 to 390 lines; `KeyTabExecutors` and Clipboard coroutine persistence are in place.
 - 14 instrumented tests in 375 lines cover the real IME contract; API-34 execution remains CI verification.
 - Permission minimization, `LearnedDictionaryApi` decision, CI reports and docs-drift gate.

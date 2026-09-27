@@ -34,6 +34,51 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Unreleased
 
+- **`scripts/baseline.sh`: Gate- und Baseline-Werkzeug mit Profilen.** Bisher
+  waren drei Gradle-Task-Namen pro Handlung zu merken, und `:app:detektBaseline`
+  überschrieb die Baseline sofort und ohne Rückfrage — die Ursache der 24
+  stale Einträge im September. Das Script bietet sechs Profile (`check`, `fast`,
+  `baseline`, `audit`, `clean`, `full`) plus Parameter (`--rerun`, `--jobs`,
+  `--offline`, `--keep-baseline`, `--yes`) und Exit-Codes 0/1/2, sodass es in
+  einer Hakenkette oder einem Pre-Commit-Hook taugt. `audit` misst die Baseline
+  read-only neu und benennt die stale Einträge einzeln; `baseline` zeigt den
+  Diff und schreibt erst nach Rückfrage. Vor dem Neuschreiben wird der
+  Gradle-Report gelöscht, weil Gradle sonst gecachte Ergebnisse liefert.
+  Dazu `docs/BASELINE.md`.
+
+- **Buchstaben-Label-Layout aus `KeyboardBinder` extrahiert:** Die fünf
+  Lay-out-Werte (Größenfaktoren und Baseline-Versätze für Hauptbuchstabe und
+  Sonderzeichen-Hinweis) waren Magic Numbers direkt im Binder. Sie liegen jetzt
+  als benannte Konstanten in `LetterLabelComposer`, gemeinsam mit der
+  Span-Komposition — damit ist die FlorisBoard-Optik an *einer* Stelle
+  dokumentiert statt über den Binder verstreut, und `applyLetterCase` ist von
+  der Komplexitäts-Warnung befreit. Das Alpha der inaktiven Shift-Taste wurde
+  genauso benannt. Verhalten und Zahlenwerte sind unverändert; 7 neue Tests
+  prüfen die Span-Intervalle, die Farbzuweisung und die exklusiven Span-Flags.
+
+- **detekt-Baseline neu erzeugt — 181 → 152 Einträge:** Die Baseline enthielt
+  24 Einträge für Code, der nicht mehr existiert (u. a. `CATALOG_PER_PAGE`, das
+  nach `SuggestionEmojiBrowser.kt` umgezogen ist). Sie bot also keinen Schutz
+  mehr: ein neuer Befund mit bekanntem Muster wäre stillschweigend durchgegangen.
+  Neu gemessen sind 157 Befunde, davon 5 durch die obige Extraktion behoben.
+  Baseline-IDs lassen sich nur durch Neuerzeugen entfernen, nicht durch
+  Editieren — die Werte in `docs/REFACTORING_PLAN.md` wurden mitgemessen.
+
+- **Supply-Chain-Doku ergänzt:** Neue `docs/SUPPLY_CHAIN.md` dokumentiert die
+  Gradle-Dependency-Verification (inkl. Wrapper-Distribution, Lint-Toolchain,
+  JUnit-BOM) und den Aktualisierungsprozess für die auf Commit-SHAs gepinnten
+  GitHub Actions — inkl. der Warnung, dass beim Pin-Bump *alle* Fundstellen
+  einer Action ersetzt werden müssen. Bewusst **ohne** Dependabot für Actions:
+  ein Auto-Bump würde die Pin-Disziplin stillschweigend aufweichen.
+
+- **Refactor-Plan auf gemessene Werte nachgezogen:** Die Snapshot-Tabelle
+  nannte noch Service-Umfang 390 Zeilen, Test:main-Ratio 75,4 % und 56
+  Main-Dateien. Tatsächlich sind es 358 Zeilen, 69,7 % (6.866/9.847) und
+  70 Dateien — nachgemessen am 27.09. Der Punkt „Actions auf immutable
+  commit SHAs pinnen" ist damit erledigt. Der Doku-Drift-Wächter prüft
+  README ↔ Code, nicht Plan ↔ Code; die Tabelle wird deshalb künftig als
+  "bei jedem Struktur-Commit nachziehen" markiert.
+
 - **IME-Vertragstests erweitert:** `KeyTabImeEndToEndTest` deckt nun zusätzlich Feldwechsel sowie Activity-Recreation und die Nutzbarkeit der Tastatur nach dem Lifecycle-Wechsel ab. Die Instrumented-Test-CI verwendet ein begrenztes Boot-Wait und gibt bei Fehlern Instrumentierungsstatus und Logcat aus; die API-34-Ausführung wird im nächsten CI-Lauf verifiziert.
 - **Phase 8 begonnen: Clipboard-Persistenz auf Coroutines migriert** — `ClipboardPanel` erhält einen service-eigenen `SupervisorJob`-Scope mit `Dispatchers.Main.immediate`; Datei-I/O läuft über `Dispatchers.IO` und wird per `Mutex` serialisiert. Der Scope wird beim IME-Service-Lifecycle beendet. Clipboard-Fehlerpfade bleiben geloggt und liefern lokalisierte UI-Fehler. `ClipboardPanelTest` umfasst jetzt 10 Tests.
 

@@ -8,3 +8,4 @@ local.properties
 
 keystore/
 build_*.log
+__pycache__/

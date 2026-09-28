@@ -19,12 +19,13 @@ object SettingsConfig {
     )
 
     private val settings = linkedMapOf<String, Setting>().apply {
-        put("num_row", Setting(Prefs.KEY_NUM_ROW, "false", "boolean"))
+        // Die Defaults sind die aus keytab_config.txt des Nutzers (2026-09-28) —
+        // eine Neuinstallation sieht damit genau so aus wie sein Gerät.
+        put("num_row", Setting(Prefs.KEY_NUM_ROW, "true", "boolean"))
         put("clip_tab", Setting(Prefs.KEY_CLIP_TAB, "true", "boolean"))
         put("snippet_tab", Setting(Prefs.KEY_SNIPPET_TAB, "true", "boolean"))
         put("suggestions", Setting(Prefs.KEY_SUGGESTIONS, "true", "boolean"))
-        put("autocorrect", Setting(Prefs.KEY_AUTOCORRECT, "true", "boolean"))
-        put("emoji_suggestions", Setting(Prefs.KEY_EMOJI_SUGGESTIONS, "false", "boolean"))
+        put("autocorrect", Setting(Prefs.KEY_AUTOCORRECT, "false", "boolean"))
         put("dynamic_keys", Setting(Prefs.KEY_DYNAMIC_KEYS, "true", "boolean"))
         // Swipe (Gleit-Eingabe + Schaltplan-Preview), v0.11 — Default aus.
         put("swipe", Setting(Prefs.KEY_SWIPE, "false", "boolean"))
@@ -39,7 +40,7 @@ object SettingsConfig {
         put("bg_image_uri", Setting(Prefs.KEY_BG_IMAGE_URI, "", "string"))
         put("bg_image_fill", Setting(Prefs.KEY_BG_IMAGE_FILL, Prefs.FILL_FIT, "enum",
             setOf(Prefs.FILL_FIT, Prefs.FILL_COVER, Prefs.FILL_STRETCH)))
-        put(ThemePrefs.KEY_DARK, Setting(ThemePrefs.KEY_DARK, "system", "dark"))
+        put(ThemePrefs.KEY_DARK, Setting(ThemePrefs.KEY_DARK, "true", "dark"))
         for (key in listOf(ThemePrefs.KEY_LIKELY, ThemePrefs.KEY_LIKELY_EFFECT)) {
             put(key, Setting(key, "true", "boolean"))
         }
@@ -50,7 +51,11 @@ object SettingsConfig {
             ThemePrefs.GRADIENT_TOP_DOWN, "enum", setOf(ThemePrefs.GRADIENT_TOP_DOWN,
                 ThemePrefs.GRADIENT_INVERT, ThemePrefs.GRADIENT_RADIAL)))
         for (key in listOf(ThemePrefs.KEY_GRADIENT_MODE_DARK, ThemePrefs.KEY_GRADIENT_MODE_LIGHT)) {
-            put(key, Setting(key, ThemePrefs.GRADIENT_TOP_DOWN, "enum", setOf(
+            // Nutzer-Standard: dunkel `invert`, hell `top_down` (gleiche Vorgabe
+            // wie ThemeColorResolver.gradientMode).
+            val standard = if (key == ThemePrefs.KEY_GRADIENT_MODE_DARK)
+                ThemePrefs.GRADIENT_INVERT else ThemePrefs.GRADIENT_TOP_DOWN
+            put(key, Setting(key, standard, "enum", setOf(
                 ThemePrefs.GRADIENT_TOP_DOWN, ThemePrefs.GRADIENT_INVERT,
                 ThemePrefs.GRADIENT_RADIAL)))
         }
@@ -63,6 +68,15 @@ object SettingsConfig {
                 ThemePrefs.KIND_GRADIENT1, ThemePrefs.KIND_GRADIENT2)) {
                 val key = ThemePrefs.colorKey(dark, kind)
                 put(key, Setting(key, "default", "color"))
+            }
+        }
+        // Panel-Hoehen je Tab und Zustand (dp, 0 = automatisch berechnet) —
+        // Reihenfolge hier = Reihenfolge in der Datei (Tab-Gruppen).
+        for (tab in TabHeights.kinds()) {
+            for (maximized in listOf(false, true)) {
+                val key = TabHeights.configKey(tab, maximized)
+                put(key, Setting(TabHeights.prefKey(tab, maximized),
+                    TabHeights.AUTO.toString(), "int"))
             }
         }
     }

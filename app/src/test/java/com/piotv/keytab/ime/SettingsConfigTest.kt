@@ -98,14 +98,22 @@ class SettingsConfigTest {
 
     @Test fun fullExportImportsAllUiSettingsWithoutCreatingColorOverrides() {
         val completed = SettingsConfig.completeText("", prefs)
-        // 45 Alt-Keys + 2 Verlauf-Modi (dark/light) + 4 Verlaufs-Farben (je Modus)
-        assertEquals(45, KeyTabConfig.entries(completed).size)
+        // 44 Alt-Keys + 2 Verlauf-Modi (dark/light) + 4 Verlaufs-Farben (je Modus)
+        // + 8 Höhen-Vorgaben (4 Tabs × normal/maximiert).
+        // 45 war es vor der Entfernung von `emoji_suggestions` (2026-09-27),
+        // 44 die Höhe davor (Panel-Höhen kamen am 28.09.2026 dazu).
+        assertEquals(52, KeyTabConfig.entries(completed).size)
         assertTrue(SettingsConfig.importTextIfChanged(completed, prefs))
-        assertFalse(prefs.getBoolean(Prefs.KEY_NUM_ROW, true))
+        // Die Defaults sind die aus keytab_config.txt des Nutzers (2026-09-28):
+        // Nummernreihe an, Autokorrektur aus, Dark-Mode fest an, Verlauf
+        // dunkel `invert` / hell `top_down`.
+        assertTrue(prefs.getBoolean(Prefs.KEY_NUM_ROW, false))
         for (key in listOf(Prefs.KEY_CLIP_TAB, Prefs.KEY_SNIPPET_TAB,
-            Prefs.KEY_SUGGESTIONS, Prefs.KEY_AUTOCORRECT, Prefs.KEY_DYNAMIC_KEYS)) {
+            Prefs.KEY_SUGGESTIONS, Prefs.KEY_DYNAMIC_KEYS)) {
             assertTrue(key, prefs.getBoolean(key, false))
         }
+        assertFalse("autocorrect = false (Nutzer-Standard)",
+            prefs.getBoolean(Prefs.KEY_AUTOCORRECT, true))
         // Trail ist im Export als Default enthalten (aus) und wird beim Import
         // als expliziter Wert übernommen – deshalb prüfen wir die Werte, nicht
         // die Abwesenheit der Keys.
@@ -113,9 +121,35 @@ class SettingsConfigTest {
         assertFalse(prefs.getBoolean(ThemePrefs.KEY_TRAIL_TRACE, true))
         assertEquals(TrailLogic.DEFAULT_STEPS, prefs.getInt(ThemePrefs.KEY_TRAIL_STEPS, 0))
         assertEquals("de", prefs.getString(Prefs.KEY_LANGUAGE, null))
-        assertFalse(prefs.contains(ThemePrefs.KEY_DARK))
+        assertTrue("dark_mode = true (Nutzer-Standard)", prefs.getBoolean(ThemePrefs.KEY_DARK, false))
+        assertEquals(ThemePrefs.GRADIENT_INVERT,
+            prefs.getString(ThemePrefs.KEY_GRADIENT_MODE_DARK, null))
+        assertEquals(ThemePrefs.GRADIENT_TOP_DOWN,
+            prefs.getString(ThemePrefs.KEY_GRADIENT_MODE_LIGHT, null))
         assertFalse(prefs.contains(ThemePrefs.KEY_GRADIENT_COLOR1))
         assertFalse(prefs.contains(ThemePrefs.colorKey(true, ThemePrefs.KIND_BG)))
+        // Höhen-Vorgaben: im Export als 0 (automatisch) enthalten und nach dem
+        // Import auch 0 — 0 heißt hier „rechnen", nicht „unbekannt".
+        assertTrue(completed.contains("normal_height_files = 0"))
+        assertTrue(completed.contains("max_height_editor = 0"))
+        for (tab in TabHeights.kinds()) {
+            for (maximized in listOf(false, true)) {
+                assertEquals("${TabHeights.configKey(tab, maximized)} = 0", 0,
+                    prefs.getInt(TabHeights.prefKey(tab, maximized), -1))
+            }
+        }
+    }
+
+    @Test
+    fun `Hoehen-Vorgaben werden uebernommen und sind je Tab getrennt`() {
+        assertTrue(SettingsConfig.importTextIfChanged(
+            "normal_height_files = 220\nmax_height_clip = 640\n", prefs))
+        assertEquals(220, prefs.getInt(
+            TabHeights.prefKey(TabController.TabKind.FILES, false), -1))
+        assertEquals(640, prefs.getInt(
+            TabHeights.prefKey(TabController.TabKind.CLIP, true), -1))
+        assertEquals("snippet unberuehrt", 0, prefs.getInt(
+            TabHeights.prefKey(TabController.TabKind.SNIPPET, false), 0))
     }
 
     @Test fun snapshotTracksUiButNotLearnedWords() {

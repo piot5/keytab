@@ -96,11 +96,14 @@ class ThemePrefsTest {
     }
 
     @Test
-    fun `gradientMode faellt auf top_down zurueck`() {
-        assertEquals(ThemePrefs.GRADIENT_TOP_DOWN, ThemePrefs.gradientMode(prefs, true))
+    fun `gradientMode faellt auf die Standard-Vorgaben zurueck`() {
+        // Nutzer-Standard (keytab_config.txt, 2026-09-28): dunkel `invert`,
+        // hell `top_down`.
+        assertEquals(ThemePrefs.GRADIENT_INVERT, ThemePrefs.gradientMode(prefs, true))
+        assertEquals(ThemePrefs.GRADIENT_TOP_DOWN, ThemePrefs.gradientMode(prefs, false))
         prefs.edit().putString(ThemePrefs.KEY_GRADIENT_MODE,
             ThemePrefs.GRADIENT_RADIAL).commit()
-        assertEquals(ThemePrefs.GRADIENT_RADIAL, ThemePrefs.gradientMode(prefs, true))
+        assertEquals("legacy greift", ThemePrefs.GRADIENT_RADIAL, ThemePrefs.gradientMode(prefs, true))
     }
 
     @Test
@@ -157,8 +160,9 @@ class ThemePrefsTest {
     }
 
     @Test
-    fun `Likely-Defaults sind aus-an`() {
-        assertFalse(ThemePrefs.likelyHighlighting(prefs))
+    fun `Likely-Defaults sind an-an`() {
+        // Nutzer-Standard (keytab_config.txt, 2026-09-28): `gaming_mode = true`.
+        assertTrue(ThemePrefs.likelyHighlighting(prefs))
         assertTrue(ThemePrefs.likelyEffect(prefs))
     }
 }

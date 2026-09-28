@@ -277,7 +277,7 @@
     <LinearLayout
         android:id="@+id/clip_panel"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="164dp"
         android:orientation="vertical"
         android:visibility="gone">
 
@@ -328,7 +328,7 @@
     <LinearLayout
         android:id="@+id/snippet_panel"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="164dp"
         android:orientation="vertical"
         android:visibility="gone">
 
@@ -504,5 +504,36 @@
         <!-- Enter-Taste breiter: bekommt eigene Gewichtung statt Fix-Breite (besser drückbar) -->
         <Button style="@style/KeyDark" android:id="@+id/key_enter" android:text="@string/key_enter_label"
             android:layout_width="0dp" android:layout_weight="2" />
+    </LinearLayout>
+
+    <!-- Maximieren-Zeile: steht in den Inhalts-Tabs (Files/Clip/Snippets) ganz
+         unten und ist dort der einzige Weg in den Vollbild-Modus. Sie bleibt
+         auch dann sichtbar, wenn maximiert wurde – sonst käme man nicht zurück.
+         Im abc-Tab gibt es sie nie (dort wäre nichts zu vergrößern), im Editor-
+         Tab sitzt das Symbol ⇲ rechts in der Wortvorhersage-Zeile.
+         Höhe bewusst niedriger als eine Tastenreihe (KeyDark = 42dp): die Zeile
+         ist nur eine Bedienzeile, keine Tastatur – sie kostet in jedem
+         Inhalts-Tab vertikalen Platz und geht 1:1 von der Panel-Höhe ab
+         (PanelHeights.maximizeRowHeight). -->
+    <LinearLayout
+        android:id="@+id/maximize_row"
+        style="@style/KeyRow"
+        android:layout_height="@dimen/maximize_row_height"
+        android:layout_marginTop="0dp"
+        android:layout_marginBottom="0dp"
+        android:gravity="end|center_vertical">
+        <Button
+            style="@style/KeyDark"
+            android:id="@+id/key_maximize"
+            android:layout_width="72dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0"
+            android:layout_marginTop="1dp"
+            android:layout_marginBottom="1dp"
+            android:text="@string/key_maximize_label"
+            android:textSize="16sp"
+            android:paddingTop="0dp"
+            android:minHeight="0dp"
+            android:contentDescription="@string/sug_hide_desc" />
     </LinearLayout>
 </LinearLayout>

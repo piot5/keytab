@@ -116,8 +116,6 @@ class WordPredictionManager(
         val atSentenceStart = SuggestionEngine.isSentenceStartContext(
             contextBefore, currentTypedWord)
         val eng = engine
-        eng?.emojiEnabled = com.piotv.keytab.Prefs.of(context)
-            .getBoolean(com.piotv.keytab.Prefs.KEY_EMOJI_SUGGESTIONS, false)
         val list = if (eng == null) emptyList() else {
             try { eng.suggest(currentTypedWord, prevTypedWord, sentenceStart = atSentenceStart) }
             catch (_: Exception) { emptyList() }
@@ -293,7 +291,7 @@ class WordPredictionManager(
     fun autoCorrectBeforeSpace(): Boolean {
         // Optional in den Einstellungen (Default: an)
         if (!com.piotv.keytab.Prefs.of(context)
-                .getBoolean(com.piotv.keytab.Prefs.KEY_AUTOCORRECT, true)
+                .getBoolean(com.piotv.keytab.Prefs.KEY_AUTOCORRECT, false)
         ) return false
         // Harte Sicherheitsregel: in Passwort-/sensiblen Feldern wird nie
         // korrigiert — ein Wörterbuchwort darf kein Passwort überschreiben.

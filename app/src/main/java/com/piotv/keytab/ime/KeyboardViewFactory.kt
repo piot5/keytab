@@ -101,7 +101,7 @@ class KeyboardViewFactory(private val deps: Deps) {
         // Optionale Zahlenreihe aus den Einstellungen
         root.findViewById<View>(R.id.num_row)?.visibility =
             if (com.piotv.keytab.Prefs.of(ctx)
-                    .getBoolean(com.piotv.keytab.Prefs.KEY_NUM_ROW, false)) View.VISIBLE else View.GONE
+                    .getBoolean(com.piotv.keytab.Prefs.KEY_NUM_ROW, true)) View.VISIBLE else View.GONE
         val fileManager = FileManagerPanel(ctx, root, deps.ioExecutor, deps.mainHandler) { deps.commitText(it) }
         val editor = EditorPanel(ctx, root, deps.ioExecutor, deps.mainHandler) { deps.commitToApp(it) }
         val snippets = SnippetPanel(

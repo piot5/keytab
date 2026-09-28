@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feste Layout-Höhen, die auch der Code braucht.
+
+     maximize_row_height: Höhe der Maximieren-Zeile (unterste Zeile in den
+     Inhalts-Tabs). Sie steht hier und nicht als Zahl im Layout, weil
+     PanelHeights sie von der Normalhöhe der Inhalts-Panels abzieht: nur so
+     sind alle Tabs gleich hoch. Ein gemessener Wert wäre falsch — `measure()`
+     mit UNSPECIFIED liefert bei einer festen Layout-Höhe die *natürliche*
+     Höhe des Inhalts (Material-Buttons: mindestens 48dp), nicht die
+     tatsächlich gelayoutete Zeilenhöhe.
+     34dp statt der 42dp einer Tastenzeile: die Zeile ist eine Bedienzeile,
+     keine Taste — sie kostet in Files/Clip/Snippets vertikalen Platz. -->
+<resources>
+    <dimen name="maximize_row_height">34dp</dimen>
+</resources>

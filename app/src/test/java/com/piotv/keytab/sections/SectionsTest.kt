@@ -57,18 +57,20 @@ class LikelyHighlightSectionTest : SectionsTestBase() {
         val r = row(s)
         assertEquals(1, col.childCount)
         assertEquals(2, r.childCount)
-        assertFalse(ThemePrefs.likelyHighlighting(prefs))
+        // Standard ist an (Nutzer-Standard, 2026-09-28).
+        assertTrue(ThemePrefs.likelyHighlighting(prefs))
     }
 
     @Test
     fun `Klick auf Likely-Toggle schaltet Pref um und ruft onChange`() {
         val s = section()
         val r = row(s)
-        r.getChildAt(0).performClick()
-        assertTrue(ThemePrefs.likelyHighlighting(prefs))
-        assertEquals(1, changedCount)
+        // Start ist „an“ (Nutzer-Standard) → der erste Klick schaltet aus.
         r.getChildAt(0).performClick()
         assertFalse(ThemePrefs.likelyHighlighting(prefs))
+        assertEquals(1, changedCount)
+        r.getChildAt(0).performClick()
+        assertTrue(ThemePrefs.likelyHighlighting(prefs))
         assertEquals(2, changedCount)
     }
 

@@ -28,6 +28,20 @@ object ThemePrefs {
     const val GRADIENT_INVERT = "invert"
     const val GRADIENT_RADIAL = "radial"
 
+    // ---------- Radialer Verlauf ----------
+    // Der Lichtpunkt sitzt bewusst oben statt mittig: der Verlauf soll wie eine
+    // von oben einfallende Beleuchtung wirken, nicht wie eine Kugel in der
+    // Tastaturmitte. [RADIAL_RADIUS_FACTOR] skaliert die Display-Breite, weil
+    // der Root beim ersten Aufruf noch nicht gemessen ist.
+    /** X-Position des Lichtpunkts (0.5 = Mitte). */
+    const val RADIAL_CENTER_X = 0.5f
+
+    /** Y-Position des Lichtpunkts (0.15 = deutlich oben). */
+    const val RADIAL_CENTER_Y = 0.15f
+
+    /** Radius als Anteil der übergebenen Breite. */
+    const val RADIAL_RADIUS_FACTOR = 0.75f
+
     // ---------- Farb-Arten (Definition in [ThemeColorResolver]) ----------
     const val KIND_BG = ThemeColorResolver.KIND_BG
     const val KIND_KEY = ThemeColorResolver.KIND_KEY
@@ -58,7 +72,9 @@ object ThemePrefs {
     /** Zufriedenstellender Puls-Effekt, wenn die Wahrscheinlichkeit erreicht ist. */
     const val KEY_LIKELY_EFFECT = "gaming_effect"
 
-    fun likelyHighlighting(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_LIKELY, false)
+    /** Likely-Highlighting (Schalter `gaming_mode`). Standard **an** (Nutzer-Standard). */
+    fun likelyHighlighting(prefs: SharedPreferences): Boolean =
+        prefs.getBoolean(KEY_LIKELY, true)
     fun likelyEffect(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_LIKELY_EFFECT, true)
 
     // ---------- Trail-Effekt (Tippspur) ----------
@@ -103,10 +119,16 @@ object ThemePrefs {
         prefs.edit().putInt(KEY_THEME_VERSION, themeVersion(prefs) + 1).apply()
     }
 
-    /** Dark-Mode-Override (Pref) bzw. System-Modus – identisch zum IME. */
+    /**
+     * Dark-Mode-Override (Pref) bzw. System-Modus – identisch zum IME.
+     *
+     * Unverändert: ein *fehlender* [KEY_DARK] folgt dem Gerät. Der Standard des
+     * Werts selbst (dunkel) steht in [SettingsConfig] — dort landet er in einer
+     * neu erzeugten `keytab_config.txt` und damit in den Einstellungen.
+     */
     fun isDarkMode(context: android.content.Context): Boolean {
         val prefs = com.piotv.keytab.Prefs.of(context)
-        if (prefs.contains(KEY_DARK)) return prefs.getBoolean(KEY_DARK, false)
+        if (prefs.contains(KEY_DARK)) return prefs.getBoolean(KEY_DARK, true)
         val mask = context.resources.configuration.uiMode and
             android.content.res.Configuration.UI_MODE_NIGHT_MASK
         return mask == android.content.res.Configuration.UI_MODE_NIGHT_YES
@@ -190,45 +212,52 @@ object ThemePrefs {
      * Import eines Theme-Exports (JSON, siehe [exportColors]): setzt alle
      * enthaltenen Farb-Overrides, Verlauf (2 Farben + Modus + OFF-Schalter)
      * und Likely-Highlighting. @return false bei ungültigem JSON.
+     *
+     * Das JSON-Lesen liegt in [ThemeColorImport] (Android-frei testbar); hier
+     * wird nur noch in die Prefs geschrieben. Unbekannte Sektionen im Export
+     * werden stillschweigend überlesen — ein Export aus einem älteren Stand ist
+     * kein Fehler. Nur unlesbares JSON insgesamt ergibt `false`.
      */
     fun importColors(prefs: SharedPreferences, json: String): Boolean = try {
-        val b = org.json.JSONObject(json)
-        for (dark in listOf(true, false)) {
-            val m = b.optJSONObject(if (dark) "dark" else "light") ?: continue
-            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY, KIND_TRAIL,
-                KIND_SWIPE, KIND_SWIPE_EDGE)) {
-                if (m.has(kind)) setColor(prefs, dark, kind, m.getInt(kind))
-            }
+        val root = org.json.JSONObject(json)
+
+        ThemeColorImport.readColors(root) { dark, kind, argb ->
+            setColor(prefs, dark, kind, argb)
         }
-        b.optJSONObject("gradient")?.let { g ->
-            if (g.has("color1")) prefs.edit().putInt(KEY_GRADIENT_COLOR1, g.getInt("color1")).apply()
-            if (g.has("color2")) prefs.edit().putInt(KEY_GRADIENT_COLOR2, g.getInt("color2")).apply()
-            if (g.has("mode")) prefs.edit().putString(KEY_GRADIENT_MODE, g.getString("mode")).apply()
-            if (g.has("off_dark")) setGradientOff(prefs, true, g.getBoolean("off_dark"))
-            if (g.has("off_light")) setGradientOff(prefs, false, g.getBoolean("off_light"))
+        ThemeColorImport.readLegacyGradient(
+            root,
+            onColor1 = { prefs.edit().putInt(KEY_GRADIENT_COLOR1, it).apply() },
+            onColor2 = { prefs.edit().putInt(KEY_GRADIENT_COLOR2, it).apply() },
+            onMode = { prefs.edit().putString(KEY_GRADIENT_MODE, it).apply() },
+            onOff = { dark, off -> setGradientOff(prefs, dark, off) }
+        )
+        // Neuer per-Modus-Verlauf (dark/light getrennt) – gewinnt gegen Legacy
+        for (dark in ThemeColorImport.MODES) {
+            ThemeColorImport.readModeGradient(
+                root, dark,
+                ThemeColorImport.GradientSink(
+                    onColor1 = { setColor(prefs, dark, KIND_GRADIENT1, it) },
+                    onColor2 = { setColor(prefs, dark, KIND_GRADIENT2, it) },
+                    onMode = { prefs.edit().putString(gradientModeKey(dark), it).apply() },
+                    onOff = { off -> setGradientOff(prefs, dark, off) }
+                )
+            )
         }
-        for (dark in listOf(true, false)) {
-            // Neuer per-Modus-Verlauf (dark/light getrennt) – gewinnt gegen Legacy
-            b.optJSONObject(if (dark) "gradient_dark" else "gradient_light")?.let { gg ->
-                if (gg.has("color1")) setColor(prefs, dark, KIND_GRADIENT1, gg.getInt("color1"))
-                if (gg.has("color2")) setColor(prefs, dark, KIND_GRADIENT2, gg.getInt("color2"))
-                if (gg.has("mode")) prefs.edit().putString(gradientModeKey(dark), gg.getString("mode")).apply()
-                if (gg.has("off")) setGradientOff(prefs, dark, gg.getBoolean("off"))
-            }
-        }
-        b.optJSONObject("likely")?.let { lk ->
-            if (lk.has("enabled")) prefs.edit().putBoolean(KEY_LIKELY, lk.getBoolean("enabled")).apply()
-            if (lk.has("effect")) prefs.edit().putBoolean(KEY_LIKELY_EFFECT, lk.getBoolean("effect")).apply()
-        }
-        b.optJSONObject("trail")?.let { t ->
-            if (t.has("enabled")) prefs.edit().putBoolean(KEY_TRAIL, t.getBoolean("enabled")).apply()
-            if (t.has("color")) prefs.edit().putInt(KEY_TRAIL_COLOR, t.getInt("color")).apply()
-            if (t.has("steps")) prefs.edit().putInt(KEY_TRAIL_STEPS, t.getInt("steps")).apply()
-            if (t.has("trace")) prefs.edit().putBoolean(KEY_TRAIL_TRACE, t.getBoolean("trace")).apply()
-            if (t.has("accepted_color")) {
-                prefs.edit().putInt(KEY_TRAIL_ACCEPTED_COLOR, t.getInt("accepted_color")).apply()
-            }
-        }
+        ThemeColorImport.readLikely(
+            root,
+            onEnabled = { prefs.edit().putBoolean(KEY_LIKELY, it).apply() },
+            onEffect = { prefs.edit().putBoolean(KEY_LIKELY_EFFECT, it).apply() }
+        )
+        ThemeColorImport.readTrail(
+            root,
+            ThemeColorImport.TrailSink(
+                onEnabled = { prefs.edit().putBoolean(KEY_TRAIL, it).apply() },
+                onColor = { prefs.edit().putInt(KEY_TRAIL_COLOR, it).apply() },
+                onSteps = { prefs.edit().putInt(KEY_TRAIL_STEPS, it).apply() },
+                onTrace = { prefs.edit().putBoolean(KEY_TRAIL_TRACE, it).apply() },
+                onAcceptedColor = { prefs.edit().putInt(KEY_TRAIL_ACCEPTED_COLOR, it).apply() }
+            )
+        )
         bumpVersion(prefs)
         true
     } catch (_: Exception) { false }
@@ -312,8 +341,8 @@ object ThemePrefs {
             GRADIENT_INVERT -> d.orientation = GradientDrawable.Orientation.BOTTOM_TOP
             GRADIENT_RADIAL -> {
                 d.setGradientType(GradientDrawable.RADIAL_GRADIENT)
-                d.setGradientCenter(0.5f, 0.15f)
-                d.setGradientRadius(widthPx * 0.75f)
+                d.setGradientCenter(RADIAL_CENTER_X, RADIAL_CENTER_Y)
+                d.setGradientRadius(widthPx * RADIAL_RADIUS_FACTOR)
             }
             else -> d.orientation = GradientDrawable.Orientation.TOP_BOTTOM
         }

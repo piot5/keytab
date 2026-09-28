@@ -177,27 +177,36 @@ class WordPredictionManagerPrivacyTest {
             assertFalse("Einstellung muss Autokorrektur deaktivieren", rig.manager.autoCorrectBeforeSpace())
             assertEquals("hauss", rig.field.value())
         } finally {
-            prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_AUTOCORRECT, true).commit()
+            prefs.edit().remove(com.piotv.keytab.Prefs.KEY_AUTOCORRECT).commit()
         }
     }
 
     @Test
     fun `normales Feld korrigiert weiterhin (Gegenprobe)`() {
-        val rig = Rig("hauss", allowed = true, withViews = false)
-        rig.loadEngine()
-        rig.type("hauss")
+        val prefs = com.piotv.keytab.Prefs.of(RuntimeEnvironment.getApplication())
+        // Der Nutzer-Standard ist Autokorrektur **aus** (keytab_config.txt vom
+        // 2026-09-28). Die Gegenprobe prüft die Funktion selbst und schaltet sie
+        // deshalb ausdrücklich ein — sie darf nicht am Default hängen.
+        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_AUTOCORRECT, true).commit()
+        try {
+            val rig = Rig("hauss", allowed = true, withViews = false)
+            rig.loadEngine()
+            rig.type("hauss")
 
-        assertTrue("Autokorrektur muss erhalten bleiben", rig.manager.autoCorrectBeforeSpace())
-        // Welches Korpuswort die Engine waehlt (Naehe vs. Frequenz) ist nicht Teil
-        // dieser Regel — geprueft wird: es wurde ersetzt, mit Leerzeichen, und das
-        // Ergebnis ist ein echtes Wörterbuchwort.
-        val korrigiert = rig.field.value().trim()
-        assertNotEquals("hauss", korrigiert)
-        assertTrue("Korrektur endet mit Leerzeichen", rig.field.value().endsWith(" "))
-        assertTrue(
-            "Ergebnis muss ein Korpuswort sein (nicht 'hauss')",
-            rig.manager.engine!!.baseScore(korrigiert.lowercase()) > 0.0
-        )
+            assertTrue("Autokorrektur muss erhalten bleiben", rig.manager.autoCorrectBeforeSpace())
+            // Welches Korpuswort die Engine waehlt (Naehe vs. Frequenz) ist nicht Teil
+            // dieser Regel — geprueft wird: es wurde ersetzt, mit Leerzeichen, und das
+            // Ergebnis ist ein echtes Wörterbuchwort.
+            val korrigiert = rig.field.value().trim()
+            assertNotEquals("hauss", korrigiert)
+            assertTrue("Korrektur endet mit Leerzeichen", rig.field.value().endsWith(" "))
+            assertTrue(
+                "Ergebnis muss ein Korpuswort sein (nicht 'hauss')",
+                rig.manager.engine!!.baseScore(korrigiert.lowercase()) > 0.0
+            )
+        } finally {
+            prefs.edit().remove(com.piotv.keytab.Prefs.KEY_AUTOCORRECT).commit()
+        }
     }
 
     // ---------- 4. Vorschlagsleiste ----------

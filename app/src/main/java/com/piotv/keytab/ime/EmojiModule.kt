@@ -1,25 +1,26 @@
 package com.piotv.keytab.ime
 
 /**
- * Reine Emoji-Vorschlags-Logik (Android-frei, JUnit-testbar) — v0.11 optional.
+ * Reiner Emoji-Katalog des ☺-Buttons in der Vorschlagsleiste.
  *
- * **Feature:** Optional (Einstellungen, Standard **aus**) ergänzt die Vorschlags-Leiste
- * thematisch passende Emojis zu den Wortvorschlägen. Das Mapping ist ein kleiner,
- * eingebetteter Keyword→Emoji-Katalog (de/en) — kein Netz, kein Modell, keine
- * neue Permission. Der passende Keyword-Index wird aus dem getippten Teilwort
- * (bzw. beim Leerraum-Fall aus dem vorherigen Wort) per Substring-Match bestimmt.
+ * **Feature:** Der Katalog ist über den ☺-Button erreichbar: die Leiste blendet
+ * seitenweise Emoji-Chips an ([PAGE_SIZE]) und über ▦ den ganzen Katalog als
+ * Raster. Das Mapping ist ein kleiner, eingebetteter Keyword→Emoji-Katalog
+ * (de/en) — kein Netz, kein Modell, keine neue Permission.
  *
- * Platzierung: Emojis nehmen maximal [MAX_EMOJI] der 3 Vorschlags-Slots ein und
- * werden **hinten** angehängt — Wortschläge behalten immer mindestens einen Slot
- * (siehe SuggestionEngine.suggest).
+ * Entfernt (2026-09-27): die *automatische* Emoji-Vorschlagsfunktion, die
+ * thematisch passende Emojis an die Wortvorschläge anhängte. Grund: sie war
+ * Default **aus**, brauchte also einen Settings-Schalter, und der Katalog
+ * selbst ist über den Button ohnehin erreichbar — zwei Wege zu denselben
+ * Emojis. `emojisFor` und `MAX_EMOJI` sind damit überflüssig; die
+ * Keyword-Liste bleibt als Quelle des Katalogs bestehen.
+ *
+ * Android-frei, JUnit-testbar.
  */
 object EmojiModule {
 
-    /** Maximaler Anteil der Vorschlags-Slots, den Emojis einnehmen dürfen. */
-    const val MAX_EMOJI = 2
-
-    /** Katalog-Browser: Emojis pro Seite (Vorschlags-Leiste hat 3 Slots). */
-    const val PAGE_SIZE = 3
+    /** Katalog-Browser: Emojis pro Seite in der Vorschlags-Leiste. */
+    const val PAGE_SIZE = 5
 
     /**
      * Keyword→Emoji-Katalog. Substring-Match (lowercase) — Reihenfolge im
@@ -75,7 +76,74 @@ object EmojiModule {
         "notiz" to listOf("📝"),
         "note" to listOf("📝"),
         "datei" to listOf("📁"),
-        "file" to listOf("📁")
+        "file" to listOf("📁"),
+        "ordner" to listOf("📂", "🗂️"),
+        "folder" to listOf("📂", "🗂️"),
+        "loeschen" to listOf("🗑️"),
+        "delete" to listOf("🗑️"),
+        // --- Erweitert 2026-09-27 (größerer Katalog) ---
+        "gefeiert" to listOf("🎉", "🥳"),
+        "feier" to listOf("🎉"),
+        "party" to listOf("🎉", "🥳"),
+        "geburtstag" to listOf("🎂"),
+        "birthday" to listOf("🎂"),
+        "essen" to listOf("🍎", "🍕"),
+        "food" to listOf("🍎", "🍕"),
+        "pizza" to listOf("🍕"),
+        "fisch" to listOf("🐟"),
+        "fish" to listOf("🐟"),
+        "tier" to listOf("🐶", "🐱"),
+        "dog" to listOf("🐶"),
+        "katze" to listOf("🐱"),
+        "cat" to listOf("🐱"),
+        "blume" to listOf("🌸"),
+        "flower" to listOf("🌸"),
+        "baum" to listOf("🌳"),
+        "tree" to listOf("🌳"),
+        "mond" to listOf("🌙"),
+        "moon" to listOf("🌙"),
+        "nacht" to listOf("🌙"),
+        "night" to listOf("🌙"),
+        "schule" to listOf("📚", "🎓"),
+        "school" to listOf("📚", "🎓"),
+        "studium" to listOf("🎓"),
+        "arbeit" to listOf("💼"),
+        "work" to listOf("💼"),
+        "buero" to listOf("💼"),
+        "terminal" to listOf("🖥️", "⌨️"),
+        "kommando" to listOf("⌨️"),
+        "flagge" to listOf("🚩"),
+        "flag" to listOf("🚩"),
+        "ziel" to listOf("🎯"),
+        "target" to listOf("🎯"),
+        "gedanke" to listOf("💡"),
+        "idea" to listOf("💡"),
+        "warnung" to listOf("🚧"),
+        "baustelle" to listOf("🚧"),
+        "schlaf" to listOf("😴"),
+        "sleep" to listOf("😴"),
+        "limonade" to listOf("🥤"),
+        "getraenk" to listOf("🥤"),
+        "drink" to listOf("🥤"),
+        "stadt" to listOf("🌃"),
+        "city" to listOf("🌃"),
+        "sport" to listOf("⚽"),
+        "ball" to listOf("⚽"),
+        "fahrrad" to listOf("🚲"),
+        "bike" to listOf("🚲"),
+        "flug" to listOf("✈️"),
+        "reise" to listOf("✈️", "🧳"),
+        "travel" to listOf("✈️", "🧳"),
+        "medizin" to listOf("💊"),
+        "pille" to listOf("💊"),
+        "geld" to listOf("💰"),
+        "money" to listOf("💰"),
+        "geschenk" to listOf("🎁"),
+        "gift" to listOf("🎁"),
+        "schnell" to listOf("⚡"),
+        "fast" to listOf("⚡"),
+        "langsam" to listOf("🐢"),
+        "slow" to listOf("🐢")
     )
 
     /**
@@ -108,20 +176,5 @@ object EmojiModule {
     fun pageCount(perPage: Int = PAGE_SIZE): Int {
         if (perPage <= 0) return 0
         return (catalog.size + perPage - 1) / perPage
-    }
-
-    /**
-     * Emojis für [word] (Substring-Match, lowercase) — höchstens [max],
-     * dedupliziert in Katalog-Reihenfolge, deterministisch (kein Zufall).
-     */
-    fun emojisFor(word: String, max: Int = MAX_EMOJI): List<String> {
-        if (word.isBlank() || max <= 0) return emptyList()
-        val w = word.lowercase()
-        val out = LinkedHashSet<String>()
-        for ((kw, emojis) in KEYWORDS) {
-            if (kw !in w) continue
-            for (e in emojis) if (out.add(e) && out.size >= max) return out.toList()
-        }
-        return out.toList()
     }
 }

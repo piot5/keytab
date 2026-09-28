@@ -72,21 +72,25 @@ internal class SuggestionController(private val host: SuggestionHost) {
         // ☺-Katalog-Button (öffnet/blättert den Emoji-Katalog), ◀ (zurück zu den
         // Wortvorschlägen) und ▦ (ganzer Katalog als Tabelle) links in der Leiste.
         emojiBrowser.bind(root, suggestionViews)
-        // ⌄/⇱ Tastatur ausblenden/maximieren (rechts in der Wortvorhersage-Zeile).
-        // NUR im Editor-Tab sichtbar; Einblenden durch erneutes Tippen.
-        // Symbol: ⇲ (nach außen-unten, dunkel) zum Maximieren, ⇱ (nach innen-oben)
-        // zum Zurückblenden — wechselt je nach Hide-Zustand.
+        // Maximieren (Vollbild-Modus) an zwei Stellen, beide mit derselben
+        // Aktion und derselben Symbol-Anzeige:
+        //  * "sug_hide" rechts in dieser Wortvorhersage-Zeile — nur im Editor-Tab
+        //    sichtbar (die kurze Variante direkt neben den Vorschlägen),
+        //  * "key_maximize" in der maximize_row am unteren Rand — in JEDEM Tab.
+        // Symbol: ⇲ normal, ⇱ im Vollbild-Modus.
+        val maximizeRow = root.findViewById<TextView>(R.id.key_maximize)
         val sugHide = root.findViewById<TextView>(R.id.sug_hide)
-        sugHide?.setOnClickListener {
+        val toggleMaximize = {
             host.haptic()
             host.hideKeyboard()
-            // Symbol passend zum neuen Zustand setzen.
-            val collapsed = root.getTag(R.id.sug_hide) as? Boolean ?: false
-            sugHide.text = if (collapsed) "⇱" else "⇲"
+            val maximized = root.getTag(R.id.maximized_state) as? Boolean ?: false
+            val symbol = if (maximized) "⇱" else "⇲"
+            maximizeRow?.text = symbol
+            sugHide?.text = symbol
         }
-        sugHide?.visibility =
-            if (host.isEditorTab()) View.VISIBLE else View.GONE
-        // Initiales Symbol: ⇲ (nicht maximiert).
+        maximizeRow?.setOnClickListener { toggleMaximize() }
+        sugHide?.setOnClickListener { toggleMaximize() }
+        maximizeRow?.text = "⇲"
         sugHide?.text = "⇲"
         // Engine der aktiven Sprache laden (async, bei Wechsel: Reload)
         host.predictionManager?.loadEngine(language)

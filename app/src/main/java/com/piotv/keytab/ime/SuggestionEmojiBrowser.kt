@@ -226,16 +226,27 @@ internal class SuggestionEmojiBrowser(
     }
 
     companion object {
-        /** Katalog-Seitenlänge in der Leiste (5 Slots: sug_1..sug_5). */
-        const val CATALOG_PER_PAGE = 5
+        /**
+         * Katalog-Seitenlänge in der Leiste (5 Slots: sug_1..sug_5).
+         * Muss zur Zahl der Slots im Layout passen; die Leiste blendet
+         * [EmojiModule.PAGE_SIZE] Chips pro Seite ein.
+         */
+        const val CATALOG_PER_PAGE = EmojiModule.PAGE_SIZE
 
         // --- Layout-Konstanten des Emoji-Raster-Popups (alle Werte in dp) ---
 
-        /** Spaltenzahl des Emoji-Rasters. */
-        const val GRID_COLUMNS = 5
+        /**
+         * Spaltenzahl des Emoji-Rasters. Von 5 auf 6 erhöht (2026-09-27):
+         * der Katalog wuchs auf über 90 Symbole, mit 5 Spalten brauchte das
+         * Blättern zu viele Taps.
+         */
+        const val GRID_COLUMNS = 6
 
-        /** Kantenlänge einer Raster-Zelle in dp. */
-        const val CELL_DP = 46
+        /**
+         * Kantenlänge einer Raster-Zelle in dp. 46 → 52: größere Tap-Ziele,
+         * passend zur größeren Spaltenzahl.
+         */
+        const val CELL_DP = 52
 
         /** Innenabstand des Rasters in dp. */
         const val GRID_PADDING_DP = 8

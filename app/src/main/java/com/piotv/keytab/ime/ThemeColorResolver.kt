@@ -115,11 +115,16 @@ internal object ThemeColorResolver {
             else -> defaultGradientColor2(dark)
         }
 
-    /** Verlaufs-Modus je Modus (per-mode Override → Legacy global → Default). */
+    /**
+     * Verlaufs-Modus je Modus (per-mode Override → Legacy global → Standard).
+     *
+     * Die Standards sind die aus der Nutzer-Konfiguration (2026-09-28):
+     * dunkel `invert`, hell `top_down`.
+     */
     fun gradientMode(prefs: SharedPreferences, dark: Boolean): String =
         prefs.getString(ThemePrefs.gradientModeKey(dark), null)
-            ?: prefs.getString(ThemePrefs.KEY_GRADIENT_MODE, ThemePrefs.GRADIENT_TOP_DOWN)
-            ?: ThemePrefs.GRADIENT_TOP_DOWN
+            ?: prefs.getString(ThemePrefs.KEY_GRADIENT_MODE, null)
+            ?: if (dark) ThemePrefs.GRADIENT_INVERT else ThemePrefs.GRADIENT_TOP_DOWN
 
     /** Alpha (0–255) in eine ARGB-Farbe einblenden (RGB bleibt). */
     fun withAlpha(color: Int, alpha: Int): Int =

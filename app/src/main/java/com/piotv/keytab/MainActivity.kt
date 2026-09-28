@@ -91,7 +91,7 @@ class MainActivity : AppCompatActivity() {
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) { /* kein Bedarf: keine Neutralposition */ return }
         }
-        swNumRow.isChecked = prefs.getBoolean(Prefs.KEY_NUM_ROW, false)
+        swNumRow.isChecked = prefs.getBoolean(Prefs.KEY_NUM_ROW, true)
         swNumRow.setOnCheckedChangeListener { _, checked ->
             prefs.edit().putBoolean(Prefs.KEY_NUM_ROW, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_num_row_on
@@ -127,20 +127,11 @@ class MainActivity : AppCompatActivity() {
 
         // Autokorrektur beim Leerzeichen ein-/ausschalten
         val swAutocorrect = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_autocorrect)
-        swAutocorrect.isChecked = prefs.getBoolean(Prefs.KEY_AUTOCORRECT, true)
+        swAutocorrect.isChecked = prefs.getBoolean(Prefs.KEY_AUTOCORRECT, false)
         swAutocorrect.setOnCheckedChangeListener { _, checked ->
             prefs.edit().putBoolean(Prefs.KEY_AUTOCORRECT, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_autocorrect_on
             else R.string.settings_autocorrect_off, Toast.LENGTH_SHORT).show()
-        }
-
-        // Emoji-Vorschläge (optional, Default aus; wirkt beim nächsten Vorschlags-Update)
-        val swEmoji = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_emoji)
-        swEmoji.isChecked = prefs.getBoolean(Prefs.KEY_EMOJI_SUGGESTIONS, false)
-        swEmoji.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(Prefs.KEY_EMOJI_SUGGESTIONS, checked).apply()
-            Toast.makeText(this, if (checked) R.string.settings_emoji_on
-            else R.string.settings_emoji_off, Toast.LENGTH_SHORT).show()
         }
 
         // Dynamische Tastengröße ein-/ausblenden (wirkt beim nächsten Öffnen)

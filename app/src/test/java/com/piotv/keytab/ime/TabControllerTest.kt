@@ -1,6 +1,7 @@
 package com.piotv.keytab.ime
 
 import android.content.Context
+import android.os.Looper
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
@@ -8,12 +9,14 @@ import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.Prefs
 import com.piotv.keytab.R
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -62,12 +65,105 @@ class TabControllerTest {
         assertEquals(TabController.TabKind.FILES, controller.currentTabKind())
         assertEquals(InputKind.APP, host.inputRouter.kind)
     }
-    @Test fun `Snippet ist optional und Hide nur im Editor sichtbar`() {
+    @Test fun `Snippet ist optional und Maximieren sitzt je nach Tab`() {
         val r = setup(true, true); val tabs = r.findViewById<TabLayout>(R.id.ime_tabs)
         tabs.getTabAt(3)!!.select(); assertEquals(TabController.TabKind.CLIP, controller.currentTabKind())
         tabs.getTabAt(4)!!.select(); assertEquals(TabController.TabKind.SNIPPET, controller.currentTabKind())
-        tabs.getTabAt(1)!!.select(); assertEquals(View.VISIBLE, r.findViewById<View>(R.id.sug_hide).visibility)
-        tabs.getTabAt(0)!!.select(); assertEquals(View.GONE, r.findViewById<View>(R.id.sug_hide).visibility)
+        // Files/Clip/Snippet: Maximieren-Zeile am unteren Rand (diese Tabs haben
+        // keine Prediction-Zeile).
+        for (i in 2..4) {
+            tabs.getTabAt(i)!!.select()
+            assertEquals("Tab $i: Max-Zeile sichtbar", View.VISIBLE,
+                r.findViewById<View>(R.id.maximize_row).visibility)
+            assertEquals("Tab $i: kein Prediction-Symbol", View.GONE,
+                r.findViewById<View>(R.id.sug_hide).visibility)
+        }
+        // Editor: das Symbol sitzt rechts in der Prediction-Zeile, keine Max-Zeile.
+        tabs.getTabAt(1)!!.select()
+        assertEquals("Editor: Prediction-Symbol sichtbar", View.VISIBLE,
+            r.findViewById<View>(R.id.sug_hide).visibility)
+        assertEquals("Editor: keine Max-Zeile", View.GONE,
+            r.findViewById<View>(R.id.maximize_row).visibility)
+        // abc: gar kein Maximieren (nichts zu vergroessern).
+        tabs.getTabAt(0)!!.select()
+        assertEquals("abc: keine Max-Zeile", View.GONE,
+            r.findViewById<View>(R.id.maximize_row).visibility)
+        assertEquals("abc: kein Prediction-Symbol", View.GONE,
+            r.findViewById<View>(R.id.sug_hide).visibility)
+    }
+
+    @Test fun `Alle Inhalts-Tabs bekommen dieselbe Normalhoehe`() {
+        val r = setup(true, true); val tabs = r.findViewById<TabLayout>(R.id.ime_tabs)
+        // Im abc-Tab laeuft noch keine Tastatur, deshalb dort nicht pruefen.
+        for (i in 1..4) {
+            tabs.getTabAt(i)!!.select()
+            shadowOf(Looper.getMainLooper()).idle()
+        }
+        // Files/Clip/Snippet bekommen dieselbe Panel-Hoehe ...
+        val heights = PanelHeights.CONTENT_PANEL_IDS.map {
+            r.findViewById<View>(it).layoutParams.height
+        }
+        assertTrue("Panel-Hoehen muessen positiv sein: $heights", heights.all { it > 0 })
+        assertEquals("Files/Clip/Snippet gleich hoch: $heights", 1, heights.distinct().size)
+        // ... und die entspricht der Gesamthoehe des Editor-Tabs (Editor +
+        // Tastatur) minus Maximieren-Zeile — diese Zeile haben nur die
+        // Inhalts-Tabs, der Editor-Tab hat dort das Prediction-Symbol. So sind
+        // alle vier Tabs gleich hoch — oder das Panel weicht auf das Fenster
+        // aus, wenn Editor+Tastatur zu klein sind. Auf dem Geraet gibt das
+        // System nur ~70 % der Bildschirmhoehe frei, deshalb die Begrenzung;
+        // ohne sie schob das Panel die unterste Tastenzeile aus dem Fenster.
+        val editorTotal = r.findViewById<View>(R.id.editor_panel).layoutParams.height +
+            r.findViewById<View>(R.id.kb_panel).measuredHeight
+        val width = r.resources.displayMetrics.widthPixels
+        val window = (r.resources.displayMetrics.heightPixels *
+            PanelHeights.IME_WINDOW_FRACTION).toInt()
+        // Chrome (Tab-Leiste + Maximieren-Zeile) liegt ausserhalb des Panels und
+        // muss im Fenster Platz haben — deshalb erst davon abziehen, dann kippen.
+        val expected = minOf(editorTotal - PanelHeights.maximizeRowHeight(r),
+            window - PanelHeights.chromeHeight(r, width))
+        assertEquals("Panel-Hoehe = min(Editor+Tastatur-Max-Zeile, IME-Fenster)",
+            expected, heights.first())
+    }
+
+    @Test fun `Maximieren-Zeile nur in den Inhalts-Tabs`() {
+        val r = setup(true, true); val tabs = r.findViewById<TabLayout>(R.id.ime_tabs)
+        // abc, Editor: nein (Editor hat das Prediction-Symbol), Files/Clip/Snip: ja.
+        val expected = listOf(false, false, true, true, true)
+        for ((i, shows) in expected.withIndex()) {
+            tabs.getTabAt(i)!!.select()
+            assertEquals("showsMaximizeRow in Tab $i", shows, controller.showsMaximizeRow())
+            assertEquals("Maximieren-Zeile in Tab $i",
+                if (shows) View.VISIBLE else View.GONE,
+                r.findViewById<View>(R.id.maximize_row).visibility)
+        }
+    }
+
+    @Test fun `Erster Start zeigt den abc-Zustand ohne Maximieren-Zeile`() {
+        // Regression: `addTab()` waehlt Tab 0 (abc) aus, *bevor* der Listener
+        // haengt — sein onTabSelected laeuft also nie. Ohne den Startzustand in
+        // setup() blieb die Maximieren-Zeile stehen, obwohl es im abc-Tab
+        // nichts zu maximieren gibt.
+        val r = setup(true, true)
+        assertEquals("abc: keine Maximieren-Zeile beim ersten Start", View.GONE,
+            r.findViewById<View>(R.id.maximize_row).visibility)
+        assertEquals("abc: kein Maximieren-Symbol in der Vorschlagsleiste", View.GONE,
+            r.findViewById<View>(R.id.sug_hide).visibility)
+        assertEquals("abc: Tastatur sichtbar", View.VISIBLE,
+            r.findViewById<View>(R.id.kb_panel).visibility)
+        assertEquals("abc: Symbol-Ebene aus", View.GONE,
+            r.findViewById<View>(R.id.sym_panel).visibility)
+    }
+
+    @Test fun `In Inhalts-Tabs ist die Tastatur GONE und im Editor-Tab sichtbar`() {
+        val r = setup(true, true); val tabs = r.findViewById<TabLayout>(R.id.ime_tabs)
+        tabs.getTabAt(1)!!.select()
+        assertEquals("Editor-Tab: Tastatur sichtbar", View.VISIBLE,
+            r.findViewById<View>(R.id.kb_panel).visibility)
+        for (i in 2..4) {
+            tabs.getTabAt(i)!!.select()
+            assertEquals("Tab $i: Tastatur GONE (nicht INVISIBLE — sonst doppelte Hoehe)",
+                View.GONE, r.findViewById<View>(R.id.kb_panel).visibility)
+        }
     }
     @Test fun `Symbol Toggle schaltet Ebenen um`() {
         val r = setup(false, false)

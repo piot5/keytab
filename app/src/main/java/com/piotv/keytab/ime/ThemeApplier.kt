@@ -171,7 +171,9 @@ object ThemeApplier {
         // ☾/☀ und ⚙ FLACH/eckig (flatKeyState) statt keyBackground(): die abgerundete
         // Variante ließ die Taste „abgerundet" aussehen und an den Rändern der obersten
         // Zeile Lücken entstehen. Beide Tasten gleich behandeln → konsistenter Look.
-        for (id in intArrayOf(R.id.key_theme, R.id.key_settings)) {
+        // key_maximize: Maximieren-Zeile am unteren Rand, gleicher flacher Look
+        // wie die obere Leiste (Button, nicht TextView).
+        for (id in intArrayOf(R.id.key_theme, R.id.key_settings, R.id.key_maximize)) {
             val btn = v.findViewById<Button>(id) ?: continue
             btn.setTextColor(text)
             btn.background = flatKeyState()

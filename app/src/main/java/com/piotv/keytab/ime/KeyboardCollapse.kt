@@ -1,17 +1,34 @@
 package com.piotv.keytab.ime
 
 import android.view.View
-import android.view.ViewGroup
 import com.piotv.keytab.R
 
 /**
- * Einklappen/Ausklappen der Tastatur im Editor-Tab (☰-Schaltfläche).
+ * Vollbild-Modus ("Maximieren") der Inhalts-Tabs.
  *
- * Refactoring: aus [KeyTabImeService.hideKeyboard] extrahiert, damit der
- * Service schlank bleibt und die reine Höhen-/Sichtbarkeitslogik testbar ist.
- * Verhalten unverändert: der Suggestion-Trigger blendet beim Einklappen alle
- * Geschwister-Kinder aus, beim Ausklappen wieder ein – die vier Panel-IDs
- * bleiben in beiden Richtungen sichtbar, da sie ihre Sichtbarkeit selbst steuern.
+ * Je Tab gibt es zwei definierte Zustaende:
+ *  * **normal** — der Tab so hoch wie der Editor-Tab. Im Editor steht das
+ *    Editor-Panel ueber der Tastatur, in Files/Clip/Snippets das jeweilige
+ *    Panel allein (Tastatur dort nie sichtbar).
+ *  * **maximiert** — das Inhalts-Panel fuellt das IME-Fenster, soweit das System
+ *    es hergibt ([PanelHeights.maximizedPanelHeight]). Die obere Tab-Leiste
+ *    bleibt sichtbar: ohne sie waere nicht erkennbar, in welchem Tab man ist.
+ *    Die Maximieren-Zeile bleibt **nur dort**, wo sie auch im Normalzustand
+ *    steht (Files/Clip/Snippets, `maximizeRowVisible`); im Editor-Tab sitzt der
+ *    Ausweg im Symbol der Prediction-Zeile — eine zweite Zeile waere doppelt und
+ *    kostete Hoehe, die der Editor braucht.
+ *
+ * Der abc-Tab kennt keinen maximierten Zustand — dort gibt es nichts zu
+ * vergroessern, die Tastatur ist selbst das groesste Element.
+ *
+ * Tastatur-Sichtbarkeit ist **tababhaengig, nicht zustandsabhaengig**:
+ *  * Editor: Tastatur immer sichtbar, auch maximiert (sonst koennte man im
+ *    Text nichts mehr tippen),
+ *  * Files/Clip/Snippets: Tastatur nie sichtbar, auch nicht im Normalzustand,
+ *  * abc: Tastatur immer sichtbar, nie maximiert.
+ *
+ * Die Höhen-/Sichtbarkeitslogik steckt hier, damit sie ohne Service-Mock
+ * testbar bleibt; der Service ruft nur [collapse] bzw. [expand] auf.
  */
 internal object KeyboardCollapse {
 
@@ -24,71 +41,95 @@ internal object KeyboardCollapse {
     )
 
     /**
-     * Sichtbarkeit der Geschwister-Kinder der Vorschlagsleiste umschalten.
-     * @param collapse true = einklappen (Geschwister aus), false = ausklappen (ein)
+     * Das Panel, das im Vollbild-Modus wächst: das sichtbare Inhalts-Panel,
+     * im abc-Tab die Buchstaben-Tastatur.
      */
+    fun targetPanel(root: View): View? {
+        for (id in PANEL_IDS) {
+            val panel = root.findViewById<View>(id) ?: continue
+            if (panel.visibility == View.VISIBLE) return panel
+        }
+        return root.findViewById<View>(R.id.kb_panel)
+    }
+
     /**
-     * Sichtbarkeit der Geschwister-Kinder der Vorschlagsleiste umschalten.
+     * In den Vollbild-Modus wechseln: das aktive Panel (oder die Tastatur im
+     * abc-Tab) wächst auf die Höhe, die das IME-Fenster hergibt
+     * ([PanelHeights.maximizedPanelHeight] — das ist die Systemgrenze, nicht ein
+     * Prozentsatz davon), Chrome-Zeilen weg, Maximieren-Zeile je Tab.
      *
-     * Die beiden Richtungen sind bewusst **asymmetrisch** (Originalverhalten):
-     * beim Einklappen wandern alle Geschwister raus, beim Ausklappen kommen nur
-     * die Nicht-Panels zurück – die Panels steuern ihre Sichtbarkeit selbst.
+     * Die Normalhöhe wird vor dem Umschalten gemerkt, damit [expand] sie
+     * verlustfrei zurücksetzen kann.
      *
-     * @param skipPanels true = Panel-IDs stehen lassen (Ausklappen), false = alle
+     * @param keyboardVisible Tastatur bleibt sichtbar (Editor- und abc-Tab)
+     * @param maximizeRowVisible die Max-Zeile am unteren Rand zeigen
+     *   (Files/Clip/Snippets). Im Editor-Tab **nicht**: dort ist das
+     *   ⇲-Symbol der Prediction-Zeile der Weg zurück, und die Zeile nähme dem
+     *   Editor Höhe weg, die er im Vollbild gerade bekommen soll.
+     * @param heightPx Höhe aus der Config-Datei in px, 0 = Fenster füllen
+     *   (siehe [TabHeights])
      */
-    private fun applySiblingVisibility(root: View, visible: Boolean, skipPanels: Boolean) {
-        val sugBar = root.findViewById<View>(R.id.suggestion_bar)
-        val lettersRoot = sugBar?.parent as? ViewGroup ?: return
-        for (i in 0 until lettersRoot.childCount) {
-            val child = lettersRoot.getChildAt(i)
-            if (isToggleable(child, skipPanels)) {
-                child.visibility = if (visible) View.VISIBLE else View.GONE
+    fun collapse(
+        root: View,
+        keyboardVisible: Boolean,
+        maximizeRowVisible: Boolean,
+        heightPx: Int = 0
+    ) {
+        val target = targetPanel(root) ?: return
+        // Normalhoehe merken, damit expand() sie verlustfrei zuruecksetzen kann.
+        root.setTag(R.id.maximize_normal_height, target.layoutParams?.height ?: 0)
+
+        // Sichtbarkeiten **zuerst**, die Hoehe danach: die Rechnung zieht die
+        // sichtbaren Zeilen ab, und vorher stand sie vor dem Umschalten — dadurch
+        // wurde die untere Key-Leiste versteckt, ihr Platz aber weiter
+        // abgezogen (rund 46dp Leerraum in jedem Vollbild).
+        root.findViewById<View>(R.id.sym_panel)?.visibility = View.GONE
+        // Oberkante bleibt als Orientierung; die Ausweg-Zeile nur, wo sie hingehoert.
+        root.findViewById<View>(R.id.ime_tabs)?.visibility = View.VISIBLE
+        root.findViewById<View>(R.id.maximize_row)?.visibility =
+            if (maximizeRowVisible) View.VISIBLE else View.GONE
+        // Die untere Key-Leiste gehoert zur Tastatur: wo die Tastatur bleibt
+        // (Editor-Tab), bleibt auch sie — sonst fehlten im Vollbild Leerzeichen,
+        // Tab und Enter (die Buchstaben-Ebene hat sie nicht).
+        root.findViewById<View>(R.id.bottom_row)?.visibility =
+            if (keyboardVisible) View.VISIBLE else View.GONE
+        // Nur die nicht sichtbaren Panels verschwinden; alle anderen behalten
+        // ihren Zustand (im Editor bleibt die Tastatur stehen).
+        for (id in PANEL_IDS) {
+            val panel = root.findViewById<View>(id) ?: continue
+            if (panel !== target && panel.visibility == View.VISIBLE) {
+                panel.visibility = View.GONE
             }
         }
+        root.findViewById<View>(R.id.kb_panel)?.visibility =
+            if (keyboardVisible) View.VISIBLE else View.GONE
+
+        val width = root.resources.displayMetrics.widthPixels
+        val maximized = PanelHeights.maximizedPanelHeight(root, width, keyboardVisible, heightPx)
+        if (maximized <= 0) return
+
+        target.layoutParams = target.layoutParams.apply { height = maximized }
     }
 
     /**
-     * Darf die Sichtbarkeit dieses Kindes umgeschaltet werden? Die
-     * Vorschlagsleiste selbst und – im Ausklappen-Zweig – die Panels nicht:
-     * beide steuern ihre Sichtbarkeit selbst.
+     * Aus dem Vollbild-Modus zurück: Normalhöhe und Sichtbarkeit wiederherstellen.
+     * Die Tabs entscheiden danach selbst, welches Panel sichtbar ist.
      */
-    private fun isToggleable(child: View, skipPanels: Boolean): Boolean =
-        child.id != R.id.suggestion_bar && !(skipPanels && child.id in PANEL_IDS)
-
-    /**
-     * Einklappen-Zweig: Geschwister der Vorschlagsleiste ausblenden, untere
-     * Zeile verstecken, im Editor-Tab die volle Höhe auf die Tastatur legen.
-     */
-    fun collapse(root: View, kind: TabController.TabKind) {
-        val ed = root.findViewById<View>(R.id.editor_panel)
-        val kb = root.findViewById<View>(R.id.kb_panel)
-        val bottomRow = root.findViewById<View>(R.id.bottom_row)
-        val width = root.resources.displayMetrics.widthPixels
-        val maxH = PanelHeights.measureHeight(ed, width) +
-            PanelHeights.measureHeight(kb, width) +
-            PanelHeights.measureHeight(bottomRow, width)
-        applySiblingVisibility(root, visible = false, skipPanels = false)
-        bottomRow?.visibility = View.GONE
-        if (maxH > 0 && kind == TabController.TabKind.EDITOR && ed != null) {
-            root.setTag(R.id.editor_normal_height, ed.layoutParams.height)
-            ed.layoutParams = ed.layoutParams.apply { height = maxH }
+    fun expand(root: View) {
+        val target = targetPanel(root)
+            ?: root.findViewById<View>(R.id.kb_panel)
+            ?: return
+        val normal = root.getTag(R.id.maximize_normal_height) as? Int ?: 0
+        if (normal > 0) {
+            target.layoutParams = target.layoutParams.apply { height = normal }
+        } else {
+            // Kein gemerkter Wert (z. B. nach Activity-Rebuild): neu berechnen.
+            PanelHeights.applyNormalHeights(root, root.resources.displayMetrics.widthPixels)
         }
-    }
-
-    /**
-     * Ausklappen-Zweig: Geschwister wieder einblenden, untere Zeile zeigen
-     * und die gemerkte Normalhöhe des Editors wiederherstellen.
-     */
-    fun expand(root: View, kind: TabController.TabKind) {
-        val ed = root.findViewById<View>(R.id.editor_panel)
-        val bottomRow = root.findViewById<View>(R.id.bottom_row)
-        val width = root.resources.displayMetrics.widthPixels
-        applySiblingVisibility(root, visible = true, skipPanels = true)
-        bottomRow?.visibility = View.VISIBLE
-        val h = PanelHeights.measureHeight(ed, width)
-        if (h > 0 && kind == TabController.TabKind.EDITOR && ed != null) {
-            val normal = root.getTag(R.id.editor_normal_height) as? Int ?: h
-            ed.layoutParams = ed.layoutParams.apply { height = normal }
+        // Sichtbarkeit gibt danach der Tab-Wechsler vor — der kennt die
+        // Tastatur-Regeln (Editor immer, Files/Clip/Snip nie).
+        for (id in intArrayOf(R.id.ime_tabs)) {
+            root.findViewById<View>(id)?.visibility = View.VISIBLE
         }
     }
 }

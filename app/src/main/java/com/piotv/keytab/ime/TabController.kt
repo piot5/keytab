@@ -37,13 +37,10 @@ internal class TabController(private val host: TabHost) {
     fun setup(root: View) {
         val tabs = root.findViewById<TabLayout>(R.id.ime_tabs) ?: return
         currentTabs = tabs
-        val kb = root.findViewById<View>(R.id.kb_panel) ?: return
-        val sym = root.findViewById<View>(R.id.sym_panel) ?: return
-        val fm = root.findViewById<View>(R.id.file_panel) ?: return
-        val ed = root.findViewById<View>(R.id.editor_panel) ?: return
-        val clip = root.findViewById<View>(R.id.clip_panel) ?: return
-        val snip = root.findViewById<View>(R.id.snippet_panel) ?: return
-        val bottom = root.findViewById<View>(R.id.bottom_row) ?: return
+        // Die Panel-Views werden in [applyTabVisibility] gesucht (und dort
+        // null-sicher behandelt): der Startzustand läuft durch dieselbe
+        // Funktion wie jeder Tab-Wechsel, damit es nur *einen* Ort gibt, der
+        // Sichtbarkeiten kennt.
         val prefs = com.piotv.keytab.Prefs.of(host.context)
         val clipEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_CLIP_TAB, true)
         val snipEnabled = prefs.getBoolean(com.piotv.keytab.Prefs.KEY_SNIPPET_TAB, true)
@@ -67,50 +64,166 @@ internal class TabController(private val host: TabHost) {
                 host.letterPopup.dismiss()
                 val kind = kinds.getOrNull(tab.position) ?: TabKind.ABC
                 currentKind = kind
-                root.setTag(R.id.sug_hide, false)
-                val sugBar = root.findViewById<View>(R.id.suggestion_bar)
-                val lettersRoot = sugBar?.parent as? android.view.ViewGroup
-                if (lettersRoot != null) for (i in 0 until lettersRoot.childCount)
-                    lettersRoot.getChildAt(i).visibility = View.VISIBLE
-                bottom.visibility = View.VISIBLE
-                val keyboardVisible = kind == TabKind.ABC || kind == TabKind.EDITOR
+                root.setTag(R.id.maximized_state, false)
+                applyTabVisibility(root, kind)
                 host.inputRouter?.kind = if (kind == TabKind.EDITOR) InputKind.EDITOR else InputKind.APP
-                ed.visibility = if (kind == TabKind.EDITOR) View.VISIBLE else View.GONE
-                fm.visibility = if (kind == TabKind.FILES) View.VISIBLE else View.GONE
-                clip.visibility = if (kind == TabKind.CLIP) View.VISIBLE else View.GONE
-                snip.visibility = if (kind == TabKind.SNIPPET) View.VISIBLE else View.GONE
-                kb.visibility = if (keyboardVisible) View.VISIBLE else View.INVISIBLE
-                sym.visibility = if (showSymbols && keyboardVisible) View.VISIBLE else View.GONE
-                root.findViewById<View>(R.id.key_toggle)?.visibility =
-                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
-                root.findViewById<View>(R.id.key_tab)?.visibility =
-                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
-                root.findViewById<View>(R.id.key_space)?.visibility =
-                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
-                root.findViewById<View>(R.id.key_dot)?.visibility =
-                    if (keyboardVisible) View.VISIBLE else View.INVISIBLE
-                root.findViewById<View>(R.id.key_enter)?.visibility = View.VISIBLE
-                root.findViewById<View>(R.id.key_del)?.visibility =
-                    if (keyboardVisible && !showSymbols) View.VISIBLE else View.INVISIBLE
-                if (kind == TabKind.FILES || kind == TabKind.CLIP || kind == TabKind.SNIPPET) {
-                    val h = PanelHeights.filesPanelHeight(ed, kb, root.resources.displayMetrics.widthPixels)
-                    for (p in listOf(fm, clip, snip)) if (h > 0 && p.layoutParams.height != h)
-                        p.layoutParams = p.layoutParams.apply { height = h }
-                }
                 if (kind == TabKind.FILES) host.fileManagerPanel?.show()
                 if (kind == TabKind.CLIP) { host.clipboardPanel?.onSelected(); host.clipboardPanel?.refreshList(root) }
                 if (kind == TabKind.SNIPPET) host.snippetPanel?.onSelected(root)
                 if (kind == TabKind.EDITOR) host.clipboardPanel?.onSelected()
-                val sugHideBtn = root.findViewById<android.widget.TextView>(R.id.sug_hide)
-                sugHideBtn?.visibility = if (kind == TabKind.EDITOR) View.VISIBLE else View.GONE
-                sugHideBtn?.text = "⇲"
+                // Symbol an den aktuellen Vollbild-Zustand anpassen (die
+                // Sichtbarkeit von Zeile und Symbol setzt [applyTabVisibility]).
+                val maximized = root.getTag(R.id.maximized_state) as? Boolean ?: false
+                val symbol = if (maximized) "⇱" else "⇲"
+                (root.findViewById<android.widget.TextView>(R.id.key_maximize))?.text = symbol
+                (root.findViewById<android.widget.TextView>(R.id.sug_hide))?.text = symbol
+                // Normalzustand aller Inhalts-Tabs:
+                //  * Editor: sein Panel behaelt seine feste Hoehe, darunter
+                //    steht die Tastatur (er ist die Hoehenreferenz),
+                //  * Files/Clip/Snippets: Panel so hoch wie Editor + Tastatur
+                //    **minus Maximieren-Zeile** — diese Zeile haben nur die
+                //    Inhalts-Tabs, deshalb sind so alle Tabs gleich hoch.
+                // Bewusst *nach* den Sichtbarkeits-Wechseln: dann ist die
+                // Tastaturhoehe gemessen und nicht geschaetzt. Je Tab kann eine
+                // Hoehe in der Config-Datei stehen (TabHeights); 0 = rechnen.
+                val width = root.resources.displayMetrics.widthPixels
+                PanelHeights.applyNormalHeights(
+                    root, width, TabHeights.overridePx(host.context, kind, maximized = false)
+                )
+                // Im maximierten Zustand darf der Tab-Wechsler die Hoehe nicht
+                // zuruecksetzen — der Zustand gehoert zum Tab.
+                if (root.getTag(R.id.maximized_state) == true) {
+                    PanelHeights.maximizedPanelHeight(
+                        root,
+                        width,
+                        isKeyboardAlwaysVisible(),
+                        TabHeights.overridePx(host.context, kind, maximized = true)
+                    ).takeIf { it > 0 }?.let { h ->
+                        val panel = contentPanelOf(root, kind) ?: return@let
+                        panel.layoutParams = panel.layoutParams.apply { height = h }
+                    }
+                }
             }
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
             override fun onTabReselected(tab: TabLayout.Tab) = Unit
         })
-        kb.visibility = View.VISIBLE; sym.visibility = View.GONE; ed.visibility = View.GONE
-        fm.visibility = View.GONE; clip.visibility = View.GONE; snip.visibility = View.GONE; bottom.visibility = View.VISIBLE
+        // Startzustand: `addTab()` hat den ersten Tab (abc) bereits ausgewählt,
+        // *bevor* der Listener hing — sein `onTabSelected` läuft also nie. Bis
+        // hierher blieb deshalb die Maximieren-Zeile stehen, obwohl sie im
+        // abc-Tab nichts zu suchen hat. Der Startzustand läuft jetzt durch
+        // dieselbe Funktion wie jeder Tab-Wechsel.
+        applyTabVisibility(root, currentKind)
     }
+
+    /**
+     * Sichtbarkeit in einer Zeile setzen: sichtbar oder `hidden`.
+     *
+     * `hidden` ist absichtlich parametrisierbar: [View.GONE] nimmt den Platz weg
+     * (Tastatur in Inhalts-Tabs), [View.INVISIBLE] lässt ihn stehen (die
+     * Funktionsleiste, damit die Zeilenhöhe in allen Tabs gleich bleibt).
+     */
+    private fun View?.applyVisibility(visible: Boolean, hidden: Int = View.GONE) {
+        this?.visibility = if (visible) View.VISIBLE else hidden
+    }
+
+    /**
+     * Geschwister der Vorschlagsleiste zurücksetzen: nach dem Vollbild-Modus
+     * können dort Zeilen GONE geblieben sein.
+     */
+    private fun resetSuggestionSiblings(root: View) {
+        val lettersRoot =
+            root.findViewById<View>(R.id.suggestion_bar)?.parent as? android.view.ViewGroup
+            ?: return
+        for (i in 0 until lettersRoot.childCount) {
+            lettersRoot.getChildAt(i).visibility = View.VISIBLE
+        }
+    }
+
+    /**
+     * Sichtbarkeiten eines Tabs setzen — ohne Panel-Nachladen und ohne
+     * Höhenrechnung.
+     *
+     * Der eine Ort für „was ist in diesem Tab sichtbar": beim Tab-Wechsel und
+     * beim ersten Aufbau ([setup]). Höhen und Nachladen bleiben beim Aufrufer,
+     * weil sie beim Start noch nicht messbar sind.
+     */
+    private fun applyTabVisibility(root: View, kind: TabKind) {
+        resetSuggestionSiblings(root)
+        root.findViewById<View>(R.id.editor_panel).applyVisibility(kind == TabKind.EDITOR)
+        root.findViewById<View>(R.id.file_panel).applyVisibility(kind == TabKind.FILES)
+        root.findViewById<View>(R.id.clip_panel).applyVisibility(kind == TabKind.CLIP)
+        root.findViewById<View>(R.id.snippet_panel).applyVisibility(kind == TabKind.SNIPPET)
+        applyKeyboardRowVisibility(root, kind == TabKind.ABC || kind == TabKind.EDITOR)
+        applyMaximizeVisibility(root, kind)
+    }
+
+    /** Tastatur, Symbol-Ebene und die gemeinsame Funktionsleiste. */
+    private fun applyKeyboardRowVisibility(root: View, keyboardVisible: Boolean) {
+        // GONE statt INVISIBLE für die Tastatur: in den Inhalts-Tabs ist sie
+        // wirklich weg. INVISIBLE liess sie ihren Platz stehen und verdoppelte
+        // so die Hoehe (Panel + unsichtbare Tastatur).
+        root.findViewById<View>(R.id.kb_panel).applyVisibility(keyboardVisible)
+        root.findViewById<View>(R.id.sym_panel).applyVisibility(showSymbols && keyboardVisible)
+        root.findViewById<View>(R.id.bottom_row).applyVisibility(true)
+        // Die Tasten der Funktionsleiste bleiben als Platzhalter stehen
+        // (INVISIBLE), Enter ist immer nutzbar.
+        root.findViewById<View>(R.id.key_toggle).applyVisibility(keyboardVisible, View.INVISIBLE)
+        root.findViewById<View>(R.id.key_tab).applyVisibility(keyboardVisible, View.INVISIBLE)
+        root.findViewById<View>(R.id.key_space).applyVisibility(keyboardVisible, View.INVISIBLE)
+        root.findViewById<View>(R.id.key_dot).applyVisibility(keyboardVisible, View.INVISIBLE)
+        root.findViewById<View>(R.id.key_enter).applyVisibility(true)
+        root.findViewById<View>(R.id.key_del)
+            .applyVisibility(keyboardVisible && !showSymbols, View.INVISIBLE)
+    }
+
+    /**
+     * Maximieren-Bedienung, abhängig vom Tab:
+     *  * Editor: das Symbol sitzt rechts in der Prediction-Zeile (dort ist die
+     *    Leiste ohnehin sichtbar) — die Max-Zeile entfällt, damit der Editor
+     *    nicht doppelt bedient wird.
+     *  * Files/Clip/Snippets: die Max-Zeile am unteren Rand, weil diese Tabs
+     *    keine Prediction-Zeile haben.
+     *  * abc: **keine** Maximieren-Zeile. Im Buchstaben-Tab gibt es nichts zu
+     *    vergrößern — dort ist die Tastatur selbst das größte Element.
+     */
+    private fun applyMaximizeVisibility(root: View, kind: TabKind) {
+        root.findViewById<View>(R.id.maximize_row)?.visibility =
+            if (showsMaximizeRow(kind)) View.VISIBLE else View.GONE
+        root.findViewById<View>(R.id.sug_hide)?.visibility =
+            if (kind == TabKind.EDITOR) View.VISIBLE else View.GONE
+    }
+
+    /** Zeigt der aktuelle Tab die Maximieren-Zeile am unteren Rand? */
+    fun showsMaximizeRow(): Boolean = showsMaximizeRow(currentKind)
+
+    /**
+     * Maximieren-Zeile nur in den Inhalts-Tabs: sie haben keine Prediction-Zeile,
+     * in der das Symbol sitzen könnte. Editor (Symbol in der Prediction-Zeile) und
+     * abc (gar kein Maximieren) haben keine eigene Zeile — auch nicht im
+     * Vollbild-Modus ([KeyboardCollapse.collapse]).
+     */
+    private fun showsMaximizeRow(kind: TabKind): Boolean =
+        kind == TabKind.FILES || kind == TabKind.CLIP || kind == TabKind.SNIPPET
+
+    /** Das Inhalts-Panel, das zu diesem Tab gehoert (nie die Tastatur). */
+    private fun contentPanelOf(root: View, kind: TabKind): View? = when (kind) {
+        TabKind.EDITOR -> root.findViewById(R.id.editor_panel)
+        TabKind.FILES -> root.findViewById(R.id.file_panel)
+        TabKind.CLIP -> root.findViewById(R.id.clip_panel)
+        TabKind.SNIPPET -> root.findViewById(R.id.snippet_panel)
+        TabKind.ABC -> null
+    }
+
+    /**
+     * Muss die Buchstaben-Tastatur in diesem Tab dauerhaft sichtbar sein?
+     *
+     * Wahr im abc- und im Editor-Tab: im Editor ist die Tastatur das einzige
+     * Eingabewerkzeug — im maximierten Zustand wegzunehmen hieße, im Text nichts
+     * mehr tippen zu können. In Files/Clip/Snippets nie: dort ersetzt das
+     * Inhalts-Panel die Tastatur.
+     */
+    fun isKeyboardAlwaysVisible(): Boolean =
+        currentKind == TabKind.ABC || currentKind == TabKind.EDITOR
 
     fun toggleSymbols(root: View) {
         showSymbols = !showSymbols

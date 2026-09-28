@@ -228,26 +228,28 @@ class SuggestionControllerTest {
     }
 
     @Test
-    fun `Hide-Button nur im Editor-Tab sichtbar`() {
-        host.editorTab = true
-        controller.setup(root, arrayOfNulls(3), Languages.de)
-        assertEquals(View.VISIBLE,
-            root.findViewById<TextView>(R.id.sug_hide).visibility)
-        host.editorTab = false
-        controller.setup(root, arrayOfNulls(3), Languages.de)
-        assertEquals(View.GONE,
-            root.findViewById<TextView>(R.id.sug_hide).visibility)
+    fun `Prediction-Zeile bindet das Maximieren-Symbol an den Vollbild-Modus`() {
+        // Der Knopf stand frueher rechts in der Vorschlagsleiste und war nur im
+        // Editor-Tab sichtbar; jetzt steht er in der maximize_row am unteren
+        // Rand und ist unabhängig vom Tab immer da.
+        for (editorTab in listOf(true, false)) {
+            host.editorTab = editorTab
+            controller.setup(root, arrayOfNulls(3), Languages.de)
+            assertEquals("Symbol vorhanden (editorTab=$editorTab)", View.VISIBLE,
+                root.findViewById<View>(R.id.sug_hide).visibility)
+            assertEquals("Max-Zeile vorhanden (editorTab=$editorTab)", View.VISIBLE,
+                root.findViewById<View>(R.id.maximize_row).visibility)
+        }
     }
 
     @Test
-    fun `Hide-Button blendet Tastatur aus und wechselt Symbol`() {
-        host.editorTab = true
+    fun `Prediction-Symbol loest Vollbild-Modus aus`() {
+        host.editorTab = false
         controller.setup(root, arrayOfNulls(3), Languages.de)
         val btn = root.findViewById<TextView>(R.id.sug_hide)
         assertEquals("Start-Symbol", "⇲", btn.text.toString())
         btn.performClick()
         assertEquals("hideKeyboard aufgerufen", 1, host.hidden)
-        assertEquals("Symbol wechselt nach Klick", "⇲", btn.text.toString())
     }
 
     @Test

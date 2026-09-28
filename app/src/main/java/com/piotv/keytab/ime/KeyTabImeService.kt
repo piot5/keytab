@@ -258,13 +258,8 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         keyboardRoot?.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
     }
 
-    /** Dark-Mode-Override; ohne gesetzte Pref gilt der System-Modus. */
-    override fun isDarkMode(): Boolean {
-        val prefs = com.piotv.keytab.Prefs.of(this)
-        if (prefs.contains(ThemePrefs.KEY_DARK)) return prefs.getBoolean(ThemePrefs.KEY_DARK, false)
-        val mask = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
-        return mask == android.content.res.Configuration.UI_MODE_NIGHT_YES
-    }
+    /** Dark-Mode-Override; Standard dunkel, `system` folgt dem UiMode. */
+    override fun isDarkMode(): Boolean = ThemePrefs.isDarkMode(this)
 
     // ---------- KeyboardHost-Implementation (Phase 3+4) ----------
 
@@ -278,16 +273,32 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
             it == TabController.TabKind.EDITOR
         }
     /**
-     * Tastatur im Editor-Tab ein-/ausklappen. Die reine Sichtbarkeits- und
-     * Höhenlogik steckt in [KeyboardCollapse].
+     * Vollbild-Modus ein-/ausschalten (Maximieren-Zeile am unteren Rand, in jedem
+     * Tab). Die reine Sichtbarkeits- und Hoehenlogik steckt in [KeyboardCollapse].
      */
     override fun hideKeyboard() {
         val root = keyboardRoot ?: return
-        val collapsed = root.getTag(R.id.sug_hide) as? Boolean ?: false
+        val collapsed = root.getTag(R.id.maximized_state) as? Boolean ?: false
         val next = !collapsed
-        root.setTag(R.id.sug_hide, next)
-        val kind = tabController.currentTabKind()
-        if (next) KeyboardCollapse.collapse(root, kind) else KeyboardCollapse.expand(root, kind)
+        root.setTag(R.id.maximized_state, next)
+        if (next) {
+            // Im Editor bleibt die Tastatur auch maximiert sichtbar, in
+            // Files/Clip/Snippets nie — die Regel haengt am Tab, nicht am
+            // Zustand. Im abc-Tab gibt es keinen Vollbild-Modus.
+            KeyboardCollapse.collapse(
+                root,
+                keyboardVisible = tabController.isKeyboardAlwaysVisible(),
+                maximizeRowVisible = tabController.showsMaximizeRow(),
+                heightPx = TabHeights.overridePx(
+                    this, tabController.currentTabKind(), maximized = true
+                )
+            )
+        } else {
+            KeyboardCollapse.expand(root)
+            // Der Tab-Wechsler entscheidet, welches Panel sichtbar ist und
+            // setzt die Normalhoehe — nach dem Vollbild-Modus wieder nötig.
+            tabController.select(tabController.currentTabKind())
+        }
     }
 
     /** Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt) + View aktualisieren. */

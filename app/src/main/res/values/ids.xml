@@ -1,3 +1,8 @@
 <resources>
+    <!-- Tag-IDs (keine Views): hier merkt sich die Tastatur Zustände und
+         Normalhöhen im View-Tag, ohne sie im View-Baum zu verstecken. -->
     <item name="editor_normal_height" type="id" />
+    <item name="maximized_state" type="id" />
+    <item name="maximize_normal_height" type="id" />
+    <item name="content_panel_height" type="id" />
 </resources>

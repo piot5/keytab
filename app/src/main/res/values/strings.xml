@@ -71,12 +71,11 @@
     <string name="settings_autocorrect">Auto-correct after space</string>
     <string name="settings_autocorrect_on">Auto-correction after space enabled</string>
     <string name="settings_autocorrect_off">Auto-correction after space disabled</string>
-    <string name="settings_emoji">Emoji suggestions (optional, appended to word suggestions)</string>
+    <string name="settings_emoji">Emoji catalog</string>
     <string name="sug_back_desc">Back to word suggestions</string>
     <string name="sug_grid_desc">Select from full emoji catalog</string>
+    <string name="key_maximize_label">⇲</string>
     <string name="sug_hide_desc">Hide keyboard</string>
-    <string name="settings_emoji_on">Emoji suggestions enabled</string>
-    <string name="settings_emoji_off">Emoji suggestions disabled</string>
 
     <string name="settings_dynamic_keys">Dynamic key size (likely keys bigger)</string>
     <string name="settings_dynamic_keys_on">Dynamic key sizing enabled</string>

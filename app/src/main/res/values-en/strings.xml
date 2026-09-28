@@ -64,12 +64,11 @@
     <string name="settings_swipe">Swipe typing (glide over keys, offline)</string>
     <string name="settings_swipe_on">Swipe typing enabled</string>
     <string name="settings_swipe_off">Swipe typing disabled</string>
-    <string name="settings_emoji">Emoji suggestions (optional, appended to word suggestions)</string>
+    <string name="settings_emoji">Emoji catalog</string>
     <string name="sug_back_desc">Back to word suggestions</string>
     <string name="sug_grid_desc">Select from full emoji catalog</string>
+    <string name="key_maximize_label">⇲</string>
     <string name="sug_hide_desc">Hide keyboard</string>
-    <string name="settings_emoji_on">Emoji suggestions enabled</string>
-    <string name="settings_emoji_off">Emoji suggestions disabled</string>
     <string name="settings_update_config">⚙️ Konfiguration schreiben (keytab_config.txt)</string>
     <string name="settings_cleanup_learned_dictionary">🧹 Gelerntes Wörterbuch prüfen</string>
     <string name="settings_cleanup_dictionary_title">Gelerntes Wörterbuch</string>

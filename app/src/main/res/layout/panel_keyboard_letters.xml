@@ -97,9 +97,11 @@
                     android:focusable="true" android:background="@color/key_bg"
                     android:layout_marginStart="2dp"
                     android:visibility="gone" />
-                <!-- Tastatur ausblenden/einblenden (rechts in der Wortvorhersage-Zeile).
-                     Tap blendet die Tastatur aus; erneut tippen (Feld fokusieren)
-                     blendet sie wieder ein (InputMethodService-Standardverhalten). -->
+                <!-- Maximieren (Vollbild-Modus) rechts in der
+                     Wortvorhersage-Zeile — nur im Editor-Tab sichtbar. Die
+                     maximize_row am unteren Rand bleibt in JEDEM Tab; dieses
+                     Symbol hier ist die kurze Variante direkt neben den
+                     Vorschlaegen, wie vor der Zeile. -->
                 <TextView
                     android:id="@+id/sug_hide"
                     android:layout_width="36dp" android:layout_height="match_parent"

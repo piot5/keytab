@@ -73,9 +73,15 @@ class AppInstrumentedTest {
         val numberRow = activity.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_num_row)
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val prefs = Prefs.of(context)
-        val before = prefs.getBoolean(Prefs.KEY_NUM_ROW, false)
+        // Ausgangswert am Schalter lesen, nicht aus den Prefs: MainActivity
+        // initialisiert ihn mit Default "true", waehrend der Pref beim ersten
+        // Start noch fehlt. Aus den Prefs gelesen waere "before" hier false,
+        // der Klick aber auf einem true-geschalteten Schalter - die Assertion
+        // schlaege dann grundlos fehl.
+        val before = numberRow.isChecked
         activity.runOnUiThread { numberRow.performClick() }
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        assertEquals(!before, numberRow.isChecked)
         assertEquals(!before, prefs.getBoolean(Prefs.KEY_NUM_ROW, !before))
     }
     @Test

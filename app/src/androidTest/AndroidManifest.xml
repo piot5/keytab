@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
-        <!-- Only packaged in the instrumentation APK. Not part of production builds. -->
+        <!-- Only packaged in the instrumentation APK. Not part of production builds.
+             Fully qualified on purpose: the androidTest source set is not
+             repackaged, so the class stays in com.piotv.keytab. A relative
+             ".ImeTargetActivity" resolves against <namespace>.test and points
+             at a class that does not exist -> "Could not launch activity". -->
         <activity
-            android:name=".ImeTargetActivity"
+            android:name="com.piotv.keytab.ImeTargetActivity"
             android:exported="true"
             android:label="KeyTab IME test target"
             android:theme="@android:style/Theme.Material.Light.NoActionBar" />

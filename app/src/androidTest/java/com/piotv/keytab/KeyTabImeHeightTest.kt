@@ -45,7 +45,7 @@ class KeyTabImeHeightTest {
         override fun getActivityIntent(): Intent =
             Intent().setComponent(
                 ComponentName("com.piotv.keytab.debug.test",
-                    "com.piotv.keytab.test.ImeTargetActivity")
+                    "com.piotv.keytab.ImeTargetActivity")
             )
     }
 
@@ -62,7 +62,7 @@ class KeyTabImeHeightTest {
         activityRule.launchActivity(
             Intent().setComponent(
                 ComponentName("com.piotv.keytab.debug.test",
-                    "com.piotv.keytab.test.ImeTargetActivity")
+                    "com.piotv.keytab.ImeTargetActivity")
             )
         )
         previousIme = shell("settings get secure default_input_method").trim()

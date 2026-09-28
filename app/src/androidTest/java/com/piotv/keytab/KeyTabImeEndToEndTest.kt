@@ -168,7 +168,19 @@ class KeyTabImeEndToEndTest {
     private fun waitForKeyboard() {
         val key = device.wait(Until.findObject(
             By.res(instrumentation.targetContext.packageName, "key_space")), 10_000)
-        assertTrue("KeyTab keyboard did not become visible", key != null)
+        assertTrue("KeyTab keyboard did not become visible. ${imeState()}", key != null)
+    }
+
+    /**
+     * IME-Zustand fuer die Fehlermeldung. "did not become visible" allein sagt
+     * nicht aus, *warum* - ohne das bleibt nur Raten, ob das falsche IME aktiv
+     * ist, der Dienst nicht startet oder das Fenster den Fokus verliert.
+     */
+    private fun imeState(): String {
+        val current = shell("settings get secure default_input_method").trim()
+        val dumpsys = shell("dumpsys input_method | grep -E " +
+            "'mCurMethodId|mCurToken|mServedView|mShowRequested|mImeWindowVis|mHaveConnection'")
+        return "aktiv=$current erwartet=$KEYTAB_IME\n$dumpsys"
     }
 
     private fun clickImeId(id: String) {

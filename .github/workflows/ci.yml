@@ -151,3 +151,13 @@ jobs:
           name: instrumented-reports
           path: app/build/reports/androidTests/**
           if-no-files-found: warn
+
+      # Das volle Logcat des Laufs. Der Job-Log zeigt nur Anfang und Ende; fuer
+      # "IME-Fenster kam nicht hoch" braucht es den Zustand *waehrend* der Tests.
+      - name: Logcat des Laufs hochladen (bei Fehlern)
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: instrumented-logcat
+          path: /tmp/keytab-instrumented.logcat
+          if-no-files-found: warn

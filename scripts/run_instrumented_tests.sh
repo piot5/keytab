@@ -31,6 +31,11 @@ rc=$?
 set -e
 if [ "$rc" -ne 0 ]; then
     adb shell pm list instrumentation >&2 || true
-    adb logcat -d -t 500 >&2 || true
+    # -t 500 zeigte nur das Ende des Laufs: der Permission-Dialog z. B. war
+    # damit unsichtbar, obwohl er mitten im Test passiert war. Das komplette
+    # Logcat ist die einzige Grundlage, um den Zustand waehrend der Tests zu
+    # rekonstruieren; der Job-Log haelt davon nur die ersten Zeilen.
+    adb logcat -d > /tmp/keytab-instrumented.logcat 2>/dev/null || true
+    tail -n 500 /tmp/keytab-instrumented.logcat >&2 || true
 fi
 exit "$rc"

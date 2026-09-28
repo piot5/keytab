@@ -39,11 +39,13 @@ class KeyTabImeEndToEndTest {
 
     @Before
     fun activateKeyTab() {
-        activityRule.launchActivity(
-            Intent().setComponent(
-                ComponentName("com.piotv.keytab.debug", "com.piotv.keytab.ImeTargetActivity")
-            )
-        )
+        // Reihenfolge ist entscheidend: erst das IME umschalten, dann die
+        // Activity starten. Umgekehrt bekommt das erste EditText den Fokus,
+        // solange noch das Standard-IME laeuft, und haelt diese Input-Session
+        // fest - ein spaeterer "ime set" reicht dann nicht mehr, weil die
+        // Session nicht neu gebunden wird. Im Logcat zu sehen als
+        // GoogleInputMethodService.onStartInput 75 ms VOR dem Wechsel auf
+        // KeyTabImeService; KeyTab wurde dadurch nie gefragt.
         previousIme = shell("settings get secure default_input_method").trim()
         assertTrue("Kein KeyTab-IME im Testgerät registriert", shell("ime list -s -a")
             .contains(KEYTAB_IME))
@@ -54,6 +56,11 @@ class KeyTabImeEndToEndTest {
         // ohne Hinweis darauf, dass gar nicht KeyTab das Standard-IME ist.
         val active = shell("settings get secure default_input_method").trim()
         assertTrue("KeyTab ist nicht das Standard-IME (aktiv: $active)", active == KEYTAB_IME)
+        activityRule.launchActivity(
+            Intent().setComponent(
+                ComponentName("com.piotv.keytab.debug", "com.piotv.keytab.ImeTargetActivity")
+            )
+        )
         val prefs = Prefs.of(instrumentation.targetContext)
         prefs.edit().putBoolean(Prefs.KEY_SUGGESTIONS, false)
             .putBoolean(Prefs.KEY_SWIPE, false).apply()

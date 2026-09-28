@@ -59,18 +59,21 @@ class KeyTabImeHeightTest {
 
     @Before
     fun setUp() {
-        activityRule.launchActivity(
-            Intent().setComponent(
-                ComponentName("com.piotv.keytab.debug",
-                    "com.piotv.keytab.ImeTargetActivity")
-            )
-        )
+        // Erst das IME umschalten, dann starten: sonst bindet das erste
+        // EditText die Input-Session an das vorherige Standard-IME (Gboard)
+        // und KeyTab wird nie gefragt. Siehe KeyTabImeEndToEndTest.
         previousIme = shell("settings get secure default_input_method").trim()
         assertTrue("KeyTab-IME nicht registriert", shell("ime list -s -a").contains(KEYTAB_IME))
         shell("ime enable $KEYTAB_IME")
         shell("ime set $KEYTAB_IME")
         val active = shell("settings get secure default_input_method").trim()
         assertTrue("KeyTab ist nicht das Standard-IME (aktiv: $active)", active == KEYTAB_IME)
+        activityRule.launchActivity(
+            Intent().setComponent(
+                ComponentName("com.piotv.keytab.debug",
+                    "com.piotv.keytab.ImeTargetActivity")
+            )
+        )
         val prefs = Prefs.of(instrumentation.targetContext)
         prefs.edit().putBoolean(Prefs.KEY_SUGGESTIONS, false)
             .putBoolean(Prefs.KEY_SWIPE, false).apply()

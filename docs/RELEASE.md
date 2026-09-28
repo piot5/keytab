@@ -1,6 +1,6 @@
 # Release-Prozess (KeyTab)
 
-Stand: v0.14 · Gilt für alle Releases ab jetzt.
+Stand: v0.15 · Gilt für alle Releases ab jetzt.
 
 ## 1. Version
 

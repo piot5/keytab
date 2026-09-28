@@ -1,0 +1,6 @@
+- Version 0.15: all tabs share one height, and the full-screen mode fills the IME window
+- The maximize row no longer appears in the abc tab on first start, and never in the editor tab
+- Panel heights per tab and state are configurable in keytab_config.txt (dp, 0 = automatic)
+- The maximize row is lower (34dp); the editor keeps space/tab/enter in full screen
+- Default settings now match the reference device configuration (number row on, autocorrect off, dark theme, inverted dark gradient)
+- 498 unit tests, 70.8 % line coverage; release builds are signed and verified

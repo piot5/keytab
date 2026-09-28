@@ -11,29 +11,28 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
-## 0.14
+## 0.15
 
-- **Terminal entfernt:** Der optionale Terminal-Tab, die Android-Shell und alle zugehörigen Ressourcen, Prozesse und Tests wurden vollständig entfernt. Die App bleibt eine fokussierte IME mit Editor, Dateien, Clipboard und Snippets.
-- **Release-Reife:** Release-Builds werden zusätzlich auf Signatur, SHA-256 und APK-Metadaten geprüft; Keystore-Pfadauflösung im Release-Build korrigiert, Dependency-Verification für Lint vervollständigt. Neuer Release-Leitfaden: `docs/RELEASE.md`; Doku, Installations- und Debug/Release-Hinweise vollständig angepasst.
-- **Technische Bereinigung:** Terminal-Routing, Panel-Höhenlogik und Editor/Terminal-Schnittstellen wurden auf die verbleibenden App- und Editor-Ziele reduziert. Zusätzlich wurden 47 tote Ressourcen entfernt (40 ungenutzte Strings aus Legacy-Theme-UI, 7 Farben inkl. Night-Varianten) — Lint meldet damit keine ungenutzten Ressourcen mehr, die Detekt-Baseline von 191 auf **181** echte Befunde verkleinert (u. a. `LongMethod`/`CyclomaticComplexMethod` in Service und TabController) und Test-Fakes ohne leere Funktionsblöcke formatiert.
-
-## 0.13
-
-- **Gelerntes Wörterbuch prüfen:** Der Einstellungs-Screen bietet jetzt eine sichere, explizite Bereinigung learned-word-Artefakte an. Die Änderung erfolgt offline, zeigt eine Vorschau und verlangt eine Bestätigung; der Basiswortschatz bleibt unverändert.
-- **Autokorrektur-Schalter:** Die automatische Korrektur nach dem Leerzeichen ist wieder direkt in den Einstellungen ein-/ausschaltbar.
-- **Dokumentation:** API-, Konfigurations-, Datenschutz- und Installationshinweise auf den In-App-Bereinigungsweg aktualisiert.
-- **Tests:** UI-/Bereinigungs- und Autokorrektur-Regressionstests ergänzt; vollständige JVM-Testsuite erfolgreich.
-
-## 0.12
-
-- **Snippet-Workflow überarbeitet:** Der Snippet-Tab enthält keinen „Neu“-Button mehr. „Bearbeiten“ öffnet `keytab_snippets.txt` direkt im Editor-Tab.
-- **Clipboard-Snippets benannt:** Beim Hinzufügen aus dem Clipboard wird der erste nichtleere Inhaltsteil als Name verwendet; mehrzeilige Inhalte bleiben escaped erhalten.
-- **Editor-/Terminal-Maximierung stabilisiert:** Normalhöhen werden gespeichert und beim Minimieren zuverlässig wiederhergestellt.
-- **Qualität:** Lint-Fehler behoben, englische Ressourcen vervollständigt und Android-14-Selected-Photo-Zugriff integriert.
-- **Tests:** Regressionstests für Snippet-Editor und Clipboard-Namen ergänzt; Unit-Tests, Lint und Doku-Drift-Gate erfolgreich.
-
-## Unreleased
-
+- **Emoji-Suggestions entfernt.** Die *automatische* Emoji-Funktion — passende
+  Symbole wurden an die Wortvorschläge angehängt — ist raus: Settings-Schalter
+  (`sw_emoji`), Pref-Key `KEY_EMOJI_SUGGESTIONS`, Config-Eintrag
+  `emoji_suggestions`, die Engine-Property `emojiEnabled` sowie `emojisFor` und
+  `MAX_EMOJI`. Grund: sie war Default **aus** und brauchte also einen Schalter,
+  obwohl der Katalog über den ☺-Button ohnehin erreichbar war — zwei Wege zu
+  denselben Emojis. Der **☺-Emoji-Katalog bleibt vollständig erhalten**.
+- **Emoji-Katalog vergrößert.** 116 Keyword-Zuordnungen, nach `distinct()` 59
+  eindeutige Symbole (vorher 25): neue Themen von Feier/Food/Tiere/Natur/Mond
+  über Schule, Arbeit, Terminal, Reise, Geld bis Tempo. Seitenlänge der Leiste
+  3 → 5 (`PAGE_SIZE`), Raster-Popup von 5 × 46 dp auf 6 × 52 dp — größere Tap-
+  Ziele und weniger Blättern-Taps.
+- **Alle Tabs gleich hoch.** Clipboard- und Snippet-Panel standen im Layout auf
+  `wrap_content` und wirkten dadurch flacher als Notes/Files. Beide sind jetzt
+  auf 164dp wie das Datei-Panel, damit die Höhe schon im Layout stimmt (der
+  Tab-Wechsel überschreibt sie weiterhin mit der gemessenen Notes-Höhe).
+- **Maximieren auf 90 %.** ☰ im Editor-Tab vergab zuvor 100 % der
+  verfügbaren Höhe, wodurch der Editor an die obere Bildschirmkante klebte.
+  Neu: `PanelHeights.MAXIMIZE_FRACTION = 0.9f` mit der reinen, testbaren
+  Funktion `maximizedHeight()`.
 - **`scripts/baseline.sh`: Gate- und Baseline-Werkzeug mit Profilen.** Bisher
   waren drei Gradle-Task-Namen pro Handlung zu merken, und `:app:detektBaseline`
   überschrieb die Baseline sofort und ohne Rückfrage — die Ursache der 24
@@ -290,8 +289,88 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 - **Tests: 208 → 231 in 27 Suiten** — `PanelsTest` in `EditorPanelTest` +
   `ClipboardPanelTest` aufgeteilt (Name = Klasse); Kover re-messen:
   **47,6 % line / 36,4 % branch** (`ime` 42,9 %, `sections` 92,5 %, `file` 78,7 %).
+- **Vollbild-Modus füllt das IME-Fenster.** „Maximiert" war sichtbar kaum höher
+  als der Normalzustand: die Zielhöhe kam aus `root.height`, und die Wurzel steht
+  auf `wrap_content` — ihre Höhe ist die Summe der gerade sichtbaren Zeilen, also
+  die *normale* Tastatur. `PanelHeights.maximizeAvailableHeight` rechnet deshalb
+  gegen die Grenze, die Android der IME gibt (gemessen 1915 px von 2712 px,
+  `IME_WINDOW_FRACTION = 0.7`); `MAXIMIZE_FRACTION` (0.95) ist entfallen — das war
+  ein zweiter, kleinerer Deckel innerhalb des Systemdeckels. Chrome-Zeilen und
+  die im Editor-Tab sichtbare Tastatur werden weiterhin abgezogen.
+- **Maximieren-Zeile nur noch in den Inhalts-Tabs.** Beim ersten Start stand sie
+  auch im abc-Tab: `TabLayout.addTab()` wählt Tab 0 aus, *bevor* der
+  Sichtbarkeits-Listener hängt — die Zustandslogik lief also nie. Der Startzustand
+  geht jetzt durch dieselbe Funktion wie jeder Tab-Wechsel
+  (`TabController.applyTabVisibility`); damit ist auch das Maximieren-Symbol der
+  Vorschlagsleiste im abc-Tab weg. Zwei tote private Funktionen
+  (`applySiblingVisibility`/`isToggleable`) und ein unerreichbarer Elvis-Zweig
+  sind dabei entfernt worden.
+- **Alle Tabs im Normalzustand gleich hoch.** Files/Clip/Snippets bekommen
+  „Editor-Tab − Maximieren-Zeile": diese Zeile haben nur sie, ohne den Abzug waren
+  sie um genau ihre Höhe höher als der Editor-Tab. Die Zeilenhöhe kommt aus
+  `@dimen/maximize_row_height` (**34dp** statt 42dp) — als Ressource, nicht als
+  Messung: `measure()` liefert bei fester Layout-Höhe die *natürliche* Höhe des
+  Inhalts (Material-Button: 45 px), nicht die gelayoutete Zeile.
+  `PanelHeights.chromeHeight` bevorzugt jetzt ebenfalls die feste Layout-Höhe; mit
+  dem gemessenen Wert war die Fensterbegrenzung rund 25 px zu streng.
+- **Tests:** 489 (0 Fehler, debug + release), Coverage **70,6 % Zeilen /
+  55,4 % Branches**; Regressionstests für den Startzustand
+  (`Erster Start zeigt den abc-Zustand ohne Maximieren-Zeile`), die
+  Höhengleichheit (`Inhalts-Panels sind um die Maximieren-Zeile niedriger als der
+  Editor-Tab`) und neu `KeyboardCollapseTest` (4 Tests: Vollbild füllt das
+  Fenster, Editor ohne Max-Zeile, `expand` verlustfrei). detekt grün, Baseline
+  unverändert bei 152 Einträgen.
+- **Editor-Tab: keine untere Maximieren-Zeile, auch nicht im Vollbild.** Vorher
+  machte `collapse()` die Zeile zwangsweise sichtbar, obwohl im Editor-Tab der
+  Ausweg das ⇲-Symbol der Prediction-Zeile ist. Die Regel steht jetzt an einer
+  Stelle (`TabController.showsMaximizeRow()`) und wird beim Tabwechsel *und* vom
+  `KeyboardCollapse` benutzt.
+- **Vollbild füllt das Fenster — ohne Leerraum.** `collapse()` berechnete die Höhe
+  *vor* dem Sichtbarkeitswechsel: Die untere Key-Leiste wurde danach versteckt,
+  ihr Platz aber weiter abgezogen (~46dp Leerraum unten).
+  Rechnung und Sichtbarkeit sind jetzt in der richtigen Reihenfolge. Zusätzlich
+  bleibt die untere Key-Leiste im Editor-Tab stehen — dort liegen
+  Leerzeichen/Tab/Enter, die Buchstaben-Ebene hat sie nicht; im Vollbild konnte
+  man vorher kein Leerzeichen tippen.
+- **Panel-Höhen je Tab und Zustand konfigurierbar.** Neu in
+  `keytab_config.txt`: `normal_height_{editor,files,clip,snippet}` und
+  `max_height_{editor,files,clip,snippet}` in **dp**, `0` = automatisch (die
+  bisherige Berechnung aus Fenster und Messung). Die Vorgabe gewinnt gegen die
+  Berechnung, wird aber **auf das Fenster begrenzt**; Werte ≤ 0 oder absurd
+  große gelten als „keine Vorgabe". Der abc-Tab hat bewusst keine Vorgabe (seine
+  Höhe kommt aus den Tasten). Umsetzung: `TabHeights` (Keys, dp→px, Validierung),
+  `PanelHeights.applyNormalHeights(…, overridePx)` und
+  `maximizedPanelHeight(…, overridePx)`, verdrahtet über `TabController` und
+  `KeyTabImeService.hideKeyboard`. Details in [`docs/CONFIG.md`](docs/CONFIG.md).
+- **Standardwerte = `keytab_config.txt` des Nutzergeräts** (2026-09-25,
+  übernommen 2026-09-28): Nummernreihe an, Autokorrektur aus, Dark-Mode fest
+  dunkel, Verlauf dunkel `invert` / hell `top_down`, Likely-Highlighting an
+  (vorher aus). Die Skalierwerte (1.21/1.15/0.75/0.55/0.812/0.925) waren
+  bereits Default. Kein neuer Preference-Key und kein Dreiwert-Modus:
+  `dark_mode = system` bleibt wie bisher „Override entfernen“. Details und
+  Tabelle in [`docs/CONFIG.md`](docs/CONFIG.md).
 
 
+## 0.14
+
+- **Terminal entfernt:** Der optionale Terminal-Tab, die Android-Shell und alle zugehörigen Ressourcen, Prozesse und Tests wurden vollständig entfernt. Die App bleibt eine fokussierte IME mit Editor, Dateien, Clipboard und Snippets.
+- **Release-Reife:** Release-Builds werden zusätzlich auf Signatur, SHA-256 und APK-Metadaten geprüft; Keystore-Pfadauflösung im Release-Build korrigiert, Dependency-Verification für Lint vervollständigt. Neuer Release-Leitfaden: `docs/RELEASE.md`; Doku, Installations- und Debug/Release-Hinweise vollständig angepasst.
+- **Technische Bereinigung:** Terminal-Routing, Panel-Höhenlogik und Editor/Terminal-Schnittstellen wurden auf die verbleibenden App- und Editor-Ziele reduziert. Zusätzlich wurden 47 tote Ressourcen entfernt (40 ungenutzte Strings aus Legacy-Theme-UI, 7 Farben inkl. Night-Varianten) — Lint meldet damit keine ungenutzten Ressourcen mehr, die Detekt-Baseline von 191 auf **181** echte Befunde verkleinert (u. a. `LongMethod`/`CyclomaticComplexMethod` in Service und TabController) und Test-Fakes ohne leere Funktionsblöcke formatiert.
+
+## 0.13
+
+- **Gelerntes Wörterbuch prüfen:** Der Einstellungs-Screen bietet jetzt eine sichere, explizite Bereinigung learned-word-Artefakte an. Die Änderung erfolgt offline, zeigt eine Vorschau und verlangt eine Bestätigung; der Basiswortschatz bleibt unverändert.
+- **Autokorrektur-Schalter:** Die automatische Korrektur nach dem Leerzeichen ist wieder direkt in den Einstellungen ein-/ausschaltbar.
+- **Dokumentation:** API-, Konfigurations-, Datenschutz- und Installationshinweise auf den In-App-Bereinigungsweg aktualisiert.
+- **Tests:** UI-/Bereinigungs- und Autokorrektur-Regressionstests ergänzt; vollständige JVM-Testsuite erfolgreich.
+
+## 0.12
+
+- **Snippet-Workflow überarbeitet:** Der Snippet-Tab enthält keinen „Neu“-Button mehr. „Bearbeiten“ öffnet `keytab_snippets.txt` direkt im Editor-Tab.
+- **Clipboard-Snippets benannt:** Beim Hinzufügen aus dem Clipboard wird der erste nichtleere Inhaltsteil als Name verwendet; mehrzeilige Inhalte bleiben escaped erhalten.
+- **Editor-/Terminal-Maximierung stabilisiert:** Normalhöhen werden gespeichert und beim Minimieren zuverlässig wiederhergestellt.
+- **Qualität:** Lint-Fehler behoben, englische Ressourcen vervollständigt und Android-14-Selected-Photo-Zugriff integriert.
+- **Tests:** Regressionstests für Snippet-Editor und Clipboard-Namen ergänzt; Unit-Tests, Lint und Doku-Drift-Gate erfolgreich.
 ## 0.11
 
 

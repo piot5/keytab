@@ -36,7 +36,17 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleRelease --no-daemon --stacktrace
           test -s app/build/outputs/apk/release/app-release.apk
-          apksigner verify --verbose app/build/outputs/apk/release/app-release.apk
+          # apksigner liegt auf dem Runner NICHT im PATH, sondern unter
+          # $ANDROID_HOME/build-tools/<version>/apksigner — der blanke Aufruf
+          # brach mit "command not found" (Exit 127) ab, *nach* erfolgreichem
+          # Build. Deshalb hier explizit auflösen und den Fund prüfen.
+          APKSIGNER="$(command -v apksigner || true)"
+          if [ -z "$APKSIGNER" ]; then
+            APKSIGNER="$(ls -1 "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
+          fi
+          test -x "$APKSIGNER" || { echo "apksigner nicht gefunden (ANDROID_HOME=${ANDROID_HOME:-unset})" >&2; exit 1; }
+          echo "apksigner: $APKSIGNER"
+          "$APKSIGNER" verify --verbose app/build/outputs/apk/release/app-release.apk
           sha256sum app/build/outputs/apk/release/app-release.apk > app/build/outputs/apk/release/app-release.apk.sha256
 
       - name: Release-Artefakte anzeigen

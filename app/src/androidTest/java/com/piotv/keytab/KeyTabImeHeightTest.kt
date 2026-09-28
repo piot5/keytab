@@ -44,7 +44,7 @@ class KeyTabImeHeightTest {
     ) {
         override fun getActivityIntent(): Intent =
             Intent().setComponent(
-                ComponentName("com.piotv.keytab.debug.test",
+                ComponentName("com.piotv.keytab.debug",
                     "com.piotv.keytab.ImeTargetActivity")
             )
     }
@@ -61,7 +61,7 @@ class KeyTabImeHeightTest {
     fun setUp() {
         activityRule.launchActivity(
             Intent().setComponent(
-                ComponentName("com.piotv.keytab.debug.test",
+                ComponentName("com.piotv.keytab.debug",
                     "com.piotv.keytab.ImeTargetActivity")
             )
         )

@@ -10,7 +10,16 @@ import android.widget.LinearLayout
 
 /**
  * Foreign target window for real InputMethodService instrumentation tests.
- * Packaged only in the test APK and intentionally independent of production code.
+ *
+ * Lives in the **debug** variant, not in androidTest, and that is deliberate:
+ * an Activity declared in the test APK runs in the *test* process
+ * (com.piotv.keytab.debug.test), while the instrumentation runs in the app
+ * process (com.piotv.keytab.debug). MonitoringInstrumentation.startActivitySync
+ * refuses that split with "Intent in process com.piotv.keytab.debug resolved to
+ * different process com.piotv.keytab.debug.test", so ActivityTestRule could
+ * never hand the object to the test. Declared here it runs in the app process
+ * and a typed reference works again. Release builds are unaffected: src/debug
+ * is not part of them.
  */
 class ImeTargetActivity : Activity() {
     lateinit var normalField: EditText

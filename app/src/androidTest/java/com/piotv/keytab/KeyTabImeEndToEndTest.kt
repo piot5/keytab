@@ -29,7 +29,7 @@ class KeyTabImeEndToEndTest {
     ) {
         override fun getActivityIntent(): Intent =
             Intent().setComponent(
-                ComponentName("com.piotv.keytab.debug.test", "com.piotv.keytab.ImeTargetActivity")
+                ComponentName("com.piotv.keytab.debug", "com.piotv.keytab.ImeTargetActivity")
             )
     }
 
@@ -41,7 +41,7 @@ class KeyTabImeEndToEndTest {
     fun activateKeyTab() {
         activityRule.launchActivity(
             Intent().setComponent(
-                ComponentName("com.piotv.keytab.debug.test", "com.piotv.keytab.ImeTargetActivity")
+                ComponentName("com.piotv.keytab.debug", "com.piotv.keytab.ImeTargetActivity")
             )
         )
         previousIme = shell("settings get secure default_input_method").trim()

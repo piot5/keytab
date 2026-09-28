@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
-        <!-- Only packaged in the instrumentation APK. Not part of production builds.
-             Fully qualified on purpose: the androidTest source set is not
-             repackaged, so the class stays in com.piotv.keytab. A relative
-             ".ImeTargetActivity" resolves against <namespace>.test and points
-             at a class that does not exist -> "Could not launch activity". -->
+        <!-- Test fixture for app/src/androidTest, debug builds only.
+             It has to be declared in the app manifest: declared in the test
+             APK it would run in the test process, and ActivityTestRule could
+             not reach it (see ImeTargetActivity). -->
         <activity
             android:name="com.piotv.keytab.ImeTargetActivity"
             android:exported="true"

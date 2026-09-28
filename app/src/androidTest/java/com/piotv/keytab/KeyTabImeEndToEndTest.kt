@@ -205,7 +205,14 @@ class KeyTabImeEndToEndTest {
     }
 
     private fun clickImeText(text: String) {
-        val found = device.wait(Until.findObject(By.text(text)), 5_000)
+        // Buchstaben-Tasten tragen komponierte Labels (LetterLabelComposer):
+        // Hauptbuchstabe + geschütztes Leerzeichen + erster Sonderzeichen-Hinweis,
+        // z. B. "b\u00A0'". By.text("b") matcht dieses Spanned nie exakt — deshalb
+        // Präfix-Match. clazz=Button grenzt von TextViews ab: Tab-Label ("abc")
+        // und Vorschlags-Chips könnten ebenfalls mit dem Buchstaben beginnen,
+        // sind aber keine Buttons.
+        val found = device.wait(Until.findObject(
+            By.clazz("android.widget.Button").textStartsWith(text)), 5_000)
         assertTrue("KeyTab letter not found: $text", found != null)
         found.click()
         device.waitForIdle()

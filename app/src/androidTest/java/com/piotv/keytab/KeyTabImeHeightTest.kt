@@ -163,10 +163,14 @@ class KeyTabImeHeightTest {
 
     private fun focusField() {
         val activity = activityRule.activity
+        val imm = InstrumentationRegistry.getInstrumentation().targetContext
+            .getSystemService(android.view.inputmethod.InputMethodManager::class.java)
         instrumentation.runOnMainSync {
             activity.normalField.requestFocus()
-            activity.normalField.clearFocus()
-            activity.normalField.requestFocus()
+            // Siehe KeyTabImeEndToEndTest.focus: ohne showSoftInput bleibt
+            // mInputShown=false und das IME-Fenster wird nie sichtbar.
+            imm.showSoftInput(activity.normalField,
+                android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
         }
         instrumentation.waitForIdleSync()
     }

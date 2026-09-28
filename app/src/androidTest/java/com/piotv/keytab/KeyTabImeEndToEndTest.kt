@@ -153,10 +153,16 @@ class KeyTabImeEndToEndTest {
     }
 
     private fun focus(field: EditText) {
+        val imm = InstrumentationRegistry.getInstrumentation().targetContext
+            .getSystemService(android.view.inputmethod.InputMethodManager::class.java)
         instrumentation.runOnMainSync {
             field.requestFocus()
-            field.clearFocus()
-            field.requestFocus()
+            // requestFocus()/clearFocus() reichten nicht: dumpsys input_method
+            // zeigte danach mRequestedShowExplicitly=false mShowForced=false
+            // mInputShown=false - das System hatte also gar keine Anforderung,
+            // das IME-Fenster zu zeigen, und blieb bei mVisibleBound=false.
+            // showSoftInput setzt diese Anforderung explizit.
+            imm.showSoftInput(field, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
         }
         instrumentation.waitForIdleSync()
     }

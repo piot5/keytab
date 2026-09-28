@@ -1,10 +1,12 @@
 package com.piotv.keytab
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ActivityTestRule
+import androidx.test.rule.GrantPermissionRule
 import com.piotv.keytab.ime.Languages
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
@@ -17,13 +19,27 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.rules.RuleChain
+import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 
 /** Device-level smoke tests: manifest registration, resources and settings UI. */
 @RunWith(AndroidJUnit4::class)
 class AppInstrumentedTest {
+    // MainActivity fragt die Speicher-Berechtigungen im onCreate an. Ohne
+    // vorherige Erteilung legt sich der System-Dialog (GrantPermissionsActivity)
+    // ueber die Activity; ActivityTestRule.startActivitySync wartet dann vergeblich
+    // auf RESUMED/Idle und bricht nach 45 s mit "Could not launch intent" ab.
+    // RuleChain erzwingt die Reihenfolge: GrantPermissionRule zuerst, Activity danach.
+    private val grantStorage = GrantPermissionRule.grant(
+        Manifest.permission.READ_MEDIA_IMAGES,
+        Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+    )
+
+    private val activityRule = ActivityTestRule(MainActivity::class.java)
+
     @get:Rule
-    val activityRule = ActivityTestRule(MainActivity::class.java)
+    val chain: TestRule = RuleChain.outerRule(grantStorage).around(activityRule)
 
     @Test
     fun packageName_isCorrect() {

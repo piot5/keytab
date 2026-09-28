@@ -36,10 +36,22 @@ cp -f "$APK_PATH" "$STAGING/$APK_NAME"
 sh ~/bin/rsh "cp -f '$STAGING/$APK_NAME' /data/local/tmp/$APK_NAME"
 # -d erlaubt Version-Downgrades (debuggable Pakete), z.B. 0.9.7 → 0.9.6;
 # ohne -d scheitert pm install mit INSTALL_FAILED_VERSION_DOWNGRADE stillschweigend.
-sh ~/bin/rsh "pm install -d -r /data/local/tmp/$APK_NAME"
+INSTALL_OUT=$(sh ~/bin/rsh "pm install -d -r /data/local/tmp/$APK_NAME" 2>&1)
+INSTALL_RC=$?
 
-# Aufräumen (best effort)
-rm -f "$STAGING/$APK_NAME"
+# pm install trotzdem prüfen: HyperOS/MIUI blockiert Shell-Installationen
+# (INSTALL_FAILED_USER_RESTRICTED), und das Skript meldete trotzdem Erfolg —
+# der Aufrufer hat damit eine kaputte Installation fuer eine gute gehalten.
+if [ "$INSTALL_RC" -ne 0 ] || ! printf '%s' "$INSTALL_OUT" | grep -q '^Success'; then
+    echo "❌ Installation fehlgeschlagen:"
+    printf '%s\n' "$INSTALL_OUT" | sed 's/^/   /'
+    echo ""
+    echo "Häufigste Ursache: Das Gerät blockiert Installationen per Shell"
+    echo "(HyperOS/MIUI). Auf dem Gerät entsperren und die Bestätigungs-"
+    echo "dialoge bestätigen, oder die APK manuell über den Dateimanager"
+    echo "installieren. APK liegt unter: $STAGING/$APK_NAME"
+    exit 1
+fi
 
 echo "✅ Installation erfolgreich!"
 echo ""

@@ -11,6 +11,7 @@
 #   sh build_bg.sh debug        # debug-APK bauen
 #   sh build_bg.sh release      # release-APK bauen (braucht Signing-Creds)
 #   sh build_bg.sh test         # Unit-Tests (testDebugUnitTest)
+#   sh build_bg.sh androidtest  # instrumentierte Tests als APK (androidTest)
 #   sh build_bg.sh detekt       # statisches Qualitäts-Gate (:app:detekt)
 #   sh build_bg.sh wait         # nur warten, bis der laufende Build fertig ist
 #
@@ -116,6 +117,13 @@ case "$TARGET" in
         TASK=":app:testDebugUnitTest"
         APK=""
         ;;
+    androidtest)
+        # Instrumentierte Tests als APK: laesst sich ohne adb per Shizuku/rish
+        # installieren und mit `am instrument` starten (siehe
+        # scripts/run_instrumented_tests.sh fuer den Emulator-Weg in CI).
+        TASK=":app:assembleDebugAndroidTest"
+        APK="app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+        ;;
     detekt)
         TASK=":app:detekt"
         APK=""
@@ -129,7 +137,7 @@ case "$TARGET" in
         APK=""
         ;;
     *)
-        echo "Unbekanntes Ziel: $TARGET (erwartet: debug|release|test|wait|status)"
+        echo "Unbekanntes Ziel: $TARGET (erwartet: debug|release|test|androidtest|detekt|coverage|wait|status)"
         exit 1
         ;;
 esac

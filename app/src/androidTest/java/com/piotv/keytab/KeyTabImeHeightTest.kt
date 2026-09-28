@@ -69,6 +69,8 @@ class KeyTabImeHeightTest {
         assertTrue("KeyTab-IME nicht registriert", shell("ime list -s -a").contains(KEYTAB_IME))
         shell("ime enable $KEYTAB_IME")
         shell("ime set $KEYTAB_IME")
+        val active = shell("settings get secure default_input_method").trim()
+        assertTrue("KeyTab ist nicht das Standard-IME (aktiv: $active)", active == KEYTAB_IME)
         val prefs = Prefs.of(instrumentation.targetContext)
         prefs.edit().putBoolean(Prefs.KEY_SUGGESTIONS, false)
             .putBoolean(Prefs.KEY_SWIPE, false).apply()

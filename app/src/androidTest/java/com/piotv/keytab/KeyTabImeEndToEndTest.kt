@@ -49,6 +49,11 @@ class KeyTabImeEndToEndTest {
             .contains(KEYTAB_IME))
         shell("ime enable $KEYTAB_IME")
         shell("ime set $KEYTAB_IME")
+        // Ohne diese Pruefung wartet der Test 10 s auf ein IME-Fenster, das
+        // nie kommt, und meldet dann nur "keyboard did not become visible" -
+        // ohne Hinweis darauf, dass gar nicht KeyTab das Standard-IME ist.
+        val active = shell("settings get secure default_input_method").trim()
+        assertTrue("KeyTab ist nicht das Standard-IME (aktiv: $active)", active == KEYTAB_IME)
         val prefs = Prefs.of(instrumentation.targetContext)
         prefs.edit().putBoolean(Prefs.KEY_SUGGESTIONS, false)
             .putBoolean(Prefs.KEY_SWIPE, false).apply()

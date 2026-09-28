@@ -24,6 +24,14 @@ if [ "$booted" -ne 1 ]; then
 fi
 
 adb shell input keyevent 82 || true
+
+# Der CI-Emulator hat eine Hardware-Tastatur (hw.keyboard=yes). Solange sie
+# gemeldet wird, unterdrueckt Android die Soft-Tastatur - das IME-Fenster geht
+# nie auf, und alle 9 IME-Tests scheitern an "KeyTab keyboard did not become
+# visible" bzw. "KeyTab wurde nicht eingeblendet". Mit diesem Setting erscheint
+# die Soft-Tastatur auch mit angeschlossener Hardware-Tastatur.
+adb shell settings put secure show_ime_with_hard_keyboard 1 || true
+
 set +e
 ./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
 rc=$?

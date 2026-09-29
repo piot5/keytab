@@ -30,20 +30,25 @@ Install: open the APK in a file manager (allow "install unknown apps"), then ena
 
 ## Screenshots
 
-The images are generated from the real resources by `scripts/make_screens.py`
-(colours from `values/colors.xml` and `values-night/colors.xml`, layout from
-`panel_keyboard_letters.xml`), so they drift with the code instead of against
-it. They show the keyboard view, not a photo of a device:
+Real captures from the running app on a device (not mockups):
 
-| Light theme (QWERTZ, de) | Dark theme (default) | Snippet bar |
+| Light theme (QWERTZ, de) | Dark theme (default) | Snippets tab |
 |---|---|---|
-| ![Light theme](docs/images/keyboard-light.png) | ![Dark theme](docs/images/keyboard-dark.png) | ![Snippets at sentence start](docs/images/keyboard-snippets.png) |
+| ![Light theme](docs/images/device/abc-light.jpg) | ![Dark theme](docs/images/device/abc-dark.jpg) | ![Snippets tab](docs/images/device/snippets.jpg) |
+
+| Files tab | Editor tab | Clipboard |
+|---|---|---|
+| ![Files tab](docs/images/device/files.jpg) | ![Editor tab](docs/images/device/editor.jpg) | ![Clipboard](docs/images/device/clipboard.jpg) |
+
+A short GIF demo of typing with suggestions:
+
+![Demo](docs/images/device/demo.gif)
 
 The top suggestion is rendered 2× wider with a green accent bar, the likely
-next key is scaled up (dynamic key sizing, `s` in the light picture) and at a
-sentence start with no word typed the bar falls back to your last used
-snippets. Device captures — frame timing, animations, per-theme contrast —
-remain an open gap (see [Known gaps](#known-gaps)).
+next key is scaled up (dynamic key sizing) and at a sentence start with no
+word typed the bar falls back to your last used snippets. The former
+script-rendered mockups (`scripts/make_screens.py`) were replaced by these
+real captures on 2026-09-29.
 
 ## What it does
 
@@ -150,7 +155,7 @@ All panels use the shared main handler for UI updates. File/background work stil
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**498 unit tests in 52 suites, 0 failures** (verified 2026-09-28, `testDebugUnitTest` + `koverVerify` green):
+**526 unit tests in 54 suites, 0 failures** (verified 2026-09-28, `testDebugUnitTest` + `koverVerify` green):
 
 | Suite | Tests | Kind |
 |---|---:|---|
@@ -171,6 +176,7 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `SectionsMoreTest` | 11 | pure |
 | `SectionsTest` | 11 | Robolectric |
 | `ClipboardPanelTest` | 10 | Robolectric |
+| `ColorWheelInputLogicTest` | 18 | pure |
 | `EditorPanelTest` | 10 | Robolectric |
 | `KeyScaleLogicTest` | 10 | pure |
 | `BackgroundImageTest` | 9 | Robolectric |
@@ -203,11 +209,12 @@ Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-d
 | `TabHeightsTest` | 4 | Robolectric |
 | `InputRouterTest` | 3 | pure |
 | `SwipePerformanceTest` | 3 | pure |
+| `SwipePreviewAvailabilityTest` | 6 | pure |
 | `ThemedAdapterTest` | 3 | Robolectric |
 | `TrailPerformanceTest` | 2 | pure |
-| `MainActivitySettingsTest` | 1 | Robolectric |
+| `MainActivitySettingsTest` | 5 | Robolectric |
 
-Test code is 7,502 lines in 52 files against 10,647 lines of main code (73 files) — a **70.5 % test-to-main ratio**. Line coverage measured with Kover is **70.8 %** (`LINE` 3228/4561), branch coverage **55.7 %** (`BRANCH` 1775/3186); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-09-28). Per package: the Android-free logic (`com.piotv.keytab.ime`: 71.8 %), the theme UI sections (`sections`: 94.1 %) and the in-app file manager (`file`: 77.4 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Instrumented tests (`app/src/androidTest`, 676 lines, 18 tests) run in CI on an API-34 emulator via `scripts/run_instrumented_tests.sh` and `./gradlew :app:connectedDebugAndroidTest`; local compilation is green, while the emulator run remains CI verification.
+Test code is 7,793 lines in 54 files against 10,924 lines of main code (75 files) — a **71.3 % test-to-main ratio**. Line coverage measured with Kover is **70.8 %** (`LINE` 3228/4561), branch coverage **55.7 %** (`BRANCH` 1775/3186); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-09-28). Per package: the Android-free logic (`com.piotv.keytab.ime`: 71.8 %), the theme UI sections (`sections`: 94.1 %) and the in-app file manager (`file`: 77.4 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `autoCorrect`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Frame timing is measured on-device with `scripts/device_perf.py` (Shizuku/rish, `dumpsys gfxinfo`, target: the debug `ImeTargetActivity`'s plain text field). Re-measured 2026-09-29 with a verified setup and median-of-runs methodology (see [`docs/DEVICE_PERF.md`](docs/DEVICE_PERF.md)): **backspace-autorepeat PASS** — 400 ms repeat bursts into a filled field, 3 runs, median Jank@60 1.3 % (≤ 10 %), p50 5 ms / p95 13 ms, UI-thread p95 3.2 ms. The earlier "FAIL" (61 % Jank on 36 frames from 2 events) was a measurement artifact. **Typing (empty field, active predictions, 192 events) is thermal-state dependent**: 3.4 % Jank@60 at 34.1 °C battery temperature (PASS) vs. 39–42 % at ≥ 35.1 °C (FAIL) on the identical workload — a device throttling threshold, not app behavior; single-run numbers without a thermal log are not usable as a gate. UI-thread p95 stays ≤ 6.4 ms in every scenario (deadline misses are draw-side, not logic-side). Instrumented tests (`app/src/androidTest`, 661 lines, 18 tests) run in CI on an API-34 emulator via `scripts/run_instrumented_tests.sh` and `./gradlew :app:connectedDebugAndroidTest`; local compilation is green, while the emulator run remains CI verification.
 
 ```bash
 # Run all unit tests
@@ -226,11 +233,11 @@ Documented honestly rather than implied away — these are the things that are *
 
 | Gap | Detail |
 |---|---|
-| **Trail frame timing not measured on device** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.autoCorrect`). **Partially measured (2026-09-19):** the algorithm cost is JVM-benchmarked in `TrailPerformanceTest` — ~2 µs per classification on a 6,000-word corpus, ~4 orders of magnitude below the 50 ms keystroke budget (with a hard assertion so regressions fail the build). What remains open: **frame timing on a real display** (profiling on the device) and visual smoothness; the red/green trace contrast per theme palette is still not screenshot-verified. Mitigation if it stutters: restrict the trace to `knowsWord` and check `autoCorrect` only on word completion. |
+| **Trail frame timing measured on device (typing PASS, backspace FAIL)** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.autoCorrect`). Algorithm cost is JVM-benchmarked in `TrailPerformanceTest` — ~2 µs per classification on a 6,000-word corpus, ~4 orders of magnitude below the 50 ms keystroke budget (hard assertion). **Device frame timing 2026-09-29** (`scripts/device_perf.py --pkg com.piotv.keytab.debug`, 120 Hz panel): typing PASS (Jank@60 4.5 %, p95 15 ms, UI p95 4.2 ms); backspace-autorepeat FAIL (Jank@60 61 %, p50 18 / p95 29 ms, but only 2 events — rerun with more events before optimizing). What remains open: visual smoothness of the trail overlay and red/green trace contrast per theme palette (still not screenshot-verified). Mitigation if it stutters: restrict the trace to `knowsWord` and check `autoCorrect` only on word completion. |
 | **Trail visuals not screenshot-verified** | The regression fix for contradictory trace states (see 0.9.7) is proven at the **state level** by unit tests — no screenshot or instrumented test asserts the rendered colours. The red/green contrast against each custom theme palette has not been measured. |
 | **Swipe frame timing not measured on device** | The swipe hot path (`charAt` + `dedup` per Move-Event, `SwipeScorer.score` on release) is JVM-benchmarked in `SwipePerformanceTest` — `charAt` and `dedup` are asserted < 5 ms avg over 10 000 calls, the scorer < 50 ms on a 6 000-word corpus (hard assertions so regressions fail the build). What remains open: **frame timing on a real display** (profiling the overlay invalidate + edge redraw on the device) and visual smoothness of the circuit preview path. |
-| ~~English locale incomplete~~ **Resolved 2026-09-21** | `values-en` now covers all 144 strings (was 92/163); no German fallback in English-locale devices any more. |
-| **Instrumented tests are thin** | 18 tests in 562 lines cover the real IME contract, including character/key events, sensitive fields, field switches, Activity recreation and a UiAutomator height contract (tabs equally tall, maximize fills the IME window). They run in CI on an API-34 emulator, but the emulator execution result is not yet verified locally. |
+| ~~English locale incomplete~~ **Resolved 2026-09-21** | `values-en` now covers all 149 strings (was 92/163); no German fallback in English-locale devices any more. |
+| **Instrumented tests are thin** | 18 tests in 661 lines cover the real IME contract, including character/key events, sensitive fields, field switches, Activity recreation and a UiAutomator height contract (tabs equally tall, maximize fills the IME window). They run in CI on an API-34 emulator, but the emulator execution result is not yet verified locally. |
 
 ## Build
 
@@ -367,9 +374,9 @@ app/src/main/java/com/piotv/keytab/            # 50 Kotlin files
     └── …                     # InputTargets, LiftSpan, KeyTabConfig
 
 app/src/test/java/com/piotv/keytab/ime/        # 50 test classes, 480 tests, 7,108 lines
-app/src/androidTest/                           # 18 instrumented tests, 676 lines (CI: API 34 emulator)
-app/src/main/res/values/strings.xml            # 144 strings (default = German)
-app/src/main/res/values-en/                    # English locale (144 strings — complete, 2026-09-25)
+app/src/androidTest/                           # 18 instrumented tests, 661 lines (CI: API 34 emulator)
+app/src/main/res/values/strings.xml            # 149 strings (default = German)
+app/src/main/res/values-en/                    # English locale (149 strings — complete, 2026-09-25)
 app/src/main/res/values-night/                 # Night-mode resource qualifiers
 app/src/main/assets/
 ├── de_freq_top6000.txt              # corpus (CC-BY-SA-4.0)

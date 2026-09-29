@@ -26,15 +26,12 @@ import com.piotv.keytab.R
 object PanelHeights {
 
     /**
-     * Der maximierte Zustand ist **kein Prozentsatz** der Bildschirmhöhe: er
-     * füllt das ganze IME-Fenster ([maximizedPanelHeight], [maximizeAvailableHeight]).
-     *
-     * Vorher stand hier `MAXIMIZE_FRACTION = 0.95` (davor 0.9) — ein zweiter,
-     * kleinerer Deckel **innerhalb** der Grenze, die Android der IME ohnehin
-     * zieht ([IME_WINDOW_FRACTION]). Zusammen mit einer Verfügbarkeitsgrenze, die
-     * aus der `wrap_content`-Wurzel kam (und damit die *normale* Tastaturhöhe
-     * war), blieb der Vollbild-Modus sichtbar kürzer als der Platz, den das
-     * System freigibt.
+     * Der maximierte Zustand ist **bildschirmfüllend**: Das Panel füllt das
+     * Band zwischen Status- und Navigationsleiste, soweit das System die IME
+     * wachsen lässt ([maximizeAvailableHeight]). Gemessen (1220x2712,
+     * 2026-09-28): Das System lässt das IME-Fenster bis unter die Statusleiste
+     * wachsen — der frühere „70 %-Deckel“ war kein Systemlimit, sondern der
+     * eigene Fallback, der sich über den Fenster-Clamp selbst bestätigt hatte.
      */
 
     /**
@@ -172,54 +169,50 @@ object PanelHeights {
     }
 
     /**
-     * Anteil der Bildschirmhöhe, den das System der IME überhaupt gibt.
+     * Verfügbare Höhe für den **Normalzustand**: dieselbe Systemgrenze wie
+     * beim Maximieren ([maximizeAvailableHeight], das Band zwischen Status- und
+     * Navigationsleiste).
      *
-     * Gemessen auf dem Testgerät: das IME-Fenster bekommt 1915 px bei 2712 px
-     * Bildschirm (70,6 %) – mehr ist per `dumpsys window` nicht zu bekommen,
-     * egal wie hoch man den Inhalt macht. Der Vollbild-Modus ist deshalb
-     * **fensterfüllend**, nicht bildschirmfüllend: der Rest des Bildschirms
-     * bleibt sichtbar, und mehr wäre ein Kampf gegen das System, kein Feature.
-     * Der Wert liegt bewusst knapp **unter** dem gemessenen Maximum, damit das
-     * Panel nicht gegen die harte Systemkante läuft (dann schöbe es die unterste
-     * Tastenzeile aus dem Fenster).
+     * Früher stand hier das transitorische `root.height` (Höhe der Wurzel im
+     * *aktuellen* Layout). Beim Tab-Wechsel ist das der Zustand des vorherigen
+     * Tabs — der erste Wechsel abc -> Files klemmte das Panel deshalb auf die
+     * abc-Höhe ab (gemessen 764 statt 1247 px, 2026-09-28) und die Inhalts-Tabs
+     * blieben dauerhaft zu klein. Das IME-Fenster folgt seinem Inhalt
+     * (wrap_content): die einzige *echte* Grenze ist das Band.
      */
-    const val IME_WINDOW_FRACTION = 0.7f
+    fun availableHeight(root: View?): Int = maximizeAvailableHeight(root)
 
     /**
-     * Verfügbare Höhe für den **Normalzustand**: die tatsächliche Höhe des
-     * IME-Fensters, sonst die Naeherung aus [IME_WINDOW_FRACTION] der
-     * Bildschirmhöhe (der Fall vor dem ersten Layout).
+     * Verfügbare Höhe für das **Maximieren** (bildschirmfüllend).
      *
-     * Bewusst *nicht* [maximizeAvailableHeight]: im Normalzustand ist die
-     * Fensterhöhe die richtige Grenze (der Inhalt darf die Tastatur nicht aus
-     * dem Fenster schieben).
-     */
-    fun availableHeight(root: View?): Int {
-        val laidOut = root?.height ?: 0
-        if (laidOut > 0) return laidOut
-        val display = root?.resources?.displayMetrics?.heightPixels ?: 0
-        return (display * IME_WINDOW_FRACTION).toInt()
-    }
-
-    /**
-     * Verfügbare Höhe für das **Maximieren**.
+     * Kein Prozentsatz und kein 0.7-Deckel mehr: Der frühere 0.7-Fallback war
+     * eine self-fulfilling prophecy — der Fenster-Clamp benutzte den eigenen
+     * Fallback als Grenze, das Fenster wuchs nie darüber, und das sah
+     * dann wie ein Systemlimit aus. Gemessen (1220x2712, 2026-09-28): Das System
+     * gibt der IME den ganzen Bildschirm **zwischen Status- und Navigationsleiste**,
+     * wenn der Inhalt so hoch wird — das Fenster wächst bis unter die Statusleiste
+     * (Inhalt-Top = Statusleistenhöhe, per fitSystemWindows automatisch), und der
+     * Navigationsleisten-Inset ist vorher schon über [WindowInsets] sichtbar.
      *
-     * Nicht `root.height` allein: die Wurzel steht auf `wrap_content`, ihre Höhe
-     * ist damit die Summe der gerade sichtbaren Zeilen — also die *normale*
-     * Tastaturhöhe. Wer daraus den Vollbild-Zustand rechnet, bekommt den
-     * Normalzustand zurück; das Panel wächst nie (genau das war der Fehler:
-     * „maximiert" war sichtbar so hoch wie vorher).
-     *
-     * Android gibt der IME bis zu [IME_WINDOW_FRACTION] der Bildschirmhöhe
-     * (gemessen: 1915 px von 2712 px). Das Maximum ist deshalb die größere der
-     * beiden Höhen: die Fenstergrenze des Systems oder — falls die IME schon
-     * größer ist (z. B. sehr kleiner Bildschirm oder größere Systemfreigabe) —
-     * die echte View-Höhe.
+     * Band = Bildschirmhöhe − Statusleiste − Navigationsleiste. Wird der Inhalt
+     * höher, passt das Fenster nicht mehr: die letzte Zeile rutscht unter die
+     * Navigationsleiste, oder das System blendet die IME sogar ganz aus — genau
+     * das war der Fehler des ungeclampten Experimentierwerts.
      */
     fun maximizeAvailableHeight(root: View?): Int {
-        val laidOut = root?.height ?: 0
         val display = root?.resources?.displayMetrics?.heightPixels ?: 0
-        return maxOf(laidOut, (display * IME_WINDOW_FRACTION).toInt())
+        val insets = root?.rootWindowInsets
+        val navBar = insets?.systemWindowInsetBottom ?: 0
+        val statusBar = insets?.systemWindowInsetTop?.takeIf { it > 0 }
+            ?: statusBarHeightPx(root?.resources)
+        return (display - navBar - statusBar).coerceAtLeast(0)
+    }
+
+    /** Statusleistenhöhe über die System-Ressource (Inset ist erst nach Fenster-Wachstum != 0). */
+    private fun statusBarHeightPx(res: android.content.res.Resources?): Int {
+        res ?: return 0
+        val id = res.getIdentifier("status_bar_height", "dimen", "android")
+        return if (id > 0) res.getDimensionPixelSize(id) else 0
     }
 
     /**

@@ -5,6 +5,7 @@
     <ID>ComplexCondition:BackgroundImage.kt$BackgroundImage$iw &lt;= 0 || ih &lt;= 0 || width &lt;= 0 || height &lt;= 0</ID>
     <ID>ComplexCondition:EditorHighlightLogic.kt$EditorHighlightLogic$c == '0' &amp;&amp; i + 1 &lt; n &amp;&amp; (text[i + 1] == 'x' || text[i + 1] == 'X')</ID>
     <ID>ComplexCondition:LetterPopup.kt$LetterPopup$event.rawX &gt;= loc[0] &amp;&amp; event.rawX &lt; loc[0] + cell.width &amp;&amp; event.rawY &gt;= loc[1] &amp;&amp; event.rawY &lt; loc[1] + cell.height</ID>
+    <ID>CyclomaticComplexMethod:ColorWheelView.kt$ColorWheelView$override fun onTouchEvent(event: android.view.MotionEvent): Boolean</ID>
     <ID>CyclomaticComplexMethod:DynamicKeyScaler.kt$DynamicKeyScaler$private fun computeNeighbors(): (Char) -&gt; Set&lt;Char&gt;</ID>
     <ID>CyclomaticComplexMethod:EditorHighlightLogic.kt$EditorHighlightLogic$fun spans(text: String, maxChars: Int = MAX_SCAN_CHARS): List&lt;Span&gt;</ID>
     <ID>CyclomaticComplexMethod:KeyTabConfig.kt$KeyTabConfig$private fun with(key: String, value: String): KeyTabConfig</ID>
@@ -15,11 +16,11 @@
     <ID>CyclomaticComplexMethod:SuggestionEngine.kt$SuggestionEngine$private fun completeWord(cur: String, prev: String?, max: Int): List&lt;Suggestion&gt;</ID>
     <ID>CyclomaticComplexMethod:SuggestionEngine.kt$SuggestionEngine$private fun predictNext(prev: String?, max: Int, sentenceStart: Boolean = false): List&lt;Suggestion&gt;</ID>
     <ID>CyclomaticComplexMethod:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
-    <ID>CyclomaticComplexMethod:ThemePrefs.kt$ThemePrefs$fun importColors(prefs: SharedPreferences, json: String): Boolean</ID>
     <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
     <ID>LongMethod:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
     <ID>LongMethod:TopSection.kt$TopSection$fun build(col: LinearLayout)</ID>
     <ID>LongMethod:TrailSection.kt$TrailSection$fun build(col: LinearLayout)</ID>
+    <ID>LongParameterList:ColorWheelInputLogic.kt$ColorWheelInputLogic$( cx: Float, cy: Float, radius: Float, x: Float, y: Float, out: FloatArray )</ID>
     <ID>LongParameterList:KeyboardBinder.kt$KeyboardBinder$( private val host: KeyboardInputHost, private val longPressTimeout: Long, private val tabController: TabController, private val themeController: ThemeController, private val suggestionController: SuggestionController, private val trailManager: TrailManager?, private val swipeManager: SwipeManager? = null )</ID>
     <ID>LoopWithTooManyJumpStatements:DynamicKeyScaler.kt$DynamicKeyScaler$for</ID>
     <ID>LoopWithTooManyJumpStatements:EditorHighlightLogic.kt$EditorHighlightLogic$while</ID>
@@ -111,9 +112,6 @@
     <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$255</ID>
     <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$4</ID>
     <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$8f</ID>
-    <ID>MagicNumber:ThemePrefs.kt$ThemePrefs$0.15f</ID>
-    <ID>MagicNumber:ThemePrefs.kt$ThemePrefs$0.5f</ID>
-    <ID>MagicNumber:ThemePrefs.kt$ThemePrefs$0.75f</ID>
     <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$0.114</ID>
     <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$0.299</ID>
     <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$0.5</ID>
@@ -149,8 +147,6 @@
     <ID>NestedBlockDepth:SuggestionController.kt$SuggestionController$private fun updateLikelyKeys()</ID>
     <ID>NestedBlockDepth:SuggestionEngine.kt$SuggestionEngine$private fun completeWord(cur: String, prev: String?, max: Int): List&lt;Suggestion&gt;</ID>
     <ID>NestedBlockDepth:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
-    <ID>NestedBlockDepth:ThemePrefs.kt$ThemePrefs$fun importColors(prefs: SharedPreferences, json: String): Boolean</ID>
-    <ID>NewLineAtEndOfFile:SwipeManager.kt$com.piotv.keytab.ime.SwipeManager.kt</ID>
     <ID>TooManyFunctions:KeyTabImeService.kt$KeyTabImeService : InputMethodServiceThemeHostTabHostSuggestionHostKeyboardInputHost</ID>
     <ID>TooManyFunctions:SwipeManager.kt$SwipeManager</ID>
     <ID>TooManyFunctions:ThemePrefs.kt$ThemePrefs</ID>

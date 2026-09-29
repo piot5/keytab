@@ -9,7 +9,6 @@ import android.graphics.Shader
 import android.graphics.SweepGradient
 import android.util.AttributeSet
 import android.view.View
-import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -109,42 +108,100 @@ class ColorWheelView @JvmOverloads constructor(
         markerPaint.strokeWidth = 4f
     }
 
-    private var tracking = false
+    private val input = com.piotv.keytab.ime.ColorWheelInputLogic()
 
     override fun performClick(): Boolean {
         super.performClick()
         return true
     }
 
+    /** Zeiger-Position per Index; -1, wenn der Zeiger nicht (mehr) im Event ist. */
+    private fun xAt(event: android.view.MotionEvent, index: Int): Float =
+        if (index in 0 until event.pointerCount) event.getX(index) else 0f
+
+    private fun yAt(event: android.view.MotionEvent, index: Int): Float =
+        if (index in 0 until event.pointerCount) event.getY(index) else 0f
+
+    private fun insideAt(event: android.view.MotionEvent, index: Int): Boolean {
+        if (index < 0 || index >= event.pointerCount || radius <= 0f) return false
+        val dx = xAt(event, index) - cx
+        val dy = yAt(event, index) - cy
+        return dx * dx + dy * dy <= radius * radius
+    }
+
+    /**
+     * Multi-Touch-sichere Geste. Entscheidungen über Zeiger-Übergänge trifft
+     * [com.piotv.keytab.ime.ColorWheelInputLogic]; hier wird nur noch
+     * `MotionEvent` übersetzt. Kernpunkt: `event.x` ist **immer** der Zeiger
+     * mit Index 0 — mit zwei Fingern auf dem Rad sprang die Farbe dadurch auf
+     * den falschen Finger, und `ACTION_POINTER_UP` des aktiven Fingers
+     * beendete das Tracking nicht.
+     */
     override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
-        val dx = event.x - cx
-        val dy = event.y - cy
-        val distSq = dx * dx + dy * dy
-        val inside = radius > 0f && distSq <= radius * radius
         when (event.actionMasked) {
             android.view.MotionEvent.ACTION_DOWN -> {
-                if (!inside) return false
-                tracking = true
+                if (!input.onDown(event.getPointerId(0), insideAt(event, 0))) return false
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
-            android.view.MotionEvent.ACTION_MOVE -> if (!tracking) return false
-            android.view.MotionEvent.ACTION_UP,
-            android.view.MotionEvent.ACTION_CANCEL -> {
-                if (!tracking) return false
-                tracking = false
-                parent?.requestDisallowInterceptTouchEvent(false)
-                if (inside && event.actionMasked == android.view.MotionEvent.ACTION_UP) performClick()
+            android.view.MotionEvent.ACTION_POINTER_DOWN ->
+                // Zweiter Finger: Geste läuft weiter, nur dieser eine wird nicht verfolgt.
+                return input.onSecondaryDown(event.getPointerId(event.actionIndex))
+            android.view.MotionEvent.ACTION_MOVE -> {
+                if (!input.isTracking()) return false
+                val id = input.activePointer
+                val index = event.findPointerIndex(id)
+                if (index < 0) {
+                    // Der verfolgte Zeiger ist aus dem Event verschwunden: Geste sauber beenden.
+                    input.onRelease()
+                    parent?.requestDisallowInterceptTouchEvent(false)
+                    return false
+                }
+                applyPosition(xAt(event, index), yAt(event, index))
                 return true
             }
-            else -> return tracking
+            android.view.MotionEvent.ACTION_POINTER_UP -> {
+                val lifted = event.getPointerId(event.actionIndex)
+                // Nur der aktive Finger beendet die Geste; das Event wird in jedem
+                // Fall konsumiert, solange eine Geste lief.
+                val wasTracking = input.isTracking()
+                if (input.onPointerUp(lifted)) {
+                    parent?.requestDisallowInterceptTouchEvent(false)
+                }
+                return wasTracking
+            }
+            android.view.MotionEvent.ACTION_UP -> {
+                if (!input.isTracking()) return false
+                val index = event.findPointerIndex(input.activePointer)
+                val endedInside = insideAt(event, if (index < 0) 0 else index)
+                applyPosition(xAt(event, if (index < 0) 0 else index),
+                    yAt(event, if (index < 0) 0 else index))
+                input.onRelease()
+                parent?.requestDisallowInterceptTouchEvent(false)
+                if (endedInside) performClick()
+                return true
+            }
+            android.view.MotionEvent.ACTION_CANCEL -> {
+                if (!input.isTracking()) return false
+                input.onRelease()
+                parent?.requestDisallowInterceptTouchEvent(false)
+                return true
+            }
+            else -> return input.isTracking()
         }
-        // Auch beim Ziehen außerhalb des Kreises keine Farbe auswählen.
-        if (inside) {
-            hsv[0] = (Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 360f) % 360f
-            hsv[1] = (kotlin.math.sqrt(distSq) / radius).coerceIn(0f, 1f)
-            invalidate()
-            notifyPicked()
-        }
+        applyPosition(xAt(event, 0), yAt(event, 0))
         return true
+    }
+
+    /**
+     * Position übernehmen. Außerhalb des Radius wird **nichts** geschrieben —
+     * ein Ziehen über den Rand hinaus verändert die zuletzt gewählte Farbe nicht.
+     */
+    private fun applyPosition(x: Float, y: Float) {
+        val hsvOut = FloatArray(2)
+        if (!input.hsvAt(cx, cy, radius, x, y, hsvOut)) return
+        hsv[0] = hsvOut[0]
+        hsv[1] = hsvOut[1]
+        invalidate()
+        notifyPicked()
     }
 }

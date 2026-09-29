@@ -28,16 +28,15 @@ import java.io.InputStreamReader
  * Systemleisten und die echte Fenstergroesse fliessen ein.
  *
  * Geprueft wird der Vertrag aus drei Punkten:
- *  1. Files-, Clip- und Snippet-Tab sind exakt gleich hoch und weichen vom
- *     Editor-Tab (Hoehenreferenz) hoechstens um die Maximieren-Zeile ab.
+ *  1. Editor-, Files-, Clip- und Snippet-Tab sind gleich hoch (Toleranz 4 px).
  *  2. Der abc-Tab hat eine eigene Hoehe (er zeigt die Tastatur).
  *  3. Die Maximieren-Zeile (key_maximize) existiert **nur** in den Inhalts-Tabs
  *     (Files/Clip/Snip) und liegt dort ganz unten; im abc-Tab gibt es sie nie
  *     (TabController.showsMaximizeRow — die Tastatur ist dort das groesste
  *     Element), im Editor-Tab sitzt das Symbol stattdessen in der (hier
- *     deaktivierten) Vorschlagszeile. Tippen fuellt das IME-Fenster (~70 % des
- *     Bildschirms, PanelHeights.IME_WINDOW_FRACTION), erneutes Tippen stellt
- *     den Normalzustand wieder her.
+ *     deaktivierten) Vorschlagszeile. Tippen fuellt den Bildschirm zwischen
+ *     Status- und Navigationsleiste (PanelHeights-Band, ~95 % des Bildschirms),
+ *     erneutes Tippen stellt den Normalzustand wieder her.
  */
 @RunWith(AndroidJUnit4::class)
 class KeyTabImeHeightTest {
@@ -79,6 +78,26 @@ class KeyTabImeHeightTest {
         prefs.edit().putBoolean(Prefs.KEY_SUGGESTIONS, false)
             .putBoolean(Prefs.KEY_SWIPE, false).apply()
         focusField()
+        if (!waitForIme()) {
+            // Cold-Start-Rennen: `am instrument` killt den Ziel-Prozess (in dem
+            // auch der IME-Service laeuft) und startet ihn neu. Der erste
+            // showSoftInput kann verloren gehen, bevor onCreateInputView
+            // abgeschlossen ist (Logcat: updateInputViewShown ... mInputView=null,
+            // danach kein show mehr). Zweiter Anlauf: echten Touch auf das
+            // erste EditText — der Weg, der auch im Normalbetrieb zuverlaessig
+            // die Tastatur einblendet.
+            val field = device.wait(Until.findObject(
+                By.clazz("android.widget.EditText")), 5_000)
+            field?.click()
+            device.waitForIdle()
+            focusField()
+        }
+        // Die IME merkt sich den zuletzt genutzten Tab: stand sie zuletzt im
+        // Files/Clip/Snip-Tab, gibt es dort kein sichtbares key_space (das
+        // gibt es nur im abc-Tab) — waitForIme wuerde sonst 10 s ins Leere
+        // laufen ("KeyTab wurde nicht eingeblendet", Screenshot-Beweis 2026-09-29:
+        // Tastatur sichtbar im FILES-Tab). Deshalb: zuerst auf ABC schalten.
+        device.wait(Until.findObject(By.textStartsWith("ABC")), 3_000)?.click()
         assertTrue("KeyTab wurde nicht eingeblendet", waitForIme())
     }
 
@@ -97,28 +116,18 @@ class KeyTabImeHeightTest {
             "CLIP" to imeHeightAfterTab("CLIP"),
             "SNIP" to imeHeightAfterTab("SNIP"),
         )
-        val content = heights.filterKeys { it != "EDITOR" }.values
-        // Files/Clip/Snip muessen exakt gleich hoch sein — sie teilen sich
-        // dieselbe Panel-Hoehe (PanelHeights.applyNormalHeights).
+        // Alle vier Tabs muessen gleich hoch sein: Die Inhalts-Panels bekommen
+        // per PanelHeights.applyNormalHeights exakt Editor + Tastatur minus
+        // Maximieren-Zeile — seit der Fenster-Clamp gegen das stabile Band
+        // (statt der transitorischen Wurzelhoehe) rechnet, gilt das auf dem
+        // Geraet ohne Abweichung (frueher: erste abc->Files-Schaltung klemmte
+        // das Panel auf die abc-Hoehe ab, 483 px zu klein auf 1220x2712).
+        val distinct = heights.values.distinct()
         assertTrue(
             "Inhalts-Tabs muessen gleich hoch sein, gemessen: $heights",
-            content.distinct().size == 1
+            distinct.size == 1
         )
         assertTrue("IME-Hoehe muss relevant sein: $heights", heights.values.first() > 100)
-        // Der Editor-Tab ist die Hoehenreferenz. Gemessene Abweichung auf dem
-        // Geraet (1220x2712, 2026-09-28): die drei Inhalts-Tabs lagen exakt um
-        // die Maximieren-Zeile (~34dp) UNTER dem Editor — die Zeile geht in
-        // PanelHeights.natural schon einmal ab und wird im Fenster-Clamp von
-        // applyNormalHeights offenbar nochmal abgezogen. Bis zur Klaerung
-        // toleriert der Vertrag diese eine Zeile; mehr Drift ist ein Regress.
-        val editor = heights["EDITOR"]!!
-        heights.filterKeys { it != "EDITOR" }.forEach { (tab, h) ->
-            assertTrue(
-                "Tab $tab weicht vom Editor ab (Editor=$editor, Tab=$h); " +
-                    "toleriert ist nur die Maximieren-Zeile",
-                kotlin.math.abs(editor - h) <= 120
-            )
-        }
     }
 
     @Test
@@ -160,12 +169,12 @@ class KeyTabImeHeightTest {
     }
 
     @Test
-    fun maximierenFuelltDasImeFenster() {
-        // Der Vollbild-Modus ist laut PanelHeights-Doku **fensterfuellend**,
-        // nicht bildschirmfuellend: Android gibt der IME nur ~70 % der
-        // Bildschirmhoehe (IME_WINDOW_FRACTION = 0.7, gemessen 1915 px von
-        // 2712 px auf dem Referenzgeraet). Frueher galt hier 95 % — das war
-        // ein zweiter Deckel gegen das System und ist bewusst entfernt.
+    fun maximierenFuelltDenBildschirmBisAufFuenfProzent() {
+        // Der Vollbild-Modus ist **bildschirmfuellend**: Das System laesst die
+        // IME bis unter die Statusleiste wachsen; das Panel fuellt das Band
+        // zwischen Status- und Navigationsleiste (PanelHeights.
+        // maximizeAvailableHeight). Der fruehere 0.7-Deckel war kein
+        // Systemlimit, sondern der eigene Fallback.
         // Inhalts-Tab: nur dort gibt es key_maximize (im Editor sitzt das
         // Symbol in der hier deaktivierten Vorschlagszeile).
         val normal = imeHeightAfterTab("FILES")
@@ -179,11 +188,11 @@ class KeyTabImeHeightTest {
 
         assertTrue("Maximieren muss die Hoehe deutlich vergroessern: " +
             "normal=$normal, maximiert=$maximized", maximized > normal + 100)
-        // Fensterfuellend: ~IME_WINDOW_FRACTION (0.7) der Bildschirmhoehe, mit
-        // 10 % Toleranz fuer Systemleisten und Dichteunterschiede.
-        val expected = (displayHeight * 0.7).toInt()
+        // Bildschirmfuellend: ~95 % des Bildschirms, mit 10 % Toleranz fuer
+        // die Systemleisten (Status- + Navigationsleiste bleiben sichtbar).
+        val expected = (displayHeight * 0.95).toInt()
         val delta = kotlin.math.abs(maximized - expected)
-        assertTrue("Maximiert sollte das IME-Fenster fuellen (~70 % des Bildschirms): " +
+        assertTrue("Maximiert sollte ~95 % des Bildschirms fuellen: " +
             "gemessen=$maximized, erwartet=$expected, Bildschirm=$displayHeight",
             delta <= displayHeight * 0.10)
 
@@ -192,15 +201,11 @@ class KeyTabImeHeightTest {
         device.waitForIdle()
         Thread.sleep(600)
         val back = imeHeight("key_maximize")
-        // Toleranz bewusst grosszuegig (200 px): die Panel-Hoehen der
-        // Inhalts-Tabs werden nach Maximieren-Zyklen vom transienten Fenster-
-        // Clamp in PanelHeights.applyNormalHeights "festgenagelt" — gemessen
-        // 1069 -> 905 px auf 1220x2712 (2026-09-28), deterministisch, aber
-        // abhaengig von der Testreihenfolge. Der Vertrag hier prueft nur, dass
-        // der Rueckweg funktioniert und die Hoehe wieder im Normalbereich
-        // liegt; exakte Wiederherstellung ist ein Follow-up im Produkt.
+        // Streng: expand() restauriert die gemerkte Normalhoehe, und der
+        // Fenster-Clamp rechnet seit dem Band-Fix deterministisch — Abweichung
+        // hier waere wieder der "festgenagelte" Zustand von vor dem Fix.
         assertTrue("Nach dem Zurueck muss die Normalhoehe kommen: " +
-            "vorher=$normal, jetzt=$back", kotlin.math.abs(back - normal) <= 200)
+            "vorher=$normal, jetzt=$back", kotlin.math.abs(back - normal) <= 16)
     }
 
     // ---------------- Hilfen ----------------

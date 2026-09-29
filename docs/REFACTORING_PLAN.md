@@ -13,12 +13,12 @@ Status: 2026-09-25 · Goal: maintainable, testable, release-ready modules with n
 
 | Metric | Value |
 |---|---|
-| Unit tests | **498 in 52 suites**, 0 failures (`testDebugUnitTest` + `testReleaseUnitTest` + `koverVerify` green 28 Sep; +9 for full-screen/height overrides: `TabHeightsTest`, `PanelHeightsTest`, `KeyboardCollapseTest`, `SettingsConfigTest`) |
+| Unit tests | **526 in 54 suites**, 0 failures (`testDebugUnitTest` + `testReleaseUnitTest` + `koverVerify` green 28 Sep; +28 ggü. 498: `ColorWheelInputLogicTest` (18), `SwipePreviewAvailabilityTest` (6), `MainActivitySettingsTest` 1→5) |
 | Coverage (Kover) | **70.8 % line** (3228/4561) / **55.7 % branch** (1775/3186), measured 28 Sep; **Gate: 60 % line / 45 % branch** — `koverVerify` green same run |
-| Test:main ratio | **70.5 %** (7,502 test lines / 10,647 main lines; 73 main files, 52 test files) — re-measured 28 Sep |
+| Test:main ratio | **71.3 %** (7,789 test lines / 10,918 main lines; 75 main files, 54 test files) — re-measured 29 Sep |
 | detekt baseline | **152 Einträge** (re-measured 27 Sep; 181 in the repo, of which **24 were already stale**) — unchanged 28 Sep, gate green |
 | Android Lint | **0 errors / 121 warnings** (`lintDebug` 28 Sep; CI-Gate added 24 Sep) |
-| i18n | `values-en` **144/144 Strings** (100 %, per Drift-Gate erzwungen) |
+| i18n | `values-en` **149/149 Strings** (100 %, per Drift-Gate erzwungen) |
 | Service size | **369 lines** (from 908) — re-measured 28 Sep; the earlier "358" figure was stale |
 | Working tree | **v0.14** plus: height/maximize fixes (abc start state, IME-window-filling maximize, equal normal heights, shorter maximize row, no max row in the editor), the **defaults takeover** from the user config (`keytab_config.txt`, 2026-09-28) and **per-tab heights in the config** (`normal_height_*` / `max_height_*`) |
 | Repo hygiene | Local SDK/signing files are ignored; Gradle distribution SHA-256 pinned |

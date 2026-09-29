@@ -4,9 +4,10 @@
 The images are drawn from the same data the app uses (values/colors.xml,
 values-night/colors.xml, panel_keyboard_letters.xml), so a layout or theme
 change shows up in the documentation instead of silently drifting away from it.
-They are *mockups* of the keyboard view, not captures of a device run: device
-screenshots (frame timing, animations, per-theme contrast) cannot be produced
-by a script and stay an open gap in the README.
+They are *mockups* of the keyboard view, not captures of a device run. The
+README no longer embeds these images: since 2026-09-29 it uses real device
+captures from `docs/images/device/` instead. The script is kept for rendering
+mockups on demand.
 
 Usage:  python3 scripts/make_screens.py [output_dir]
 Default output dir: docs/images

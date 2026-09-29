@@ -110,18 +110,17 @@ class TabControllerTest {
         // Inhalts-Tabs, der Editor-Tab hat dort das Prediction-Symbol. So sind
         // alle vier Tabs gleich hoch — oder das Panel weicht auf das Fenster
         // aus, wenn Editor+Tastatur zu klein sind. Auf dem Geraet gibt das
-        // System nur ~70 % der Bildschirmhoehe frei, deshalb die Begrenzung;
-        // ohne sie schob das Panel die unterste Tastenzeile aus dem Fenster.
+        // System das Band zwischen Status- und Navigationsleiste frei, deshalb
+        // die Begrenzung; ohne sie passte der Inhalt nicht ins Fenster.
         val editorTotal = r.findViewById<View>(R.id.editor_panel).layoutParams.height +
             r.findViewById<View>(R.id.kb_panel).measuredHeight
         val width = r.resources.displayMetrics.widthPixels
-        val window = (r.resources.displayMetrics.heightPixels *
-            PanelHeights.IME_WINDOW_FRACTION).toInt()
+        val window = PanelHeights.availableHeight(r)
         // Chrome (Tab-Leiste + Maximieren-Zeile) liegt ausserhalb des Panels und
         // muss im Fenster Platz haben — deshalb erst davon abziehen, dann kippen.
         val expected = minOf(editorTotal - PanelHeights.maximizeRowHeight(r),
             window - PanelHeights.chromeHeight(r, width))
-        assertEquals("Panel-Hoehe = min(Editor+Tastatur-Max-Zeile, IME-Fenster)",
+        assertEquals("Panel-Hoehe = min(Editor+Tastatur-Max-Zeile, Band)",
             expected, heights.first())
     }
 

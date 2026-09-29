@@ -39,6 +39,23 @@ Ergebnisse und man misst denselben Stand ein zweites Mal.
 Baseline-Einträge lassen sich nur durch Neuerzeugen entfernen, nicht durch
 Editieren der Datei.
 
+## Stand (2026-09-28)
+
+- Baseline: **148 Einträge** (zuvor 152; davor dokumentiert der 24-stale-Vorfall
+  mit 181 behaupteten vs. 157 realen Befunden).
+- Verteilung: 113× MagicNumber, 11× CyclomaticComplexMethod,
+  7× LoopWithTooManyJumpStatements, 5× NestedBlockDepth, 4× LongMethod,
+  3× TooManyFunctions, 3× ComplexCondition, 2× LongParameterList.
+- Der `audit`-Lauf vom 28. Sep fand 5 stale Einträge (ThemePrefs-Refactor) und
+  6 neue Befunde. Behoben statt gebunkert: Named Constants
+  (`DISABLED_HINT_ALPHA` in `MainActivity`, `FULL_CIRCLE_DEG` in
+  `ColorWheelInputLogic`), 3× fehlender Zeilenumbruch am Dateiende, und der
+  Hue-Erwartungswert im ColorWheel-Test wurde gegen die View-Geometrie
+  korrigiert (SweepGradient läuft ab 3 Uhr im Uhrzeigersinn → oben = 270).
+- Nächster Hebel, wenn die Baseline weiter schrumpfen soll: MagicNumber über
+  benannte dp/Grad-Konstanten in den `sections`-Dateien (113 Einträge dort
+  gebündelt), danach CyclomaticComplexMethod in `SuggestionEngine`.
+
 ## Parameter
 
 | Flag | Wirkung |

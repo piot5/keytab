@@ -1,0 +1,100 @@
+name: Fehlerbericht (Bug)
+description: Etwas funktioniert nicht, stürzt ab oder verhält sich anders als erwartet.
+title: "[Bug] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für den Bericht. KeyTab ist ein Ein-Personen-Projekt —
+        jeder belegte Fehler ist Gold wert.
+
+        **Vor dem Absenden bitte prüfen** (spart eine Rückfrage):
+        1. Reproduzierbar in einem frischen Build? `bash build_keytab.sh debug`
+        2. Debug- oder Release-Paket? Beide registrieren eine Tastatur —
+           siehe [README, Abschnitt Installation](../README.md#installation-without-a-pc-via-shizukuirish).
+           `settings get secure default_input_method` verrät, welches aktiv ist.
+        3. Steht etwas in `keytab_config.txt`, das den Fehler auslöst?
+
+  - type: input
+    id: version
+    attributes:
+      label: KeyTab-Version
+      description: In den Einstellungen oben auf der Seite sichtbar.
+      placeholder: "0.15"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: build
+    attributes:
+      label: Build
+      options:
+        - Release (com.piotv.keytab)
+        - Debug (com.piotv.keytab.debug)
+        - weiß ich nicht
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Gerät
+      description: "Modell, Android-Version, Bildschirmfrequenz — z. B. Pixel 7, Android 14, 120 Hz"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Schritte zur Reproduktion
+      description: Bitte als nummerierte Liste, die ohne Zusatzwissen befolgt werden kann.
+      placeholder: |
+        1. Tastatur aktivieren, KeyTab auswählen
+        2. Feld "Suche" in Einstellungen öffnen
+        3. "abc"-Tab wählen
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Tatsächliches Verhalten
+      description: Wörtliche Fehlermeldung, Absturz-Log oder was schiefgeht.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logcat
+      description: |
+        `adb logcat -d -t 300` bzw. über rish:
+        `sh ~/bin/rsh 'logcat -d -t 300'`
+        Bitte auf den Fehlerzeitpunkt eingrenzen.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Zusagen des Projekts
+      options:
+        - label: Der Fehler tritt auch ohne Netzwerkverbindung auf (KeyTab arbeitet offline).
+        - label: Es ist **kein** Passwort- oder Bank-Feld betroffen.
+    # Kein Pflichtfeld: bestätigt die zwei Kernversprechen, blockiert aber nicht.
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Bestätigung
+      options:
+        - label: Ich habe die 3 Punkte oben geprüft.
+          required: true

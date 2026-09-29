@@ -63,6 +63,19 @@ class SwipeManager(
         com.piotv.keytab.Prefs.KEY_SWIPE_PREVIEW.let { prefs.getBoolean(it, false) }
 
     /**
+     * Effektiv aktiv? Die Preview braucht die Prognose-Scores und damit
+     * [com.piotv.keytab.ime.SwipePreviewAvailability] — siehe dort die Regel.
+     * Ein allein stehender Pref-Schalter genügt nicht, sonst hätte man einen
+     * Schalter, der sichtbar „an" ist und nichts tut.
+     */
+    fun previewActive(): Boolean = SwipePreviewAvailability.active(
+        previewRequested = previewEnabled(),
+        swipeEnabled = swipeEnabled(),
+        dynamicKeysEnabled = com.piotv.keytab.Prefs.KEY_DYNAMIC_KEYS
+            .let { prefs.getBoolean(it, true) }
+    )
+
+    /**
      * Swipe-Eingabe beginnen. [x]/[y] = Abgriff-Koordinaten (Fenster-Relativ).
      * Tut nichts, wenn Swipe aus oder Feld ein Passwort-Feld.
      */
@@ -359,4 +372,3 @@ class SwipeManager(
     var engine: SuggestionEngine? = null
         private set
 }
- 

@@ -64,6 +64,11 @@
     <string name="settings_swipe">Swipe typing (glide over keys, offline)</string>
     <string name="settings_swipe_on">Swipe typing enabled</string>
     <string name="settings_swipe_off">Swipe typing disabled</string>
+    <string name="settings_swipe_preview">Circuit preview (likely next keys)</string>
+    <string name="settings_swipe_preview_hint">Shows the likely next keys of the word you are typing as a connected path. Needs Swipe typing or dynamic key sizing — with both off, nothing is shown. Off in password fields.</string>
+    <string name="settings_swipe_preview_on">Circuit preview enabled</string>
+    <string name="settings_swipe_preview_off">Circuit preview disabled</string>
+    <string name="settings_swipe_preview_needs_source">Circuit preview needs Swipe typing or dynamic key sizing</string>
     <string name="settings_emoji">Emoji catalog</string>
     <string name="sug_back_desc">Back to word suggestions</string>
     <string name="sug_grid_desc">Select from full emoji catalog</string>

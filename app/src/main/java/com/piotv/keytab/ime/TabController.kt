@@ -14,6 +14,7 @@ internal class TabController(private val host: TabHost) {
     private var kinds: List<TabKind> = listOf(TabKind.ABC, TabKind.EDITOR, TabKind.FILES)
     private var currentKind: TabKind = TabKind.ABC
     private var currentTabs: TabLayout? = null
+    private var currentRoot: View? = null
 
     fun currentTabKind(): TabKind = currentKind
     fun select(kind: TabKind) {
@@ -59,53 +60,21 @@ internal class TabController(private val host: TabHost) {
             if (clipEnabled) add(TabKind.CLIP)
             if (snipEnabled) add(TabKind.SNIPPET)
         }
+        currentRoot = root
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
-                host.letterPopup.dismiss()
-                val kind = kinds.getOrNull(tab.position) ?: TabKind.ABC
-                currentKind = kind
-                root.setTag(R.id.maximized_state, false)
-                applyTabVisibility(root, kind)
-                host.inputRouter?.kind = if (kind == TabKind.EDITOR) InputKind.EDITOR else InputKind.APP
-                if (kind == TabKind.FILES) host.fileManagerPanel?.show()
-                if (kind == TabKind.CLIP) { host.clipboardPanel?.onSelected(); host.clipboardPanel?.refreshList(root) }
-                if (kind == TabKind.SNIPPET) host.snippetPanel?.onSelected(root)
-                if (kind == TabKind.EDITOR) host.clipboardPanel?.onSelected()
-                // Symbol an den aktuellen Vollbild-Zustand anpassen (die
-                // Sichtbarkeit von Zeile und Symbol setzt [applyTabVisibility]).
-                val maximized = root.getTag(R.id.maximized_state) as? Boolean ?: false
-                val symbol = if (maximized) "⇱" else "⇲"
-                (root.findViewById<android.widget.TextView>(R.id.key_maximize))?.text = symbol
-                (root.findViewById<android.widget.TextView>(R.id.sug_hide))?.text = symbol
-                // Normalzustand aller Inhalts-Tabs:
-                //  * Editor: sein Panel behaelt seine feste Hoehe, darunter
-                //    steht die Tastatur (er ist die Hoehenreferenz),
-                //  * Files/Clip/Snippets: Panel so hoch wie Editor + Tastatur
-                //    **minus Maximieren-Zeile** — diese Zeile haben nur die
-                //    Inhalts-Tabs, deshalb sind so alle Tabs gleich hoch.
-                // Bewusst *nach* den Sichtbarkeits-Wechseln: dann ist die
-                // Tastaturhoehe gemessen und nicht geschaetzt. Je Tab kann eine
-                // Hoehe in der Config-Datei stehen (TabHeights); 0 = rechnen.
-                val width = root.resources.displayMetrics.widthPixels
-                PanelHeights.applyNormalHeights(
-                    root, width, TabHeights.overridePx(host.context, kind, maximized = false)
-                )
-                // Im maximierten Zustand darf der Tab-Wechsler die Hoehe nicht
-                // zuruecksetzen — der Zustand gehoert zum Tab.
-                if (root.getTag(R.id.maximized_state) == true) {
-                    PanelHeights.maximizedPanelHeight(
-                        root,
-                        width,
-                        isKeyboardAlwaysVisible(),
-                        TabHeights.overridePx(host.context, kind, maximized = true)
-                    ).takeIf { it > 0 }?.let { h ->
-                        val panel = contentPanelOf(root, kind) ?: return@let
-                        panel.layoutParams = panel.layoutParams.apply { height = h }
-                    }
-                }
+                applySelected(tab)
             }
+
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
-            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+
+            // Bei bereits aktivem Tab (z. B. nach KeyboardCollapse.expand(),
+            // das bottom_row auf GONE gestellt hat) feuert TabLayout nur hier —
+            // die Sichtbarkeiten müssen trotzdem neu gesetzt werden, sonst fehlt
+            // nach dem Vollbild die Key-Leiste und die Tastatur ist unbedienbar.
+            override fun onTabReselected(tab: TabLayout.Tab) {
+                applySelected(tab)
+            }
         })
         // Startzustand: `addTab()` hat den ersten Tab (abc) bereits ausgewählt,
         // *bevor* der Listener hing — sein `onTabSelected` läuft also nie. Bis
@@ -113,6 +82,57 @@ internal class TabController(private val host: TabHost) {
         // abc-Tab nichts zu suchen hat. Der Startzustand läuft jetzt durch
         // dieselbe Funktion wie jeder Tab-Wechsel.
         applyTabVisibility(root, currentKind)
+    }
+
+    /**
+     * Ein Tab-Wechsel (oder Re-Apply desselben Tabs) — einziger Ort, der die
+     * Sichtbarkeiten und Hoehen eines Tabs setzt (siehe [applyTabVisibility]).
+     */
+    private fun applySelected(tab: TabLayout.Tab) {
+        val root = currentRoot
+        if (root == null) return
+        host.letterPopup.dismiss()
+        val kind = kinds.getOrNull(tab.position) ?: TabKind.ABC
+        currentKind = kind
+        root.setTag(R.id.maximized_state, false)
+        applyTabVisibility(root, kind)
+        host.inputRouter?.kind = if (kind == TabKind.EDITOR) InputKind.EDITOR else InputKind.APP
+        if (kind == TabKind.FILES) host.fileManagerPanel?.show()
+        if (kind == TabKind.CLIP) { host.clipboardPanel?.onSelected(); host.clipboardPanel?.refreshList(root) }
+        if (kind == TabKind.SNIPPET) host.snippetPanel?.onSelected(root)
+        if (kind == TabKind.EDITOR) host.clipboardPanel?.onSelected()
+        // Symbol an den aktuellen Vollbild-Zustand anpassen (die
+        // Sichtbarkeit von Zeile und Symbol setzt [applyTabVisibility]).
+        val maximized = root.getTag(R.id.maximized_state) as? Boolean ?: false
+        val symbol = if (maximized) "⇱" else "⇲"
+        (root.findViewById<android.widget.TextView>(R.id.key_maximize))?.text = symbol
+        (root.findViewById<android.widget.TextView>(R.id.sug_hide))?.text = symbol
+        // Normalzustand aller Inhalts-Tabs:
+        //  * Editor: sein Panel behaelt seine feste Hoehe, darunter
+        //    steht die Tastatur (er ist die Hoehenreferenz),
+        //  * Files/Clip/Snippets: Panel so hoch wie Editor + Tastatur
+        //    **minus Maximieren-Zeile** — diese Zeile haben nur die
+        //    Inhalts-Tabs, deshalb sind so alle Tabs gleich hoch.
+        // Bewusst *nach* den Sichtbarkeits-Wechseln: dann ist die
+        // Tastaturhoehe gemessen und nicht geschaetzt. Je Tab kann eine
+        // Hoehe in der Config-Datei stehen (TabHeights); 0 = rechnen.
+        val width = root.resources.displayMetrics.widthPixels
+        PanelHeights.applyNormalHeights(
+            root, width, TabHeights.overridePx(host.context, kind, maximized = false)
+        )
+        // Im maximierten Zustand darf der Tab-Wechsler die Hoehe nicht
+        // zuruecksetzen — der Zustand gehoert zum Tab.
+        if (root.getTag(R.id.maximized_state) == true) {
+            PanelHeights.maximizedPanelHeight(
+                root,
+                width,
+                isKeyboardAlwaysVisible(),
+                TabHeights.overridePx(host.context, kind, maximized = true)
+            ).takeIf { it > 0 }?.let { h ->
+                val panel = contentPanelOf(root, kind) ?: return@let
+                panel.layoutParams = panel.layoutParams.apply { height = h }
+            }
+        }
     }
 
     /**

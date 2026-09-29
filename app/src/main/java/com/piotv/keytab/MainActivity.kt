@@ -21,6 +21,7 @@ import com.piotv.keytab.ime.KeyboardLanguage
 import com.piotv.keytab.ime.Languages
 import com.piotv.keytab.ime.SettingsConfig
 import com.piotv.keytab.ime.SuggestionEngine
+import com.piotv.keytab.ime.SwipePreviewAvailability
 import com.piotv.keytab.ime.ThemePrefs
 
 /**
@@ -40,6 +41,9 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val ANDROID_14 = 34
 
+        /** Alpha fuer Hinweistexte, deren Funktion gerade nicht verfuegbar ist. */
+        private const val DISABLED_HINT_ALPHA = 0.5f
+
         /** Alias-Kompatibilität: `MainActivity.PREFS` == `Prefs.FILE` (alter Aufrufer). */
         const val PREFS = Prefs.FILE
 
@@ -49,6 +53,28 @@ class MainActivity : AppCompatActivity() {
                 .getString(Prefs.KEY_LANGUAGE, "de")
             return Languages.byCode(code)
         }
+    }
+
+    /** Score-Quelle für die Schaltplan-Vorschau vorhanden? (reine Regel, siehe [SwipePreviewAvailability].) */
+    private fun swipePreviewAvailable(): Boolean {
+        val prefs = Prefs.of(this)
+        return SwipePreviewAvailability.available(
+            swipeEnabled = prefs.getBoolean(Prefs.KEY_SWIPE, false),
+            dynamicKeysEnabled = prefs.getBoolean(Prefs.KEY_DYNAMIC_KEYS, true)
+        )
+    }
+
+    /**
+     * Schalter + Hinweis an die aktuelle Verfügbarkeit anpassen. Der
+     * gespeicherte Wunsch bleibt erhalten: wer Swipe später einschaltet,
+     * bekommt die Vorschau wieder — ohne die Einstellung neu treffen zu müssen.
+     */
+    private fun updateSwipePreviewAvailability() {
+        val available = swipePreviewAvailable()
+        findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_swipe_preview)
+            .isEnabled = available
+        findViewById<android.widget.TextView>(R.id.text_swipe_preview_hint)
+            .alpha = if (available) 1f else DISABLED_HINT_ALPHA
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -141,6 +167,8 @@ class MainActivity : AppCompatActivity() {
             prefs.edit().putBoolean(Prefs.KEY_DYNAMIC_KEYS, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_dynamic_keys_on
             else R.string.settings_dynamic_keys_off, Toast.LENGTH_SHORT).show()
+            // Zweite Score-Quelle der Schaltplan-Vorschau.
+            updateSwipePreviewAvailability()
         }
 
         // Swipe-Eingabe (Gleit-Eingabe, v0.11) ein-/ausblenden
@@ -150,7 +178,30 @@ class MainActivity : AppCompatActivity() {
             prefs.edit().putBoolean(Prefs.KEY_SWIPE, checked).apply()
             Toast.makeText(this, if (checked) R.string.settings_swipe_on
             else R.string.settings_swipe_off, Toast.LENGTH_SHORT).show()
+            // Die Preview liest dieselben Scores: ihr Schalter folgt der Verfügbarkeit.
+            updateSwipePreviewAvailability()
         }
+
+        // Schaltplan-Vorschau (bis v0.15 nur über keytab_config.txt erreichbar).
+        // Die Abhängigkeit von Swipe/dynamischen Tasten ist eine reine Funktion
+        // (SwipePreviewAvailability), damit sie ohne Gerät testbar bleibt.
+        val swSwipePreview =
+            findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_swipe_preview)
+        swSwipePreview.isChecked = prefs.getBoolean(Prefs.KEY_SWIPE_PREVIEW, false)
+        swSwipePreview.setOnCheckedChangeListener { _, checked ->
+            // Nicht speichern, solange keine Score-Quelle aktiv ist: die
+            // Einstellung würde als "an" dastehen, ohne etwas anzuzeigen.
+            if (!swipePreviewAvailable()) {
+                swSwipePreview.isChecked = false
+                Toast.makeText(this, R.string.settings_swipe_preview_needs_source,
+                    Toast.LENGTH_SHORT).show()
+                return@setOnCheckedChangeListener
+            }
+            prefs.edit().putBoolean(Prefs.KEY_SWIPE_PREVIEW, checked).apply()
+            Toast.makeText(this, if (checked) R.string.settings_swipe_preview_on
+            else R.string.settings_swipe_preview_off, Toast.LENGTH_SHORT).show()
+        }
+        updateSwipePreviewAvailability()
 
         findViewById<Button>(R.id.btn_cleanup_learned_dictionary).setOnClickListener {
             cleanupLearnedDictionary()

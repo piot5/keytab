@@ -62,13 +62,17 @@ Fastlane: full structure in the repo at fastlane/metadata/android/en-US/
   Changelog für den neuen `versionCode` im Tag vorhanden ist — das erzwingt
   `scripts/check_docs_drift.sh` bereits.
 
-## 4. Offener Punkt: Screenshots sind generiert, nicht fotografiert
+## 4. Screenshots — erledigt: echte Geräteaufnahmen (2026-09-29)
 
-`scripts/make_screens.py` erzeugt die drei PNGs aus den echten Ressourcen
-(Farben, Tastatur-Layout) und schreibt sie nach `docs/images/`; für Fastlane
-liegen Kopien in `images/phoneScreenshots/`. Sie sind korrekt, aber **keine
-Geräteaufnahmen** (keine Animation, keine echten Schatten/Antialiasing der
-Android-Views). Vor oder direkt nach dem Antrag ersetzen:
+Die Screenshots sind inzwischen **echte Geräteaufnahmen** (2026-09-29) und
+liegen in `docs/images/device/` (`abc-light.jpg`, `abc-dark.jpg`,
+`snippets.jpg`, `files.jpg`, `editor.jpg`, `clipboard.jpg` plus Demo-GIF
+`demo.gif`). Für Fastlane liegen Kopien der JPGs in
+`images/phoneScreenshots/` (1.png–3.png wurden durch die Geräteaufnahmen
+ersetzt; der alte generierte Satz von `scripts/make_screens.py` ist entfernt).
+
+Das Skript `scripts/make_screens.py` bleibt im Repo, erzeugt aber nur noch
+keine README-Bilder mehr. Falls neue Aufnahmen nötig sind:
 
 ```bash
 # auf einem Gerät/Emulator mit aktivierter KeyTab-Tastatur, pro Screen:

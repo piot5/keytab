@@ -631,7 +631,11 @@ def scenario_backspace(layout: KeyLayout, iterations: int) -> Tuple[str, int]:
     if not layout.backspace:
         return "", 0
     x, y = layout.backspace
-    events = [f"input swipe {x} {y} {x} {y} 1500" for _ in range(iterations)]
+    # Dauer des Langdrucks konfigurierbar (ms): kurze Bursts (z. B. 400)
+    # loeschen weniger, als vorher getippt wurde — das Feld bleibt gefuellt
+    # und das Szenario misst den Repeat-Pfad statt "Backspace im Leeren".
+    ms = os.environ.get("KEYTAB_BS_MS", "1500")
+    events = [f"input swipe {x} {y} {x} {y} {ms}" for _ in range(iterations)]
     return _batch(events), len(events)
 
 
@@ -763,7 +767,7 @@ def evaluate(result: Result, budgets: Dict[str, float]) -> Result:
 
 def run_scenario(name: str, info: DeviceInfo, layout: KeyLayout,
                  iterations: int, budgets: Dict[str, float],
-                 verbose: bool = True) -> Result:
+                 verbose: bool = True, pkg: str = PKG) -> Result:
     meta = SCENARIOS[name]
     if name == "coldshow":
         command, events = scenario_coldshow(info, layout, iterations)
@@ -778,7 +782,7 @@ def run_scenario(name: str, info: DeviceInfo, layout: KeyLayout,
         return result
     if verbose:
         print(f"  → {meta['title']}: {events} Events …")
-    rsh(f"dumpsys gfxinfo {PKG} reset", timeout=60)
+    rsh(f"dumpsys gfxinfo {pkg} reset", timeout=60)
     start = time.time()
     try:
         rsh(command, timeout=max(180, events * 12))
@@ -789,8 +793,8 @@ def run_scenario(name: str, info: DeviceInfo, layout: KeyLayout,
     time.sleep(0.8)                      # Nachlauf der letzten Frames
     result.wall_s = round(time.time() - start, 1)
 
-    result.summary = parse_gfxinfo_summary(rsh(f"dumpsys gfxinfo {PKG}", timeout=90))
-    result.frames = parse_framestats(fetch_framestats(PKG))
+    result.summary = parse_gfxinfo_summary(rsh(f"dumpsys gfxinfo {pkg}", timeout=90))
+    result.frames = parse_framestats(fetch_framestats(pkg))
     return evaluate(result, budgets)
 
 # --------------------------------------------------------------------------- Report
@@ -904,6 +908,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         help="Erkanntes Layout als device_perf_layout.json sichern")
     parser.add_argument("--list-scenarios", action="store_true")
     parser.add_argument("--no-color", action="store_true")
+    parser.add_argument("--pkg", default=os.environ.get("KEYTAB_PKG", PKG),
+                        help="Zu messendes Paket (default: %(default)s; Debug: "
+                             "com.piotv.keytab.debug)")
     args = parser.parse_args(argv)
 
     if args.list_scenarios:
@@ -951,7 +958,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     for name in names:
         try:
             results.append(run_scenario(name, info, layout, args.iterations,
-                                         budgets, verbose=True))
+                                        budgets, verbose=True, pkg=args.pkg))
         except Exception as exc:  # noqa: BLE001
             results.append(Result(scenario=name, title=SCENARIOS[name]["title"],
                                   passed=False, skipped=True,

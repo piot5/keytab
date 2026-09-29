@@ -169,19 +169,16 @@ class PanelHeightsTest {
     // ---------- Begrenzung auf das IME-Fenster ----------
 
     @Test
-    fun `Panel-Hoehe passt in das IME-Fenster und laesst die Chrome-Zeilen frei`() {
+    fun `Panel-Hoehe bleibt innerhalb der Systemgrenze und laesst die Chrome-Zeilen frei`() {
         val root = inflateRoot(nightContext())
         val width = app.resources.displayMetrics.widthPixels
-        // Fenster simulieren: kleiner als Editor + Tastatur (das System gibt der
-        // IME nur ~70 % des Bildschirms).
-        val window = PanelHeights.maximizeAvailableHeight(root) / 2
-        root.layout(0, 0, width, window)
+        val band = PanelHeights.availableHeight(root)
         val height = PanelHeights.applyNormalHeights(root, width)
         val chrome = PanelHeights.chromeHeight(root, width)
 
         assertTrue("Hoehe muss positiv bleiben: $height", height > 0)
-        assertTrue("Inhalt + Chrome muss ins Fenster passen: " +
-            "$height + $chrome > $window", height + chrome <= window)
+        assertTrue("Inhalt + Chrome muss in das Band passen: " +
+            "$height + $chrome > $band", height + chrome <= band)
     }
 
     @Test
@@ -208,58 +205,54 @@ class PanelHeightsTest {
     }
 
     @Test
-    fun `availableHeight nutzt die Fensterhoehe, sonst die 70-Prozent-Naeherung`() {
+    fun `availableHeight ist dieselbe Systemgrenze wie beim Maximieren`() {
         val root = inflateRoot(nightContext())
-        val display = app.resources.displayMetrics.heightPixels
-        assertEquals("vor dem Layout: Naeherung",
-            (display * PanelHeights.IME_WINDOW_FRACTION).toInt(),
+        assertEquals("Normalzustand und Maximieren teilen das Band",
+            PanelHeights.maximizeAvailableHeight(root),
             PanelHeights.availableHeight(root))
-        root.layout(0, 0, 100, 1915)
-        assertEquals("nach dem Layout: echte Fensterhoehe",
-            1915, PanelHeights.availableHeight(root))
     }
 
     @Test
-    fun `IME-Fenster bekommt hoechstens rund 70 Prozent des Bildschirms`() {
-        // Auf dem Geraet gemessen: 1915 px Fenster bei 2712 px Bildschirm.
-        // Deshalb ist "95 %" nur als Anteil des Fensters erreichbar.
-        assertEquals(0.7f, PanelHeights.IME_WINDOW_FRACTION, 0.05f)
-        val display = 2712
-        val window = (display * PanelHeights.IME_WINDOW_FRACTION).toInt()
-        assertTrue("Fenster muss kleiner als der Bildschirm sein", window < display)
-        // Und es muss mehr sein, als die Tastatur allein braucht (~1060 px).
-        assertTrue("Fenster muss die Tastatur tragen: $window", window > 1060)
-    }
-
-    // ---------- Maximieren: das ganze IME-Fenster ----------
-
-    @Test
-    fun `maximizeAvailableHeight nimmt die Fenstergrenze, nie die normale Hoehe`() {
+    fun `Band liegt zwischen Systemleisten und Bildschirmrand`() {
+        // Band = Bildschirm − Statusleiste − Navigationsleiste. Die Systemleisten
+        // koennen niemals 40 % des Bildschirms belegen — weniger als 60 % Band
+        // waere ein Rechenfehler (und mehr als der Bildschirm sowieso).
         val root = inflateRoot(nightContext())
         val display = app.resources.displayMetrics.heightPixels
-        val cap = (display * PanelHeights.IME_WINDOW_FRACTION).toInt()
-        // Vor dem Layout: die Systemgrenze.
-        assertEquals(cap, PanelHeights.maximizeAvailableHeight(root))
-        // Ein gelayoutetes, *groesseres* Fenster gewinnt.
+        val band = PanelHeights.maximizeAvailableHeight(root)
+        assertTrue("Band muss positiv sein: $band", band > 0)
+        assertTrue("Band muss unter dem Bildschirm liegen: $band >= $display", band <= display)
+        assertTrue("Band muss mehr als 60 % des Bildschirms sein: $band",
+            band > display * 0.6)
+    }
+
+    // ---------- Maximieren: das ganze Band (bildschirmfuellend) ----------
+
+    @Test
+    fun `maximizeAvailableHeight ist unabhaengig von der gerade gelayouteten Hoehe`() {
+        val root = inflateRoot(nightContext())
+        val band = PanelHeights.maximizeAvailableHeight(root)
+        // Die transitorische Wurzelhoehe darf die Grenze nicht beeinflussen —
+        // weder ein grosses noch ein kleines Layout (frueher war hier root.height,
+        // das beim Tab-Wechsel noch den *vorherigen* Tab zeigte und das Panel
+        // dauerhaft zu klein klemmte).
         root.layout(0, 0, 100, 1915)
-        assertEquals(1915, PanelHeights.maximizeAvailableHeight(root))
-        // Ein kleines Fenster (normale Tastatur, wrap_content-Wurzel) darf das
-        // Maximum nicht nach unten ziehen — sonst waere "maximiert" genau der
-        // Normalzustand. Das war der Fehler: das Panel wuchs nie.
+        assertEquals("grosses Layout aendert das Band nicht", band,
+            PanelHeights.maximizeAvailableHeight(root))
         root.layout(0, 0, 100, 200)
-        assertEquals("Fenstergrenze gewinnt gegen ein kleineres Fenster", cap,
+        assertEquals("kleines Layout zieht das Band nicht herunter", band,
             PanelHeights.maximizeAvailableHeight(root))
     }
 
     @Test
-    fun `maximizedPanelHeight fuellt das Fenster und laesst die Chrome-Zeilen frei`() {
+    fun `maximizedPanelHeight fuellt das Band und laesst die Chrome-Zeilen frei`() {
         val root = inflateRoot(nightContext())
         val width = app.resources.displayMetrics.widthPixels
         val window = PanelHeights.maximizeAvailableHeight(root)
         val height = PanelHeights.maximizedPanelHeight(root, width, keyboardVisible = false)
         assertTrue("Panel muss positiv sein: $height", height > 0)
-        // Inhalts-Tab: Panel + obere Tab-Leiste + Maximieren-Zeile = Fenster.
-        assertEquals("maximiert muss das Fenster fuellen",
+        // Inhalts-Tab: Panel + obere Tab-Leiste + Maximieren-Zeile = Band.
+        assertEquals("maximiert muss das Band fuellen",
             window, height + PanelHeights.chromeHeight(root, width))
     }
 

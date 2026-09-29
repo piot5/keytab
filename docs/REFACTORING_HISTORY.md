@@ -508,6 +508,30 @@ Based on the external assessment, these are the **highest levers** for a score i
 - **P2 (Structure & Distribution, +2.0/+1.5):** KeyboardHost splitting (external point 3) would logically belong in P2 — the plan marks it as "low priority", the external assessment would put it higher.
 - **detekt baseline (external point 1):** Completely missing as a lever in the backlog. **Recommendation:** new backlog item P3 (or P2): "Reduce detekt baseline: prioritise CyclomaticComplexMethod and LongMethod, remove WildcardImports, fix SwallowedExceptions".
 
+### 8.5 Re-evaluation 2026-09-28: 79 / 100 (external frame)
+
+Neubewertung mit frischen Messwerten (Baseline-Audit, Kover, Testzahl). Basis
+ist die Bewertung von §8.1 (74/100); nur Dimensionen mit messbarer
+Veränderung werden angepasst:
+
+| # | Dimension | §8.1 | Neu | Begründung (Messung 2026-09-28) |
+|---|---|---:|---:|---|
+| 1 | Documentation | 17 | **18** | `values-en` vervollständigt (Strings-Abgleich im Sep), README-Fragestellung zu Coverage/Perf auf Stand 28./29. Sep re-messbar dokumentiert. |
+| 2 | Code quality | 12 | **13** | Baseline-Hygiene etabliert: `audit` findet 5 stale Einträge (ThemePrefs-Refactor) und 6 neue Befunde; alle behebbaren sofort gefixt (Named Constants `DISABLED_HINT_ALPHA`, `FULL_CIRCLE_DEG`, `NewLineAtEndOfFile` ×3, falsche Hue-Erwartung im ColorWheel-Test gegen die View-Geometrie korrigiert). Baseline 152 → **148**. |
+| 3 | Test coverage | 12 | **14** | Gate jetzt 60 % line / 45 % branch (`koverVerify`), gemessen **70.8 % line / 55.7 % branch** (28 Sep). 470 Tests / 50 Suites; 18 instrumentierte Tests laufen in CI (API-34-Emulator). |
+| 4 | Architecture | 13 | 13 | Unverändert: Service 283 Zeilen, `TooManyFunctions` bleibt in der Baseline. |
+| 5 | Security & privacy | 18 | 18 | Unverändert (kein INTERNET, 100 % on-device). |
+| 6 | Build & DevOps | 14 | **15** | Coverage-Gate von 20 % auf 60/45 erhöht und grün; `scripts/baseline.sh` mit `audit`-Profil verhindert stale Baseline-Einträge (Lehre vom 24-stale-Vorfall). |
+| 7 | Features | 13 | 13 | Unverändert; Emoji-Katalog erweitert (v0.15) ändert nichts an der Einordnung. |
+| 8 | Ecosystem | 7 | 7 | Unverändert (Bus-Faktor 1). |
+| 9 | Licence & legal | 5 | 5 | Unverändert. |
+
+**Resultat: 79/100** (externer Bezugsrahmen, Δ +5 ggü. 2026-09-20). Der Rest
+der Lücke zu ~85 liegt weiter bei den gleichen drei Hebeln: verbleibende
+detekt-Baseline (113× MagicNumber, 11× CyclomaticComplexMethod), Touch-/Swipe-
+Integrationstests, Bus-Faktor. Der interne Bezugsrahmen (§4) verschiebt sich
+analog von 82 auf **85**.
+
 ---
 
 ## 9. Score evolution (external measurement, independent)
@@ -521,6 +545,7 @@ To distinguish from the internal benchmark (§4.4, 82/100):
 | Audit 16 Sep (phases 0–7) | 78 | 81 | Gap small, external sees more quality risks |
 | Re-audit 17 Sep (164 tests, coverage 33.5%) | 79 | 83 | Gap further closed |
 | Re-audit 17 Sep evening (trail/correction, 164 tests, docs sync) | **74** (review 2026-09-20) | **82** | Gap open due to stricter external assessment |
+| Re-audit 28 Sep (baseline hygiene 152→148, Kover 70.8/55.7, gate 60/45, 470 tests) | **79** (§8.5) | **85** | Coverage gate raised & green, baseline stale entries removed |
 | Target (P1+P2+P3 external, cycle 1) | **~85** | ~88 | Gap narrowed to 3 points |
 
 **Target correction:** The internal target (88/91) is ambitious and valid. The external target (85/—) is more conservative because it weights the detekt baseline and bus factor more heavily. Both targets are achievable with the planned P1/P2/cycle-1 work effort.

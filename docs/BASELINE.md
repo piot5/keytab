@@ -39,22 +39,28 @@ Ergebnisse und man misst denselben Stand ein zweites Mal.
 Baseline-Einträge lassen sich nur durch Neuerzeugen entfernen, nicht durch
 Editieren der Datei.
 
-## Stand (2026-09-28)
+## Stand (2026-09-29)
 
-- Baseline: **148 Einträge** (zuvor 152; davor dokumentiert der 24-stale-Vorfall
-  mit 181 behaupteten vs. 157 realen Befunden).
-- Verteilung: 113× MagicNumber, 11× CyclomaticComplexMethod,
+- Baseline: **47 Einträge** (zuvor 148 in der Datei — davon waren 95 stale,
+  real gemessen 57; davor 148/152, dokumentiert ist der 24-stale-Vorfall mit
+  181 behaupteten vs. 157 realen Befunden).
+- Die Reduktion 57 → 47 ist **im Code** passiert, nicht per Regel-Konfiguration:
+  6 MagicNumber-Literale wurden zu benannten Konstanten (`EASE_FACTOR` und
+  `FALLBACK_ROW_HEIGHT_DP` in `KeyAnimations`, `FALLBACK_KEY_RADIUS_PX` in
+  `SwipePathLogic`, `MIN_CANDIDATE_SCORE` und `NODE_RADIUS_DP` in
+  `SwipeManager`, `TEXT_BEFORE_CURSOR_CHARS` in `InputTargets`), 4 zu lange
+  Zeilen (`MaxLineLength` in `PreviewSection`, `TopSection`, `ThemeApplier`,
+  `ThemeSettingsActivity`) umgebrochen. Verhalten unverändert,
+  `compileDebugKotlin` grün.
+- Ein between-Lauf mit `MagicNumber: ignorePropertyDeclaration: true` wurde
+  bewusst **verworfen**: Die Reduktion sollte ehrlich im Code entstehen, die
+  Konfig-Änderung wurde zurückgenommen (`git checkout config/detekt`).
+- Verteilung (Stand 47): 12× MagicNumber, 11× CyclomaticComplexMethod,
   7× LoopWithTooManyJumpStatements, 5× NestedBlockDepth, 4× LongMethod,
   3× TooManyFunctions, 3× ComplexCondition, 2× LongParameterList.
-- Der `audit`-Lauf vom 28. Sep fand 5 stale Einträge (ThemePrefs-Refactor) und
-  6 neue Befunde. Behoben statt gebunkert: Named Constants
-  (`DISABLED_HINT_ALPHA` in `MainActivity`, `FULL_CIRCLE_DEG` in
-  `ColorWheelInputLogic`), 3× fehlender Zeilenumbruch am Dateiende, und der
-  Hue-Erwartungswert im ColorWheel-Test wurde gegen die View-Geometrie
-  korrigiert (SweepGradient läuft ab 3 Uhr im Uhrzeigersinn → oben = 270).
-- Nächster Hebel, wenn die Baseline weiter schrumpfen soll: MagicNumber über
-  benannte dp/Grad-Konstanten in den `sections`-Dateien (113 Einträge dort
-  gebündelt), danach CyclomaticComplexMethod in `SuggestionEngine`.
+- Nächster Hebel: MagicNumber in `TrailSection` (Schritt-Liste 5/7/10) und
+  `KeyboardViewFactory`/`LikelyHighlightSection`, danach
+  CyclomaticComplexMethod in `SuggestionEngine`.
 
 ## Parameter
 

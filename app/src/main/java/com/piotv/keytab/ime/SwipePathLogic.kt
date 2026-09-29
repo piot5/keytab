@@ -23,6 +23,9 @@ import android.view.inputmethod.EditorInfo
  */
 object SwipePathLogic {
 
+    /** Fallback-Halbmesser-Schaetzung, wenn keine zwei Zentren bekannt sind. */
+    private const val FALLBACK_KEY_RADIUS_PX = 24f
+
     /** Bewegungs-Distanz (in dp) ab der ein Tap als Swipe-Eingabe gewertet wird. */
     const val SWIPE_THRESHOLD_DP = 12
 
@@ -85,7 +88,7 @@ object SwipePathLogic {
 
     /** Kleinster Abstand zwischen zwei Zentren / 2 als Halbmesser-Schätzung. */
     private fun estimateRadius(centers: List<KeyCenter>): Float {
-        if (centers.size < 2) return 24f * 2f // Fallback (dp-unabhängig, Geräte-Pixel)
+        if (centers.size < 2) return FALLBACK_KEY_RADIUS_PX * 2 // Fallback (dp-unabhängig, Geräte-Pixel)
         var minDist = Float.MAX_VALUE
         for (i in centers.indices) {
             for (j in (i + 1) until centers.size) {

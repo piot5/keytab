@@ -18,6 +18,15 @@ class TopSection(
     private var themeIconDark: TextView? = null
     private var themeIconLight: TextView? = null
 
+    companion object {
+        private const val ICON_TEXT_SP = 28f
+        private const val ICON_PADDING_H_DP = 12
+        private const val ICON_PADDING_V_DP = 8
+        private const val BUTTON_MARGIN_DP = 4
+        private const val BUTTON_WIDTH_DP = 56
+        private const val BUTTON_HEIGHT_DP = 32
+    }
+
     fun build(col: LinearLayout) {
         val row = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -25,9 +34,12 @@ class TopSection(
         }
         themeIconDark = TextView(activity).apply {
             text = "☾︎"
-            textSize = 28f
+            textSize = ICON_TEXT_SP
             gravity = Gravity.CENTER
-            setPadding((12 * dip).toInt(), (8 * dip).toInt(), (12 * dip).toInt(), (8 * dip).toInt())
+            setPadding(
+                (ICON_PADDING_H_DP * dip).toInt(), (ICON_PADDING_V_DP * dip).toInt(),
+                (ICON_PADDING_H_DP * dip).toInt(), (ICON_PADDING_V_DP * dip).toInt()
+            )
             setOnClickListener {
                 com.piotv.keytab.Prefs.of(activity)
                     .edit().putBoolean(ThemePrefs.KEY_DARK, true).apply()
@@ -36,9 +48,12 @@ class TopSection(
         }
         themeIconLight = TextView(activity).apply {
             text = "☀︎"
-            textSize = 28f
+            textSize = ICON_TEXT_SP
             gravity = Gravity.CENTER
-            setPadding((12 * dip).toInt(), (8 * dip).toInt(), (12 * dip).toInt(), (8 * dip).toInt())
+            setPadding(
+                (ICON_PADDING_H_DP * dip).toInt(), (ICON_PADDING_V_DP * dip).toInt(),
+                (ICON_PADDING_H_DP * dip).toInt(), (ICON_PADDING_V_DP * dip).toInt()
+            )
             setOnClickListener {
                 com.piotv.keytab.Prefs.of(activity)
                     .edit().putBoolean(ThemePrefs.KEY_DARK, false).apply()
@@ -50,7 +65,7 @@ class TopSection(
         col.addView(row, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { topMargin = (8 * dip).toInt() })
+        ).apply { topMargin = (ICON_PADDING_V_DP * dip).toInt() })
 
         val presetRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -81,15 +96,15 @@ class TopSection(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                marginEnd = (4 * dip).toInt()
-                width = (56 * dip).toInt()
-                height = (32 * dip).toInt()
+                marginEnd = (BUTTON_MARGIN_DP * dip).toInt()
+                width = (BUTTON_WIDTH_DP * dip).toInt()
+                height = (BUTTON_HEIGHT_DP * dip).toInt()
             })
         }
         col.addView(presetRow, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { topMargin = (8 * dip).toInt() })
+        ).apply { topMargin = (ICON_PADDING_V_DP * dip).toInt() })
     }
 
     fun updateThemeIcons(editingDark: Boolean) {

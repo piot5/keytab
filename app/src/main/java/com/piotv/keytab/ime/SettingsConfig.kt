@@ -11,6 +11,10 @@ import java.util.Locale
 object SettingsConfig {
     internal const val KEY_FINGERPRINT = "config_import_sha256"
 
+    private const val HEX_RADIX = 16
+    private const val RGB_HEX_LENGTH = 7
+    private const val OPAQUE_ALPHA_MASK = 0xFF000000L
+
     private data class Setting(
         val pref: String,
         val default: String,
@@ -126,8 +130,8 @@ object SettingsConfig {
 
     internal fun parseColor(value: String): Int? {
         if (!Regex("#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?").matches(value)) return null
-        val number = value.drop(1).toLongOrNull(16) ?: return null
-        return (if (value.length == 7) number or 0xFF000000L else number).toInt()
+        val number = value.drop(1).toLongOrNull(HEX_RADIX) ?: return null
+        return (if (value.length == RGB_HEX_LENGTH) number or OPAQUE_ALPHA_MASK else number).toInt()
     }
 
     /** UI settings only: learned words, clipboard, and panel state must not rebuild the IME. */

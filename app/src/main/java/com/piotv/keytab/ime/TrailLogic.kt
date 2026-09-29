@@ -36,6 +36,9 @@ object TrailLogic {
     /** Alpha-Deckel des Overlays: es liegt ÜBER dem Text, ~55 % hält die Beschriftung lesbar. */
     const val ALPHA_LIMIT = 0.55f
 
+    private const val MAX_ALPHA = 255
+    private const val MAX_ALPHA_F = 255f
+
     /**
      * Alpha für einen Decay-Schritt. `step == 0` → maximal sichtbar (mit
      * [ALPHA_LIMIT] gedeckelt), `step >= maxSteps` → 0 (verschwunden).
@@ -45,8 +48,8 @@ object TrailLogic {
     fun alphaForStep(step: Int, maxSteps: Int): Int {
         if (maxSteps <= 0) return 0
         if (step >= maxSteps) return 0
-        val raw = 255f * (maxSteps - step) / maxSteps
-        return (raw * ALPHA_LIMIT).toInt().coerceIn(0, 255)
+        val raw = MAX_ALPHA_F * (maxSteps - step) / maxSteps
+        return (raw * ALPHA_LIMIT).toInt().coerceIn(0, MAX_ALPHA)
     }
 
     /**

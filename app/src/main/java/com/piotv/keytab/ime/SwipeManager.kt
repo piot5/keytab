@@ -173,7 +173,7 @@ class SwipeManager(
         // Kein Wörterbuch-Treffer: die gefahrene Route ist selbst das Wort.
         // Minimaler Score (0.01) sorgt dafür, dass Kandidaten angezeigt werden
         // (sortiert hinten) ohne Auto-Commit — der Nutzer kann dennoch tippen.
-        return listOf(SwipeScorer.Candidate(route, 0.01))
+        return listOf(SwipeScorer.Candidate(route, MIN_CANDIDATE_SCORE))
     }
 
     /**
@@ -250,6 +250,14 @@ class SwipeManager(
      * nutzt den Legacy-Pref [ThemePrefs.swipeColor], die Likely-Knoten das
      * Theme-Kolor-Schema (KIND_LIKELY, dark/light, Default aus colors.xml).
      */
+    private companion object {
+        /** Kein Woerterbuch-Treffer: die Route selbst als Kandidat hinten melden. */
+        private const val MIN_CANDIDATE_SCORE = 0.01
+
+        /** Radius der Swipe-Vorschau-Knoten (dp). */
+        private const val NODE_RADIUS_DP = 8f
+    }
+
     private fun paintNodes(nodes: List<Char>, color: Int) {
         previewNodes = nodes
         val dip = baseDip()
@@ -257,7 +265,7 @@ class SwipeManager(
             if (nodes.contains(letter.lowercaseChar())) {
                 nodeBackgrounds.add(btn to btn.background)
                 btn.background = GradientDrawable().apply {
-                    cornerRadius = 8f * dip
+                    cornerRadius = NODE_RADIUS_DP * dip
                     setColor(color)
                 }
             }

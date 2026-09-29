@@ -28,6 +28,13 @@ object SwipeScorer {
     /** Maximal bewertete Kandidaten (Deckel gegen lange Listen). */
     const val MAX_CANDIDATES = 12
 
+    private const val HIT_RATIO_WEIGHT = 1.5
+    private const val CLEAR_MARGIN_FACTOR = 1.3
+    private const val FREQ_WEIGHT = 1.2
+    private const val LEN_FIT_WEIGHT = 0.5
+    private const val SHORT_WORD_BONUS = 0.15
+    private const val LENGTH_MISMATCH_PENALTY = 0.1
+
     /** Bewertungsergebnis für einen Kandidaten. */
     data class Candidate(val word: String, val score: Double)
 
@@ -73,7 +80,7 @@ object SwipeScorer {
         val second = candidates.getOrNull(1)
         if (top.score < AUTO_COMMIT_THRESHOLD) return null
         // Klarer Vorsprung: Top mindestens 1.3× so stark wie der Zweitbeste.
-        if (second != null && top.score < second.score * 1.3) return null
+        if (second != null && top.score < second.score * CLEAR_MARGIN_FACTOR) return null
         return top.word
     }
 
@@ -95,15 +102,15 @@ object SwipeScorer {
         val hitRatio = w.length.toDouble() / route.length.coerceAtLeast(1)
         val compactness = 1.0 - (gaps.toDouble() / route.length.coerceAtLeast(1))
         val lenFit = if (w.length == route.length) 1.0
-            else 1.0 - 0.1 * kotlin.math.abs(route.length - w.length)
-        val freq = engine.baseScore(w) + (engine.userFreq[w] ?: 0.0) * 1.2
+            else 1.0 - LENGTH_MISMATCH_PENALTY * kotlin.math.abs(route.length - w.length)
+        val freq = engine.baseScore(w) + (engine.userFreq[w] ?: 0.0) * FREQ_WEIGHT
         val bigram = if (prev != null) engine.bigrams["${prev.lowercase()} $w"] ?: 0.0 else 0.0
         val bigramBonus = bigram * 3.0
         // Kürzere Wörter (2–3 Buchstaben) brauchen einen kleinen Bonus, damit sie
         // gegen lange Treffer konkurrenzfähig bleiben (Gesten tendieren zu kurzen).
-        val shortBonus = if (w.length <= 3) 0.15 else 0.0
-        return hitRatio * 1.5 + compactness * 1.0 + lenFit * 0.5 +
-            freq * 1.2 + bigramBonus + shortBonus
+        val shortBonus = if (w.length <= 3) SHORT_WORD_BONUS else 0.0
+        return hitRatio * HIT_RATIO_WEIGHT + compactness * 1.0 + lenFit * LEN_FIT_WEIGHT +
+            freq * FREQ_WEIGHT + bigramBonus + shortBonus
     }
 
     /**

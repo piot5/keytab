@@ -31,114 +31,13 @@
     <ID>LoopWithTooManyJumpStatements:SuggestionEngine.kt$SuggestionEngine$for</ID>
     <ID>MagicNumber:BackgroundImage.kt$BackgroundImage$2048</ID>
     <ID>MagicNumber:BackgroundSection.kt$BackgroundSection$18f</ID>
-    <ID>MagicNumber:ColorSection.kt$ColorSection$200</ID>
-    <ID>MagicNumber:ColorSection.kt$ColorSection$255</ID>
-    <ID>MagicNumber:ColorSection.kt$ColorSection$50</ID>
-    <ID>MagicNumber:ColorSection.kt$ColorSection$8</ID>
-    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$10f</ID>
-    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$12f</ID>
-    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$13</ID>
-    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$24</ID>
-    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$255</ID>
-    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$30f</ID>
-    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$360f</ID>
-    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$4f</ID>
-    <ID>MagicNumber:ColorWheelView.kt$ColorWheelView$8f</ID>
     <ID>MagicNumber:FileManagerFragment.kt$FileManagerFragment$33</ID>
-    <ID>MagicNumber:GradientSection.kt$GradientSection$12</ID>
-    <ID>MagicNumber:GradientSection.kt$GradientSection$12f</ID>
-    <ID>MagicNumber:GradientSection.kt$GradientSection$36</ID>
-    <ID>MagicNumber:GradientSection.kt$GradientSection$4</ID>
-    <ID>MagicNumber:GradientSection.kt$GradientSection$40</ID>
-    <ID>MagicNumber:GradientSection.kt$GradientSection$6</ID>
-    <ID>MagicNumber:GradientSection.kt$GradientSection$6f</ID>
-    <ID>MagicNumber:InputTargets.kt$AppInputTarget$200</ID>
-    <ID>MagicNumber:KeyAnimations.kt$KeyAnimations$1.6f</ID>
-    <ID>MagicNumber:KeyAnimations.kt$KeyAnimations$48</ID>
     <ID>MagicNumber:KeyboardViewFactory.kt$KeyboardViewFactory$14f</ID>
-    <ID>MagicNumber:LetterPopup.kt$LetterPopup$14</ID>
-    <ID>MagicNumber:LetterPopup.kt$LetterPopup$18</ID>
-    <ID>MagicNumber:LetterPopup.kt$LetterPopup$20f</ID>
-    <ID>MagicNumber:LetterPopup.kt$LetterPopup$6</ID>
-    <ID>MagicNumber:LetterPopup.kt$LetterPopup$8</ID>
-    <ID>MagicNumber:LetterPopup.kt$LetterPopup$8f</ID>
     <ID>MagicNumber:LikelyHighlightSection.kt$LikelyHighlightSection$32</ID>
     <ID>MagicNumber:LikelyHighlightSection.kt$LikelyHighlightSection$4</ID>
     <ID>MagicNumber:MainActivity.kt$MainActivity$33</ID>
-    <ID>MagicNumber:PreviewSection.kt$PreviewSection$12</ID>
-    <ID>MagicNumber:PreviewSection.kt$PreviewSection$14f</ID>
-    <ID>MagicNumber:PreviewSection.kt$PreviewSection$16</ID>
-    <ID>MagicNumber:PreviewSection.kt$PreviewSection$18f</ID>
-    <ID>MagicNumber:PreviewSection.kt$PreviewSection$28</ID>
-    <ID>MagicNumber:PreviewSection.kt$PreviewSection$4f</ID>
-    <ID>MagicNumber:PreviewSection.kt$PreviewSection$6f</ID>
-    <ID>MagicNumber:PreviewSection.kt$PreviewSection$8</ID>
-    <ID>MagicNumber:SettingsConfig.kt$SettingsConfig$0xFF000000L</ID>
-    <ID>MagicNumber:SettingsConfig.kt$SettingsConfig$16</ID>
-    <ID>MagicNumber:SettingsConfig.kt$SettingsConfig$7</ID>
     <ID>MagicNumber:ShiftController.kt$ShiftController$1_000_000_000L</ID>
-    <ID>MagicNumber:SuggestionController.kt$SuggestionController$1.3f</ID>
-    <ID>MagicNumber:SuggestionController.kt$SuggestionController$130</ID>
-    <ID>MagicNumber:SuggestionController.kt$SuggestionController$16</ID>
-    <ID>MagicNumber:SuggestionController.kt$SuggestionController$170</ID>
-    <ID>MagicNumber:SuggestionController.kt$SuggestionController$230</ID>
-    <ID>MagicNumber:SuggestionController.kt$SuggestionController$8f</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.01</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.1</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.2</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.25</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.3</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.45</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.5</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$0.6</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$1.2</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$10</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$25</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$4</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$6</ID>
-    <ID>MagicNumber:SuggestionEngine.kt$SuggestionEngine$8</ID>
-    <ID>MagicNumber:SwipeManager.kt$SwipeManager$0.01</ID>
-    <ID>MagicNumber:SwipeManager.kt$SwipeManager$8f</ID>
-    <ID>MagicNumber:SwipePathLogic.kt$SwipePathLogic$24f</ID>
-    <ID>MagicNumber:SwipeScorer.kt$SwipeScorer$0.1</ID>
-    <ID>MagicNumber:SwipeScorer.kt$SwipeScorer$0.15</ID>
-    <ID>MagicNumber:SwipeScorer.kt$SwipeScorer$0.5</ID>
-    <ID>MagicNumber:SwipeScorer.kt$SwipeScorer$1.2</ID>
-    <ID>MagicNumber:SwipeScorer.kt$SwipeScorer$1.3</ID>
-    <ID>MagicNumber:SwipeScorer.kt$SwipeScorer$1.5</ID>
-    <ID>MagicNumber:TextEditLogic.kt$TextEditLogic$1024</ID>
-    <ID>MagicNumber:TextEditLogic.kt$TextEditLogic$1024.0</ID>
-    <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$0.6f</ID>
-    <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$255</ID>
-    <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$4</ID>
-    <ID>MagicNumber:ThemeApplier.kt$ThemeApplier$8f</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$0.114</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$0.299</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$0.5</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$0.587</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$12</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$16</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$16f</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$18</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$20</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$22f</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$255</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$32</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$4</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$4f</ID>
-    <ID>MagicNumber:ThemeSettingsActivity.kt$ThemeSettingsActivity$8</ID>
-    <ID>MagicNumber:TopSection.kt$TopSection$12</ID>
-    <ID>MagicNumber:TopSection.kt$TopSection$28f</ID>
-    <ID>MagicNumber:TopSection.kt$TopSection$32</ID>
-    <ID>MagicNumber:TopSection.kt$TopSection$4</ID>
-    <ID>MagicNumber:TopSection.kt$TopSection$56</ID>
-    <ID>MagicNumber:TopSection.kt$TopSection$8</ID>
-    <ID>MagicNumber:TrailLogic.kt$TrailLogic$255</ID>
-    <ID>MagicNumber:TrailLogic.kt$TrailLogic$255f</ID>
     <ID>MagicNumber:TrailSection.kt$TrailSection$10</ID>
-    <ID>MagicNumber:TrailSection.kt$TrailSection$12f</ID>
-    <ID>MagicNumber:TrailSection.kt$TrailSection$32</ID>
-    <ID>MagicNumber:TrailSection.kt$TrailSection$4</ID>
     <ID>MagicNumber:TrailSection.kt$TrailSection$5</ID>
     <ID>MagicNumber:TrailSection.kt$TrailSection$7</ID>
     <ID>MagicNumber:WordPredictionManager.kt$WordPredictionManager$16</ID>

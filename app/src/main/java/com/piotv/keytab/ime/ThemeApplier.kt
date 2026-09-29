@@ -28,6 +28,12 @@ import com.piotv.keytab.R
  */
 object ThemeApplier {
 
+    private const val KEY_RADIUS_DP = 8f
+    private const val KEY_INSET_H_DP = 4
+    private const val KEY_INSET_V_DP = 3
+    private const val FULL_ALPHA = 255
+    private const val TAB_TEXT_DIM_FACTOR = 0.6f
+
     /** Rekursive View-Hierarchie-Traversierung (Action auf jedem View).
      *  Besucht ALLE Views (auch ViewGroups): Tab-Views (LinearLayout) und andere
      *  Container tragen eigene Hintergründe und müssen mit umgefärbt werden. */
@@ -61,7 +67,7 @@ object ThemeApplier {
 
         val dip = context.resources.displayMetrics.density
         fun rounded(color: Int) = GradientDrawable().apply {
-            cornerRadius = 8f * context.resources.displayMetrics.density
+            cornerRadius = KEY_RADIUS_DP * context.resources.displayMetrics.density
             setColor(color)
         }
         fun keyBackground() = StateListDrawable().apply {
@@ -102,7 +108,8 @@ object ThemeApplier {
                     if (d is InsetDrawable) {
                         view.background = InsetDrawable(
                             keyBackground(),
-                            (4 * dip).toInt(), (3 * dip).toInt(), (4 * dip).toInt(), (3 * dip).toInt())
+                            (KEY_INSET_H_DP * dip).toInt(), (KEY_INSET_V_DP * dip).toInt(),
+                            (KEY_INSET_H_DP * dip).toInt(), (KEY_INSET_V_DP * dip).toInt())
                     }
                     // KeyTab-Tasten (KeyDark-Style, @drawable/key_bg): der constantState
                     // des inflaten Drawables weicht vom frisch aufgelösten ab (enthält
@@ -138,7 +145,7 @@ object ThemeApplier {
             // tabBackground erneut auf die TabViews legen – danach gesetzte
             // Hintergründe gewinnen dann immer.
             val dimText = androidx.core.graphics.ColorUtils.setAlphaComponent(
-                text, (android.graphics.Color.alpha(text) * 0.6f).toInt().coerceAtMost(255))
+                text, (android.graphics.Color.alpha(text) * TAB_TEXT_DIM_FACTOR).toInt().coerceAtMost(FULL_ALPHA))
             tabs.setTabTextColors(dimText, text)
             // Die Tab-Leiste SELBST trägt von Material colorSurface (= surface, grau)
             // als Hintergrund. Würde sie grau bleiben, schimmert sie durch

@@ -24,6 +24,15 @@ import com.piotv.keytab.R
 class LetterPopup(
     private val service: KeyTabImeService
 ) {
+
+    companion object {
+        private const val POPUP_RADIUS_DP = 8f
+        private const val GRID_PADDING_PX = 6
+        private const val CELL_TEXT_SP = 20f
+        private const val CELL_PADDING_X_PX = 18
+        private const val CELL_PADDING_Y_PX = 14
+        private const val POPUP_VERTICAL_OFFSET_PX = 8
+    }
     private var activePopup: PopupWindow? = null
     private var cells: List<TextView> = emptyList()
     private var highlighted: TextView? = null
@@ -50,24 +59,24 @@ class LetterPopup(
         val focusBg = ContextCompat.getColor(service, R.color.popup_focus_bg)
         val focusBgDrawable = GradientDrawable().apply {
             setColor(focusBg)
-            cornerRadius = 8f * service.resources.displayMetrics.density
+            cornerRadius = POPUP_RADIUS_DP * service.resources.displayMetrics.density
         }
         // Nur die Zusatz-Sonderzeichen als kompaktes Grid (3 pro Zeile)
         val grid = GridLayout(ctx).apply {
             columnCount = 3
             orientation = GridLayout.HORIZONTAL
             setBackgroundColor(popupBg)
-            setPadding(6, 6, 6, 6)
+            setPadding(GRID_PADDING_PX, GRID_PADDING_PX, GRID_PADDING_PX, GRID_PADDING_PX)
         }
         fallbackChar = showExtras.firstOrNull()?.first()
         for (ch in showExtras) {
             val tv = TextView(ctx).apply {
                 text = ch
-                textSize = 20f
+                textSize = CELL_TEXT_SP
                 gravity = Gravity.CENTER
                 setTextColor(popupText)
                 // großzügige Zellen: gut drückbar + genug Platz für Drag-Auswahl
-                setPadding(18, 14, 18, 14)
+                setPadding(CELL_PADDING_X_PX, CELL_PADDING_Y_PX, CELL_PADDING_X_PX, CELL_PADDING_Y_PX)
                 setOnClickListener {
                     onCommit(ch.first())
                     dismiss()
@@ -99,7 +108,7 @@ class LetterPopup(
         val rootW = anchor.rootView.width
         val x = (location[0] + anchor.width / 2 - popupW / 2)
             .coerceIn(0, (rootW - popupW).coerceAtLeast(0))
-        val y = (location[1] - popupH - 8).coerceAtLeast(0)
+        val y = (location[1] - popupH - POPUP_VERTICAL_OFFSET_PX).coerceAtLeast(0)
         popup.showAtLocation(anchor, Gravity.NO_GRAVITY, x, y)
         activePopup = popup
         // Drag-Auswahl: alle wählbaren Zellen registrieren (Grid), Highlight zurücksetzen

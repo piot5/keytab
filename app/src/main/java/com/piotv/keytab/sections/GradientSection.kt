@@ -26,6 +26,16 @@ class GradientSection(
     private var swatch2: View? = null
     private val values = listOf(ThemePrefs.GRADIENT_TOP_DOWN, ThemePrefs.GRADIENT_INVERT, ThemePrefs.GRADIENT_RADIAL)
 
+    companion object {
+        private const val SWATCH_LABEL_SP = 12f
+        private const val SWATCH_GAP_DP = 6
+        private const val SWATCH_LABEL_GAP_DP = 12
+        private const val SWATCH_SIZE_DP = 36
+        private const val SWATCH_MARGIN_DP = 4
+        private const val PREVIEW_HEIGHT_DP = 40
+        private const val SWATCH_RADIUS_DP = 6f
+    }
+
     fun build(col: LinearLayout) {
         enabled = CheckBox(activity).apply {
             setText(R.string.gradient_enabled)
@@ -65,16 +75,16 @@ class GradientSection(
         }
         val label1 = android.widget.TextView(activity).apply {
             text = activity.getString(R.string.settings_gradient_color1)
-            textSize = 12f
-            setPadding(0, 0, (6 * dip).toInt(), 0)
+            textSize = SWATCH_LABEL_SP
+            setPadding(0, 0, (SWATCH_GAP_DP * dip).toInt(), 0)
         }
         swatch1 = View(activity).apply {
             setOnClickListener { onPickColor(ThemePrefs.KIND_GRADIENT1) }
         }
         val label2 = android.widget.TextView(activity).apply {
             text = activity.getString(R.string.settings_gradient_color2)
-            textSize = 12f
-            setPadding((12 * dip).toInt(), 0, (6 * dip).toInt(), 0)
+            textSize = SWATCH_LABEL_SP
+            setPadding((SWATCH_LABEL_GAP_DP * dip).toInt(), 0, (SWATCH_GAP_DP * dip).toInt(), 0)
         }
         swatch2 = View(activity).apply {
             setOnClickListener { onPickColor(ThemePrefs.KIND_GRADIENT2) }
@@ -82,17 +92,17 @@ class GradientSection(
         for (v in listOf(label1, swatch1, label2, swatch2)) {
             val lp = LinearLayout.LayoutParams(
                 if (v is android.widget.TextView) LinearLayout.LayoutParams.WRAP_CONTENT
-                else (36 * dip).toInt(),
+                else (SWATCH_SIZE_DP * dip).toInt(),
                 if (v is android.widget.TextView) LinearLayout.LayoutParams.WRAP_CONTENT
-                else (36 * dip).toInt()
+                else (SWATCH_SIZE_DP * dip).toInt()
             )
-            lp.bottomMargin = (4 * dip).toInt()
+            lp.bottomMargin = (SWATCH_MARGIN_DP * dip).toInt()
             swatchRow.addView(v, lp)
         }
         col.addView(swatchRow)
 
         gradientPreview = View(activity)
-        col.addView(gradientPreview, LinearLayout.LayoutParams(-1, (40 * dip).toInt()))
+        col.addView(gradientPreview, LinearLayout.LayoutParams(-1, (PREVIEW_HEIGHT_DP * dip).toInt()))
         col.addView(TextView(activity).apply { setText(R.string.theme_gradient_hint) })
         updateGradient()
     }
@@ -113,11 +123,11 @@ class GradientSection(
         val c1 = ThemePrefs.gradientColor1(prefs, dark)
         val c2 = ThemePrefs.gradientColor2(prefs, dark)
         swatch1?.background = android.graphics.drawable.GradientDrawable().apply {
-            cornerRadius = 6f * dip; setColor(c1)
+            cornerRadius = SWATCH_RADIUS_DP * dip; setColor(c1)
             setStroke((1 * dip).toInt(), android.graphics.Color.parseColor("#555555"))
         }
         swatch2?.background = android.graphics.drawable.GradientDrawable().apply {
-            cornerRadius = 6f * dip; setColor(c2)
+            cornerRadius = SWATCH_RADIUS_DP * dip; setColor(c2)
             setStroke((1 * dip).toInt(), android.graphics.Color.parseColor("#555555"))
         }
     }

@@ -23,6 +23,24 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         const val MAX_SUGGESTIONS = 3
         const val MAX_USER_WORDS = 500
         const val MAX_BIGRAMS = 2000
+        private const val DECAY_INTERVAL = 25
+        private const val MAX_BIGRAM_PREDICTIONS = 10
+        private const val USER_SCAN_LIMIT_FACTOR = 8
+        private const val FUZZY_DIST1_MIN_LENGTH = 4
+        private const val FUZZY_DIST2_MIN_LENGTH = 6
+        private const val USER_WEIGHT = 1.2
+        private const val BIGRAM_WEIGHT = 3.0
+        private const val BASE_WEIGHT = 0.6
+        private const val PREDICT_BASE_WEIGHT = 0.5
+        private const val PREDICT_BIGRAM_WEIGHT = 2.0
+        private const val DIST_PENALTY = 0.45
+        private const val LEN_PENALTY_FACTOR = 0.01
+        private const val MIN_BASE_SCORE = 0.01
+        private const val MIN_CORRECT_SCORE = 0.3
+        private const val WORD_LEARN_STEP = 0.25
+        private const val INITIAL_WORD_WEIGHT = 0.2
+        private const val BIGRAM_LEARN_STEP = 0.3
+        private const val INITIAL_BIGRAM_WEIGHT = 0.1
         private const val DECAY_FACTOR = SuggestionTextRules.DECAY_FACTOR
         private const val SEP_ENTRY = SuggestionTextRules.SEP_ENTRY
         private const val SEP_FIELD = SuggestionTextRules.SEP_FIELD
@@ -139,20 +157,20 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
     fun learn(prevWord: String?, word: String) {
         val w = word.lowercase()
         if (!isLearnable(w)) return
-        userFreq[w] = (userFreq[w] ?: 0.2) + 0.25
+        userFreq[w] = (userFreq[w] ?: INITIAL_WORD_WEIGHT) + WORD_LEARN_STEP
         if (userFreq.size > MAX_USER_WORDS) {
             userFreq.minByOrNull { it.value }?.key?.let { userFreq.remove(it) }
         }
         val p = prevWord?.lowercase()
         if (p != null && isLearnable(p)) {
             val key = "$p $w"
-            bigrams[key] = (bigrams[key] ?: 0.1) + 0.3
+            bigrams[key] = (bigrams[key] ?: INITIAL_BIGRAM_WEIGHT) + BIGRAM_LEARN_STEP
             if (bigrams.size > MAX_BIGRAMS) {
                 bigrams.minByOrNull { it.value }?.let { bigrams.remove(it.key) }
             }
         }
         // Sanftes Decay, Schwaches verliert an Gewichtung
-        if (userFreq.size % 25 == 0) {
+        if (userFreq.size % DECAY_INTERVAL == 0) {
             for (k in userFreq.keys.toList()) userFreq[k]?.let { cur -> userFreq[k] = cur * DECAY_FACTOR }
         }
     }
@@ -185,24 +203,24 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             bigrams.entries
                 .filter { it.key.startsWith("$prev ") }
                 .map { it.key.substringAfter(' ') to it.value }
-                .sortedByDescending { it.second }.take(10)
+                .sortedByDescending { it.second }.take(MAX_BIGRAM_PREDICTIONS)
                 .forEach { (w, weight) ->
-                    results[w] = weight * 2.0 + baseScore(w) * 0.5 + (userFreq[w] ?: 0.0)
+                    results[w] = weight * PREDICT_BIGRAM_WEIGHT + baseScore(w) * PREDICT_BASE_WEIGHT + (userFreq[w] ?: 0.0)
                 }
         }
         if (results.size < max) {
             var added = 0
-            val limit = max * 8
+            val limit = max * USER_SCAN_LIMIT_FACTOR
             for ((w, bonus) in userFreq.entries) {
                 if (w == prev || results.containsKey(w)) continue
-                var score = baseScore(w) * 0.6 + bonus
+                var score = baseScore(w) * BASE_WEIGHT + bonus
                 if (sentenceStart) score *= sentenceStartBoost(w)
                 results[w] = score
                 if (++added > limit) break
             }
             for (w in topBaseOrder) {
                 if (w == prev || results.containsKey(w)) continue
-                var score = baseScore(w) * 0.6
+                var score = baseScore(w) * BASE_WEIGHT
                 if (sentenceStart) score *= sentenceStartBoost(w)
                 results[w] = score
                 if (++added > limit) break
@@ -228,8 +246,8 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             if (w.lowercase() == cur) return
             // Längere Kandidaten leicht abwerten: kürzere Vervollständigungen
             // sind näher an der Eingabe (Deterministisch, winziger Faktor).
-            val lenPenalty = (w.length - cur.length).coerceAtLeast(0) * 0.01
-            val s = baseScore(w) + userBonus(w) * 1.2 + bigramBonus(w) * 3.0 -
+            val lenPenalty = (w.length - cur.length).coerceAtLeast(0) * LEN_PENALTY_FACTOR
+            val s = baseScore(w) + userBonus(w) * USER_WEIGHT + bigramBonus(w) * BIGRAM_WEIGHT -
                 penalty - lenPenalty
             val existing = results[w]
             if (existing == null || existing < s) results[w] = s
@@ -243,7 +261,8 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         }
         for (w in userFreq.keys) if (w.startsWith(cur)) consider(w)
         if (results.size < max) {
-            val maxDist = if (cur.length >= 6) 2 else if (cur.length >= 4) 1 else 0
+            val maxDist = if (cur.length >= FUZZY_DIST2_MIN_LENGTH) 2
+                else if (cur.length >= FUZZY_DIST1_MIN_LENGTH) 1 else 0
             if (maxDist > 0) {
                 val first = cur[0]
                 val second = cur.getOrNull(1)
@@ -251,7 +270,7 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
                     // Längen-Differenz ist eine Untergrenze der Edit-Distanz
                     if (Math.abs(w.length - cur.length) > maxDist) continue
                     val dist = editDistance(cur, w)
-                    if (dist in 1..maxDist) consider(w, penalty = dist * 0.45)
+                    if (dist in 1..maxDist) consider(w, penalty = dist * DIST_PENALTY)
                 }
             }
         }
@@ -284,7 +303,7 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             val swapped = "${cur[1]}${cur[0]}${cur.substring(2)}"
             if (baseFreq.containsKey(swapped) || userFreq.containsKey(swapped)) return swapped
         }
-        val maxDist = if (cur.length >= 6) 2 else 1
+        val maxDist = if (cur.length >= FUZZY_DIST2_MIN_LENGTH) 2 else 1
         val first = cur[0]
         val second = cur.getOrNull(1)
         var best: String? = null
@@ -296,17 +315,17 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
             if (lenDiff > maxDist) continue
             val dist = editDistance(cur, w)
             if (dist !in 1..maxDist) continue
-            val s = baseScore(w) + (userFreq[w] ?: 0.0) * 1.2 +
-                (if (prev != null) bigrams["$prev $w"] ?: 0.0 else 0.0) * 3.0 -
-                dist * 0.45 - lenDiff * 0.1
+            val s = baseScore(w) + (userFreq[w] ?: 0.0) * USER_WEIGHT +
+                (if (prev != null) bigrams["$prev $w"] ?: 0.0 else 0.0) * BIGRAM_WEIGHT -
+                dist * DIST_PENALTY - lenDiff * LEN_PENALTY_FACTOR
             if (s > bestScore) { bestScore = s; best = w }
         }
         // Nur korrigieren, wenn der Kandidat ein echtes, HÄUFIGES Wörterbuchwort
         // ist (Mindest-Frequenz → keine Seltenheits-Überraschungen) bzw. ein
         // klar gelerntes User-Wort.
         return best?.takeIf {
-            (baseFreq.containsKey(it) && baseScore(it) >= 0.01) ||
-                (userFreq.containsKey(it) && bestScore > 0.3)
+            (baseFreq.containsKey(it) && baseScore(it) >= MIN_BASE_SCORE) ||
+                (userFreq.containsKey(it) && bestScore > MIN_CORRECT_SCORE)
         }
     }
 

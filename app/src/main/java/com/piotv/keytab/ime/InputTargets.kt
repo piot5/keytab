@@ -2,6 +2,9 @@ package com.piotv.keytab.ime
 
 import android.view.inputmethod.InputConnection
 
+/** Zeichen, die fuer die Wortloesch-Analyse vor dem Cursor gelesen werden. */
+private const val TEXT_BEFORE_CURSOR_CHARS = 200
+
 /** Ziele, in die die Tastatur Text schreibt oder löscht. */
 interface InputTarget {
     fun insert(text: String)
@@ -43,7 +46,7 @@ class AppInputTarget(
     override fun deleteBeforeKeys(count: Int) = repeat(count.coerceAtLeast(0)) { sendKey(android.view.KeyEvent.KEYCODE_DEL) }
     override fun deleteWord() {
         val ic = connection() ?: return
-        val text = ic.getTextBeforeCursor(200, 0)?.toString().orEmpty()
+        val text = ic.getTextBeforeCursor(TEXT_BEFORE_CURSOR_CHARS, 0)?.toString().orEmpty()
         ic.deleteSurroundingText(maxOf(TextEditLogic.wordDeleteCount(text, text.length), 1), 0)
     }
     override fun textBefore(count: Int): String = connection()?.getTextBeforeCursor(count, 0)?.toString().orEmpty()

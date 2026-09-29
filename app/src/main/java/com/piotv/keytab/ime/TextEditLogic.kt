@@ -6,6 +6,9 @@ package com.piotv.keytab.ime
  */
 object TextEditLogic {
 
+    private const val SIZE_UNIT = 1024
+    private const val SIZE_UNIT_F = 1024.0
+
     /**
      * Liefert den Index des Wortanfangs vor [cursor] (Wort-Lösch-Grenze):
      * 1. Nicht-Whitespace rückwärts überspringen (das Wort).
@@ -34,14 +37,14 @@ object TextEditLogic {
 
     /** Menschlich lesbare Dateigröße (B → KB → MB → GB → TB). */
     fun formatSize(bytes: Long): String {
-        if (bytes < 1024) return "$bytes B"
-        val kb = bytes / 1024.0
-        if (kb < 1024) return String.format(java.util.Locale.ROOT, "%.0f KB", kb)
-        val mb = kb / 1024.0
-        if (mb < 1024) return String.format(java.util.Locale.ROOT, "%.1f MB", mb)
-        val gb = mb / 1024.0
-        if (gb < 1024) return String.format(java.util.Locale.ROOT, "%.1f GB", gb)
-        val tb = gb / 1024.0
+        if (bytes < SIZE_UNIT) return "$bytes B"
+        val kb = bytes / SIZE_UNIT_F
+        if (kb < SIZE_UNIT) return String.format(java.util.Locale.ROOT, "%.0f KB", kb)
+        val mb = kb / SIZE_UNIT_F
+        if (mb < SIZE_UNIT) return String.format(java.util.Locale.ROOT, "%.1f MB", mb)
+        val gb = mb / SIZE_UNIT_F
+        if (gb < SIZE_UNIT) return String.format(java.util.Locale.ROOT, "%.1f GB", gb)
+        val tb = gb / SIZE_UNIT_F
         return String.format(java.util.Locale.ROOT, "%.2f TB", tb)
     }
 

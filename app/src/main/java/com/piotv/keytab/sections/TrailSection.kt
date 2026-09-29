@@ -33,6 +33,12 @@ class TrailSection(
     /** Durchschaltbare Stufen – bewusst kurz und ohne Freitext-Eingabe. */
     private val stepChoices = listOf(3, 5, 7, 10)
 
+    companion object {
+        private const val BUTTON_MARGIN_DP = 4
+        private const val BUTTON_HEIGHT_DP = 32
+        private const val HINT_TEXT_SP = 12f
+    }
+
     fun build(col: LinearLayout) {
         val row = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -65,8 +71,8 @@ class TrailSection(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                marginEnd = (4 * dip).toInt()
-                height = (32 * dip).toInt()
+                marginEnd = (BUTTON_MARGIN_DP * dip).toInt()
+                height = (BUTTON_HEIGHT_DP * dip).toInt()
             })
         }
 
@@ -78,9 +84,9 @@ class TrailSection(
         // Hinweis-Text
         col.addView(android.widget.TextView(activity).apply {
             text = activity.getString(R.string.theme_trail_hint)
-            textSize = 12f
+            textSize = HINT_TEXT_SP
             setTextColor(android.graphics.Color.parseColor("#888888"))
-            setPadding(0, (4 * dip).toInt(), 0, (2 * dip).toInt())
+            setPadding(0, (BUTTON_MARGIN_DP * dip).toInt(), 0, (2 * dip).toInt())
             maxLines = 3
             ellipsize = android.text.TextUtils.TruncateAt.END
         }, LinearLayout.LayoutParams(
@@ -89,7 +95,7 @@ class TrailSection(
         ))
         col.addView(android.widget.TextView(activity).apply {
             text = activity.getString(R.string.theme_trail_trace_hint)
-            textSize = 12f
+            textSize = HINT_TEXT_SP
             setTextColor(android.graphics.Color.parseColor("#888888"))
             setPadding(0, 0, 0, (2 * dip).toInt())
             maxLines = 3

@@ -22,35 +22,49 @@ class PreviewSection(
     private var previewSug: TextView? = null
     private var previewHl: View? = null
 
+    companion object {
+        private const val PADDING_DP = 12
+        private const val KEY_TEXT_SP = 18f
+        private const val KEY_SPACING_DP = 16
+        private const val SMALL_SPACING_DP = 8
+        private const val SUG_TEXT_SP = 14f
+        private const val HIGHLIGHT_SIZE_DP = 28
+        private const val KEY_RADIUS_DP = 6f
+        private const val HIGHLIGHT_RADIUS_DP = 4f
+    }
+
     fun build(col: LinearLayout) {
         val row = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding((12 * dip).toInt(), (12 * dip).toInt(), (12 * dip).toInt(), (12 * dip).toInt())
+            setPadding((PADDING_DP * dip).toInt(), (PADDING_DP * dip).toInt(), (PADDING_DP * dip).toInt(), (PADDING_DP * dip).toInt())
         }
 
         val key = TextView(activity).apply {
             text = "A"
-            textSize = 18f
+            textSize = KEY_TEXT_SP
             gravity = Gravity.CENTER
-            setPadding((16 * dip).toInt(), (8 * dip).toInt(), (16 * dip).toInt(), (8 * dip).toInt())
+            setPadding(
+                (KEY_SPACING_DP * dip).toInt(), (SMALL_SPACING_DP * dip).toInt(),
+                (KEY_SPACING_DP * dip).toInt(), (SMALL_SPACING_DP * dip).toInt()
+            )
         }
         row.addView(key, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { marginEnd = (16 * dip).toInt() })
+        ).apply { marginEnd = (KEY_SPACING_DP * dip).toInt() })
 
         val sug = TextView(activity).apply {
             text = "Suggestion"
-            textSize = 14f
+            textSize = SUG_TEXT_SP
         }
         row.addView(sug, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { marginEnd = (16 * dip).toInt() })
+        ).apply { marginEnd = (KEY_SPACING_DP * dip).toInt() })
 
         val hl = View(activity)
-        row.addView(hl, LinearLayout.LayoutParams((28 * dip).toInt(), (28 * dip).toInt()))
+        row.addView(hl, LinearLayout.LayoutParams((HIGHLIGHT_SIZE_DP * dip).toInt(), (HIGHLIGHT_SIZE_DP * dip).toInt()))
 
         previewRow = row
         previewKey = key
@@ -60,7 +74,7 @@ class PreviewSection(
         col.addView(row, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { topMargin = (8 * dip).toInt() })
+        ).apply { topMargin = (SMALL_SPACING_DP * dip).toInt() })
     }
 
     fun updatePreview() {
@@ -76,13 +90,13 @@ class PreviewSection(
         }
         com.piotv.keytab.ime.BackgroundImage.apply(row, activity, row.background)
         previewKey?.background = GradientDrawable().apply {
-            cornerRadius = 6f * dip
+            cornerRadius = KEY_RADIUS_DP * dip
             setColor(getCurrentColor(ThemePrefs.KIND_KEY))
         }
         previewKey?.setTextColor(text)
         previewSug?.setTextColor(text)
         previewHl?.background = GradientDrawable().apply {
-            cornerRadius = 4f * dip
+            cornerRadius = HIGHLIGHT_RADIUS_DP * dip
             setColor(hl)
         }
     }

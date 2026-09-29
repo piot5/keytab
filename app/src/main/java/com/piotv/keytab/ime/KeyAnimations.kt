@@ -12,11 +12,13 @@ object KeyAnimations {
 
     private const val DURATION_LAYOUT = 170L
     private const val DURATION_ROW = 190L
+    private const val EASE_FACTOR = 1.6f
+    private const val FALLBACK_ROW_HEIGHT_DP = 48
 
     /** Fallback-Hintergrund, wenn die Root-View keine auswertbare Farbe liefert. */
     private const val FALLBACK_BG = 0xFF1a1a1a.toInt()
 
-    private val ease = DecelerateInterpolator(1.6f)
+    private val ease = DecelerateInterpolator(EASE_FACTOR)
 
     fun applyLayoutTransition(container: ViewGroup) {
         if (container.layoutTransition != null) return
@@ -36,7 +38,7 @@ object KeyAnimations {
         row.requestLayout()
         row.post {
             val target = if (row.height > 0) row.height else
-                (48 * row.resources.displayMetrics.density).toInt()
+                (FALLBACK_ROW_HEIGHT_DP * row.resources.displayMetrics.density).toInt()
             ValueAnimator.ofInt(0, target).apply {
                 duration = DURATION_ROW
                 interpolator = ease

@@ -26,6 +26,15 @@ import com.piotv.keytab.R
  */
 internal class SuggestionController(private val host: SuggestionHost) {
 
+    companion object {
+        private const val LIKELY_RADIUS_DP = 8f
+        private const val FLASH_ALPHA = 230
+        private const val PULSE_SCALE = 1.3f
+        private const val PULSE_OUT_MS = 130L
+        private const val PULSE_BACK_MS = 170L
+        private const val CONTEXT_HISTORY_CHARS = 16
+    }
+
     /** Likely Highlighting: momentan hervorgehobene Tasten + deren Original-Background. */
     private val likelyHighlighted = mutableListOf<Pair<Button, android.graphics.drawable.Drawable>>()
 
@@ -159,7 +168,7 @@ internal class SuggestionController(private val host: SuggestionHost) {
                 if (c.lowercaseChar() == next) {
                     likelyHighlighted.add(btn to btn.background)
                     btn.background = GradientDrawable().apply {
-                        cornerRadius = 8f * dip
+                        cornerRadius = LIKELY_RADIUS_DP * dip
                         setColor(likelyColor)
                     }
                 }
@@ -188,13 +197,13 @@ internal class SuggestionController(private val host: SuggestionHost) {
         for (b in buttons) {
             val saved = likelyHighlighted.firstOrNull { it.first === b }?.second ?: b.background
             val flash = GradientDrawable().apply {
-                cornerRadius = 8f * dip
-                setColor(Color.argb(230,
+                cornerRadius = LIKELY_RADIUS_DP * dip
+                setColor(Color.argb(FLASH_ALPHA,
                     Color.red(color), Color.green(color), Color.blue(color)))
             }
             b.background = flash
-            b.animate().scaleX(1.3f).scaleY(1.3f).setDuration(130).withEndAction {
-                b.animate().scaleX(1f).scaleY(1f).setDuration(170).start()
+            b.animate().scaleX(PULSE_SCALE).scaleY(PULSE_SCALE).setDuration(PULSE_OUT_MS).withEndAction {
+                b.animate().scaleX(1f).scaleY(1f).setDuration(PULSE_BACK_MS).start()
                 b.background = saved
             }.start()
         }
@@ -250,7 +259,7 @@ internal class SuggestionController(private val host: SuggestionHost) {
         val typed = pm?.currentTypedWord.orEmpty()
         val atSentenceStart = pm?.let {
             SuggestionEngine.isSentenceStartContext(
-                it.textBeforeForSuggestions(16), typed)
+                it.textBeforeForSuggestions(CONTEXT_HISTORY_CHARS), typed)
         } ?: false
         emojiBrowser.close()
         emojiBrowser.setPageChrome(bar, catalogMode = false)

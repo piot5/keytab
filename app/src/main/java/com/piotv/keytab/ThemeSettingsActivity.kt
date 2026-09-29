@@ -19,6 +19,23 @@ import com.piotv.keytab.sections.GradientSection
 import com.piotv.keytab.sections.PreviewSection
 import com.piotv.keytab.sections.TopSection
 
+private const val PAGE_PADDING_DP = 20
+private const val SECTION_SPACING_DP = 12
+private const val CONTENT_BOTTOM_PADDING_DP = 16
+private const val TITLE_TEXT_SP = 22f
+private const val TARGET_MARGIN_DP = 4
+private const val TARGET_HEIGHT_DP = 32
+private const val TARGET_TOP_MARGIN_DP = 8
+private const val LABEL_TEXT_SP = 16f
+private const val LABEL_TOP_PADDING_DP = 18
+private const val LABEL_BOTTOM_PADDING_DP = 4
+private const val CORNER_RADIUS_DP = 4f
+private const val LUMINANCE_RED = 0.299
+private const val LUMINANCE_GREEN = 0.587
+private const val LUMINANCE_BLUE = 0.114
+private const val LUMINANCE_MAX = 255
+private const val LUMINANCE_THRESHOLD = 0.5
+
 class ThemeSettingsActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
@@ -83,13 +100,13 @@ class ThemeSettingsActivity : AppCompatActivity() {
         scroll.setBackgroundColor(ContextCompat.getColor(this, R.color.kbd_bg))
         val col = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding((20 * dip).toInt(), (12 * dip).toInt(),
-                (20 * dip).toInt(), (16 * dip).toInt())
+            setPadding((PAGE_PADDING_DP * dip).toInt(), (SECTION_SPACING_DP * dip).toInt(),
+                (PAGE_PADDING_DP * dip).toInt(), (CONTENT_BOTTOM_PADDING_DP * dip).toInt())
         }
         scroll.addView(col)
         col.addView(TextView(this).apply {
             text = getString(R.string.theme_settings_title)
-            textSize = 22f
+            textSize = TITLE_TEXT_SP
             setTypeface(null, Typeface.BOLD)
         })
 
@@ -144,16 +161,16 @@ class ThemeSettingsActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                marginEnd = (4 * dip).toInt()
+                marginEnd = (TARGET_MARGIN_DP * dip).toInt()
                 width = (100 * dip).toInt()
-                height = (32 * dip).toInt()
+                height = (TARGET_HEIGHT_DP * dip).toInt()
             })
         }
         val targetScroll = android.widget.HorizontalScrollView(this).apply { addView(targetRow) }
         col.addView(targetScroll, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { topMargin = (8 * dip).toInt() })
+        ).apply { topMargin = (TARGET_TOP_MARGIN_DP * dip).toInt() })
     }
 
     private fun refreshAllUi() {
@@ -183,12 +200,13 @@ class ThemeSettingsActivity : AppCompatActivity() {
         targetButtons.forEach { (target, btn) ->
             val color = currentColor(target)
             btn.background = android.graphics.drawable.GradientDrawable().apply {
-                cornerRadius = 4f * dip
+                cornerRadius = CORNER_RADIUS_DP * dip
                 setColor(color)
                 if (target == selectedTarget) setStroke((3 * dip).toInt(), Color.MAGENTA)
             }
-            val luminance = (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255
-            btn.setTextColor(if (luminance > 0.5) Color.BLACK else Color.WHITE)
+            val luminance = (LUMINANCE_RED * Color.red(color) + LUMINANCE_GREEN * Color.green(color) +
+                LUMINANCE_BLUE * Color.blue(color)) / LUMINANCE_MAX
+            btn.setTextColor(if (luminance > LUMINANCE_THRESHOLD) Color.BLACK else Color.WHITE)
         }
     }
 
@@ -239,10 +257,10 @@ class ThemeSettingsActivity : AppCompatActivity() {
     private fun sectionLabel(col: LinearLayout, text: String) {
         col.addView(TextView(this).apply {
             this.text = text
-            textSize = 16f
+            textSize = LABEL_TEXT_SP
             setTypeface(null, Typeface.BOLD)
             setTextColor(ContextCompat.getColor(this@ThemeSettingsActivity, R.color.text_primary))
-            setPadding(0, (18 * dip).toInt(), 0, (4 * dip).toInt())
+            setPadding(0, (LABEL_TOP_PADDING_DP * dip).toInt(), 0, (LABEL_BOTTOM_PADDING_DP * dip).toInt())
         })
     }
 

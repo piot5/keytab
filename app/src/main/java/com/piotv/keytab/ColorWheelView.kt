@@ -22,10 +22,22 @@ class ColorWheelView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
+    companion object {
+        private const val RING_INNER_PADDING = 8f
+        private const val HUE_SEGMENT_COUNT = 13
+        private const val HUE_STEP_DEG = 30f
+        private const val HUE_FULL_CIRCLE_DEG = 360f
+        private const val MAX_ALPHA = 255
+        private const val ALPHA_SHIFT_BITS = 24
+        private const val MARKER_RADIUS_INNER = 10f
+        private const val MARKER_RADIUS_OUTER = 12f
+        private const val MARKER_STROKE_WIDTH = 4f
+    }
+
     var onColorPicked: ((argb: Int) -> Unit)? = null
 
     private val hsv = floatArrayOf(0f, 1f, 1f)
-    private var alpha = 255
+    private var alpha = MAX_ALPHA
 
     private var cx = 0f
     private var cy = 0f
@@ -34,7 +46,7 @@ class ColorWheelView @JvmOverloads constructor(
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val markerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 4f
+        strokeWidth = MARKER_STROKE_WIDTH
         color = Color.WHITE
     }
 
@@ -59,7 +71,7 @@ class ColorWheelView @JvmOverloads constructor(
 
     /** Alpha 0..255 setzen und Änderung melden. */
     fun setAlphaValue(a: Int) {
-        alpha = a.coerceIn(0, 255)
+        alpha = a.coerceIn(0, MAX_ALPHA)
         notifyPicked()
     }
 
@@ -73,16 +85,16 @@ class ColorWheelView @JvmOverloads constructor(
         super.onSizeChanged(w, h, oldw, oldh)
         cx = w / 2f
         cy = h / 2f
-        radius = min(w, h) / 2f - 8f
+        radius = min(w, h) / 2f - RING_INNER_PADDING
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (radius <= 0f) return
         // Farbring (Hue)
-        val n = 13
+        val n = HUE_SEGMENT_COUNT
         val hueColors = IntArray(n) { i ->
-            Color.HSVToColor(floatArrayOf(i * 30f % 360f, 1f, 1f))
+            Color.HSVToColor(floatArrayOf(i * HUE_STEP_DEG % HUE_FULL_CIRCLE_DEG, 1f, 1f))
         }
         paint.shader = SweepGradient(cx, cy, hueColors, null)
         canvas.drawCircle(cx, cy, radius, paint)
@@ -92,20 +104,20 @@ class ColorWheelView @JvmOverloads constructor(
         canvas.drawCircle(cx, cy, radius, paint)
         // Helligkeit: gleichmäßiges schwarzes Overlay (nicht radial – sonst
         // wäre der Rand dunkler als das Zentrum bei niedrigem Value)
-        val dim = (255 * (1f - hsv[2])).toInt()
+        val dim = (MAX_ALPHA * (1f - hsv[2])).toInt()
         paint.shader = null
-        paint.color = (dim shl 24) or 0x000000
+        paint.color = (dim shl ALPHA_SHIFT_BITS) or 0x000000
         canvas.drawCircle(cx, cy, radius, paint)
         // Marker
         val angle = Math.toRadians(hsv[0].toDouble())
         val mx = (cx + cos(angle) * hsv[1] * radius).toFloat()
         val my = (cy + sin(angle) * hsv[1] * radius).toFloat()
         markerPaint.color = Color.WHITE
-        canvas.drawCircle(mx, my, 10f, markerPaint)
+        canvas.drawCircle(mx, my, MARKER_RADIUS_INNER, markerPaint)
         markerPaint.color = Color.BLACK
         markerPaint.strokeWidth = 2f
-        canvas.drawCircle(mx, my, 12f, markerPaint)
-        markerPaint.strokeWidth = 4f
+        canvas.drawCircle(mx, my, MARKER_RADIUS_OUTER, markerPaint)
+        markerPaint.strokeWidth = MARKER_STROKE_WIDTH
     }
 
     private val input = com.piotv.keytab.ime.ColorWheelInputLogic()

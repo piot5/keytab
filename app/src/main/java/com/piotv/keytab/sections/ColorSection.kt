@@ -22,6 +22,13 @@ class ColorSection(
     private var currentHue = 0f
     private var currentSat = 1f
 
+    companion object {
+        private const val WHEEL_HEIGHT_DP = 200
+        private const val WHEEL_TOP_MARGIN_DP = 8
+        private const val BRIGHTNESS_DEFAULT = 50
+        private const val FULL_ALPHA = 255
+    }
+
     fun build(col: LinearLayout) {
         colorWheel = ColorWheelView(activity).apply {
             onColorPicked = { color ->
@@ -35,12 +42,12 @@ class ColorSection(
         }
         col.addView(colorWheel, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
-            (200 * dip).toInt()
-        ).apply { topMargin = (8 * dip).toInt() })
+            (WHEEL_HEIGHT_DP * dip).toInt()
+        ).apply { topMargin = (WHEEL_TOP_MARGIN_DP * dip).toInt() })
 
         brightnessBar = SeekBar(activity).apply {
             max = 100
-            progress = 50
+            progress = BRIGHTNESS_DEFAULT
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
                     if (fromUser) colorWheel?.setBrightness(p / 100f)
@@ -55,8 +62,8 @@ class ColorSection(
         ))
 
         alphaSlider = SeekBar(activity).apply {
-            max = 255
-            progress = 255
+            max = FULL_ALPHA
+            progress = FULL_ALPHA
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
                     if (fromUser) colorWheel?.setAlphaValue(p)

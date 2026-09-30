@@ -1,5 +1,11 @@
 # Swipe-Plan: Gleit-Eingabe + Schaltplan-Pfad (v0.12)
 
+> **Stand 2026-09-29:** Die **passive Schaltplan-Preview** (Abschnitt 1, beim
+> Tippen) ist entfernt — inkl. Setting `swipe_preview`, Schalter und
+> `SwipePreviewAvailability`. Geblieben ist die **Likely-Markierung während des
+> aktiven Wischens** (Knoten + Kanten entlang der gefahrenen Route) und die
+> Swipe-Eingabe selbst. Das Dokument beschreibt den historischen Plan.
+
 > **Status: S1–S5 DONE (2026-09-19).** Alle fünf Slices sind implementiert,
 > getestet und in den Mainline-Build integriert (Version 0.12, versionCode 27).
 > Dieses Dokument spezifiziert das Feature „Swipe“ als Erweiterung des

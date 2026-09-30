@@ -93,12 +93,6 @@
             android:layout_marginTop="8dp"
             android:text="@string/settings_suggestions" />
         <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/sw_autocorrect"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/settings_autocorrect" />
-        <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/sw_dynamic_keys"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -110,20 +104,6 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/settings_swipe" />
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/sw_swipe_preview"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/settings_swipe_preview"
-            android:tooltipText="@string/settings_swipe_preview_hint" />
-        <TextView
-            android:id="@+id/text_swipe_preview_hint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_swipe_preview_hint"
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary" />
 
         <!-- ── Speicher & Konfiguration ─────────────────────────────── -->
         <TextView

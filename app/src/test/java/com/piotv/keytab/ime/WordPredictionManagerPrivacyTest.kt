@@ -23,7 +23,7 @@ import org.robolectric.annotation.Config
  * Prüfung nicht:
  *  - Wortlernen ins User-Dictionary ([WordPredictionManager.onWordCompleted]),
  *  - Wortvorschläge in der Leiste ([WordPredictionManager.updateSuggestions]),
- *  - aktive Autokorrektur beim Space ([WordPredictionManager.autoCorrectBeforeSpace]).
+ *  - Vorschlagsleiste und Wortlernen im Passwortfeld unterdrückt.
  *
  * Diese Suite fixiert, dass alle drei Pfade dieselbe Regel respektieren — und
  * enthält für jeden Pfad eine **Gegenprobe** in einem normalen Feld. Die
@@ -151,62 +151,6 @@ class WordPredictionManagerPrivacyTest {
 
         assertEquals("der haus ", rig.field.value())
         assertTrue(rig.manager.engine!!.userFreq.containsKey("haus"))
-    }
-
-    // ---------- 3. Aktive Autokorrektur ----------
-
-    @Test
-    fun `Passwortfeld korrigiert nicht beim Space`() {
-        val rig = Rig("hauss", allowed = false, withViews = false)
-        rig.loadEngine()
-        rig.type("hauss")
-
-        assertFalse("keine Autokorrektur im Passwortfeld", rig.manager.autoCorrectBeforeSpace())
-        assertEquals("hauss", rig.field.value())
-    }
-
-    @Test
-    fun `abgeschaltete Autokorrektur ersetzt beim Space nicht`() {
-        val prefs = com.piotv.keytab.Prefs.of(RuntimeEnvironment.getApplication())
-        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_AUTOCORRECT, false).commit()
-        try {
-            val rig = Rig("hauss", allowed = true, withViews = false)
-            rig.loadEngine()
-            rig.type("hauss")
-
-            assertFalse("Einstellung muss Autokorrektur deaktivieren", rig.manager.autoCorrectBeforeSpace())
-            assertEquals("hauss", rig.field.value())
-        } finally {
-            prefs.edit().remove(com.piotv.keytab.Prefs.KEY_AUTOCORRECT).commit()
-        }
-    }
-
-    @Test
-    fun `normales Feld korrigiert weiterhin (Gegenprobe)`() {
-        val prefs = com.piotv.keytab.Prefs.of(RuntimeEnvironment.getApplication())
-        // Der Nutzer-Standard ist Autokorrektur **aus** (keytab_config.txt vom
-        // 2026-09-28). Die Gegenprobe prüft die Funktion selbst und schaltet sie
-        // deshalb ausdrücklich ein — sie darf nicht am Default hängen.
-        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_AUTOCORRECT, true).commit()
-        try {
-            val rig = Rig("hauss", allowed = true, withViews = false)
-            rig.loadEngine()
-            rig.type("hauss")
-
-            assertTrue("Autokorrektur muss erhalten bleiben", rig.manager.autoCorrectBeforeSpace())
-            // Welches Korpuswort die Engine waehlt (Naehe vs. Frequenz) ist nicht Teil
-            // dieser Regel — geprueft wird: es wurde ersetzt, mit Leerzeichen, und das
-            // Ergebnis ist ein echtes Wörterbuchwort.
-            val korrigiert = rig.field.value().trim()
-            assertNotEquals("hauss", korrigiert)
-            assertTrue("Korrektur endet mit Leerzeichen", rig.field.value().endsWith(" "))
-            assertTrue(
-                "Ergebnis muss ein Korpuswort sein (nicht 'hauss')",
-                rig.manager.engine!!.baseScore(korrigiert.lowercase()) > 0.0
-            )
-        } finally {
-            prefs.edit().remove(com.piotv.keytab.Prefs.KEY_AUTOCORRECT).commit()
-        }
     }
 
     // ---------- 4. Vorschlagsleiste ----------

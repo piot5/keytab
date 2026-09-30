@@ -13,6 +13,20 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## 0.15
 
+- **Autokorrektur entfernt (2026-09-29).** Die aktive Korrektur beim Space
+  (Tippfehler wird durch den besten Wörterbuch-Kandidaten ersetzt) ist raus:
+  Setting-Schalter (`sw_autocorrect`), Pref-Key `KEY_AUTOCORRECT`,
+  Config-Eintrag `autocorrect`, `SuggestionEngine.autoCorrect` und
+  `WordPredictionManager.autoCorrectBeforeSpace`. Die **passive** Fuzzy-Korrektur
+  in der Vorschlagsleiste (Damerau-Levenshtein) bleibt unverändert — getippte
+  Wörter werden nie mehr überschrieben.
+- **Schaltplan-Preview entfernt (2026-09-29).** Die passive Anzeige der
+  wahrscheinlichen Folge-Tasten beim Tippen ist raus: Setting `swipe_preview`,
+  Pref-Key `KEY_SWIPE_PREVIEW`, Schalter + Hinweis im Einstellungs-Screen und
+  `SwipePreviewAvailability`. Geblieben ist die Likely-Markierung **während des
+  aktiven Wischens** (Knoten + Kanten entlang der gefahrenen Route) und die
+  Swipe-Eingabe selbst.
+
 - **Emoji-Suggestions entfernt.** Die *automatische* Emoji-Funktion — passende
   Symbole wurden an die Wortvorschläge angehängt — ist raus: Settings-Schalter
   (`sw_emoji`), Pref-Key `KEY_EMOJI_SUGGESTIONS`, Config-Eintrag

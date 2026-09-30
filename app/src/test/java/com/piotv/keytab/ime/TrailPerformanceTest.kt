@@ -7,8 +7,8 @@ import org.junit.Test
  * **Trail-Messung (Known-gap „Trail performance" — Teil-Messung).**
  *
  * Misst den Hot Path, den [TrailManager] bei **jedem Tastendruck** ausführt:
- * `TrailLogic.classifyTypedWord` → `knowsWord` / `autoCorrect`
- * (Damerau-Levenshtein über den Char-Index). Micro-Benchmark auf der JVM
+ * `TrailLogic.classifyTypedWord` → `knowsWord` (Damerau-Levenshtein über den
+ * Char-Index). Micro-Benchmark auf der JVM
  * (Desktop, kein Device): er misst die Algorithmus-Kosten, **nicht** das
  * Frame-Timing auf dem Gerät — das bleibt Device-Verifikation (README Known gaps).
  *
@@ -60,17 +60,5 @@ class TrailPerformanceTest {
         val avgMicros = (System.nanoTime() - t0) / 1000 / words.size
         println("classifyTypedWord: $avgMicros µs/call im Schnitt (JVM, 6k-Wort-Korpus, 500 calls, $marked markiert)")
         assertTrue("avg $avgMicros µs sollte < 5.000 µs (5 ms) sein", avgMicros < 5_000)
-    }
-
-    @Test
-    fun `autoCorrect auf bekanntem Wort ist O(1)-short-circuit`() {
-        val engine = SuggestionEngine(corpus())
-        val words = (0 until 500).map { it.toString().padStart(4, 'a') + "known" }
-        // Bekannte Wörter: kein Fuzzy-Pass — muss extrem schnell durchlaufen.
-        val t0 = System.nanoTime()
-        for (w in words) engine.autoCorrect(w)
-        val avgMicros = (System.nanoTime() - t0) / 1000 / words.size
-        println("autoCorrect(known): $avgMicros µs/call (JVM, short-circuit path)")
-        assertTrue("avg $avgMicros µs sollte < 1.000 µs (1 ms) sein", avgMicros < 1_000)
     }
 }

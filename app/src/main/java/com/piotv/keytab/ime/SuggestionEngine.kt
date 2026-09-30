@@ -35,8 +35,6 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         private const val PREDICT_BIGRAM_WEIGHT = 2.0
         private const val DIST_PENALTY = 0.45
         private const val LEN_PENALTY_FACTOR = 0.01
-        private const val MIN_BASE_SCORE = 0.01
-        private const val MIN_CORRECT_SCORE = 0.3
         private const val WORD_LEARN_STEP = 0.25
         private const val INITIAL_WORD_WEIGHT = 0.2
         private const val BIGRAM_LEARN_STEP = 0.3
@@ -281,53 +279,6 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
     /** Groß-/Kleinschreibung übertragen, siehe [SuggestionCorrection.matchCase]. */
     fun matchCase(suggestion: String, typed: String, sentenceStart: Boolean = false): String =
         SuggestionCorrection.matchCase(suggestion, typed, sentenceStart)
-
-    // ---------- Aktive Autokorrektur (v0.9.1) ----------
-
-    /**
-     * Aktive Korrektur beim Wortabschluss (Space): Wenn [typed] kein bekanntes
-     * Wort ist, liefert diese Funktion den besten Kandidaten aus dem Wörterbuch
-     * (Damerau-Levenshtein ≤ 1 bzw. ≤ 2 ab 6 Zeichen), sonst null.
-     *
-     * Konservativ: Nur Wörter mit gleichem Anfangsbuchstaben, Kandidat muss
-     * eine Mindestfrequenz haben (kein User-Wort-Raten), kurz getippte Wörter
-     * (< 3 Zeichen) werden nie korrigiert.
-     */
-    fun autoCorrect(typed: String, prev: String? = null): String? {
-        if (typed.length < 3) return null
-        val cur = typed.lowercase()
-        // Bekanntes Wort (Basis- oder User-Dictionary) → nichts tun
-        if (baseFreq.containsKey(cur) || userFreq.containsKey(cur)) return null
-        // Direkte Vertauschung der ersten beiden Buchstaben (z. B. "ahus" → "haus")
-        if (cur.length >= 2) {
-            val swapped = "${cur[1]}${cur[0]}${cur.substring(2)}"
-            if (baseFreq.containsKey(swapped) || userFreq.containsKey(swapped)) return swapped
-        }
-        val maxDist = if (cur.length >= FUZZY_DIST2_MIN_LENGTH) 2 else 1
-        val first = cur[0]
-        val second = cur.getOrNull(1)
-        var best: String? = null
-        var bestScore = -Double.MAX_VALUE
-        for (w in fuzzyCandidates(first, second)) {
-            if (w == cur) continue
-            // Längen-Differenz ist eine Untergrenze der Edit-Distanz
-            val lenDiff = Math.abs(w.length - cur.length)
-            if (lenDiff > maxDist) continue
-            val dist = editDistance(cur, w)
-            if (dist !in 1..maxDist) continue
-            val s = baseScore(w) + (userFreq[w] ?: 0.0) * USER_WEIGHT +
-                (if (prev != null) bigrams["$prev $w"] ?: 0.0 else 0.0) * BIGRAM_WEIGHT -
-                dist * DIST_PENALTY - lenDiff * LEN_PENALTY_FACTOR
-            if (s > bestScore) { bestScore = s; best = w }
-        }
-        // Nur korrigieren, wenn der Kandidat ein echtes, HÄUFIGES Wörterbuchwort
-        // ist (Mindest-Frequenz → keine Seltenheits-Überraschungen) bzw. ein
-        // klar gelerntes User-Wort.
-        return best?.takeIf {
-            (baseFreq.containsKey(it) && baseScore(it) >= MIN_BASE_SCORE) ||
-                (userFreq.containsKey(it) && bestScore > MIN_CORRECT_SCORE)
-        }
-    }
 
     // ---------- Persistenz ----------
 

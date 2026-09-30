@@ -5,7 +5,7 @@ import android.view.inputmethod.InputConnection
 /**
  * Text-Eingabe-Orchestrierung (Phase 6, docs/REFACTORING_PLAN.md):
  * kapselt die Logik, die zuvor inline in [KeyTabImeService] lag:
- * - [commit]       – Text an aktives Ziel (Auto-Korrektur, Vorhersage-Buchführung)
+ * - [commit]       – Text an aktives Ziel (Vorhersage-Buchführung)
  * - [commitToApp]  – direktes Einfügen ins App-Feld (Clipboard/Editor-Load)
  * - [deleteLastWord] – Wortlöschung + Vorhersage-Reset
  * Reine Delegation, keine View-Abhängigkeit → Verhalten unverändert.
@@ -23,16 +23,6 @@ class TextCommitController(private val host: Host) {
 
     fun commit(text: String) {
         host.haptic()
-        // Aktive Autokorrektur (v0.9.1): Space nach unbekanntem Wort → Wort
-        // ersetzen, wenn ein klarer Wörterbuch-Kandidat existiert (nur App-Felder;
-        // Editor buchen ihren Text selbst).
-        if (text == " " && host.inputRouter?.isApp == true &&
-            host.predictionManager?.autoCorrectBeforeSpace() == true
-        ) {
-            host.consumeSingleShift()
-            host.updateSuggestions()
-            return
-        }
         host.inputRouter?.insert(text)
         // Wortvorhersage-Buchführung: Buchstaben sammeln, Abschluss lernen
         val pm = host.predictionManager

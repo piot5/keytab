@@ -8,14 +8,7 @@ import android.widget.Button
 import com.piotv.keytab.R
 
 /**
- * Swipe-Manager (v0.11): Schaltplan-Preview (passiv) + Swipe-Eingabe (aktiv).
- *
- * **Preview** ([applyPreview]): die wahrscheinlichen Folge-Tasten des aktuell
- * getippten Worts werden als verbundener Pfad sichtbar – Knoten = skalierte
- * Tasten in der Pfad-Farbe (`KIND_SWIPE`), Kanten = Verbindungslinien
- * (`KIND_SWIPE_EDGE`) unter den Tasten. Nutzt dieselbe Foreground-Overlay-
- * Technik wie [TrailManager] (Button.background bleibt unberührt) plus ein
- * eigenes Overlay-View für die Kanten.
+ * Swipe-Manager (v0.11): Swipe-Eingabe (aktiv) + Likely-Markierung während des Wischens.
  *
  * **Swipe-Eingabe** ([startSwipe]/[onSwipeMove]/[onSwipeRelease]): der Finger
  * gleitet über die Tastatur; die gefahrene Route wird gesampelt und vom
@@ -57,23 +50,6 @@ class SwipeManager(
     /** Swipe aktiv? (Pref). */
     fun swipeEnabled(): Boolean =
         com.piotv.keytab.Prefs.KEY_SWIPE.let { prefs.getBoolean(it, false) }
-
-    /** Schaltplan-Preview aktiv? (Pref). */
-    fun previewEnabled(): Boolean =
-        com.piotv.keytab.Prefs.KEY_SWIPE_PREVIEW.let { prefs.getBoolean(it, false) }
-
-    /**
-     * Effektiv aktiv? Die Preview braucht die Prognose-Scores und damit
-     * [com.piotv.keytab.ime.SwipePreviewAvailability] — siehe dort die Regel.
-     * Ein allein stehender Pref-Schalter genügt nicht, sonst hätte man einen
-     * Schalter, der sichtbar „an" ist und nichts tut.
-     */
-    fun previewActive(): Boolean = SwipePreviewAvailability.active(
-        previewRequested = previewEnabled(),
-        swipeEnabled = swipeEnabled(),
-        dynamicKeysEnabled = com.piotv.keytab.Prefs.KEY_DYNAMIC_KEYS
-            .let { prefs.getBoolean(it, true) }
-    )
 
     /**
      * Swipe-Eingabe beginnen. [x]/[y] = Abgriff-Koordinaten (Fenster-Relativ).
@@ -183,33 +159,15 @@ class SwipeManager(
     fun autoCommitCandidate(candidates: List<SwipeScorer.Candidate>): String? =
         SwipeScorer.autoCommit(candidates)?.lowercase()
 
-    /** Schaltplan-Preview aufbauen (passiv): Knoten-Färbung + Kanten. */
-    fun applyPreview(nodes: List<Char>) {
-        clearPreview()
-        if (!previewEnabled()) return
-        if (!SwipePathLogic.isSwipeAllowed(editorInfo)) return
-        if (nodes.isEmpty()) return
-        paintNodes(nodes, ThemePrefs.swipeColor(prefs))
-    }
-
     /**
      * Während des Wischens (aktiv): die wahrscheinlichen Folge-Tasten der
      * bisher gefahrenen Route als Schaltplan anzeigen – Knoten in der
      * Likely-Farbe (KIND_LIKELY) plus Kanten ([drawEdges]), damit der Finger
      * dem Pfad folgen kann. Die Likely-Knoten landen in [previewNodes] und sind
      * über [wasLikelyHit] abfragbar (gegen den Stand **vor** dem nächsten Treffer).
-     * Unabhängig vom Schaltplan-Preview-Pref (das ist eine separate,
-     * experimentelle Anzeige); nutzt denselben Restore-Mechanismus wie
-     * [applyPreview] (nodeBackgrounds).
      *
      * Wird pro Tastenwechsel (neues Sample) vom KeyboardBinder aufgerufen.
      * Leere Route / keine Engine / Passwort-Feld → nichts (alte Marks bleiben).
-     *
-     * Früher wurde hier abgebrochen, wenn die passive Schaltplan-Preview jemals
-     * an war (`previewNodes.isNotEmpty() && previewEnabled()`) – dann erschienen
-     * im Swipe keine most-likely-Ziele mehr. Der Guard ist entfernt: während des
-     * Swipens ist diese Anzeige maßgeblich, eine passive Tip-Preview wird durch
-     * [clearPreview] sauber abgelöst.
      */
     fun applySwipeLikely() {
         clearPreview()
@@ -240,15 +198,13 @@ class SwipeManager(
     }
 
     /**
-     * Gemeinsamer Kern von [applyPreview] und [applySwipeLikely]: die Knoten
+     * Gemeinsamer Kern von [applySwipeLikely]: die Knoten
      * merken, ihre Tasten in [color] einfärben (Original-Background in
      * [nodeBackgrounds] sichern) und die Kanten zeichnen.
      *
-     * Die Guards (Pref, Passwort-Feld, leere Nodes) bleiben bewusst in den
-     * Aufrufern – sie unterscheiden sich je Methode. [color] wird vom Aufrufer
-     * aufgelöst, weil die beiden Farbquellen verschieden sind: die Preview
-     * nutzt den Legacy-Pref [ThemePrefs.swipeColor], die Likely-Knoten das
-     * Theme-Kolor-Schema (KIND_LIKELY, dark/light, Default aus colors.xml).
+     * Die Guards (Passwort-Feld, leere Nodes) bleiben bewusst im
+     * Aufrufer. [color] wird vom Aufrufer aufgelöst (KIND_LIKELY,
+     * dark/light, Default aus colors.xml).
      */
     private companion object {
         /** Kein Woerterbuch-Treffer: die Route selbst als Kandidat hinten melden. */
@@ -258,7 +214,8 @@ class SwipeManager(
         private const val NODE_RADIUS_DP = 8f
     }
 
-    private fun paintNodes(nodes: List<Char>, color: Int) {
+    /** Färbt die Knoten-Tasten (Test-Seam für [applySwipeLikely], internal). */
+    internal fun paintNodes(nodes: List<Char>, color: Int) {
         previewNodes = nodes
         val dip = baseDip()
         for ((btn, letter) in baseLetters) {

@@ -139,59 +139,6 @@ class SuggestionEngineTest {
         assertEquals("Haus", e.matchCase("haus", ""))
     }
 
-    // ---------- Aktive Autokorrektur ----------
-
-    @Test
-    fun `tippfehler wird beim space korrigiert`() {
-        val e = engine()
-        assertEquals("haus", e.autoCorrect("hais"))
-        assertEquals("haus", e.autoCorrect("ahus")) // Transposition
-        assertEquals("wort", e.autoCorrect("wrot"))
-    }
-
-    @Test
-    fun `bekannte woerter werden nicht korrigiert`() {
-        val e = engine()
-        assertEquals(null, e.autoCorrect("haus"))
-        assertEquals(null, e.autoCorrect("das"))
-        assertEquals(null, e.autoCorrect("wort"))
-    }
-
-    @Test
-    fun `kurze woerter und garbagewort werden nie korrigiert`() {
-        val e = engine()
-        assertEquals(null, e.autoCorrect("dx")) // < 3 Zeichen
-        assertEquals(null, e.autoCorrect("xyzabc")) // kein Anfangs-Buchstaben-Match
-    }
-
-    @Test
-    fun `gelerntes user-wort schuetzt vor korrektur`() {
-        val e = engine()
-        repeat(3) { e.learn(null, "spezial") }
-        assertEquals(null, e.autoCorrect("spezial"))
-    }
-
-    @Test
-    fun `bigramm beeinflusst autokorrektur-kandidat`() {
-        val e = engine()
-        // "hane" ist dist=1 zu "hase" und "hand" — mit gelerntem Bigramm
-        // "die hase" (plus User-Dictionary-Eintrag) gewinnt "hase".
-        e.learn("die", "hase")
-        assertEquals("hase", e.autoCorrect("hane", "die"))
-        // Frische Engine ohne gelerntes "hase": das frequentere "hand" gewinnt
-        assertEquals("hand", engine().autoCorrect("hane", null))
-    }
-
-    @Test
-    fun `korrektur toleriert gross-kleinschreibung`() {
-        val e = engine()
-        // Satzbeginn: "Hais" → "haus" korrigiert, Großschreibung bleibt Sache
-        // des Aufrufers (matchCase), autoCorrect selbst liefert lowercase.
-        assertEquals("haus", e.autoCorrect("Hais"))
-        // GROSSGESCHRIEBENES bekanntes Wort wird nicht angetastet
-        assertEquals(null, e.autoCorrect("HAUS"))
-    }
-
     // ---------- Performance (Main-Thread-Budget) ----------
 
     /** Synthetischer ~6.000-Wörter-Korpus (Größe wie die Asset-Frequenzlisten). */
@@ -208,18 +155,17 @@ class SuggestionEngineTest {
     )
 
     @Test
-    fun `autokorrektur und vorschlaege bleiben bei grossen korpussen schnell`() {
+    fun `vorschlaege bleiben bei grossen korpussen schnell`() {
         val e = bigEngine()
-        e.autoCorrect("habcd") // Warm-up: lazy Char-Index aufbauen
+        e.suggest("habcd", null) // Warm-up: lazy Char-Index aufbauen
         val start = System.nanoTime()
         repeat(50) { run ->
             // "habcd".."habch" ist nie Korpuswort (Position 4 = 'c') → voller Fuzzy-Pfad
-            e.autoCorrect("habc" + ('d' + (run % 5)))
-            e.suggest("habc", null)
+            e.suggest("habc" + ('d' + (run % 5)), null)
         }
         val avgMs = (System.nanoTime() - start) / 1_000_000.0 / 50.0
-        // Main-Thread-Budget: ein Space-Tastendruck darf die Tastatur nicht blockieren
-                assertTrue("autoCorrect/suggest zu langsam: %.2f ms/Call".format(avgMs), avgMs < 50.0)
+        // Main-Thread-Budget: ein Tastendruck darf die Tastatur nicht blockieren
+        assertTrue("suggest zu langsam: %.2f ms/Call".format(avgMs), avgMs < 50.0)
     }
 
     // ---------- Snippet-Leiste am Satzanfang ----------

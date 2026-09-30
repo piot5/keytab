@@ -57,7 +57,7 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
     private val suggestionController = SuggestionController(this)
     // Phase-3-Controller: Tasten-Event-Binding (Touch/Long-Press/Del-Repeat)
     private lateinit var keyboardBinder: KeyboardBinder
-    /** Swipe-Manager (v0.11): Schaltplan-Preview + Swipe-Eingabe. null vor erstem Aufbau. */
+    /** Swipe-Manager (v0.11): Swipe-Eingabe. null vor erstem Aufbau. */
     private var swipeManager: SwipeManager? = null
 
     // Phase 6: Text-Commit-Orchestrierung + View-Aufbau ausgelagert
@@ -68,7 +68,6 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         override fun consumeSingleShift() = this@KeyTabImeService.consumeSingleShift()
         override fun updateSuggestions() {
             suggestionController.update()
-            updateSwipePreview()
         }
     })
     private val viewFactory = KeyboardViewFactory(object : KeyboardViewFactory.Deps {
@@ -201,7 +200,6 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         predictionManager?.setOnEngineReady {
             swipeManager?.setEngine(predictionManager?.engine)
             suggestionController.update()
-            updateSwipePreview()
         }
         swipeManager?.setEngine(predictionManager?.engine)
         appliedSettings = SettingsConfig.snapshot(com.piotv.keytab.Prefs.of(this))
@@ -335,22 +333,6 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
 
     private fun commitToApp(text: String) =
         textCommit.commitToApp(text, currentInputConnection)
-
-    /**
-     * Schaltplan-Preview (v0.11, passiv): die wahrscheinlichen Folge-Tasten
-     * des aktuell getippten Worts als verbundener Pfad sichtbar machen.
-     * Nutzt [SwipePathLogic.previewNodes] aus den aktuellen Vorschlägen.
-     * Deaktiviert (Pref aus / Passwort-Feld / keine Vorschläge) → Preview gelöscht.
-     */
-    private fun updateSwipePreview() {
-        val sm = swipeManager ?: return
-        if (!sm.previewEnabled()) { sm.clearPreview(); return }
-        val pm = predictionManager ?: return
-        val sugs = pm.currentSuggestions
-        val typedLen = pm.currentTypedWord.length
-        val nodes = SwipePathLogic.previewNodes(sugs, typedLen)
-        sm.applyPreview(nodes)
-    }
 
     override fun onDestroy() {
         predictionManager?.engine?.let {

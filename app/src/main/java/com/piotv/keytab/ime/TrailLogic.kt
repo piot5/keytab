@@ -63,9 +63,7 @@ object TrailLogic {
 
     /**
      * Klassifiziert das getippte Wort für die Treffer-Markierung.
-     * Nur ganze Wörter ab [TrailManager.MIN_TRACE_WORD] Zeichen werden bewertet –
-     * für kürzere Wörter greift die Engine-Autokorrektur ohnehin nicht
-     * ([SuggestionEngine.autoCorrect] verlangt `length >= 3`).
+     * Nur ganze Wörter ab [TrailManager.MIN_TRACE_WORD] Zeichen werden bewertet.
      *
      * Liefert nur noch [TrailKind.ACCEPTED] (Wort ist der Engine bekannt) oder
      * `null`. Ein Fuzzy-Korrektur-Kandidat ergibt **keine** Markierung mehr —

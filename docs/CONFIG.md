@@ -17,12 +17,11 @@ dieselben Werte in eine neu angelegte Datei:
 | Schlüssel | Standard | Schlüssel | Standard |
 |---|---|---|---|
 | `num_row` | `true` | `dark_mode` | `true` (dunkel) |
-| `autocorrect` | `false` | `gradient_mode` | `top_down` |
 | `suggestions` | `true` | `theme_dark_gradient_mode` | `invert` |
 | `clip_tab` | `true` | `theme_light_gradient_mode` | `top_down` |
 | `snippet_tab` | `true` | `gaming_mode` | `true` |
 | `dynamic_keys` | `true` | `gaming_effect` | `true` |
-| `swipe`, `swipe_preview` | `false` | `trail`, `trail_trace` | `false` |
+| `swipe` | `false` | `trail`, `trail_trace` | `false` |
 | `trail_steps` | `5` | `language` | `de` |
 | `bg_image_uri` | leer | `bg_image_fill` | `fit` |
 | `gradient_color1/2` | `default` | `theme_*` (Farben) | `default` |
@@ -48,25 +47,24 @@ welcher Schlüssel wohin gehört.
 
 **Schalter** (`true` / `false`), Importer `SettingsConfig`:
 
-- `num_row`, `term_tab`, `clip_tab`, `snippet_tab`, `suggestions`, `autocorrect`,
-  `dynamic_keys`. `num_row` hat Default `true`, `autocorrect` Default `false` und
-  steuert die automatische Korrektur beim Leerzeichen (auch als Schalter im
-  Einstellungs-Screen).
+- `num_row`, `term_tab`, `clip_tab`, `snippet_tab`, `suggestions`,
+  `dynamic_keys`. `num_row` hat Default `true`.
 
   Entfernt 2026-09-27: `emoji_suggestions` (Default `false` — hing bis zu 2
   thematische Emojis hinten an die Wortvorschläge an). Der ☺-Emoji-Katalog in der
   Vorschlagsleiste bleibt davon unberührt; alte Config-Dateien dürfen den Key
-  weiterhin enthalten, er wird ignoriert. Die
+  weiterhin enthalten, er wird ignoriert. Entfernt 2026-09-29: `autocorrect`
+  (aktive Korrektur beim Space) — die Damerau-Levenshtein-Fuzzy-Korrektur in der
+  Vorschlagsleiste bleibt. Die
   Reinigung des gelernten Feldes erfolgt separat über **🧹 Gelerntes Wörterbuch
   prüfen**: Vorschau und Bestätigung sind erforderlich, der Basiswortschatz bleibt
   unverändert.
 - `swipe` (Default `false` — v0.11): Gleit-Eingabe; der Finger gleitet über die
   Tastatur, die Route wird gegen die Engine bewertet (Auto-Commit bei klarem
-  Ergebnis, sonst Kandidaten-Leiste). `swipe_preview` (Default `false`,
-  experimentell) zeigt die wahrscheinlichen Folge-Tasten des aktuell getippten
-  Worts als verbundenen Pfad (passiv) — **seit 2026-09-21 nicht mehr im
-  Einstellungs-Screen**, nur noch hier schaltbar. Beide sind in Passwort-Feldern
+  Ergebnis, sonst Kandidaten-Leiste). In Passwort-Feldern
   hart deaktiviert (gleiche Regel wie `trail`). Siehe `docs/SWIPE_PLAN.md`.
+  Entfernt 2026-09-29: `swipe_preview` (Schaltplan-Preview, passiv) — die
+  Likely-Markierung **während** des aktiven Wischens bleibt.
 - `trail`, `trail_trace`: Tippspur an/aus und Treffer-Markierung an/aus
   (Default `false`). Die Treffer-Markierung färbt ein Wort **grün**, wenn es
   exakt dem obersten Vorschlag entspricht (reine Bestätigung, es wird nichts
@@ -123,7 +121,7 @@ Regeln für die Höhen:
   `default` entfernt den Override.
 - `theme_dark_swipe`, `theme_dark_swipe_edge` sowie dieselben Schlüssel mit
   `theme_light_` (v0.11): Farbe der Swipe-Pfad-Knoten bzw. -Kanten
-  (Schaltplan-Preview + Swipe-Eingabe). `default` entfernt den Override.
+  (Swipe-Eingabe). `default` entfernt den Override.
 
 **Pfade / Zeichenketten**, Importer `SettingsConfig`:
 
@@ -150,7 +148,6 @@ Beispiel:
 term_tab = false
 snippet_tab = true
 swipe = true
-swipe_preview = true
 trail = true
 trail_trace = true
 trail_steps = 7

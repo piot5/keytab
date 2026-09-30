@@ -98,22 +98,21 @@ class SettingsConfigTest {
 
     @Test fun fullExportImportsAllUiSettingsWithoutCreatingColorOverrides() {
         val completed = SettingsConfig.completeText("", prefs)
-        // 44 Alt-Keys + 2 Verlauf-Modi (dark/light) + 4 Verlaufs-Farben (je Modus)
+        // 42 Alt-Keys + 2 Verlauf-Modi (dark/light) + 4 Verlaufs-Farben (je Modus)
         // + 8 Höhen-Vorgaben (4 Tabs × normal/maximiert).
         // 45 war es vor der Entfernung von `emoji_suggestions` (2026-09-27),
-        // 44 die Höhe davor (Panel-Höhen kamen am 28.09.2026 dazu).
-        assertEquals(52, KeyTabConfig.entries(completed).size)
+        // 44 die Höhe davor (Panel-Höhen kamen am 28.09.2026 dazu),
+        // 52 mit `autocorrect`/`swipe_preview` (entfernt am 29.09.2026).
+        assertEquals(50, KeyTabConfig.entries(completed).size)
         assertTrue(SettingsConfig.importTextIfChanged(completed, prefs))
         // Die Defaults sind die aus keytab_config.txt des Nutzers (2026-09-28):
-        // Nummernreihe an, Autokorrektur aus, Dark-Mode fest an, Verlauf
+        // Nummernreihe an, Dark-Mode fest an, Verlauf
         // dunkel `invert` / hell `top_down`.
         assertTrue(prefs.getBoolean(Prefs.KEY_NUM_ROW, false))
         for (key in listOf(Prefs.KEY_CLIP_TAB, Prefs.KEY_SNIPPET_TAB,
             Prefs.KEY_SUGGESTIONS, Prefs.KEY_DYNAMIC_KEYS)) {
             assertTrue(key, prefs.getBoolean(key, false))
         }
-        assertFalse("autocorrect = false (Nutzer-Standard)",
-            prefs.getBoolean(Prefs.KEY_AUTOCORRECT, true))
         // Trail ist im Export als Default enthalten (aus) und wird beim Import
         // als expliziter Wert übernommen – deshalb prüfen wir die Werte, nicht
         // die Abwesenheit der Keys.

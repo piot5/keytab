@@ -29,11 +29,9 @@ object SettingsConfig {
         put("clip_tab", Setting(Prefs.KEY_CLIP_TAB, "true", "boolean"))
         put("snippet_tab", Setting(Prefs.KEY_SNIPPET_TAB, "true", "boolean"))
         put("suggestions", Setting(Prefs.KEY_SUGGESTIONS, "true", "boolean"))
-        put("autocorrect", Setting(Prefs.KEY_AUTOCORRECT, "false", "boolean"))
         put("dynamic_keys", Setting(Prefs.KEY_DYNAMIC_KEYS, "true", "boolean"))
-        // Swipe (Gleit-Eingabe + Schaltplan-Preview), v0.11 — Default aus.
+        // Swipe (Gleit-Eingabe), v0.11 — Default aus.
         put("swipe", Setting(Prefs.KEY_SWIPE, "false", "boolean"))
-        put("swipe_preview", Setting(Prefs.KEY_SWIPE_PREVIEW, "false", "boolean"))
         // Trail (Tippspur + Treffer-Markierung). Vorher nur über Theme-Export
         // steuerbar – hier zusätzlich über keytab_config.txt (docs/CONFIG.md).
         put("trail", Setting(ThemePrefs.KEY_TRAIL, "false", "boolean"))

@@ -281,29 +281,6 @@ class WordPredictionManager(
     }
 
     /**
-     * Aktive Autokorrektur beim Space (v0.9.1): Ist das getippte Wort ein
-     * offensichtlicher Tippfehler, wird es via [applySuggestion] durch den
-     * besten Wörterbuch-Kandidaten ersetzt (inkl. nachfolgendem Space).
-     *
-     * @return true, wenn korrigiert wurde (der Aufrufer committet dann KEINEN
-     *   zusätzlichen Space mehr), false wenn normal durchgelassen werden soll.
-     */
-    fun autoCorrectBeforeSpace(): Boolean {
-        // Optional in den Einstellungen (Default: an)
-        if (!com.piotv.keytab.Prefs.of(context)
-                .getBoolean(com.piotv.keytab.Prefs.KEY_AUTOCORRECT, false)
-        ) return false
-        // Harte Sicherheitsregel: in Passwort-/sensiblen Feldern wird nie
-        // korrigiert — ein Wörterbuchwort darf kein Passwort überschreiben.
-        if (!personalizedProcessingAllowed()) return false
-        val typed = currentTypedWord
-        if (typed.length < 3) return false
-        val corrected = engine?.autoCorrect(typed, prevTypedWord) ?: return false
-        applySuggestion(corrected)
-        return true
-    }
-
-    /**
      * Wort übernehmen: lernen, Bigramm-Kontext setzen, persistieren — **nur**
      * wenn das Feld personalisierte Verarbeitung erlaubt (Passwort-Felder und
      * `IME_FLAG_NO_PERSONALIZED_LEARNING` ausgenommen — dieselbe harte Regel wie

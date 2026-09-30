@@ -53,23 +53,10 @@ class SwipeManagerTest {
     }
 
     @Test
-    fun `previewEnabled ist default false`() {
-        prefs.edit().clear().apply()
-        assertFalse(manager().previewEnabled())
-    }
-
-    @Test
-    fun `previewEnabled true wenn Pref gesetzt`() {
-        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_SWIPE_PREVIEW, true).apply()
-        assertTrue(manager().previewEnabled())
-    }
-
-    @Test
-    fun `applyPreview faerbt Knoten-Tasten wenn Preview an`() {
-        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_SWIPE_PREVIEW, true).apply()
+    fun `paintNodes faerbt Knoten-Tasten`() {
         val m = manager("abc")
-        val beforeA = m.let { baseLettersA(it) }
-        m.applyPreview(listOf('a'))
+        val beforeA = baseLettersA(m)
+        m.paintNodes(listOf('a'), 0xFF4CAF50.toInt())
         val afterA = baseLettersA(m)
         // Hintergrund wurde auf einen GradientDrawable gesetzt (nicht mehr original).
         assertTrue("Knoten-A Hintergrund muss gefaerbt sein",
@@ -78,36 +65,12 @@ class SwipeManagerTest {
     }
 
     @Test
-    fun `applyPreview ohne Preview-Pref faerbt nichts`() {
-        prefs.edit().clear().apply()
-        val m = manager("abc")
-        val beforeA = baseLettersA(m)
-        m.applyPreview(listOf('a'))
-        assertEquals("ohne Pref darf der Hintergrund unangetastet bleiben",
-            beforeA, baseLettersA(m))
-    }
-
-    @Test
     fun `clearPreview leert die Knoten-Hintergrundliste`() {
-        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_SWIPE_PREVIEW, true).apply()
         val m = manager("abc")
-        m.applyPreview(listOf('a'))
+        m.paintNodes(listOf('a'), 0xFF4CAF50.toInt())
         assertTrue(nodeBackgroundsCount(m) > 0)
         m.clearPreview()
         assertEquals("clearPreview muss die Knoten-Liste leeren", 0, nodeBackgroundsCount(m))
-    }
-
-    @Test
-    fun `applyPreview in Passwort-Feld unterdrueckt`() {
-        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_SWIPE_PREVIEW, true).apply()
-        val m = manager("abc")
-        m.editorInfo = android.view.inputmethod.EditorInfo().apply {
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or
-                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-        }
-        val beforeA = baseLettersA(m)
-        m.applyPreview(listOf('a'))
-        assertEquals("Passwort-Feld darf keine Preview faerben", beforeA, baseLettersA(m))
     }
 
     @Test
@@ -155,14 +118,13 @@ class SwipeManagerTest {
     }
 
     @Test
-    fun `wasLikelyHit true nach setzen von Likely-Knoten (via applyPreview als Proxy)`() {
+    fun `wasLikelyHit true nach setzen von Likely-Knoten (via paintNodes als Proxy)`() {
         // applySwipeLikely berechnet Likely-Knoten aus der Swipe-Route; da deren
         // Zentren-Auflösung in Robolectric kein echtes Window hat, setzen wir die
-        // Likely-Knoten hier ueber applyPreview (nutzt dasselbe previewNodes-Feld),
+        // Likely-Knoten hier ueber paintNodes (nutzt dasselbe previewNodes-Feld),
         // um wasLikelyHit isoliert zu pruefen.
-        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_SWIPE_PREVIEW, true).apply()
         val m = manager("abc")
-        m.applyPreview(listOf('a', 'u'))
+        m.paintNodes(listOf('a', 'u'), 0xFF4CAF50.toInt())
         assertTrue(m.wasLikelyHit('a'))
         assertTrue(m.wasLikelyHit('u'))
         assertFalse(m.wasLikelyHit('b'))
@@ -170,9 +132,8 @@ class SwipeManagerTest {
 
     @Test
     fun `wasLikelyHit false nach clearPreview (Likely-Knoten entfernt)`() {
-        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_SWIPE_PREVIEW, true).apply()
         val m = manager("abc")
-        m.applyPreview(listOf('a'))
+        m.paintNodes(listOf('a'), 0xFF4CAF50.toInt())
         assertTrue(m.wasLikelyHit('a'))
         m.clearPreview()
         assertFalse(m.wasLikelyHit('a'))
@@ -215,15 +176,15 @@ class SwipeManagerTest {
     // ---------- Crash-Regression: Kanten-Overlay (EdgeOverlay) ----------
 
     @Test
-    fun `applyPreview mit zwei Knoten stuerzt ohne angehaengten Container nicht ab`() {
+    fun `paintNodes mit zwei Knoten stuerzt ohne angehaengten Container nicht ab`() {
         // Dropbox-Crash: EdgeOverlay wurde mit null-Context bzw. in einen nicht
         // angehaengten Container gezeichnet -> NullPointerException in View.<init>
         // ("Context.getResources() on a null object reference"). Ohne Window
         // (Robolectric) darf der Kanten-Pfad daher weder werfen noch die
         // Knoten-Faerbung zerstoeren.
-        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_SWIPE_PREVIEW, true).apply()
+        // Knoten-Faerbung muss trotz fehlendem Container werfenfrei sein.
         val m = manager("ab")
-        m.applyPreview(listOf('a', 'b'))
+        m.paintNodes(listOf('a', 'b'), 0xFF4CAF50.toInt())
         assertTrue("Knoten muessen trotz fehlendem Container gefaerbt sein",
             baseLettersA(m) is android.graphics.drawable.GradientDrawable)
         m.clearPreview()
@@ -231,9 +192,8 @@ class SwipeManagerTest {
 
     @Test
     fun `clearPreview ist idempotent (kein Overlay zweimal entfernen)`() {
-        prefs.edit().putBoolean(com.piotv.keytab.Prefs.KEY_SWIPE_PREVIEW, true).apply()
         val m = manager("ab")
-        m.applyPreview(listOf('a', 'b'))
+        m.paintNodes(listOf('a', 'b'), 0xFF4CAF50.toInt())
         m.clearPreview()
         m.clearPreview()
         assertEquals(0, nodeBackgroundsCount(m))

@@ -105,6 +105,20 @@ Documented honestly rather than implied away — these are the things that are *
 | ~~English locale incomplete~~ **Resolved 2026-09-21** | `values-en` now covers all strings (was 92/163); no German fallback in English-locale devices any more. |
 | **Instrumented coverage is thin** | 22 tests cover the real IME contract, including character/key events, sensitive fields, field switches, Activity recreation and a UiAutomator height contract. They run in CI on an API-34 emulator and were verified 22/22 green on a real device (2026-09-30). Visual rendering (themes, trail colours) is still not screenshot-asserted. |
 
+## Icon
+
+The launcher icon (full-bleed) lives in `app/src/main/res/mipmap-*/` and is
+generated — together with the Fastlane store icon
+(`fastlane/metadata/android/en-US/images/icon.png`) and the legacy/adaptive
+layers — from variant D:
+
+```bash
+python3 scripts/make_icon.py --variant d --install
+```
+
+The vector source is [`docs/icon-source.svg`](docs/icon-source.svg), exported
+1:1 as [`docs/icon-source.png`](docs/icon-source.png).
+
 ## Build
 
 KeyTab builds with Gradle on-device (Android 7+, API 24+). No Android Studio needed.

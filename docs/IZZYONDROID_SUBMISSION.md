@@ -1,6 +1,6 @@
-# IzzyOnDroid — Aufnahmeantrag (vorbereitet, 2026-09-26)
+# IzzyOnDroid — Aufnahmeantrag (vorbereitet, 2026-09-26; Zahlen aktualisiert 2026-09-30)
 
-Stand: v0.14 (`versionCode 29`) · Paket-ID `com.piotv.keytab` · MIT
+Stand: v0.15 (`versionCode 30`) · Paket-ID `com.piotv.keytab` · MIT
 
 IzzyOnDroid listet Apps aus dem Upstream-Repo und zieht Beschreibung, Icon und
 Screenshots aus dem **Fastlane-Baum** des Repos (Quelle:
@@ -38,7 +38,7 @@ Package ID: com.piotv.keytab
 Source code: https://github.com/piot5/keytab
 License: MIT (LICENSE in the repo)
 Latest release: https://github.com/piot5/keytab/releases/latest
-Version to be listed: v0.14 (versionCode 29)
+Version to be listed: v0.15 (versionCode 30)
 Signing: signed release APKs built by GitHub Actions, keystore only in CI
   secrets; SHA-256 checksum is published next to every APK.
 Anti-features: none. No INTERNET permission — the app cannot send data
@@ -46,7 +46,7 @@ Anti-features: none. No INTERNET permission — the app cannot send data
   Levenshtein). allowBackup is false. No ads, no trackers, no analytics,
   no proprietary dependencies.
 Build: 100% Kotlin, Gradle wrapper in the repo, R8 minification,
-  reproducible tag builds; CI runs unit tests (470), detekt, Android Lint,
+  reproducible tag builds; CI runs unit tests (501), detekt, Android Lint,
   a Kover coverage gate (60% line / 45% branch) and instrumented tests on an
   API-34 emulator.
 Fastlane: full structure in the repo at fastlane/metadata/android/en-US/

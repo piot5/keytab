@@ -1,0 +1,29 @@
+Categories:
+  Development
+  https://f-droid.org/docs/categories/development
+
+AuthorName: piot5
+AuthorEmail: piot5@users.noreply.github.com
+SourceCode: https://github.com/piot5/keytab
+IssueTracker: https://github.com/piot5/keytab/issues
+Changelog: https://github.com/piot5/keytab/blob/main/CHANGELOG.md
+License: MIT
+
+RepoType: git
+Repo: https://github.com/piot5/keytab
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags v[\d.]+
+CurrentVersion: 0.15
+CurrentVersionCode: 30
+
+Builds:
+  - versionName: 0.15
+    versionCode: 30
+    commit: v0.15
+    subdir: app
+    gradle:
+      - yes
+    # Keine ndkVersion, keine native Abhaengigkeiten — reines Kotlin/Gradle.
+    # Kein rm für Prebuilt-Binaries noetig: keine vorhanden.
+    output: build/outputs/apk/release/app-release-unsigned.apk

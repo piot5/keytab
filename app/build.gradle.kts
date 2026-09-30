@@ -21,9 +21,10 @@ detekt {
 
 // Coverage-Gate: koverVerify ist das harte Gate (Zeilen-Coverage ≥ 60 %,
 // Branch-Coverage ≥ 45 %). Die Schwellen liegen bewusst ~5-7 Punkte unter dem
-// gemessenen Stand (22.09.2026: 67,0 % Zeilen / 53,8 % Branch im selben
+// gemessenen Stand (Neumessung 2026-09-28, im README dokumentiert: 70,8 % Zeilen
+// (`LINE` 3228/4561) / 55,7 % Branch (`BRANCH` 1775/3186) im selben
 // aggregierten "application"-Report, den `koverVerify` prüft; `koverLog` nennt
-// für Zeilen 66,96 %). Sie fangen echte Regressionen, ohne bei kleinen Umbauten
+// für Zeilen 70,79 %). Sie fangen echte Regressionen, ohne bei kleinen Umbauten
 // zu flattern. Vorher stand hier 20 % — das war kein Schutz, sondern Deko.
 kover {
     reports {

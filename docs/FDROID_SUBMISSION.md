@@ -28,7 +28,30 @@ sh scripts/verify_reproducible.sh v0.15
 Das Skript klont die Referenz zweimal frisch, baut beide Male `assembleRelease`
 ohne Build-Cache und vergleicht die SHA-256. **Exit 0 = reproduzierbar.**
 
-Typische Stolpersteine, falls es nicht klappt (in dieser Reihenfolge prüfen):
+**Erstrausführung: 2026-09-30, Tag `v0.15` — BESTANDEN.** Beide Builds lieferten
+bit-identische APKs:
+
+```
+app-release-unsigned.apk
+8cba900a3890a37192b5dc15b3fa12887f468b4566f8770497c2b36307b95ec2
+```
+
+Dabei traten zwei Prüfsteine auf (beide im Skript dauerhaft gelöst):
+
+1. **`gradlew` ohne Executable-Bit** (Mode 100644) — im frischen Klon ist
+   `./gradlew` nicht startbar; das Skript ruft es deshalb via `sh ./gradlew` auf.
+2. **Fehlende `local.properties`** (gitignored, liegt im Klon nicht vor) — das
+   Skript übernimmt `sdk.dir` aus der Arbeitskopie bzw. respektiert `ANDROID_HOME`
+   (so baut auch F-Droid).
+
+Beide Punkte sind genau die häufigsten F-Droid-Build-Ablehnungen — sie sind
+hier als Skriptverhalten abgefangen, nicht als lokale Frickelei.
+
+**Re-Verifikation nach jedem Release-Tag** (kurz vor dem MR erneut laufen
+lassen, falls sich am Build geändert hat):
+
+Typische Stolpersteine, falls ein späterer Lauf abweicht (in dieser Reihenfolge
+prüfen):
 
 1. **ZIP-Einträge mit Zeitstempel** — Neuere AGP-Versionen setzen deterministische
    Timestamps (`fixedTimestamp`), i. d. R. kein Handlungsbedarf; prüfen, ob beide

@@ -34,7 +34,17 @@ build_once() {
      [ "$TAG" != "HEAD" ] && git checkout --quiet "$TAG"
      REV=$(git rev-parse --short HEAD)
      echo "== Build $3 (Rev $REV) =="
-     ./gradlew --no-daemon --no-build-cache \
+     # gradlew ist im Repo nicht als +x committed — bewusst via sh aufrufen,
+     # damit der Lauf vom committeten Inhalt abhaengt, nicht vom Dateisystem-Bit
+     # im frischen Klon.
+     # SDK-Lage aus der lokalen Umgebung übernehmen (local.properties ist
+     # gitignored und liegt im frischen Klon daher nicht vor). F-Droid setzt
+     # ANDROID_HOME; lokal fällt es auf den Pfad der Arbeitskopie zurueck.
+     if [ -z "${ANDROID_HOME:-}" ]; then
+         SDK_DIR=$(sed -n 's/^sdk\.dir=//p' "$PROJECT/local.properties" 2>/dev/null || true)
+         [ -n "$SDK_DIR" ] && echo "sdk.dir=$SDK_DIR" > local.properties
+     fi
+     sh ./gradlew --no-daemon --no-build-cache \
          -Dorg.gradle.caching=false \
          -Dmaven.repo.local="$OUT/m2" \
          :app:assembleRelease

@@ -26,7 +26,7 @@ Every tagged release (`v*`) is built and published automatically by CI as a sign
 |---|---|
 | GitHub Releases | ✅ every `v*` tag, built and published by CI |
 | IzzyOnDroid | ⏳ submission prepared — see [`docs/IZZYONDROID_SUBMISSION.md`](docs/IZZYONDROID_SUBMISSION.md) |
-| F-Droid | not requested (needs a reproducible-build verification recipe) |
+| F-Droid | ⏳ submission prepared — reproducible build verified (see [`docs/FDROID_SUBMISSION.md`](docs/FDROID_SUBMISSION.md)) |
 
 Release history lives in **[CHANGELOG.md](CHANGELOG.md)**.
 
@@ -99,7 +99,7 @@ Documented honestly rather than implied away — these are the things that are *
 
 | Gap | Detail |
 |---|---|
-| **Trail frame timing measured on device (typing PASS, backspace FAIL)** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.knowsWord`). Algorithm cost is JVM-benchmarked in `TrailPerformanceTest` — ~2 µs per classification on a 6,000-word corpus, ~4 orders of magnitude below the 50 ms keystroke budget (hard assertion). **Device frame timing 2026-09-29** (`scripts/device_perf.py --pkg com.piotv.keytab.debug`, 120 Hz panel): typing PASS (Jank@60 4.5 %, p95 15 ms, UI p95 4.2 ms); backspace-autorepeat FAIL (Jank@60 61 %, p50 18 / p95 29 ms, but only 2 events — rerun with more events before optimizing). What remains open: visual smoothness of the trail overlay and red/green trace contrast per theme palette (still not screenshot-verified). |
+| **Trail frame timing measured on device (backspace PASS, typing thermal-dependent)** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.knowsWord`). Algorithm cost is JVM-benchmarked in `TrailPerformanceTest` — ~2 µs per classification on a 6,000-word corpus, ~4 orders of magnitude below the 50 ms keystroke budget (hard assertion). **Device frame timing re-measured 2026-09-29 with median-of-runs** (`scripts/device_perf.py --pkg com.piotv.keytab.debug`, 120 Hz panel, see [`docs/DEVICE_PERF.md`](docs/DEVICE_PERF.md)): backspace-autorepeat **PASS** (median Jank@60 1.3 %, p50 5 ms / p95 13 ms, UI p95 3.2 ms; the historical "FAIL" of 61 % came from only 2 events = 36 frames). Typing stays **thermal-state dependent** (3.4 % Jank@60 cool vs. 39–42 % above 35.1 °C battery temperature, same workload). What remains open: visual smoothness of the trail overlay and red/green trace contrast per theme palette (still not screenshot-verified). |
 | **Trail visuals not screenshot-verified** | The regression fix for contradictory trace states (see 0.9.7) is proven at the **state level** by unit tests — no screenshot or instrumented test asserts the rendered colours. The red/green contrast against each custom theme palette has not been measured. |
 | **Swipe frame timing not measured on device** | The swipe hot path (`charAt` + `dedup` per Move-Event, `SwipeScorer.score` on release) is JVM-benchmarked in `SwipePerformanceTest` — `charAt` and `dedup` are asserted < 5 ms avg over 10 000 calls, the scorer < 50 ms on a 6 000-word corpus (hard assertions so regressions fail the build). What remains open: **frame timing on a real display** (profiling the overlay invalidate + edge redraw on the device) and visual smoothness of the likely-keys path during an active swipe. |
 | ~~English locale incomplete~~ **Resolved 2026-09-21** | `values-en` now covers all strings (was 92/163); no German fallback in English-locale devices any more. |
@@ -185,7 +185,7 @@ See [`docs/RELEASE.md`](docs/RELEASE.md) for the full release process. Dependenc
 ## Project structure
 
 ```
-app/src/main/java/com/piotv/keytab/            # 50 Kotlin files
+app/src/main/java/com/piotv/keytab/            # 74 Kotlin files
 ├── Prefs.kt                       # Central preference keys
 ├── MainActivity.kt                # Settings: enable keyboard, theme, language, toggles
 ├── ThemeSettingsActivity.kt       # Theme settings: color wheel, gradients, per-theme colors
@@ -237,8 +237,8 @@ app/src/main/java/com/piotv/keytab/            # 50 Kotlin files
     ├── KeyTabExecutors.kt    # Shared executor + main handler
     └── …                     # InputTargets, LiftSpan, KeyTabConfig
 
-app/src/test/java/com/piotv/keytab/ime/        # 50 test classes, 480 tests, 7,108 lines
-app/src/androidTest/                           # 18 instrumented tests, 661 lines (CI: API 34 emulator)
+app/src/test/java/com/piotv/keytab/            # 52 test classes, 501 tests, 7,462 lines
+app/src/androidTest/                           # 22 instrumented tests, 1,152 lines (CI: API 34 emulator)
 app/src/main/res/values/strings.xml            # 141 strings (default = German)
 app/src/main/res/values-en/                    # English locale (141 strings — complete)
 app/src/main/res/values-night/                 # Night-mode resource qualifiers
@@ -268,7 +268,7 @@ Issues and pull requests are welcome. Before opening a PR:
 
 ```bash
 sh scripts/check_docs_drift.sh                     # docs must match the code
-sh ./gradlew :app:testDebugUnitTest --offline      # 480 tests must stay green
+sh ./gradlew :app:testDebugUnitTest --offline      # 501 tests must stay green
 bash build_keytab.sh debug                         # must build
 ```
 
@@ -279,7 +279,7 @@ Conventions:
 - Unit-test names are written as specifications (German is the established convention under `app/src/test`).
 - Do not add an `INTERNET` permission — "no network, no data collection" is a core promise of the app.
 - **Versioning**: the version lives only in `app/build.gradle.kts` (`versionCode`/`versionName`). Bump it there, move the fastlane release notes to `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` and add a matching section at the top of `CHANGELOG.md` — the CI job `docs` fails if any of the three drifts apart.
-- **Test counts in this README** are verified by the same check, so update the table when you add a suite.
+- **Test counts, file/line numbers and the structure block in this README** are verified by the same check (`scripts/check_docs_drift.sh`, sections 2/5/6), so update them when you add code — a stale number fails the CI job `docs`.
 
 ## License
 

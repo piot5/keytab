@@ -18,6 +18,10 @@
 #                          @Test-Anzahl und Testklassen-Dateien
 #   3. Changelog-Zuhause   Changelog lebt in CHANGELOG.md, nicht im README
 #   4. Versions-Singularität  versionCode/versionName nur in app/build.gradle.kts
+#   5. Größen-/Sprachzahlen   Test-/Main-Zeilen+Dateien, Ratio, Service-Größe, strings
+#   6. Projektstruktur-Zahlen Kommentare „# <N> Kotlin files“, „# <N> test classes,
+#                             <M> tests, <L> lines“, „# <N> instrumented tests, …“
+#                             und „# <N> tests must stay green“ im README
 #
 # Exit 1 bei Drift, Exit 0 wenn alles konsistent ist.
 
@@ -276,6 +280,56 @@ C_EN=$(sed -n 's/.*# English locale (\([0-9]*\) strings.*/\1/p' README.md | head
     "Zahl im README auf $S_DE korrigieren"
 [ "$C_EN" = "$S_EN" ] || problem "README nennt $C_EN Strings fuer values-en/, tatsaechlich $S_EN" \
     "Zahl im README auf $S_EN korrigieren"
+printf '\n'
+
+# ----------------- 6. Zahlen im Projektstruktur- und Contributing-Block
+# Neu 2026-09-30: Der Struktur-Block im README nannte "50 Kotlin files"
+# (tatsaechlich 74), "50 test classes, 480 tests, 7,108 lines" (52/501/7,462)
+# und "18 instrumented tests, 661 lines" (22/1,152), dazu "480 tests must stay
+# green" im Contributing-Abschnitt. Abschnitt 5 liest nur den Satz
+# "Test code is ..." — dieser Block lief bisher ungeprueft daneben.
+printf '6) Projektstruktur- und Contributing-Zahlen\n'
+
+P_MFILES=$(kt_files app/src/main)
+P_TCLASSES=$(find app/src/test/java -name '*Test.kt' | wc -l | tr -d ' ')
+P_TTESTS=${ACTUAL_TESTS:-0}
+P_TLINES=$(kt_lines app/src/test)
+P_ATTESTS=$(grep -rho '^[[:space:]]*@Test' app/src/androidTest | wc -l | tr -d ' ')
+P_ATLINES=$(kt_lines app/src/androidTest)
+
+# check_structure <Beschreibung> <README-Wert> <Ist-Wert> <Fix-Hinweis>
+check_structure() {
+    if [ -z "$2" ]; then
+        problem "README nennt keine Zahl fuer $1" "$4"
+    elif [ "$(uncomma "$2")" != "$3" ]; then
+        problem "README nennt $2 $1, tatsaechlich $3" \
+                "Zahl im README auf $3 korrigieren"
+    else
+        ok "$1 stimmen ($3)"
+    fi
+}
+
+check_structure "Kotlin-Dateien in app/src/main" \
+    "$(sed -n 's/.*# \([0-9]*\) Kotlin files.*/\1/p' README.md | head -1)" "$P_MFILES" \
+    'Kommentar "# <N> Kotlin files" im Struktur-Block beibehalten'
+check_structure "Testklassen" \
+    "$(sed -n 's/.*# \([0-9]*\) test classes,.*/\1/p' README.md | head -1)" "$P_TCLASSES" \
+    'Kommentar "# <N> test classes, <M> tests, <L> lines" beibehalten'
+check_structure "Unit-Tests" \
+    "$(sed -n 's/.*# [0-9]* test classes, \([0-9]*\) tests,.*/\1/p' README.md | head -1)" "$P_TTESTS" \
+    'Kommentar "# <N> test classes, <M> tests, <L> lines" beibehalten'
+check_structure "Testzeilen" \
+    "$(sed -n 's/.*# [0-9]* test classes, [0-9]* tests, \([0-9,]*\) lines.*/\1/p' README.md | head -1)" "$P_TLINES" \
+    'Kommentar "# <N> test classes, <M> tests, <L> lines" beibehalten'
+check_structure "instrumentierte Tests" \
+    "$(sed -n 's/.*# \([0-9]*\) instrumented tests,.*/\1/p' README.md | head -1)" "$P_ATTESTS" \
+    'Kommentar "# <N> instrumented tests, <M> lines" beibehalten'
+check_structure "instrumentierte Testzeilen" \
+    "$(sed -n 's/.*# [0-9]* instrumented tests, \([0-9,]*\) lines.*/\1/p' README.md | head -1)" "$P_ATLINES" \
+    'Kommentar "# <N> instrumented tests, <M> lines" beibehalten'
+check_structure "Tests im Contributing-Abschnitt" \
+    "$(sed -n 's/.*# \([0-9]*\) tests must stay green.*/\1/p' README.md | head -1)" "$P_TTESTS" \
+    'Kommentar "# <N> tests must stay green" beibehalten'
 printf '\n'
 
 # ------------------------------------------------------------------- Ergebnis

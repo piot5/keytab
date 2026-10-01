@@ -25,10 +25,27 @@ fi
 
 adb shell input keyevent 82 || true
 
-set +e
-./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
-rc=$?
-set -e
+# Emulator-Flake: "KeyTab keyboard did not become visible" ist ein Cold-Start-
+# Rennen. `am instrument` killt den Ziel-Prozess (der auch den IME-Service
+# hostet) und startet ihn neu; der erste showSoftInput kann vor
+# onCreateInputView verloren gehen. Ein zweiter Lauf trifft den warmen Prozess
+# und ist fast immer gruen. Deshalb: bis zu zwei Versuche.
+rc=1
+try=0
+while [ "$try" -lt 2 ]; do
+    try=$((try + 1))
+    echo "== connectedDebugAndroidTest, Versuch $try/2 =="
+    set +e
+    ./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
+    rc=$?
+    set -e
+    if [ "$rc" -eq 0 ]; then
+        break
+    fi
+    echo "== Versuch $try fehlgeschlagen (Exit $rc) ==" >&2
+    sleep 5
+done
+
 if [ "$rc" -ne 0 ]; then
     adb shell pm list instrumentation >&2 || true
     # -t 500 zeigte nur das Ende des Laufs: der Permission-Dialog z. B. war

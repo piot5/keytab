@@ -117,7 +117,8 @@ python3 scripts/make_icon.py --variant d --install
 ```
 
 The vector source is [`docs/icon-source.svg`](docs/icon-source.svg), exported
-1:1 as [`docs/icon-source.png`](docs/icon-source.png).
+1:1 as [`docs/icon-source.png`](docs/icon-source.png). The exact colours are
+documented in [`docs/icon.md`](docs/icon.md).
 
 ## Build
 

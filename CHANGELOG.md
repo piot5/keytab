@@ -126,8 +126,8 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
   Abflusspfad für genau die Daten, die die App offline und ohne
   Netzwerk-Permission hält; eine Signatur-Permission würde für
   adb/Shizuku-Werkzeuge nicht funktionieren). Optionen-Vergleich in
-  `docs/API_INTERFACE_EXTERNAL_CLEANUP.md` §0, Status-Banner in den vier
-  Plan-Dokumenten; Entfernung bleibt möglich, falls kein Konsument entsteht.
+  `docs/LEARNED_DICTIONARY_CLEANUP.md`; Entfernung bleibt möglich, falls kein
+  Konsument entsteht.
 
 - **Permissions reduziert** — `READ_MEDIA_AUDIO` und `READ_MEDIA_VIDEO` entfernt
   (Manifest + beide Request-Stellen in `MainActivity` und

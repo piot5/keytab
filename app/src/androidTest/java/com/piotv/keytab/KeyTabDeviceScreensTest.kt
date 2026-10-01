@@ -23,8 +23,7 @@ import java.io.InputStreamReader
 import kotlin.concurrent.thread
 
 /**
- * ECHTE Screenshots + GIF-Frames vom laufenden KeyTab-IME (Gegenstück zu
- * scripts/make_screens.py, das nur Mockups rendert):
+ * ECHTE Screenshots + GIF-Frames vom laufenden KeyTab-IME:
  *
  *  1. Alle Tabs (abc/Editor/Files/Clip/Snip) im Normal- UND Maximier-
  *     Zustand abfotografieren.

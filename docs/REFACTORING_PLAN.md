@@ -11,6 +11,12 @@ Status: 2026-09-25 · Goal: maintainable, testable, release-ready modules with n
 
 ## 1. Current snapshot (2026-09-28)
 
+> ⚠️ **Snapshot veraltet** (Stand 2026-09-28, wird vom Doku-Drift-Wächter nicht
+> geprüft). Aktueller Stand **v0.15** (2026-09-30): **501 Unit-Tests / 52 Suiten**,
+> Kover **70,8 % Line / 55,7 % Branch**, Test:Main-Ratio **68,9 %** (7.462/10.832),
+> detekt-Baseline **47 Einträge**, i18n **141/141 Strings**, Service **351 Zeilen**.
+> Maßgeblich: `README.md` + `scripts/check_docs_drift.sh` (grün) + `docs/BASELINE.md`.
+
 | Metric | Value |
 |---|---|
 | Unit tests | **526 in 54 suites**, 0 failures (`testDebugUnitTest` + `testReleaseUnitTest` + `koverVerify` green 28 Sep; +28 ggü. 498: `ColorWheelInputLogicTest` (18), `SwipePreviewAvailabilityTest` (6), `MainActivitySettingsTest` 1→5) |

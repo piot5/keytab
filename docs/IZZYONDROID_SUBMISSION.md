@@ -69,10 +69,7 @@ liegen in `docs/images/device/` (`abc-light.jpg`, `abc-dark.jpg`,
 `snippets.jpg`, `files.jpg`, `editor.jpg`, `clipboard.jpg` plus Demo-GIF
 `demo.gif`). Für Fastlane liegen Kopien der JPGs in
 `images/phoneScreenshots/` (1.png–3.png wurden durch die Geräteaufnahmen
-ersetzt; der alte generierte Satz von `scripts/make_screens.py` ist entfernt).
-
-Das Skript `scripts/make_screens.py` bleibt im Repo, erzeugt aber nur noch
-keine README-Bilder mehr. Falls neue Aufnahmen nötig sind:
+ersetzt). Falls neue Aufnahmen nötig sind:
 
 ```bash
 # auf einem Gerät/Emulator mit aktivierter KeyTab-Tastatur, pro Screen:

@@ -16,10 +16,8 @@ import java.util.UUID
  * In-App-Wartungsweg in den Einstellungen verwendet. Ein externer Transportweg
  * (`ContentProvider`/exportierter Service) bleibt bewusst abgelehnt: KeyTab ist
  * eine Offline-Tastatur ohne Netzwerk-Permission; ein exportiertes Tor wäre ein
- * neuer Angriffs-/Abflusspfad. Details: `docs/API_INTERFACE_EXTERNAL_CLEANUP.md`.
- *
- * Details und Begründung: `docs/API_INTERFACE_EXTERNAL_CLEANUP.md` → Abschnitt
- * „Entscheidung“.
+ * neuer Angriffs-/Abflusspfad. Details und Begründung:
+ * `docs/LEARNED_DICTIONARY_CLEANUP.md`.
  *
  * Stand: 2026-09-22. V1-Entwurf (nicht verdrahtet).
  */

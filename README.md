@@ -244,7 +244,7 @@ app/src/main/java/com/piotv/keytab/            # 75 Kotlin files
     └── …                     # InputTargets, LiftSpan, KeyTabConfig
 
 app/src/test/java/com/piotv/keytab/            # 54 test classes, 515 tests, 7,652 lines
-app/src/androidTest/                           # 42 instrumented tests, 1,531 lines (CI: API 34 emulator)
+app/src/androidTest/                           # 42 instrumented tests, 1,635 lines (CI: API 34 emulator)
 app/src/main/res/values/strings.xml            # 141 strings (default = German)
 app/src/main/res/values-en/                    # English locale (141 strings — complete)
 app/src/main/res/values-night/                 # Night-mode resource qualifiers

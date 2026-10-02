@@ -11,6 +11,33 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
+## 0.16
+
+- **Performance: Tipp-Jank unter thermischer Last reduziert.** Die
+  Deadline-Misses beim heißen Tippen entstehen draw-seitig (UI-Thread p95
+  ≤ 6,4 ms in allen Szenarien, vgl. `docs/DEVICE_PERF.md`) — nicht in der
+  Logik. Drei pro Tastendruck laufende Voll-Tastatur-Repaints wurden auf
+  Differenz-Pfade umgestellt, die nur noch **geänderte** Tasten anfassen:
+  - **Trail-Painter** ([TrailKeyboardPainter]): statt bei jedem
+    [TrailManager.applyToKeyboard] alle ~30 Tasten-Overlays zu löschen und
+    neu zu setzen, berührt er nur Tasten, deren Overlay verschwindet oder
+    die Farbe ändert. Reine Differenzlogik in [TrailOverlayDiff]
+    (+ `TrailOverlayDiffTest`, `TrailKeyboardPainterTest`).
+  - **Dynamischer Key-Scaler** ([DynamicKeyScaler]): setzt
+    `scaleX`/`scaleY`/`weight` nur noch auf Tasten, deren Skala sich
+    tatsächlich bewegt. Reine Differenzlogik in [KeyScaleLogic.changedScales]
+    (+ Tests in `KeyScaleLogicTest`, Reset-/Idempotenz in `DynamicKeyScalerTest`).
+  - **Swipe-Zentren** ([SwipeManager]): die Tasten-Zentren werden einmal pro
+    Geste berechnet und für alle Move-Events wiederverwendet, statt ~30 ×
+    `getLocationInWindow` pro Move-Event neu zu laufen.
+- **Tests:** 501 → **515** Unit-Tests in 54 Suites (0 Failures).
+- **Instrumented-Suite ausgebaut (22 → 42 Tests, ein Lauf ≤ 5 min).** Neue
+  schnelle Contract-Tests (Shift/CapsLock/Symbole/Ziffern/Punkt/Enter/Space,
+  Vorschlagsleiste/Emoji-Katalog/Passwort-Unterdrückung, Tab-Höhen). Die
+  langsamen Screenshot-/GIF-Tests ([KeyTabDeviceScreensTest]) sind jetzt
+  opt-in (`-e screens true` — der Standardlauf überspringt sie);
+  `scripts/run_instrumented_tests.sh` läuft ohne Retry in genau einem Durchgang.
+
 ## 0.15
 
 - **Autokorrektur entfernt (2026-09-29).** Die aktive Korrektur beim Space

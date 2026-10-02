@@ -35,8 +35,6 @@ class KeyTabImeEndToEndTest {
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val device get() = UiDevice.getInstance(instrumentation)
-    private var previousIme: String = ""
-
     @Before
     fun activateKeyTab() {
         // Reihenfolge ist entscheidend: erst das IME umschalten, dann die
@@ -46,7 +44,7 @@ class KeyTabImeEndToEndTest {
         // Session nicht neu gebunden wird. Im Logcat zu sehen als
         // GoogleInputMethodService.onStartInput 75 ms VOR dem Wechsel auf
         // KeyTabImeService; KeyTab wurde dadurch nie gefragt.
-        previousIme = shell("settings get secure default_input_method").trim()
+        // v0.16: kein previousIme-Save mehr — das IME-Fenster bleibt über den Lauf aktiv.
         assertTrue("Kein KeyTab-IME im Testgerät registriert", shell("ime list -s -a")
             .contains(KEYTAB_IME))
         shell("ime enable $KEYTAB_IME")
@@ -68,7 +66,9 @@ class KeyTabImeEndToEndTest {
 
     @After
     fun restoreIme() {
-        if (previousIme.isNotBlank() && previousIme != "null") shell("ime set $previousIme")
+        // v0.16: bewusst KEIN Rückschalten auf das vorherige IME mehr — das
+        // IME-Fenster bleibt über den ganzen Lauf sichtbar (ein Durchlauf statt
+        // Aus-/Einblenden pro Test). Rückschalten nur noch manuell am Ende.
     }
 
     @Test
@@ -152,6 +152,93 @@ class KeyTabImeEndToEndTest {
         assertEquals("after", recreated.normalField.text.toString())
     }
 
+    @Test
+    fun shiftKey_schreibtGrossbuchstaben() {
+        val activity = activityRule.activity
+        focus(activity.normalField)
+        waitForKeyboard()
+        clickImeId("key_shift")
+        clickImeText("A")
+        assertEquals("A", activity.normalField.text.toString())
+    }
+
+    @Test
+    fun doppelTapShift_aktiviertCapsLock() {
+        val activity = activityRule.activity
+        focus(activity.normalField)
+        waitForKeyboard()
+        val shift = device.wait(Until.findObject(
+            By.res(instrumentation.targetContext.packageName, "key_shift")), 5_000)
+        assertTrue("Shift-Taste fehlt", shift != null)
+        shift.click()
+        shift.click() // Doppel-Tap innerhalb 300 ms → CapsLock
+        device.waitForIdle()
+        clickImeText("A")
+        clickImeText("B")
+        assertEquals("AB", activity.normalField.text.toString())
+        // CapsLock verlassen, damit Folgetests nicht im CapsLock starten.
+        clickImeId("key_shift")
+    }
+
+    @Test
+    fun symbolUmschalter_schreibtSymbol() {
+        val activity = activityRule.activity
+        focus(activity.normalField)
+        waitForKeyboard()
+        clickImeId("key_toggle")
+        val exclaim = device.wait(Until.findObject(
+            By.clazz("android.widget.Button").textStartsWith("!")), 5_000)
+        assertTrue("Symbol ! nicht gefunden", exclaim != null)
+        exclaim.click()
+        device.waitForIdle()
+        assertEquals("!", activity.normalField.text.toString())
+        // Zustand zurücksetzen: sonst bleibt die Tastatur im Symbol-Modus und
+        // bricht alle Folgetests (Buchstaben kommen als Symbole an).
+        clickImeId("key_toggle")
+    }
+
+    @Test
+    fun backspace_loeschtEinZeichen() {
+        val activity = activityRule.activity
+        focus(activity.normalField)
+        waitForKeyboard()
+        typeThroughVisibleIme("ab")
+        clickImeId("key_del")
+        assertEquals("a", activity.normalField.text.toString())
+    }
+
+    @Test
+    fun enterTaste_brichtZeileUm() {
+        val activity = activityRule.activity
+        focus(activity.normalField)
+        waitForKeyboard()
+        typeThroughVisibleIme("a")
+        activity.receivedKeyCodes.clear()
+        clickImeId("key_enter")
+        assertTrue("Enter muss als KEYCODE_ENTER ankommen",
+            activity.receivedKeyCodes.contains(KeyEvent.KEYCODE_ENTER))
+    }
+
+    @Test
+    fun punktTaste_schreibtPunkt() {
+        val activity = activityRule.activity
+        focus(activity.normalField)
+        waitForKeyboard()
+        typeThroughVisibleIme("a")
+        clickImeId("key_dot")
+        assertEquals("a.", activity.normalField.text.toString())
+    }
+
+    @Test
+    fun spaceTaste_fuegtLeerzeichenEin() {
+        val activity = activityRule.activity
+        focus(activity.normalField)
+        waitForKeyboard()
+        typeThroughVisibleIme("a")
+        clickImeId("key_space")
+        assertEquals("a ", activity.normalField.text.toString())
+    }
+
     private fun focus(field: EditText) {
         val imm = InstrumentationRegistry.getInstrumentation().targetContext
             .getSystemService(android.view.inputmethod.InputMethodManager::class.java)
@@ -179,6 +266,17 @@ class KeyTabImeEndToEndTest {
     }
 
     private fun waitForKeyboard() {
+        // Cold-Start-Rennen: showSoftInput kann vor onCreateInputView verloren gehen.
+        if (device.wait(Until.findObject(
+                By.res(instrumentation.targetContext.packageName, "key_space")), 2_000) == null) {
+            device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)?.click()
+            device.waitForIdle()
+        }
+        // Immer auf ABC schalten: die IME merkt sich den zuletzt genutzten Tab
+        // (persistiert auf dem Gerät); in Inhalts-Tabs ist key_space nur INVISIBLE
+        // im Baum und die Buchstaben fehlen → clickImeText schlüge fehl.
+        device.wait(Until.findObject(By.textStartsWith("ABC")), 3_000)?.click()
+        device.waitForIdle()
         val key = device.wait(Until.findObject(
             By.res(instrumentation.targetContext.packageName, "key_space")), 10_000)
         assertTrue("KeyTab keyboard did not become visible. ${imeState()}", key != null)

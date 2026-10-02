@@ -41,7 +41,7 @@ printf '%s\n' "$INSTALL_OUT" | grep -q '^Success' || \
 # ---------- 2. Instrumented Test ausführen ------------------------------------
 
 echo "== Führe KeyTabDeviceScreensTest aus (dauert ~1-2 Min) ..."
-RSH "am instrument -w -e class com.piotv.keytab.KeyTabDeviceScreensTest \
+RSH "am instrument -w -e screens true -e class com.piotv.keytab.KeyTabDeviceScreensTest \
   com.piotv.keytab.debug.test/androidx.test.runner.AndroidJUnitRunner" \
   2>&1 | grep -E "DeviceScreens|Time:|OK |FAILURES|INSTRUMENTATION_STATUS: stack" | head -40
 

@@ -35,6 +35,8 @@ class SwipeManager(
     private val swipeSamples = mutableListOf<SwipePathLogic.Sample>()
     private var swipeStartLoc: SwipePathLogic.Sample? = null
     private var lastKeyCenter: Char? = null
+    /** Gecachte Tasten-Zentren für die Dauer einer Geste (v0.16, siehe [centers]). */
+    private var cachedCenters: List<SwipePathLogic.KeyCenter>? = null
 
     /** Aktiver Feld-Info (Passwort-Schutz). null = unbekannt → Swipe erlaubt. */
     var editorInfo: android.view.inputmethod.EditorInfo? = null
@@ -61,6 +63,7 @@ class SwipeManager(
         swipeSamples.clear()
         swipeStartLoc = SwipePathLogic.Sample(x, y)
         lastKeyCenter = null
+        cachedCenters = null // frische Zentren pro Geste (v0.16)
     }
 
     /**
@@ -136,11 +139,12 @@ class SwipeManager(
         swipeSamples.clear()
         swipeStartLoc = null
         lastKeyCenter = null
+        cachedCenters = null
 
         if (!swipeEnabled() || samples.isEmpty()) return emptyList()
         if (!SwipePathLogic.isSwipeAllowed(editorInfo)) return emptyList()
 
-        val route = SwipePathLogic.pathLetters(samples, centersFor(baseLetters))
+        val route = SwipePathLogic.pathLetters(samples, centers())
         if (route.isEmpty()) return emptyList()
 
         val scored = SwipeScorer.score(route, engine)
@@ -172,7 +176,7 @@ class SwipeManager(
     fun applySwipeLikely() {
         clearPreview()
         if (!SwipePathLogic.isSwipeAllowed(editorInfo)) return
-        val route = SwipePathLogic.pathLetters(swipeSamples, centersFor(baseLetters))
+        val route = SwipePathLogic.pathLetters(swipeSamples, centers())
         if (route.isEmpty()) return
         val engine = engine ?: return
         // Kandidaten aus der bisherigen Route → wahrscheinliche nächste Tasten.
@@ -302,6 +306,7 @@ class SwipeManager(
         swipeSamples.clear()
         swipeStartLoc = null
         lastKeyCenter = null
+        cachedCenters = null
     }
 
     /** Wahr, wenn aktuell Swipe-Samples gesammelt werden (für Touch-Delegation). */
@@ -322,13 +327,18 @@ class SwipeManager(
     private fun minSwipeDistPx(): Float =
         SwipeKeyGeometry.minSwipeDistPx(baseLetters)
 
-    /** @see SwipeKeyGeometry.centersFor */
-    private fun centersFor(baseLetters: Map<Button, Char>): List<SwipePathLogic.KeyCenter> =
-        SwipeKeyGeometry.centersFor(baseLetters)
+    /**
+     * Tasten-Zentren für die aktuelle Geste — einmalig berechnet und für alle
+     * Move-Events derselben Geste wiederverwendet (v0.16). Vorher rief jedes
+     * Move-Event [SwipeKeyGeometry.centersFor] neu auf (~30 × getLocationInWindow
+     * pro Event); jetzt nur noch einmal pro Geste.
+     */
+    private fun centers(): List<SwipePathLogic.KeyCenter> =
+        cachedCenters ?: SwipeKeyGeometry.centersFor(baseLetters).also { cachedCenters = it }
 
-    /** @see SwipeKeyGeometry.charAt */
+    /** @see SwipePathLogic.charAt */
     private fun charAt(x: Float, y: Float): Char? =
-        SwipeKeyGeometry.charAt(x, y, baseLetters)
+        SwipePathLogic.charAt(x, y, centers())
 
     /** Setzt die aktuelle Engine (vom Service bei Engine-Ready / Feldwechsel). */
     fun setEngine(e: SuggestionEngine?) { engine = e }

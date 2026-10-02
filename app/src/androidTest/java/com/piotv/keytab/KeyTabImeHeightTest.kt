@@ -56,14 +56,12 @@ class KeyTabImeHeightTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val device get() = UiDevice.getInstance(instrumentation)
     private val pkg get() = instrumentation.targetContext.packageName
-    private var previousIme: String = ""
-
     @Before
     fun setUp() {
         // Erst das IME umschalten, dann starten: sonst bindet das erste
         // EditText die Input-Session an das vorherige Standard-IME (Gboard)
         // und KeyTab wird nie gefragt. Siehe KeyTabImeEndToEndTest.
-        previousIme = shell("settings get secure default_input_method").trim()
+        // v0.16: kein previousIme-Save mehr — das IME-Fenster bleibt über den Lauf aktiv.
         assertTrue("KeyTab-IME nicht registriert", shell("ime list -s -a").contains(KEYTAB_IME))
         shell("ime enable $KEYTAB_IME")
         shell("ime set $KEYTAB_IME")
@@ -104,7 +102,7 @@ class KeyTabImeHeightTest {
 
     @After
     fun tearDown() {
-        if (previousIme.isNotBlank() && previousIme != "null") shell("ime set $previousIme")
+        // v0.16: bewusst KEIN Rückschalten auf das vorherige IME mehr (ein Durchlauf).
     }
 
     // ---------------- Tests ----------------
@@ -219,6 +217,34 @@ class KeyTabImeHeightTest {
         // hier waere wieder der "festgenagelte" Zustand von vor dem Fix.
         assertTrue("Nach dem Zurueck muss die Normalhoehe kommen: " +
             "vorher=$normal, jetzt=$back", kotlin.math.abs(back - normal) <= 16)
+    }
+
+    @Test
+    fun editorTabIstNichtKleinerAlsInhaltsTabs() {
+        val editor = imeHeightAfterTab("EDITOR")
+        val files = imeHeightAfterTab("FILES")
+        val tolerance = instrumentation.targetContext.resources
+            .getDimensionPixelSize(com.piotv.keytab.R.dimen.maximize_row_height)
+        assertTrue("Editor darf nicht kleiner als Inhalts-Tabs sein: editor=$editor files=$files",
+            editor >= files - tolerance)
+    }
+
+    @Test
+    fun wiederholterTabWechselBleibtStabil() {
+        val first = imeHeightAfterTab("FILES")
+        selectTab("ABC")
+        selectTab("EDITOR")
+        val second = imeHeightAfterTab("FILES")
+        assertTrue("Tab-Wechsel muss die Hoehe stabil lassen: first=$first second=$second",
+            kotlin.math.abs(first - second) <= 32)
+    }
+
+    @Test
+    fun tastaturBleibtNachTabWechselSichtbar() {
+        assertTrue("FILES-Tab nicht erreichbar", selectTab("FILES") != null)
+        assertTrue("key_maximize muss in FILES sichtbar sein", waitFor("key_maximize") != null)
+        assertTrue("ABC-Tab nicht erreichbar", selectTab("ABC") != null)
+        assertTrue("key_space muss in ABC sichtbar sein", waitFor("key_space") != null)
     }
 
     // ---------------- Hilfen ----------------

@@ -51,19 +51,33 @@ class TrailKeyboardPainter(
     }
 
     /**
-     * Wendet die gespeicherten Decay-Stufen auf die Tastatur-Buttons an:
-     * erst alle alten Overlays entfernen, dann je Buchstabe das Overlay
-     * mit seiner Farbe setzen. Buchstaben ohne Eintrag bleiben unberuehrt.
+     * Wendet die gespeicherten Decay-Stufen auf die Tastatur-Buttons an.
+     *
+     * V0.16 (Performance): statt bei jedem Aufruf ALLE Tasten zu löschen
+     * ([clear]) und neu zu setzen, wird eine Differenz gegen den zuletzt
+     * angezeigten Zustand gebildet ([TrailOverlayDiff]). Nur Tasten, deren
+     * Overlay verschwindet oder seine Farbe ändert, werden berührt — das
+     * reduziert die View-/Invalidate-Arbeit pro Tastendruck drastisch
+     * (die Jank beim heißen Tippen ist draw-seitig, siehe DEVICE_PERF.md).
      */
     fun apply(
         steps: Map<Char, Int>,
         kinds: Map<Char, TrailLogic.TrailKind>,
         maxSteps: Int
     ) {
-        clear()
+        val target = HashMap<Button, Int>()
         for ((btn, letter) in baseLetters) {
             val color = overlayColorFor(letter, steps, kinds, maxSteps) ?: continue
+            target[btn] = color
+        }
+        val diff = TrailOverlayDiff.compute(applied, target)
+        for (btn in diff.remove) {
+            btn.foreground = null
+            applied.remove(btn)
+        }
+        for ((btn, color) in diff.set) {
             applyTrailToButton(btn, color)
+            applied[btn] = color
         }
     }
 
@@ -91,10 +105,14 @@ class TrailKeyboardPainter(
         }
     }
 
+    /** Zuletzt angezeigte Overlays (Button → Farbe) — Grundlage der Differenz. */
+    private val applied = HashMap<Button, Int>()
+
     /** Entfernt alle Trail-Overlays (Original-Hintergruende bleiben unberuehrt). */
     fun clear() {
-        for ((btn, _) in baseLetters) {
+        for ((btn, _) in applied) {
             btn.foreground = null
         }
+        applied.clear()
     }
 }

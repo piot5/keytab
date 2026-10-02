@@ -86,5 +86,24 @@ object KeyScaleLogic {
         }
         return out
     }
+
+    /**
+     * Liefert nur die Buchstaben, deren effektive Skala sich gegenüber
+     * [previous] ändert. Ein fehlender Eintrag bedeutet neutral (1.0×).
+     *
+     * V0.16 (Performance): [DynamicKeyScaler] berührt so nur Tasten, deren
+     * Größe sich tatsächlich bewegt — statt bei jedem Tastendruck `scaleX`,
+     * `scaleY` und `weight` aller ~30 Buchstaben-Tasten neu zu setzen.
+     * Der Wert ist die Ziel-Skala (auch 1.0× für eine Zurücksetzung).
+     */
+    fun changedScales(previous: Map<Char, Float>, target: Map<Char, Float>): Map<Char, Float> {
+        val out = HashMap<Char, Float>()
+        for (c in (previous.keys + target.keys)) {
+            val p = previous[c] ?: 1f
+            val t = target[c] ?: 1f
+            if (p != t) out[c] = t
+        }
+        return out
+    }
 }
 

@@ -1,0 +1,4 @@
+- Version 0.16: reduced typing jank under thermal load (draw-side optimizations)
+- Trail overlays, dynamic key scaling and swipe centers now only update changed keys
+- 515 unit tests in 54 suites, 0 failures
+- 42 instrumented tests in a single run (screenshot/GIF tests opt-in)

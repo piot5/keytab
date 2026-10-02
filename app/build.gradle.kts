@@ -62,8 +62,8 @@ android {
         applicationId = "com.piotv.keytab"
         minSdk = 24
         targetSdk = 34
-        versionCode = 30
-        versionName = "0.15"
+        versionCode = 31
+        versionName = "0.16"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -114,6 +114,15 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
         }
+    }
+
+    // F-Droid-Reproducible-Builds: Der AGP-Signaturblock "Dependency metadata"
+    // (ID 0x504B4453, fuer Google Play) wird von fdroidserver abgelehnt:
+    // "Found extra signing block 'Dependency metadata'" (check-apk-Job). Deshalb
+    // hier abschalten — betrifft nur APK/Bundle-Metadaten, nicht die App selbst.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     compileOptions {

@@ -22,6 +22,12 @@ class DynamicKeyScaler(
         neighborLookup = computeNeighbors()
     }
 
+    /** Zuletzt angewendete effektive Skala je Buchstabe (fehlt = neutral 1.0×).
+     *  Grundlage der Differenz, damit nur Tasten berührt werden, deren Skala
+     *  sich tatsächlich ändert (weniger Layout-/Invalidate-Arbeit pro Tastendruck,
+     *  v0.16 Performance — die Jank beim heißen Tippen ist draw-seitig). */
+    private var lastScales: Map<Char, Float> = emptyMap()
+
     /**
      * Skaliert alle Buchstaben-Tasten anhand der aktuellen Vorschläge.
      * Wahrscheinliche Tasten wachsen real (Layout-Gewicht + visuelle Skalierung),
@@ -44,12 +50,15 @@ class DynamicKeyScaler(
         val scaleMap = if (enabled) {
             KeyScaleLogic.scales(charScore.mapKeys { it.key.first() }, neighborLookup)
         } else emptyMap()
+        val changed = KeyScaleLogic.changedScales(lastScales, scaleMap)
         // Echtes Wachstum statt nur Transformation: Das Layout-Gewicht bestimmt
         // den tatsächlichen Platz in der Reihe — die Taste wird physisch größer
         // (auch die Trefferfläche), Nachbarn weichen real aus. Gleichzeitig bleibt
         // ein leichter visuelle Skalierung für den „über das Raster ragend“-Effekt.
+        // V0.16: nur geänderte Skalen anfassen (skip unchanged → weniger Draw-Arbeit).
         for ((btn, letter) in baseLetters) {
-            val s = scaleMap[letter.lowercaseChar()] ?: 1f
+            val c = letter.lowercaseChar()
+            val s = changed[c] ?: continue
             val lp = btn.layoutParams as? LinearLayout.LayoutParams
             if (lp != null && lp.weight != s) {
                 lp.weight = s
@@ -58,6 +67,7 @@ class DynamicKeyScaler(
             btn.scaleX = s
             btn.scaleY = s
         }
+        lastScales = scaleMap
     }
 
     /** Direkte Nachbarschaft: gleiche Zeile ±1 Spalte, angrenzende Zeile ±1 Spalte. */

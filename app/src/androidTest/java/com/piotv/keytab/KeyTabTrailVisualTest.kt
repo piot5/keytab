@@ -49,11 +49,9 @@ class KeyTabTrailVisualTest {
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val device get() = UiDevice.getInstance(instrumentation)
-    private var previousIme: String = ""
-
     @Before
     fun activateKeyTab() {
-        previousIme = shell("settings get secure default_input_method").trim()
+        // v0.16: kein previousIme-Save mehr — das IME-Fenster bleibt über den Lauf aktiv.
         assertTrue("Kein KeyTab-IME registriert", shell("ime list -s -a").contains(KEYTAB_IME))
         shell("ime enable $KEYTAB_IME")
         shell("ime set $KEYTAB_IME")
@@ -66,7 +64,7 @@ class KeyTabTrailVisualTest {
 
     @After
     fun restoreIme() {
-        if (previousIme.isNotBlank() && previousIme != "null") shell("ime set $previousIme")
+        // v0.16: bewusst KEIN Rückschalten auf das vorherige IME mehr (ein Durchlauf).
     }
 
     @Test

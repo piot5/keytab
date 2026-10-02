@@ -102,4 +102,32 @@ class DynamicKeyScalerTest {
         scaler.apply(emptyList(), 0, enabled = true)
         for ((btn, _) in map) assertEquals(1f, btn.scaleX, 0.001f)
     }
+
+    @Test
+    fun `Skalierung wird beim Deaktivieren wieder neutralisiert (changedScales-Reset)`() {
+        val (_, map) = board()
+        val scaler = DynamicKeyScaler(map)
+        scaler.rebuildNeighbors()
+        scaler.apply(listOf(SuggestionEngine.Suggestion("abc", 9.0)), 0, enabled = true)
+        val top = button(map, 'a')
+        assertEquals(KeyScaleLogic.MAX_SCALE, top.scaleX, 0.001f)
+        scaler.apply(listOf(SuggestionEngine.Suggestion("abc", 9.0)), 0, enabled = false)
+        assertEquals("nach Deaktivieren wieder neutral", 1f, top.scaleX, 0.001f)
+        assertEquals(1f, top.scaleY, 0.001f)
+        assertEquals(1f, (top.layoutParams as LinearLayout.LayoutParams).weight, 0.001f)
+    }
+
+    @Test
+    fun `erneutes Anwenden derselben Vorschlaege bleibt idempotent`() {
+        val (_, map) = board()
+        val scaler = DynamicKeyScaler(map)
+        scaler.rebuildNeighbors()
+        val suggestions = listOf(SuggestionEngine.Suggestion("abc", 9.0))
+        scaler.apply(suggestions, 0, enabled = true)
+        val top = button(map, 'a')
+        assertEquals(KeyScaleLogic.MAX_SCALE, top.scaleX, 0.001f)
+        // Zweiter Lauf mit identischen Vorschlägen darf den Zustand nicht verändern.
+        scaler.apply(suggestions, 0, enabled = true)
+        assertEquals(KeyScaleLogic.MAX_SCALE, top.scaleX, 0.001f)
+    }
 }

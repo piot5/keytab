@@ -1,6 +1,6 @@
-# F-Droid Submission — Vorbereitung (2026-09-30)
+# F-Droid Submission — Antrag eingereicht (2026-10-01)
 
-Status: **in Vorbereitung** · Paket-ID `com.piotv.keytab` · MIT · minSdk 24
+Status: **Antrag eingereicht — MR läuft** ([`fdroid/fdroiddata!50822`](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822)) · Paket-ID `com.piotv.keytab` · MIT · minSdk 24
 
 Anders als IzzyOnDroid (listet unsere CI-APKs) **baut F-Droid die App selbst**
 aus dem Quellcode und verifiziert idealerweise, dass der F-Droid-Build binär
@@ -14,8 +14,8 @@ renommiertesten FOSS-Store.
 | Baustein | Pfad | Status |
 |---|---|---|
 | Fastlane-Baum (Titel, Beschreibungen, Changelogs, Screenshots) | `fastlane/metadata/android/en-US/` | ✅ vollständig (gleiche Struktur, die F-Droid liest) |
-| fdroiddata-Metadaten-Entwurf | `docs/fdroiddata-metadata-com.piotv.keytab.yml` | ✅ Entwurf, vor MR final gegenlenken |
-| Reproducible-Build-Verifikation | `scripts/verify_reproducible.sh` | ✅ Skript, Erstrausführung nötig (Abschnitt 2) |
+| fdroiddata-Metadaten | `docs/fdroiddata-metadata-com.piotv.keytab.yml` | ✅ als MR eingereicht (Abschnitt 3) |
+| Reproducible-Build-Verifikation | `scripts/verify_reproducible.sh` | ✅ Skript, Erstlauf bestanden (Abschnitt 2) |
 | Kein `INTERNET`, keine Tracker | `AndroidManifest.xml` | ✅ |
 | Signierte Releases + SHA-256 | GitHub Releases | ✅ |
 
@@ -47,8 +47,8 @@ Dabei traten zwei Prüfsteine auf (beide im Skript dauerhaft gelöst):
 Beide Punkte sind genau die häufigsten F-Droid-Build-Ablehnungen — sie sind
 hier als Skriptverhalten abgefangen, nicht als lokale Frickelei.
 
-**Re-Verifikation nach jedem Release-Tag** (kurz vor dem MR erneut laufen
-lassen, falls sich am Build geändert hat):
+**Re-Verifikation nach jedem Release-Tag** (falls sich am Build geändert hat,
+vor dem nächsten Release erneut laufen lassen):
 
 Typische Stolpersteine, falls ein späterer Lauf abweicht (in dieser Reihenfolge
 prüfen):
@@ -63,16 +63,17 @@ prüfen):
 3. **Nicht-deterministische Codegenerierung** (Room/Compose) — Dateien in
    `app/build/generated` zweier Läufe diffen; ggf. AGP-/Kotlin-Upgrade als Fix.
 
-## 3. Der Antrag selbst (nur Kontoinhaber)
+## 3. Der Antrag (eingereicht am 2026-10-01)
 
-1. F-Droid-Metadaten als MR: Fork von
+1. ✅ F-Droid-Metadaten als MR: Fork von
    <https://gitlab.com/fdroid/fdroiddata>, Datei
-   `metadata/com.piotv.keytab.yml` aus unserem Entwurf (Abschnitt 1) einstellen,
-   Merge Request gegen `master` eröffnen. Betreff: „Add app: KeyTab".
-2. Im MR-Text kurz referenzieren: Lizenz MIT, kein `INTERNET`, 100 % Kotlin,
+   `metadata/com.piotv.keytab.yml` aus unserem Entwurf (Abschnitt 1) eingestellt,
+   Merge Request gegen `master` eröffnet. Betreff: „Add app: KeyTab".
+   MR: <https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822> (`!50822`, Status `opened`).
+2. ✅ Im MR-Text referenziert: Lizenz MIT, kein `INTERNET`, 100 % Kotlin,
    Testumfang (501 Unit-Tests + Kover-Gate + 22 instrumentierte Tests), CI-Pipeline.
-3. Auf fdroiddata-Build-Logs warten; wenn F-Droid baut und (optional) der
-   Reproducible-Check gelingt, wird die App aufgenommen.
+3. ⏳ Läuft: auf fdroiddata-Build-Logs warten; wenn F-Droid baut und (optional)
+   der Reproducible-Check gelingt, wird die App aufgenommen.
 
 ## 4. Danach
 

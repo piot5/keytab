@@ -25,26 +25,22 @@ fi
 
 adb shell input keyevent 82 || true
 
-# Emulator-Flake: "KeyTab keyboard did not become visible" ist ein Cold-Start-
-# Rennen. `am instrument` killt den Ziel-Prozess (der auch den IME-Service
-# hostet) und startet ihn neu; der erste showSoftInput kann vor
-# onCreateInputView verloren gehen. Ein zweiter Lauf trifft den warmen Prozess
-# und ist fast immer gruen. Deshalb: bis zu zwei Versuche.
+# v0.16: genau EIN Lauf (kein Retry). Das Cold-Start-Rennen des ersten
+# showSoftInput ist in den Tests selbst entschaerft (waitForKeyboard macht
+# einen echten Touch auf das EditText, wenn der erste Versuch leer laeuft).
+# Die langsamen Screenshot-/GIF-Tests (KeyTabDeviceScreensTest) laufen nur
+# mit `-e screens true` — der Standard-Lauf bleibt so unter der
+# 5-Minuten-Grenze bei ~42 Tests in einem Durchgang.
+# Vor dem Lauf den IME-Prozess zurücksetzen: Zustand (Symbol-Modus, CapsLock,
+# letzter Tab) überlebt sonst einen vorherigen `am instrument`-Lauf.
+adb shell am force-stop com.piotv.keytab.debug >/dev/null 2>&1 || true
+
 rc=1
-try=0
-while [ "$try" -lt 2 ]; do
-    try=$((try + 1))
-    echo "== connectedDebugAndroidTest, Versuch $try/2 =="
-    set +e
-    ./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
-    rc=$?
-    set -e
-    if [ "$rc" -eq 0 ]; then
-        break
-    fi
-    echo "== Versuch $try fehlgeschlagen (Exit $rc) ==" >&2
-    sleep 5
-done
+echo '== connectedDebugAndroidTest (ein Lauf) =='
+set +e
+./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
+rc=$?
+set -e
 
 if [ "$rc" -ne 0 ]; then
     adb shell pm list instrumentation >&2 || true

@@ -12,6 +12,7 @@ import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import org.junit.After
 import org.junit.Assert.assertTrue
+import org.junit.Assume
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -55,13 +56,20 @@ class KeyTabDeviceScreensTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val device get() = UiDevice.getInstance(instrumentation)
     private val pkg get() = instrumentation.targetContext.packageName
-    private var previousIme: String = ""
     private lateinit var outDir: File
     private val framesDir = File("/data/local/tmp/keytab_frames")
 
     @Before
     fun activateKeyTab() {
-        previousIme = shell("settings get secure default_input_method").trim()
+        // v0.16: Screenshots/GIFs sind ein Dokumentations-Werkzeug und der
+        // langsamste Teil der Suite. Der Standard-`connectedDebugAndroidTest`
+        // überspringt sie (5-Minuten-Budget, ein Lauf); device_screens.sh
+        // aktiviert sie explizit mit `-e screens true`.
+        Assume.assumeTrue(
+            "Screenshots deaktiviert (aktivieren via -e screens true)",
+            InstrumentedTestFlags.screensEnabled()
+        )
+        // v0.16: kein previousIme-Save mehr — das IME-Fenster bleibt über den Lauf aktiv.
         assertTrue("Kein KeyTab-IME registriert", shell("ime list -s -a").contains(KEYTAB_IME))
         shell("ime enable $KEYTAB_IME")
         shell("ime set $KEYTAB_IME")
@@ -82,7 +90,7 @@ class KeyTabDeviceScreensTest {
 
     @After
     fun restoreIme() {
-        if (previousIme.isNotBlank() && previousIme != "null") shell("ime set $previousIme")
+        // v0.16: bewusst KEIN Rückschalten auf das vorherige IME mehr (ein Durchlauf).
     }
 
     /** Sicherheitsnetz: Display an, Keyguard weg (no-op ohne Lock). */

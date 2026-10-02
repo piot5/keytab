@@ -150,4 +150,47 @@ class AppInstrumentedTest {
         )
         assertTrue("FileProvider fehlt oder ist falsch autorisiert", provider != null)
     }
+
+    @Test
+    fun wordCorporaAssets_areBundled() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        for (c in listOf("de", "en", "es", "fr", "it", "pt", "nl")) {
+            val name = "${c}_freq_top6000.txt"
+            val size = context.assets.open(name).use { it.readBytes().size }
+            assertTrue("Korpus fehlt oder ist leer: $name", size > 0)
+        }
+    }
+
+    @Test
+    fun prefs_roundTripPersists() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val prefs = Prefs.of(context)
+        prefs.edit().putBoolean("instrumented_test_flag", true).commit()
+        assertTrue(prefs.getBoolean("instrumented_test_flag", false))
+        prefs.edit().remove("instrumented_test_flag").commit()
+    }
+
+    @Test
+    fun imeSubtype_isRegistered() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val imm = context.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
+        val enabled = imm.enabledInputMethodList.map { it.id }
+        assertTrue("KeyTab-IME fehlt in der Subtype-Liste",
+            enabled.any { it.contains(context.packageName) })
+    }
+
+    @Test
+    fun configFile_wirdAufGeraetAngelegt() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val file = com.piotv.keytab.ime.SettingsConfig.fillMissing(context)
+        assertTrue("keytab_config.txt muss angelegt und nicht leer sein",
+            file.isFile && file.readText().isNotBlank())
+    }
+
+    @Test
+    fun languagesList_containsSevenLocales() {
+        val codes = Languages.all.map { it.code }.toSet()
+        assertTrue("Sprachcodes fehlen: $codes",
+            codes.containsAll(listOf("de", "en", "es", "fr", "it", "pt", "nl")))
+    }
 }

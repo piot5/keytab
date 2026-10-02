@@ -100,4 +100,36 @@ class KeyScaleLogicTest {
         assertTrue(KeyScaleLogic.MAX_SCALE > 1.2f)
         assertTrue(KeyScaleLogic.MIN_NEIGHBOR_SCALE in 0.8f..0.9f)
     }
+
+    // ---------- changedScales (v0.16 Performance-Differenz) ----------
+
+    @Test
+    fun `changedScales ohne Vorzustand liefert alle Zielwerte`() {
+        val target = mapOf('a' to KeyScaleLogic.MAX_SCALE, 'b' to KeyScaleLogic.MIN_NEIGHBOR_SCALE)
+        assertEquals(target, KeyScaleLogic.changedScales(emptyMap(), target))
+    }
+
+    @Test
+    fun `changedScales bei gleichem Zustand ist leer`() {
+        val state = mapOf('a' to KeyScaleLogic.MAX_SCALE, 'b' to 1f)
+        assertTrue(KeyScaleLogic.changedScales(state, state).isEmpty())
+    }
+
+    @Test
+    fun `changedScales meldet geaenderte und neue Buchstaben`() {
+        val prev = mapOf('a' to KeyScaleLogic.MAX_SCALE, 'b' to KeyScaleLogic.MID_SCALE)
+        val target = mapOf('a' to KeyScaleLogic.MID_SCALE, 'c' to KeyScaleLogic.MAX_SCALE)
+        val out = KeyScaleLogic.changedScales(prev, target)
+        assertEquals(KeyScaleLogic.MID_SCALE, out['a']!!, 0.001f)
+        assertEquals(KeyScaleLogic.MAX_SCALE, out['c']!!, 0.001f)
+        assertTrue("'b' verschwindet → Reset auf neutral", out.containsKey('b'))
+        assertEquals(1f, out['b']!!, 0.001f)
+    }
+
+    @Test
+    fun `changedScales setzt verschwundene Skala auf neutral zurueck`() {
+        val prev = mapOf('a' to KeyScaleLogic.MAX_SCALE)
+        val out = KeyScaleLogic.changedScales(prev, emptyMap())
+        assertEquals(mapOf('a' to 1f), out)
+    }
 }

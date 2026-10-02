@@ -76,11 +76,11 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**501 unit tests in 52 suites, 0 failures** (verified 2026-09-29, `testDebugUnitTest` + `koverVerify` green):
+**515 unit tests in 54 suites, 0 failures** (verified 2026-10-01, `testDebugUnitTest` + `koverVerify` green):
 
 The largest suites: `SuggestionEngineTest` (33), `SwipePathLogicTest` (23), `PanelHeightsTest` (22), `SwipeManagerTest` (20), `TextEditLogicTest` (20), `SwipeScorerTest` (19), `TrailLogicTest` (19), `FileManagerModelTest`/`SuggestionControllerTest`/`SuggestionReplaceLogicTest` (17 each) — plus 41 further suites down to `TrailPerformanceTest` (1).
 
-Test code is 7,462 lines in 52 files against 10,830 lines of main code (74 files) — a **68.9 % test-to-main ratio**. Line coverage measured with Kover is **70.8 %** (`LINE` 3228/4561), branch coverage **55.7 %** (`BRANCH` 1775/3186); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-09-28). Per package: the Android-free logic (`com.piotv.keytab.ime`: 71.8 %), the theme UI sections (`sections`: 94.1 %) and the in-app file manager (`file`: 77.4 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `knowsWord`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Frame timing is measured on-device with `scripts/device_perf.py` (Shizuku/rish, `dumpsys gfxinfo`, target: the debug `ImeTargetActivity`'s plain text field). Re-measured 2026-09-29 with a verified setup and median-of-runs methodology (see [`docs/DEVICE_PERF.md`](docs/DEVICE_PERF.md)): **backspace-autorepeat PASS** — 400 ms repeat bursts into a filled field, 3 runs, median Jank@60 1.3 % (≤ 10 %), p50 5 ms / p95 13 ms, UI-thread p95 3.2 ms. The earlier "FAIL" (61 % Jank on 36 frames from 2 events) was a measurement artifact. **Typing (empty field, active predictions, 192 events) is thermal-state dependent**: 3.4 % Jank@60 at 34.1 °C battery temperature (PASS) vs. 39–42 % at ≥ 35.1 °C (FAIL) on the identical workload — a device throttling threshold, not app behavior; single-run numbers without a thermal log are not usable as a gate. UI-thread p95 stays ≤ 6.4 ms in every scenario (deadline misses are draw-side, not logic-side). Instrumented tests (`app/src/androidTest`, 22 tests) run in CI on an API-34 emulator via `scripts/run_instrumented_tests.sh` and `./gradlew :app:connectedDebugAndroidTest`; the full suite is also verified on a real device (Android 16, 1220x2712 @520dpi, 22/22 green, 2026-09-30).
+Test code is 7,652 lines in 54 files against 10,931 lines of main code (75 files) — a **70.0 % test-to-main ratio**. Line coverage measured with Kover is **70.8 %** (`LINE` 3228/4561), branch coverage **55.7 %** (`BRANCH` 1775/3186); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-09-28). Per package: the Android-free logic (`com.piotv.keytab.ime`: 71.8 %), the theme UI sections (`sections`: 94.1 %) and the in-app file manager (`file`: 77.4 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `knowsWord`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Frame timing is measured on-device with `scripts/device_perf.py` (Shizuku/rish, `dumpsys gfxinfo`, target: the debug `ImeTargetActivity`'s plain text field). Re-measured 2026-09-29 with a verified setup and median-of-runs methodology (see [`docs/DEVICE_PERF.md`](docs/DEVICE_PERF.md)): **backspace-autorepeat PASS** — 400 ms repeat bursts into a filled field, 3 runs, median Jank@60 1.3 % (≤ 10 %), p50 5 ms / p95 13 ms, UI-thread p95 3.2 ms. The earlier "FAIL" (61 % Jank on 36 frames from 2 events) was a measurement artifact. **Typing (empty field, active predictions, 192 events) is thermal-state dependent**: 3.4 % Jank@60 at 34.1 °C battery temperature (PASS) vs. 39–42 % at ≥ 35.1 °C (FAIL) on the identical workload — a device throttling threshold, not app behavior; single-run numbers without a thermal log are not usable as a gate. UI-thread p95 stays ≤ 6.4 ms in every scenario (deadline misses are draw-side, not logic-side). Instrumented tests (`app/src/androidTest`, 42 tests) run in CI on an API-34 emulator via `scripts/run_instrumented_tests.sh` and `./gradlew :app:connectedDebugAndroidTest` (single run, ≤ 5 min; the screenshot/GIF documentation tests are opt-in via `-e screens true`); the full suite is also verified on a real device (Android 16, 1220x2712 @520dpi, 2026-09-30).
 
 ```bash
 # Run all unit tests
@@ -191,7 +191,7 @@ See [`docs/RELEASE.md`](docs/RELEASE.md) for the full release process. Dependenc
 ## Project structure
 
 ```
-app/src/main/java/com/piotv/keytab/            # 74 Kotlin files
+app/src/main/java/com/piotv/keytab/            # 75 Kotlin files
 ├── Prefs.kt                       # Central preference keys
 ├── MainActivity.kt                # Settings: enable keyboard, theme, language, toggles
 ├── ThemeSettingsActivity.kt       # Theme settings: color wheel, gradients, per-theme colors
@@ -243,8 +243,8 @@ app/src/main/java/com/piotv/keytab/            # 74 Kotlin files
     ├── KeyTabExecutors.kt    # Shared executor + main handler
     └── …                     # InputTargets, LiftSpan, KeyTabConfig
 
-app/src/test/java/com/piotv/keytab/            # 52 test classes, 501 tests, 7,462 lines
-app/src/androidTest/                           # 22 instrumented tests, 1,151 lines (CI: API 34 emulator)
+app/src/test/java/com/piotv/keytab/            # 54 test classes, 515 tests, 7,652 lines
+app/src/androidTest/                           # 42 instrumented tests, 1,531 lines (CI: API 34 emulator)
 app/src/main/res/values/strings.xml            # 141 strings (default = German)
 app/src/main/res/values-en/                    # English locale (141 strings — complete)
 app/src/main/res/values-night/                 # Night-mode resource qualifiers
@@ -274,7 +274,7 @@ Issues and pull requests are welcome. Before opening a PR:
 
 ```bash
 sh scripts/check_docs_drift.sh                     # docs must match the code
-sh ./gradlew :app:testDebugUnitTest --offline      # 501 tests must stay green
+sh ./gradlew :app:testDebugUnitTest --offline      # 515 tests must stay green
 bash build_keytab.sh debug                         # must build
 ```
 

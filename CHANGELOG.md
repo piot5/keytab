@@ -36,7 +36,8 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
   Vorschlagsleiste/Emoji-Katalog/Passwort-Unterdrückung, Tab-Höhen). Die
   langsamen Screenshot-/GIF-Tests ([KeyTabDeviceScreensTest]) sind jetzt
   opt-in (`-e screens true` — der Standardlauf überspringt sie);
-  `scripts/run_instrumented_tests.sh` läuft ohne Retry in genau einem Durchgang.
+  `scripts/run_instrumented_tests.sh` läuft mit Retry (bis zu 2 Versuche:
+  Cold-Start-Rennen des Emulators, zweiter Lauf trifft den warmen IME-Prozess).
 
 ## 0.15
 

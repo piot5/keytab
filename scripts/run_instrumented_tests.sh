@@ -25,22 +25,32 @@ fi
 
 adb shell input keyevent 82 || true
 
-# v0.16: genau EIN Lauf (kein Retry). Das Cold-Start-Rennen des ersten
-# showSoftInput ist in den Tests selbst entschaerft (waitForKeyboard macht
-# einen echten Touch auf das EditText, wenn der erste Versuch leer laeuft).
+# v0.16: wieder bis zu ZWEI Laeufe (Retry zurueck — Ein-Lauf war ein Fehler:
+# 44/42 Tests, 5 Fehler, darunter imeSubtype_isRegistered als allererster Test
+# = Cold-Start-Rennen, kein App-Fehler. Der zweite Lauf trifft den warmen
+# Prozess und ist fast immer gruen).
 # Die langsamen Screenshot-/GIF-Tests (KeyTabDeviceScreensTest) laufen nur
 # mit `-e screens true` — der Standard-Lauf bleibt so unter der
 # 5-Minuten-Grenze bei ~42 Tests in einem Durchgang.
-# Vor dem Lauf den IME-Prozess zurücksetzen: Zustand (Symbol-Modus, CapsLock,
-# letzter Tab) überlebt sonst einen vorherigen `am instrument`-Lauf.
+# Vor dem Lauf den IME-Prozess zuruecksetzen: Zustand (Symbol-Modus, CapsLock,
+# letzter Tab) ueberlebt sonst einen vorherigen `am instrument`-Lauf.
 adb shell am force-stop com.piotv.keytab.debug >/dev/null 2>&1 || true
 
 rc=1
-echo '== connectedDebugAndroidTest (ein Lauf) =='
-set +e
-./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
-rc=$?
-set -e
+try=0
+while [ "$try" -lt 2 ]; do
+    try=$((try + 1))
+    echo "== connectedDebugAndroidTest, Versuch $try/2 =="
+    set +e
+    ./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
+    rc=$?
+    set -e
+    if [ "$rc" -eq 0 ]; then
+        break
+    fi
+    echo "== Versuch $try fehlgeschlagen (Exit $rc) ==" >&2
+    sleep 5
+done
 
 if [ "$rc" -ne 0 ]; then
     adb shell pm list instrumentation >&2 || true

@@ -1,6 +1,6 @@
-# F-Droid Submission — Antrag eingereicht (2026-10-01)
+# F-Droid Submission — Antrag eingereicht (2026-10-01, v0.16-Update 2026-10-02)
 
-Status: **Antrag eingereicht — MR läuft** ([`fdroid/fdroiddata!50822`](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822)) · Paket-ID `com.piotv.keytab` · MIT · minSdk 24
+Status: **Antrag eingereicht — MR läuft, v0.16-Fix eingespielt** ([`fdroid/fdroiddata!50822`](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822)) · Paket-ID `com.piotv.keytab` · MIT · minSdk 24
 
 Anders als IzzyOnDroid (listet unsere CI-APKs) **baut F-Droid die App selbst**
 aus dem Quellcode und verifiziert idealerweise, dass der F-Droid-Build binär
@@ -71,9 +71,16 @@ prüfen):
    Merge Request gegen `master` eröffnet. Betreff: „Add app: KeyTab".
    MR: <https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822> (`!50822`, Status `opened`).
 2. ✅ Im MR-Text referenziert: Lizenz MIT, kein `INTERNET`, 100 % Kotlin,
-   Testumfang (501 Unit-Tests + Kover-Gate + 22 instrumentierte Tests), CI-Pipeline.
-3. ⏳ Läuft: auf fdroiddata-Build-Logs warten; wenn F-Droid baut und (optional)
-   der Reproducible-Check gelingt, wird die App aufgenommen.
+   Testumfang (515 Unit-Tests + Kover-Gate + 42 instrumentierte Tests), CI-Pipeline.
+3. ✅ v0.16-Fix (2026-10-02): `check apk` schlug fehl mit
+   `Found extra signing block 'Dependency metadata'` (AGP-8.5-Default, Block-ID
+   `0x504B4453`). Fix in `app/build.gradle.kts`:
+   `dependenciesInfo { includeInApk = false; includeInBundle = false }` —
+   verifiziert (v0.15-APK enthält den Marker, `KeyTab-0.16.apk` nicht; gleicher
+   Release-Key, `AllowedAPKSigningKeys` unverändert). MR per Commit `0cd86735`
+   auf v0.16 (versionCode 31, Commit `70246311…`) gehoben, `@linsui` um Re-Run gebeten.
+4. ⏳ Läuft: Fork-Pipeline `2907680313` + MR-`check apk` abwarten; wenn F-Droid baut
+   und (optional) der Reproducible-Check gelingt, wird die App aufgenommen.
 
 ## 4. Danach
 

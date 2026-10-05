@@ -41,9 +41,15 @@ class KeyTabImeSuggestionsTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val device get() = UiDevice.getInstance(instrumentation)
     private val pkg get() = instrumentation.targetContext.packageName
+    private var previousIme: String = ""
+
     @Before
     fun activateKeyTab() {
-        // v0.16: kein previousIme-Save mehr — das IME-Fenster bleibt über den Lauf aktiv.
+        // v0.16.1: IME des Vorgaengers merken und im @After zurueckschalten —
+        // das beendet den KeyTab-Dienst und loescht Symbol-Ebene, Shift/CapsLock,
+        // Tab- und Maximiert-Zustand (Ursache der CI-Fehler, siehe
+        // KeyTabImeEndToEndTest).
+        previousIme = shell("settings get secure default_input_method").trim()
         assertTrue("Kein KeyTab-IME registriert", shell("ime list -s -a").contains(KEYTAB_IME))
         shell("ime enable $KEYTAB_IME")
         shell("ime set $KEYTAB_IME")
@@ -62,9 +68,17 @@ class KeyTabImeSuggestionsTest {
 
     @After
     fun restoreIme() {
-        // v0.16: bewusst KEIN Rückschalten auf das vorherige IME mehr (ein Durchlauf).
-        // v0.16.1: Tastatur-Zustand normalisieren (CI-Flake-Fix, siehe ImeTestReset).
-        runCatching { ImeTestReset.resetKeyboardState() }
+        // v0.16.1: zurueck auf das IME des Vorgaengers — beendet den
+        // KeyTab-Dienst, damit der naechste Test frisch startet (vor v0.16 war
+        // das der Normalfall; sein Wegfall war die Ursache der CI-Fehler).
+        if (previousIme.isNotBlank() && previousIme != "null" && previousIme != KEYTAB_IME) {
+            shell("ime set $previousIme")
+        } else {
+            val other = shell("ime list -s").lineSequence()
+                .map { it.trim() }
+                .firstOrNull { it.isNotEmpty() && it != KEYTAB_IME }
+            if (other != null) shell("ime set $other")
+        }
     }
 
     // __TESTS__

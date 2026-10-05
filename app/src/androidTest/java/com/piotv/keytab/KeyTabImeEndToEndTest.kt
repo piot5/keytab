@@ -35,8 +35,17 @@ class KeyTabImeEndToEndTest {
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val device get() = UiDevice.getInstance(instrumentation)
+    private var previousIme: String = ""
+
     @Before
     fun activateKeyTab() {
+        // v0.16.1: IME des Vorgaengers merken und im @After zurueckschalten.
+        // Der IME-Dienst ist zustandsbehaftet (Symbol-Ebene, Shift/CapsLock,
+        // zuletzt genutzter Tab, Maximiert-Zustand); v0.16 liess das Fenster
+        // ueber den ganzen Lauf aktiv, dadurch vergiftete ein Test den naechsten
+        // (CI: "letter not found: A", Feld bekam "@;|._" statt "normal").
+        // Zurueckschalten beendet den KeyTab-Dienst und erzwingt frischen Zustand.
+        previousIme = shell("settings get secure default_input_method").trim()
         // Reihenfolge ist entscheidend: erst das IME umschalten, dann die
         // Activity starten. Umgekehrt bekommt das erste EditText den Fokus,
         // solange noch das Standard-IME laeuft, und haelt diese Input-Session
@@ -66,12 +75,20 @@ class KeyTabImeEndToEndTest {
 
     @After
     fun restoreIme() {
-        // v0.16: bewusst KEIN Rückschalten auf das vorherige IME mehr — das
-        // IME-Fenster bleibt über den ganzen Lauf sichtbar (ein Durchlauf statt
-        // Aus-/Einblenden pro Test). Rückschalten nur noch manuell am Ende.
-        // v0.16.1: Tastatur-Zustand normalisieren (Symbol/Shift/CapsLock/Tab),
-        // damit ein Test keinen Schrott für Folgetests hinterlässt (CI-Flake).
-        runCatching { ImeTestReset.resetKeyboardState() }
+        // v0.16.1: zurueck auf das IME des Vorgaengers — beendet den
+        // KeyTab-Dienst, damit der naechste Test mit frischem Zustand startet
+        // (Symbol-Ebene, Shift/CapsLock, Tab, Maximiert-Zustand). Genau so lief
+        // es vor v0.16; das Weglassen war die Ursache der CI-Fehler.
+        if (previousIme.isNotBlank() && previousIme != "null" && previousIme != KEYTAB_IME) {
+            shell("ime set $previousIme")
+        } else {
+            // KeyTab war schon vorher aktiv (z. B. echtes Geraet): dann auf ein
+            // anderes aktiviertes IME schalten, damit der Dienst trotzdem endet.
+            val other = shell("ime list -s").lineSequence()
+                .map { it.trim() }
+                .firstOrNull { it.isNotEmpty() && it != KEYTAB_IME }
+            if (other != null) shell("ime set $other")
+        }
     }
 
     @Test

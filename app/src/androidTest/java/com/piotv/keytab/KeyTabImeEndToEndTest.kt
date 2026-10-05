@@ -69,6 +69,9 @@ class KeyTabImeEndToEndTest {
         // v0.16: bewusst KEIN Rückschalten auf das vorherige IME mehr — das
         // IME-Fenster bleibt über den ganzen Lauf sichtbar (ein Durchlauf statt
         // Aus-/Einblenden pro Test). Rückschalten nur noch manuell am Ende.
+        // v0.16.1: Tastatur-Zustand normalisieren (Symbol/Shift/CapsLock/Tab),
+        // damit ein Test keinen Schrott für Folgetests hinterlässt (CI-Flake).
+        runCatching { ImeTestReset.resetKeyboardState() }
     }
 
     @Test

@@ -173,8 +173,21 @@ class AppInstrumentedTest {
     @Test
     fun imeSubtype_isRegistered() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
+        // v0.16.1: IME erst enablen — als erster Test im Lauf trifft dieser sonst
+        // den kalten Prozess (CI-Flake: "fehlt in der Subtype-Liste"), obwohl das
+        // Manifest korrekt ist. Enable ist idempotent.
+        val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        uiAutomation.executeShellCommand(
+            "ime enable ${context.packageName}/com.piotv.keytab.ime.KeyTabImeService")
         val imm = context.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
-        val enabled = imm.enabledInputMethodList.map { it.id }
+        var enabled = imm.enabledInputMethodList.map { it.id }
+        // Cold-Start: Liste ggf. kurz abwarten (max ~3 s).
+        var tries = 0
+        while (enabled.none { it.contains(context.packageName) } && tries < 6) {
+            Thread.sleep(500)
+            enabled = imm.enabledInputMethodList.map { it.id }
+            tries++
+        }
         assertTrue("KeyTab-IME fehlt in der Subtype-Liste",
             enabled.any { it.contains(context.packageName) })
     }

@@ -103,6 +103,8 @@ class KeyTabImeHeightTest {
     @After
     fun tearDown() {
         // v0.16: bewusst KEIN Rückschalten auf das vorherige IME mehr (ein Durchlauf).
+        // v0.16.1: Tastatur-Zustand normalisieren (CI-Flake-Fix, siehe ImeTestReset).
+        runCatching { ImeTestReset.resetKeyboardState() }
     }
 
     // ---------------- Tests ----------------

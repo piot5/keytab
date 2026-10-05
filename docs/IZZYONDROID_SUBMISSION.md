@@ -1,6 +1,8 @@
-# IzzyOnDroid — Aufnahmeantrag (vorbereitet, 2026-09-26; Zahlen aktualisiert 2026-09-30)
+# IzzyOnDroid — Aufnahmeantrag EINGEREICHT (2026-10-05, Issue #672; v0.16)
 
-Stand: v0.15 (`versionCode 30`) · Paket-ID `com.piotv.keytab` · MIT
+Status: **EINGEREICHT** — https://codeberg.org/IzzyOnDroid/repodata/issues/672 (`[AppRequest] KeyTab`, v0.16 / versionCode 31) · Paket-ID `com.piotv.keytab` · MIT
+
+WICHTIG: Das GitLab-Repo `IzzyOnDroid/repo` ist ARCHIVIERT (read-only, 403) — Anträge laufen jetzt über Codeberg (`codeberg.org/IzzyOnDroid/repodata/issues`, Template `[AppRequest]`). Antragstext: `docs/IZZYONDROID_REQUEST_v016.md`.
 
 IzzyOnDroid listet Apps aus dem Upstream-Repo und zieht Beschreibung, Icon und
 Screenshots aus dem **Fastlane-Baum** des Repos (Quelle:

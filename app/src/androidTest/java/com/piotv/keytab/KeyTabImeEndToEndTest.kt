@@ -94,20 +94,13 @@ class KeyTabImeEndToEndTest {
         assertEquals("x ", activity.normalField.text.toString())
 
         activity.receivedKeyCodes.clear()
-        clickImeId("key_tab")
-        assertTrue("Tab must arrive as KEYCODE_TAB", activity.receivedKeyCodes.contains(KeyEvent.KEYCODE_TAB))
+        clickUntilKeyCode("key_tab", KeyEvent.KEYCODE_TAB, "Tab must arrive as KEYCODE_TAB")
 
         focus(activity.normalField)
-        activity.receivedKeyCodes.clear()
-        clickImeId("key_enter")
-        assertTrue("Enter must arrive as KEYCODE_ENTER",
-            activity.receivedKeyCodes.contains(KeyEvent.KEYCODE_ENTER))
+        clickUntilKeyCode("key_enter", KeyEvent.KEYCODE_ENTER, "Enter must arrive as KEYCODE_ENTER")
 
         focus(activity.normalField)
-        activity.receivedKeyCodes.clear()
-        clickImeId("key_del")
-        assertTrue("Backspace must arrive as KEYCODE_DEL",
-            activity.receivedKeyCodes.contains(KeyEvent.KEYCODE_DEL))
+        clickUntilKeyCode("key_del", KeyEvent.KEYCODE_DEL, "Backspace must arrive as KEYCODE_DEL")
     }
 
     @Test
@@ -179,7 +172,7 @@ class KeyTabImeEndToEndTest {
         repeat(2) {
             if (upper) return@repeat
             clickImeId("key_shift")
-            upper = uppercaseLetterPresent(1_500)
+            upper = uppercaseLetterPresent(SHIFT_RELABEL_WAIT_MS)
         }
         assertTrue("Nach Shift muessen Grossbuchstaben anliegen. Tasten: ${visibleButtonLabels()}", upper)
         clickImeText("A")
@@ -209,7 +202,7 @@ class KeyTabImeEndToEndTest {
             device.click(shiftBounds.centerX(), shiftBounds.centerY())
             device.click(shiftBounds.centerX(), shiftBounds.centerY())
             device.waitForIdle()
-            caps = uppercaseLetterPresent(1_500)
+            caps = uppercaseLetterPresent(SHIFT_RELABEL_WAIT_MS)
         }
         assertTrue("CapsLock muss Grossbuchstaben liefern. Tasten: ${visibleButtonLabels()}", caps)
         clickImeText("A")
@@ -356,6 +349,23 @@ class KeyTabImeEndToEndTest {
             By.clazz("android.widget.Button").textStartsWith("A")), timeoutMs) != null
 
     /**
+     * Taste klicken, bis der erwartete Keycode ankommt (max. 3 Anlaeufe).
+     * Der CI-Emulator ist sehr langsam: ein einzelner Klick geht dort verloren,
+     * bevor die Input-Session des neuen Fensters steht
+     * (CI: „Enter must arrive as KEYCODE_ENTER", „Backspace must arrive …").
+     */
+    private fun clickUntilKeyCode(id: String, keyCode: Int, message: String) {
+        val activity = activityRule.activity
+        repeat(3) {
+            activity.receivedKeyCodes.clear()
+            clickImeId(id)
+            if (activity.receivedKeyCodes.contains(keyCode)) return
+        }
+        assertTrue("$message (Tasten: ${visibleButtonLabels()})",
+            activity.receivedKeyCodes.contains(keyCode))
+    }
+
+    /**
      * Sichtbare Tastenbeschriftungen — Diagnose, wenn Shift/CapsLock nicht
      * greift: dann steht hier die tatsaechlich angezeigte Reihe (klein/gross,
      * Zahlenreihe, Symbol-Ebene) statt nur „kein 'A' im Baum".
@@ -390,5 +400,13 @@ class KeyTabImeEndToEndTest {
 
     private companion object {
         const val KEYTAB_IME = "com.piotv.keytab.debug/com.piotv.keytab.ime.KeyTabImeService"
+
+        /**
+         * Wartezeit auf das Umschalten der Buchstaben-Labels nach Shift/CapsLock.
+         * Auf dem CI-Emulator (API 34, sehr langsam) kam das Relabel nachweislich
+         * spaeter als 1,5 s — die Diagnose-Ausgabe zeigte im Fehlerfall bereits
+         * "Q | W | E ...", waehrend die Pruefung noch klein sah.
+         */
+        const val SHIFT_RELABEL_WAIT_MS = 4_000L
     }
 }

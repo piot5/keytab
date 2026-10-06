@@ -3,6 +3,10 @@ name: CI
 on:
   push:
   pull_request:
+  # Manueller Start: Actions -> CI -> "Run workflow" bzw. `gh workflow run ci.yml`.
+  # Damit laesst sich ein Lauf ohne Commit neu anstossen (z. B. nach geloeschten
+  # roten Runs) — der Code-Stand bleibt unveraendert.
+  workflow_dispatch:
 
 jobs:
   # Doku-Drift-Gate: laeuft zuerst und ohne Toolchain (kein Gradle, kein SDK),

@@ -11,6 +11,7 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
+import com.piotv.keytab.ime.Languages
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -352,17 +353,33 @@ class KeyTabTypingTest {
     private fun longPressExtra(field: EditText, from: String, letter: String): String {
         // Case-tolerant wie clickKey: bei Auto-Shift traegt die Taste "O" statt "o".
         val key = findKey(letter) ?: findKey(letter.swapCase()) ?: return ""
-        // Im Label kuendigt sich die erste Popup-Zelle an ("o\u00A0ö" -> "ö").
-        val hinted = firstExtraOf(key.text.orEmpty()) ?: return ""
+        val row = extraRow(letter.first())
         key.longClick()
         device.waitForIdle()
         val appended = waitForAppendedText(field, from)
-        // Genau ein Zeichen, und es ist die angekuendigte Zelle — die
-        // Schreibweise darf kippen (Label und Popup lesen den Shift-Zustand
-        // zu unterschiedlichen Zeitpunkten).
-        val ok = appended.length == 1 &&
-            appended.first().lowercaseChar() == hinted.first().lowercaseChar()
+        // Genau ein Zeichen, und es stammt aus der Popup-Reihe des Buchstabens
+        // (Schreibweise je nach Shift-Zustand gross oder klein).
+        val ok = appended.length == 1 && appended.first().lowercaseChar() in row
         return if (ok) appended else ""
+    }
+
+    /**
+     * Gueltige Popup-Zellen eines Buchstabens: die Akzent-Reihe des
+     * Sprachmoduls, das die IME gerade benutzt (dieselbe Quelle, aus der
+     * `showLetterExtras` das Popup baut: `letterExtras`).
+     *
+     * Welche Zelle das Loslassen committet, haengt an der Popup-Geometrie:
+     * auf dem Geraet war es die erste Zelle ("Ö"), auf dem CI-Emulator die
+     * letzte ("Ō") — beides regulaere Akzente der Reihe. Ein Test kann das
+     * nicht deterministisch festnageln, deshalb gilt die ganze Reihe (in beiden
+     * Schreibweisen).
+     */
+    private fun extraRow(letter: Char): Set<Char> {
+        val row = MainActivity.activeLanguage(instrumentation.targetContext)
+            .letterExtras(Languages.basePunctuation)
+        return (row[letter].orEmpty() + row[letter.uppercaseChar()].orEmpty())
+            .mapNotNull { it.firstOrNull()?.lowercaseChar() }
+            .toSet()
     }
 
     /**
@@ -382,15 +399,6 @@ class KeyTabTypingTest {
         }
         return ""
     }
-
-    /**
-     * Erstes Sonderzeichen aus dem Tasten-Label: `LetterLabelComposer` setzt
-     * „Hauptbuchstabe + geschütztes Leerzeichen + erster Hinweis" (z. B.
-     * „o\u00A0ö") — daraus laesst sich ableiten, welche Popup-Zelle erscheint.
-     */
-    private fun firstExtraOf(label: String): String? =
-        label.split('\u00A0').drop(1).firstOrNull { it.isNotBlank() }
-            ?.trim()?.take(1)?.takeIf { it.isNotEmpty() }
 
     /** Im sensiblen Feld darf keine Vorschlagsleiste erscheinen. */
     private fun assertNoSuggestions(message: String) {

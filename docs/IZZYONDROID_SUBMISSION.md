@@ -4,12 +4,19 @@ Status: **EINGEREICHT** — https://codeberg.org/IzzyOnDroid/repodata/issues/672
 
 WICHTIG: Das GitLab-Repo `IzzyOnDroid/repo` ist ARCHIVIERT (read-only, 403) — Anträge laufen jetzt über Codeberg (`codeberg.org/IzzyOnDroid/repodata/issues`, Template `[AppRequest]`). Antragstext: `docs/IZZYONDROID_REQUEST_v016.md`.
 
-**Stand 2026-10-06 (geprüft):** Issue #672 ist `open`, ohne Kommentare und ohne
-Labels; `https://apt.izzysoft.de/fdroid/index/apk/com.piotv.keytab` liefert noch
-404 (App also nicht gelistet). Im Tracker lagen die zuletzt geschlossenen
-`[AppRequest]`-Issues bei 1–4 Tagen Bearbeitungszeit (z. B. #659: 2026-10-02 →
-2026-10-03), der Antrag ist damit im normalen Fenster. Kein Doppel-Antrag
-(Suche „KeyTab" im Tracker: nur #672).
+**Stand 2026-10-06 (erneut geprüft):** Issue #672 ist `open`, ohne Kommentare,
+ohne Assignee und **ohne Labels**; die Timeline des Issues ist leer (keine
+Events). Das ist auffällig: alle anderen offenen AppRequests im Tracker (auch
+die zeitgleich angelegten #671/#673/#674 sowie #675–#677) tragen mindestens
+`app-request` + `needs/apk-scan`, und diese Label-Events entstehen zur
+Anlagezeit. #672 ist damit offenbar durch die automatische Vorsortierung
+gefallen und liegt nicht in der normalen Kette (`needs/apk-scan` →
+`passed/scan` → `passed/metadata` → `llm/*` → `needs/on-device-test` →
+`status/accepted`). Der Tracker ist aktiv (am 2026-10-06 wurden drei Issues
+bearbeitet, insgesamt nur 22 offen; zuletzt geschlossene `[AppRequest]`-Issues
+lagen bei 1–4 Tagen Bearbeitungszeit). Die App ist weiterhin **nicht gelistet**
+(`apt.izzysoft.de/fdroid/index/apk/com.piotv.keytab` → 404). Kein Doppel-Antrag
+(Tracker-Suche „KeyTab": nur #672).
 
 IzzyOnDroid listet Apps aus dem Upstream-Repo und zieht Beschreibung, Icon und
 Screenshots aus dem **Fastlane-Baum** des Repos (Quelle:

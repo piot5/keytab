@@ -5,7 +5,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 /**
  * Gemeinsame Flags für Instrumented Tests (v0.16 Performance/Flow).
  *
- * Die langsamen Screenshot-/GIF-Tests ([KeyTabDeviceScreensTest]) sind ein
+ * Die langsamen Screenshot-/GIF-Aufnahmen ([KeyTabDeviceScreensTest]) sind ein
  * Dokumentations-Werkzeug, kein Contract-Test — sie laufen nur, wenn sie
  * explizit angefordert werden. Der Standard-`connectedDebugAndroidTest`
  * bleibt damit unter der 5-Minuten-Grenze und in einem einzigen Lauf.
@@ -13,9 +13,20 @@ import androidx.test.platform.app.InstrumentationRegistry
  * Aktivieren:
  *   `am instrument -e screens true ...`
  *   bzw. Gradle `-Pandroid.testInstrumentationRunnerArguments.screens=true`.
+ *
+ * Showcase-Videos ([KeyTabShowcaseTest]) sind das gleiche Prinzip eine Stufe
+ * langsamer: ein MP4 pro Feature via `screenrecord`. Sie laufen nur mit
+ * `-e showcase true` (Host-Skript: `scripts/showcase_videos.sh` — ein
+ * `am instrument`-Aufruf pro Methode, damit jedes Video genau ein Feature
+ * zeigt).
  */
 object InstrumentedTestFlags {
     /** Sind die langsamen Screenshot-/GIF-Aufnahmen angefordert? */
     fun screensEnabled(): Boolean =
         InstrumentationRegistry.getArguments().getString("screens") == "true"
+
+    /** Sind die Showcase-Video-Aufnahmen angefordert? */
+    fun showcaseEnabled(): Boolean =
+        InstrumentationRegistry.getArguments().getString("showcase") == "true"
 }
+

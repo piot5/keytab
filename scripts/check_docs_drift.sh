@@ -294,19 +294,9 @@ P_MFILES=$(kt_files app/src/main)
 P_TCLASSES=$(find app/src/test/java -name '*Test.kt' | wc -l | tr -d ' ')
 P_TTESTS=${ACTUAL_TESTS:-0}
 P_TLINES=$(kt_lines app/src/test)
-# Dokumentations-Werkzeuge zaehlen NICHT als Testsuite: KeyTabDeviceScreensTest
-# (Screenshots/GIFs) und KeyTabShowcaseTest (Showcase-Videos) sind per
-# Assume-Guard opt-in (`-e screens true` / `-e showcase true`), pruefen keinen
-# Vertrag und laufen im Standard-`connectedDebugAndroidTest` nur als "skipped"
-# mit. Sie werden separat ausgewiesen, damit die Suite-Zahl die echten
-# Contract-Tests meint.
-AT_TOOLS='*DeviceScreensTest.kt|*ShowcaseTest.kt'
-P_ATTESTS=$(grep -rho '^[[:space:]]*@Test' app/src/androidTest \
-    --exclude='*DeviceScreensTest.kt' --exclude='*ShowcaseTest.kt' | wc -l | tr -d ' ')
-P_ATLINES=$(find app/src/androidTest -name '*.kt' \
-    ! -name '*DeviceScreensTest.kt' ! -name '*ShowcaseTest.kt' -exec cat {} + | wc -l | tr -d ' ')
-P_TOOLTESTS=$(grep -rho '^[[:space:]]*@Test' app/src/androidTest \
-    --include='*DeviceScreensTest.kt' --include='*ShowcaseTest.kt' 2>/dev/null | wc -l | tr -d ' ')
+# Die instrumentierte Suite ist EIN umfassender Tipp-Test (KeyTabTypingTest).
+P_ATTESTS=$(grep -rho '^[[:space:]]*@Test' app/src/androidTest | wc -l | tr -d ' ')
+P_ATLINES=$(kt_lines app/src/androidTest)
 
 # check_structure <Beschreibung> <README-Wert> <Ist-Wert> <Fix-Hinweis>
 check_structure() {
@@ -333,16 +323,14 @@ check_structure "Testzeilen" \
     "$(sed -n 's/.*# [0-9]* test classes, [0-9]* tests, \([0-9,]*\) lines.*/\1/p' README.md | head -1)" "$P_TLINES" \
     'Kommentar "# <N> test classes, <M> tests, <L> lines" beibehalten'
 check_structure "instrumentierte Tests" \
-    "$(sed -n 's/.*# \([0-9]*\) instrumented tests,.*/\1/p' README.md | head -1)" "$P_ATTESTS" \
-    'Kommentar "# <N> instrumented tests, <M> lines" beibehalten'
+    "$(sed -n 's/.*# \([0-9]*\) instrumented test[s]*,.*/\1/p' README.md | head -1)" "$P_ATTESTS" \
+    'Kommentar "# <N> instrumented test[s], <M> lines" beibehalten'
 check_structure "instrumentierte Testzeilen" \
-    "$(sed -n 's/.*# [0-9]* instrumented tests, \([0-9,]*\) lines.*/\1/p' README.md | head -1)" "$P_ATLINES" \
-    'Kommentar "# <N> instrumented tests, <M> lines" beibehalten'
+    "$(sed -n 's/.*# [0-9]* instrumented test[s]*, \([0-9,]*\) lines.*/\1/p' README.md | head -1)" "$P_ATLINES" \
+    'Kommentar "# <N> instrumented test[s], <M> lines" beibehalten'
 check_structure "Tests im Contributing-Abschnitt" \
     "$(sed -n 's/.*# \([0-9]*\) tests must stay green.*/\1/p' README.md | head -1)" "$P_TTESTS" \
     'Kommentar "# <N> tests must stay green" beibehalten'
-printf '  -- Dokumentations-Werkzeuge (nicht Teil der Suite): %s Tests, %s Dateien\n' \
-    "$P_TOOLTESTS" "$(ls app/src/androidTest/java/com/piotv/keytab/*DeviceScreensTest.kt app/src/androidTest/java/com/piotv/keytab/*ShowcaseTest.kt 2>/dev/null | wc -l | tr -d ' ')"
 printf '\n'
 
 # ------------------------------------------------------------------- Ergebnis

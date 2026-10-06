@@ -33,16 +33,35 @@ object ImeTestReset {
         val device = UiDevice.getInstance(instrumentation)
         val pkg = instrumentation.targetContext.packageName
 
+        // Schnellpfad: abc-Tab, Buchstaben-Ebene, Kleinschreibung -> fertig.
+        // Kostet nur einen kurzen Blick in den Baum, statt Tab/Klicks zu fahren.
+        if (lowercaseLetterPresent(device, pkg)) return
+
         // 1) abc-Tab: setzt die Tab-Sichtbarkeiten und den Maximiert-Zustand
         //    zurück (TabController.applySelected -> setTag(maximized_state,false)).
-        device.wait(Until.findObject(By.textStartsWith("ABC")), 2_000)?.click()
+        device.wait(Until.findObject(By.textStartsWith("ABC")), 800)?.click()
         device.waitForIdle()
 
         // 2) Symbol-Ebene verlassen: der Toggle zeigt dann "abc" statt "?123".
-        val toggle = device.wait(Until.findObject(By.res(pkg, "key_toggle")), 2_000)
+        val toggle = device.wait(Until.findObject(By.res(pkg, "key_toggle")), 800)
         if (toggle?.text?.contains("abc", ignoreCase = true) == true) {
             toggle.click()
             device.waitForIdle()
         }
+
+        // 3) Shift/CapsLock loesen: die Buchstaben-Tasten zeigen dann "q" statt
+        //    "Q". Der Zustand ueberlebt sogar einen neuen `am instrument`-Lauf
+        //    (der IME-Dienst bleibt stehen) — blieb er an, scheiterte der erste
+        //    Buchstabe mit "Taste 'h' nicht gefunden".
+        repeat(2) {
+            if (lowercaseLetterPresent(device, pkg)) return
+            device.wait(Until.findObject(By.res(pkg, "key_shift")), 800)?.click()
+            device.waitForIdle()
+        }
     }
+
+    /** Liegt ein kleiner Buchstabe im Baum ("q" statt "Q")? */
+    private fun lowercaseLetterPresent(device: UiDevice, pkg: String): Boolean =
+        device.wait(Until.findObject(
+            By.clazz("android.widget.Button").textStartsWith("q")), 600) != null
 }

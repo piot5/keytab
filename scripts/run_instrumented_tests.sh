@@ -25,32 +25,25 @@ fi
 
 adb shell input keyevent 82 || true
 
-# v0.16: wieder bis zu ZWEI Laeufe (Retry zurueck — Ein-Lauf war ein Fehler:
-# 44/42 Tests, 5 Fehler, darunter imeSubtype_isRegistered als allererster Test
-# = Cold-Start-Rennen, kein App-Fehler. Der zweite Lauf trifft den warmen
-# Prozess und ist fast immer gruen).
-# Die langsamen Screenshot-/GIF-Tests (KeyTabDeviceScreensTest) laufen nur
-# mit `-e screens true` — der Standard-Lauf bleibt so unter der
-# 5-Minuten-Grenze bei ~42 Tests in einem Durchgang.
-# Vor dem Lauf den IME-Prozess zuruecksetzen: Zustand (Symbol-Modus, CapsLock,
-# letzter Tab) ueberlebt sonst einen vorherigen `am instrument`-Lauf.
+# Zeitbudget fuer den Testlauf (Sekunden). Vorgabe: 3 Minuten.
+#
+# Befund 2026-10-06: Der CI-Emulator ist extrem langsam (gemessene Frame-Zeit
+# ~500 ms). Zwei Versuche brauchten ~12 min, und der zweite Lauf hat nie etwas
+# anderes gefunden als der erste — der Retry hat nur Zeit gekostet. Deshalb EIN
+# Lauf mit hartem Limit: laeuft er darueber, bricht der Job sichtbar ab, statt
+# 12 min zu verbrennen. Die Suite ist auf einem echten Geraet in ~2 min gruen
+# (scripts/test_on_device.sh) — dort laeuft sie VOR dem Push.
+TEST_BUDGET_S=${TEST_BUDGET_S:-180}
 adb shell am force-stop com.piotv.keytab.debug >/dev/null 2>&1 || true
 
-rc=1
-try=0
-while [ "$try" -lt 2 ]; do
-    try=$((try + 1))
-    echo "== connectedDebugAndroidTest, Versuch $try/2 =="
-    set +e
-    ./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
-    rc=$?
-    set -e
-    if [ "$rc" -eq 0 ]; then
-        break
-    fi
-    echo "== Versuch $try fehlgeschlagen (Exit $rc) ==" >&2
-    sleep 5
-done
+echo "== connectedDebugAndroidTest, Budget ${TEST_BUDGET_S}s =="
+set +e
+timeout "$TEST_BUDGET_S" ./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
+rc=$?
+set -e
+if [ "$rc" -eq 124 ]; then
+    echo "== Zeitbudget von ${TEST_BUDGET_S}s gerissen — Suite kuerzen oder beschleunigen ==" >&2
+fi
 
 if [ "$rc" -ne 0 ]; then
     adb shell pm list instrumentation >&2 || true

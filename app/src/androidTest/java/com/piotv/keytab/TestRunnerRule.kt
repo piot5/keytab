@@ -22,13 +22,14 @@ import java.io.File
 class TestRunnerRule : TestWatcher() {
 
     override fun starting(description: Description) {
+        TestRunnerState.enabled = InstrumentedTestFlags.runnerEnabled()
         TestRunnerState.announce(
             description.methodName,
             TestExpectations.of(description.methodName)
         )
         // Beobachter-Pause: wer pausiert hat, sieht die Beschreibung, bevor der
         // erste Tastendruck passiert.
-        TestRunnerState.awaitResume()
+        if (TestRunnerState.enabled) TestRunnerState.awaitResume()
     }
 
     override fun finished(description: Description) {

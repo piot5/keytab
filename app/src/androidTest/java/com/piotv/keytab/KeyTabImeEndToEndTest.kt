@@ -170,7 +170,18 @@ class KeyTabImeEndToEndTest {
         val activity = activityRule.activity
         focus(activity.normalField)
         waitForKeyboard()
-        clickImeId("key_shift")
+        // Shift kann von einem spaeten onStartInput (Bindung der Input-Session
+        // an das neue Fenster) wieder zurueckgesetzt werden — dann bleiben die
+        // Buchstaben klein und "A" ist nicht im Baum (CI: "KeyTab letter not
+        // found: A"). Deshalb bis zu zwei Anlaeufe: der zweite Klick setzt
+        // Shift wieder auf an.
+        var upper = false
+        repeat(2) {
+            if (upper) return@repeat
+            clickImeId("key_shift")
+            upper = uppercaseLetterPresent(1_500)
+        }
+        assertTrue("Nach Shift muessen Grossbuchstaben anliegen (kein 'A' im Baum)", upper)
         clickImeText("A")
         assertEquals("A", activity.normalField.text.toString())
     }
@@ -190,9 +201,17 @@ class KeyTabImeEndToEndTest {
         // Buchstaben bleiben klein und der Test scheitert mit
         // "KeyTab letter not found: A".
         val shiftBounds = shift.visibleBounds
-        device.click(shiftBounds.centerX(), shiftBounds.centerY())
-        device.click(shiftBounds.centerX(), shiftBounds.centerY())
-        device.waitForIdle()
+        // Bis zu zwei Anlaeufe: ein spaetes onStartInput kann CapsLock wieder
+        // loeschen — der zweite Doppel-Tap setzt es erneut.
+        var caps = false
+        repeat(2) {
+            if (caps) return@repeat
+            device.click(shiftBounds.centerX(), shiftBounds.centerY())
+            device.click(shiftBounds.centerX(), shiftBounds.centerY())
+            device.waitForIdle()
+            caps = uppercaseLetterPresent(1_500)
+        }
+        assertTrue("CapsLock muss Grossbuchstaben liefern (kein 'A' im Baum)", caps)
         clickImeText("A")
         clickImeText("B")
         assertEquals("AB", activity.normalField.text.toString())
@@ -327,6 +346,14 @@ class KeyTabImeEndToEndTest {
         found.click()
         device.waitForIdle()
     }
+
+    /**
+     * Liegt ein Grossbuchstabe im Baum? Anker fuer „Shift/CapsLock greift“:
+     * die Buchstaben-Tasten tragen dann "A" statt "a".
+     */
+    private fun uppercaseLetterPresent(timeoutMs: Long): Boolean =
+        device.wait(Until.findObject(
+            By.clazz("android.widget.Button").textStartsWith("A")), timeoutMs) != null
 
     private fun clickImeText(text: String) {
         TestRunnerState.awaitResume()

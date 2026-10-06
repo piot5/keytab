@@ -28,5 +28,17 @@ object InstrumentedTestFlags {
     /** Sind die Showcase-Video-Aufnahmen angefordert? */
     fun showcaseEnabled(): Boolean =
         InstrumentationRegistry.getArguments().getString("showcase") == "true"
+
+    /**
+     * Ist der Test-Runner (Anzeige von Name/Erwartung, Pause/Weiter, Notizfeld
+     * im Debug-Host) angefordert? Standard: **aus**.
+     *
+     * Der Runner ist ein Beobachtungs-Werkzeug für den Menschen. Im
+     * Standard-`connectedDebugAndroidTest` (CI) ist er aus, damit seine
+     * zusätzlichen Views die Messungen der Tests nicht beeinflussen.
+     * Aktivieren: `-e runner true`.
+     */
+    fun runnerEnabled(): Boolean =
+        InstrumentationRegistry.getArguments().getString("runner") == "true"
 }
 

@@ -58,18 +58,24 @@ class ImeTargetActivity : Activity() {
         }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(buildRunnerPanel())
+            if (TestRunnerState.enabled) addView(buildRunnerPanel())
             addView(normalField)
             addView(passwordField)
             addView(noLearningField)
         }
-        setContentView(ScrollView(this).apply { addView(content) })
+        // Ohne Runner exakt der bisherige Aufbau (kein ScrollView): die
+        // CI-Messungen sollen unberührt bleiben.
+        setContentView(
+            if (TestRunnerState.enabled) ScrollView(this).apply { addView(content) } else content
+        )
 
-        TestRunnerState.onChange = { runOnUiThread { refreshRunner() } }
-        refreshRunner()
-        // Der Fokus gehört dem Testfeld: das Notizfeld liegt im Baum davor und
-        // würde sonst beim Start die Input-Session an sich binden.
-        normalField.requestFocus()
+        if (TestRunnerState.enabled) {
+            TestRunnerState.onChange = { runOnUiThread { refreshRunner() } }
+            refreshRunner()
+            // Der Fokus gehört dem Testfeld: das Notizfeld liegt im Baum davor
+            // und würde sonst beim Start die Input-Session an sich binden.
+            normalField.requestFocus()
+        }
     }
 
     override fun onDestroy() {

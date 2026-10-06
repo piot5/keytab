@@ -15,6 +15,15 @@ object TestRunnerState {
     /** Poll-Abstand, solange pausiert wird (klein = flotter Wechsel). */
     private const val POLL_MS = 50L
 
+    /**
+     * Ist die Runner-Oberfläche angefordert (`-e runner true`)? Wird von
+     * [TestRunnerRule] gesetzt, bevor der Test startet — also bevor
+     * [ImeTargetActivity] gebaut wird. Standard: aus, damit die CI-Messungen
+     * unberührt bleiben.
+     */
+    @Volatile
+    var enabled: Boolean = false
+
     /** Lauf pausiert (vom Pause-Knopf gesetzt). */
     @Volatile
     var paused: Boolean = false

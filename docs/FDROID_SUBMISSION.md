@@ -2,6 +2,23 @@
 
 Status: **Antrag eingereicht — MR läuft, v0.16-Fix eingespielt** ([`fdroid/fdroiddata!50822`](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822)) · Paket-ID `com.piotv.keytab` · MIT · minSdk 24
 
+**Stand 2026-10-06 (geprüft):** MR `opened`, `detailed_merge_status: mergeable`,
+keine Konflikte, Labels `New App` / `reproducible-builds` / `review-requested`.
+Head-Pipeline **grün** (Pipeline `2909014937`, 2026-10-03; 9/9 Jobs: `check apk`,
+`fdroid build`, `fdroid lint`, `checkupdates`, `fdroid rewritemeta`,
+`schema validation`, `tools check scripts`, `git redirect`, `check source code`).
+Metadaten im MR stimmen mit dem Repo: `commit: 70246311e2d54b402502a1872491a5e46a3a90a5`
+== Tag `v0.16` (versionName 0.16 / versionCode 31); `Binaries:` rollt über `%v`.
+
+Reviewer `linsui` (2026-10-04): *„This MR is mostly ready. We'll test it later.
+If everything works well we'll merge it."* — offene Punkte gibt es keine mehr
+(Template, `subdir`, `output`, `Binaries` + `AllowedAPKSigningKeys` und der
+`check apk`-Fehler sind erledigt). **Warteschlange:** 267 offene MRs mit Label
+`review-requested`, KeyTab liegt auf Platz **221** (Sortierung nach Anlagedatum)
+— die Aufnahme kann also dauern. Auflage des Reviewers: **bei einer neuen
+Version den MR mitziehen** (`versionName`, `versionCode`, `commit:`,
+`CurrentVersion`/`CurrentVersionCode` in `metadata/com.piotv.keytab.yml`).
+
 Anders als IzzyOnDroid (listet unsere CI-APKs) **baut F-Droid die App selbst**
 aus dem Quellcode und verifiziert idealerweise, dass der F-Droid-Build binär
 identisch mit unserem Release-APK ist (**Reproducible Builds**,

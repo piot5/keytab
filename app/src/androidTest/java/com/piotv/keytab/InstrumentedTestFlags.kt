@@ -30,6 +30,21 @@ object InstrumentedTestFlags {
         InstrumentationRegistry.getArguments().getString("showcase") == "true"
 
     /**
+     * Laufen die langsamen/geraeteabhaengigen Klassen mit?
+     *
+     * Betroffen sind `KeyTabImeHeightTest` (Hoehenmessung mit Tab-Wechseln und
+     * Wartezeiten), `KeyTabImeSuggestionsTest` (Vorschlags-Engine muss den
+     * Korpus laden) und `KeyTabTrailVisualTest` (Screenshot-Pixelvergleich).
+     * Zusammen kosten sie im CI-Emulator mehrere Minuten und liefern dort
+     * Flakes, die auf echter Hardware nicht auftreten.
+     *
+     * Standard: **aus** — das CI-Budget ist 3 Minuten. Auf dem Geraet laufen sie
+     * mit: `scripts/test_on_device.sh` setzt `-e slow true`.
+     */
+    fun slowEnabled(): Boolean =
+        InstrumentationRegistry.getArguments().getString("slow") == "true"
+
+    /**
      * Ist der Test-Runner (Anzeige von Name/Erwartung, Pause/Weiter, Notizfeld
      * im Debug-Host) angefordert? Standard: **aus**.
      *

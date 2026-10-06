@@ -12,6 +12,7 @@ import androidx.test.uiautomator.Until
 import org.junit.After
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assume
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -63,6 +64,11 @@ class KeyTabImeHeightTest {
 
     @Before
     fun setUp() {
+        // Budget: 3 Minuten im CI. Hoehen-/Vorschlags-/Pixel-Tests sind langsam
+        // und auf dem Emulator flake-anfaellig -> nur mit -e slow true
+        // (scripts/test_on_device.sh setzt das).
+        Assume.assumeTrue("Nur mit -e slow true (langsam/geraeteabhaengig)",
+            InstrumentedTestFlags.slowEnabled())
         // v0.16.1: Zustand des Vorgaengers normalisieren (Symbol-Ebene, Tab).
         // IME bleibt gebunden — kein Umschalten pro Test (Cold-Start-Rennen).
         runCatching { ImeTestReset.resetKeyboardState() }

@@ -70,12 +70,14 @@ dev "ime enable $PKG/com.piotv.keytab.ime.KeyTabImeService" >/dev/null 2>&1 || t
 dev "ime set $PKG/com.piotv.keytab.ime.KeyTabImeService" >/dev/null 2>&1 || true
 dev "am force-stop $PKG" >/dev/null 2>&1 || true
 
+# Auf dem Geraet laufen auch die langsamen/geraeteabhaengigen Klassen mit
+# (Hoehen, Vorschlaege, Trail-Pixel) — im CI sind sie aus (3-Minuten-Budget).
 out=$(mktemp)
 set +e
 if [ "$use_adb" -eq 1 ]; then
-    adb shell am instrument -w "$@" "$TEST_PKG/$RUNNER" | tee "$out"
+    adb shell am instrument -w -e slow true "$@" "$TEST_PKG/$RUNNER" | tee "$out"
 else
-    sh "$RSH" "am instrument -w $* $TEST_PKG/$RUNNER" | tee "$out"
+    sh "$RSH" "am instrument -w -e slow true $* $TEST_PKG/$RUNNER" | tee "$out"
 fi
 set -e
 

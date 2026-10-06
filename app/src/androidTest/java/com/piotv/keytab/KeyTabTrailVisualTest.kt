@@ -37,6 +37,10 @@ import java.io.InputStreamReader
  */
 @RunWith(AndroidJUnit4::class)
 class KeyTabTrailVisualTest {
+
+    /** Test-Runner: meldet Name + Erwartung an die Anzeige im Debug-Host. */
+    @get:Rule
+    val runnerRule = TestRunnerRule()
     @get:Rule
     val activityRule = object : ActivityTestRule<ImeTargetActivity>(
         ImeTargetActivity::class.java, false, false
@@ -146,6 +150,7 @@ class KeyTabTrailVisualTest {
     }
 
     private fun waitForKeyboard() {
+        TestRunnerState.awaitResume()
         // 1) Schon sichtbar (egal welcher Tab)?
         if (device.wait(Until.findObject(By.res(
                 instrumentation.targetContext.packageName, "key_space")), 2_000) != null) {
@@ -165,6 +170,7 @@ class KeyTabTrailVisualTest {
     }
 
     private fun clickImeText(text: String) {
+        TestRunnerState.awaitResume()
         val found = device.wait(Until.findObject(
             By.clazz("android.widget.Button").textStartsWith(text)), 5_000)
         assertTrue("KeyTab letter not found: $text", found != null)

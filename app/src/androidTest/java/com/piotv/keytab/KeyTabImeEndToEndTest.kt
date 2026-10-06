@@ -23,6 +23,10 @@ import java.io.InputStreamReader
 /** Device-level contract tests for the real Android InputMethodService. */
 @RunWith(AndroidJUnit4::class)
 class KeyTabImeEndToEndTest {
+
+    /** Test-Runner: meldet Name + Erwartung an die Anzeige im Debug-Host. */
+    @get:Rule
+    val runnerRule = TestRunnerRule()
     @get:Rule
     val activityRule = object : ActivityTestRule<ImeTargetActivity>(
         ImeTargetActivity::class.java, false, false
@@ -35,17 +39,14 @@ class KeyTabImeEndToEndTest {
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val device get() = UiDevice.getInstance(instrumentation)
-    private var previousIme: String = ""
+    private val pkg get() = instrumentation.targetContext.packageName
 
     @Before
     fun activateKeyTab() {
-        // v0.16.1: IME des Vorgaengers merken und im @After zurueckschalten.
-        // Der IME-Dienst ist zustandsbehaftet (Symbol-Ebene, Shift/CapsLock,
-        // zuletzt genutzter Tab, Maximiert-Zustand); v0.16 liess das Fenster
-        // ueber den ganzen Lauf aktiv, dadurch vergiftete ein Test den naechsten
-        // (CI: "letter not found: A", Feld bekam "@;|._" statt "normal").
-        // Zurueckschalten beendet den KeyTab-Dienst und erzwingt frischen Zustand.
-        previousIme = shell("settings get secure default_input_method").trim()
+        // v0.16.1: Zustand des Vorgaengers normalisieren (Symbol-Ebene, Tab).
+        // Das IME bleibt bewusst gebunden — ein Umschalten pro Test wuerde das
+        // Cold-Start-Rennen zurueckbringen (siehe ImeTestReset).
+        runCatching { ImeTestReset.resetKeyboardState() }
         // Reihenfolge ist entscheidend: erst das IME umschalten, dann die
         // Activity starten. Umgekehrt bekommt das erste EditText den Fokus,
         // solange noch das Standard-IME laeuft, und haelt diese Input-Session
@@ -63,32 +64,24 @@ class KeyTabImeEndToEndTest {
         // ohne Hinweis darauf, dass gar nicht KeyTab das Standard-IME ist.
         val active = shell("settings get secure default_input_method").trim()
         assertTrue("KeyTab ist nicht das Standard-IME (aktiv: $active)", active == KEYTAB_IME)
+        // Prefs VOR dem Activity-Start setzen: der IME liest sie beim
+        // onStartInput/-View des neuen Feldes (refreshSettings). Umgekehrt las er
+        // noch die Werte des Vorgaengertests (siehe KeyTabImeSuggestionsTest).
+        val prefs = Prefs.of(instrumentation.targetContext)
+        prefs.edit().putBoolean(Prefs.KEY_SUGGESTIONS, false)
+            .putBoolean(Prefs.KEY_SWIPE, false).apply()
         activityRule.launchActivity(
             Intent().setComponent(
                 ComponentName("com.piotv.keytab.debug", "com.piotv.keytab.ImeTargetActivity")
             )
         )
-        val prefs = Prefs.of(instrumentation.targetContext)
-        prefs.edit().putBoolean(Prefs.KEY_SUGGESTIONS, false)
-            .putBoolean(Prefs.KEY_SWIPE, false).apply()
     }
 
     @After
     fun restoreIme() {
-        // v0.16.1: zurueck auf das IME des Vorgaengers — beendet den
-        // KeyTab-Dienst, damit der naechste Test mit frischem Zustand startet
-        // (Symbol-Ebene, Shift/CapsLock, Tab, Maximiert-Zustand). Genau so lief
-        // es vor v0.16; das Weglassen war die Ursache der CI-Fehler.
-        if (previousIme.isNotBlank() && previousIme != "null" && previousIme != KEYTAB_IME) {
-            shell("ime set $previousIme")
-        } else {
-            // KeyTab war schon vorher aktiv (z. B. echtes Geraet): dann auf ein
-            // anderes aktiviertes IME schalten, damit der Dienst trotzdem endet.
-            val other = shell("ime list -s").lineSequence()
-                .map { it.trim() }
-                .firstOrNull { it.isNotEmpty() && it != KEYTAB_IME }
-            if (other != null) shell("ime set $other")
-        }
+        // v0.16.1: Zustand normalisieren, damit auch ein fehlgeschlagener Test
+        // keinen Schrott fuer die Folgetests hinterlaesst (best effort).
+        runCatching { ImeTestReset.resetKeyboardState() }
     }
 
     @Test
@@ -190,8 +183,15 @@ class KeyTabImeEndToEndTest {
         val shift = device.wait(Until.findObject(
             By.res(instrumentation.targetContext.packageName, "key_shift")), 5_000)
         assertTrue("Shift-Taste fehlt", shift != null)
-        shift.click()
-        shift.click() // Doppel-Tap innerhalb 300 ms → CapsLock
+        // Doppel-Tap per UiDevice.click (direkte Injektion): UiObject2.click()
+        // macht pro Klick einen UiAutomator-Roundtrip und reisst auf langsamen
+        // Geraeten/Emulatoren die 300-ms-Grenze von ShiftController.tapShift —
+        // dann bleibt es bei zwei Einzel-Tipps (Shift an, Shift aus), die
+        // Buchstaben bleiben klein und der Test scheitert mit
+        // "KeyTab letter not found: A".
+        val shiftBounds = shift.visibleBounds
+        device.click(shiftBounds.centerX(), shiftBounds.centerY())
+        device.click(shiftBounds.centerX(), shiftBounds.centerY())
         device.waitForIdle()
         clickImeText("A")
         clickImeText("B")
@@ -286,19 +286,24 @@ class KeyTabImeEndToEndTest {
     }
 
     private fun waitForKeyboard() {
-        // Cold-Start-Rennen: showSoftInput kann vor onCreateInputView verloren gehen.
-        if (device.wait(Until.findObject(
-                By.res(instrumentation.targetContext.packageName, "key_space")), 2_000) == null) {
-            device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)?.click()
-            device.waitForIdle()
-        }
+        TestRunnerState.awaitResume()
         // Immer auf ABC schalten: die IME merkt sich den zuletzt genutzten Tab
         // (persistiert auf dem Gerät); in Inhalts-Tabs ist key_space nur INVISIBLE
         // im Baum und die Buchstaben fehlen → clickImeText schlüge fehl.
         device.wait(Until.findObject(By.textStartsWith("ABC")), 3_000)?.click()
         device.waitForIdle()
-        val key = device.wait(Until.findObject(
-            By.res(instrumentation.targetContext.packageName, "key_space")), 10_000)
+        // Bis zu drei Anlaeufe: ein echter Touch auf das Eingabefeld ist der
+        // zuverlaessigste Weg, das IME-Fenster einzublenden — showSoftInput aus
+        // dem Instrumentation-Thread geht verloren, wenn das Fenster gerade
+        // keinen Fokus hat (CI/Emulator: "KeyTab keyboard did not become
+        // visible", obwohl das richtige IME aktiv ist).
+        repeat(3) { round ->
+            val wait = if (round == 0) 5_000L else 2_000L
+            if (device.wait(Until.findObject(By.res(pkg, "key_space")), wait) != null) return
+            device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)?.click()
+            device.waitForIdle()
+        }
+        val key = device.wait(Until.findObject(By.res(pkg, "key_space")), 5_000)
         assertTrue("KeyTab keyboard did not become visible. ${imeState()}", key != null)
     }
 
@@ -315,6 +320,7 @@ class KeyTabImeEndToEndTest {
     }
 
     private fun clickImeId(id: String) {
+        TestRunnerState.awaitResume()
         val selector = By.res(instrumentation.targetContext.packageName, id)
         val found = device.wait(Until.findObject(selector), 5_000)
         assertTrue("KeyTab key not found: $id", found != null)
@@ -323,6 +329,7 @@ class KeyTabImeEndToEndTest {
     }
 
     private fun clickImeText(text: String) {
+        TestRunnerState.awaitResume()
         // Buchstaben-Tasten tragen komponierte Labels (LetterLabelComposer):
         // Hauptbuchstabe + geschütztes Leerzeichen + erster Sonderzeichen-Hinweis,
         // z. B. "b\u00A0'". By.text("b") matcht dieses Spanned nie exakt — deshalb

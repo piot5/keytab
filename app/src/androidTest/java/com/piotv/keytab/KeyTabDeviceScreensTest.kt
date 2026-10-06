@@ -43,6 +43,10 @@ import kotlin.concurrent.thread
  */
 @RunWith(AndroidJUnit4::class)
 class KeyTabDeviceScreensTest {
+
+    /** Test-Runner: meldet Name + Erwartung an die Anzeige im Debug-Host. */
+    @get:Rule
+    val runnerRule = TestRunnerRule()
     @get:Rule
     val activityRule = object : ActivityTestRule<ImeTargetActivity>(
         ImeTargetActivity::class.java, false, false
@@ -107,6 +111,7 @@ class KeyTabDeviceScreensTest {
         device.wait(Until.findObject(By.textStartsWith(t)), 3_000)
 
     private fun shot(name: String) {
+        TestRunnerState.awaitResume()
         device.waitForIdle()
         val f = File(outDir, "$name.png")
         device.takeScreenshot(f)

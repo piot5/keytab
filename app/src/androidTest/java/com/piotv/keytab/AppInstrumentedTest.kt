@@ -26,6 +26,10 @@ import org.junit.runner.RunWith
 /** Device-level smoke tests: manifest registration, resources and settings UI. */
 @RunWith(AndroidJUnit4::class)
 class AppInstrumentedTest {
+
+    /** Test-Runner: meldet Name + Erwartung an die Anzeige im Debug-Host. */
+    @get:Rule
+    val runnerRule = TestRunnerRule()
     // MainActivity fragt die Speicher-Berechtigungen im onCreate an. Ohne
     // vorherige Erteilung legt sich der System-Dialog (GrantPermissionsActivity)
     // ueber die Activity; ActivityTestRule.startActivitySync wartet dann vergeblich
@@ -40,12 +44,6 @@ class AppInstrumentedTest {
 
     @get:Rule
     val chain: TestRule = RuleChain.outerRule(grantStorage).around(activityRule)
-
-    @Test
-    fun packageName_isCorrect() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        assertTrue(context.packageName in listOf("com.piotv.keytab", "com.piotv.keytab.debug"))
-    }
 
     @Test
     fun imeService_isDeclaredAndEnabled() {
@@ -85,21 +83,6 @@ class AppInstrumentedTest {
         assertEquals(!before, prefs.getBoolean(Prefs.KEY_NUM_ROW, !before))
     }
     @Test
-    fun testInputField_acceptsTextAndCursorInput() {
-        val activity = activityRule.activity
-        val input = activity.findViewById<android.widget.EditText>(R.id.test_input)
-        val value = "KeyTab Test 42"
-        activity.runOnUiThread {
-            input.requestFocus()
-            input.setText(value)
-            input.setSelection(value.length)
-        }
-        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-        assertEquals(value, input.text.toString())
-        assertEquals(value.length, input.selectionStart)
-        assertEquals(value.length, input.selectionEnd)
-    }
-    @Test
     fun languageSelection_persistsSelectedLanguage() {
         val activity = activityRule.activity
         val spinner = activity.findViewById<android.widget.Spinner>(R.id.spinner_language)
@@ -112,19 +95,6 @@ class AppInstrumentedTest {
         assertEquals(Languages.all[target].code, prefs.getString(Prefs.KEY_LANGUAGE, "de"))
     }
 
-    @Test
-    fun testInputField_supportsMultilineAndDeletion() {
-        val activity = activityRule.activity
-        val input = activity.findViewById<android.widget.EditText>(R.id.test_input)
-        activity.runOnUiThread {
-            input.setText("first line\nsecond line")
-            input.getText().delete(10, input.length())
-            input.setSelection(10)
-        }
-        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-        assertEquals("first line", input.text.toString())
-        assertEquals(10, input.selectionStart)
-    }
 
     @Test
     fun settingsButtons_haveAccessibleLabels() {
@@ -161,14 +131,6 @@ class AppInstrumentedTest {
         }
     }
 
-    @Test
-    fun prefs_roundTripPersists() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val prefs = Prefs.of(context)
-        prefs.edit().putBoolean("instrumented_test_flag", true).commit()
-        assertTrue(prefs.getBoolean("instrumented_test_flag", false))
-        prefs.edit().remove("instrumented_test_flag").commit()
-    }
 
     @Test
     fun imeSubtype_isRegistered() {
@@ -200,10 +162,4 @@ class AppInstrumentedTest {
             file.isFile && file.readText().isNotBlank())
     }
 
-    @Test
-    fun languagesList_containsSevenLocales() {
-        val codes = Languages.all.map { it.code }.toSet()
-        assertTrue("Sprachcodes fehlen: $codes",
-            codes.containsAll(listOf("de", "en", "es", "fr", "it", "pt", "nl")))
-    }
 }

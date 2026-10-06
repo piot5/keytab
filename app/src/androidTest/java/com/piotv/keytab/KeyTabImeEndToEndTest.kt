@@ -181,7 +181,7 @@ class KeyTabImeEndToEndTest {
             clickImeId("key_shift")
             upper = uppercaseLetterPresent(1_500)
         }
-        assertTrue("Nach Shift muessen Grossbuchstaben anliegen (kein 'A' im Baum)", upper)
+        assertTrue("Nach Shift muessen Grossbuchstaben anliegen. Tasten: ${visibleButtonLabels()}", upper)
         clickImeText("A")
         assertEquals("A", activity.normalField.text.toString())
     }
@@ -211,7 +211,7 @@ class KeyTabImeEndToEndTest {
             device.waitForIdle()
             caps = uppercaseLetterPresent(1_500)
         }
-        assertTrue("CapsLock muss Grossbuchstaben liefern (kein 'A' im Baum)", caps)
+        assertTrue("CapsLock muss Grossbuchstaben liefern. Tasten: ${visibleButtonLabels()}", caps)
         clickImeText("A")
         clickImeText("B")
         assertEquals("AB", activity.normalField.text.toString())
@@ -354,6 +354,18 @@ class KeyTabImeEndToEndTest {
     private fun uppercaseLetterPresent(timeoutMs: Long): Boolean =
         device.wait(Until.findObject(
             By.clazz("android.widget.Button").textStartsWith("A")), timeoutMs) != null
+
+    /**
+     * Sichtbare Tastenbeschriftungen — Diagnose, wenn Shift/CapsLock nicht
+     * greift: dann steht hier die tatsaechlich angezeigte Reihe (klein/gross,
+     * Zahlenreihe, Symbol-Ebene) statt nur „kein 'A' im Baum".
+     */
+    private fun visibleButtonLabels(): String =
+        device.findObjects(By.clazz("android.widget.Button"))
+            .mapNotNull { it.text }
+            .filter { it.isNotBlank() }
+            .take(16)
+            .joinToString(" | ")
 
     private fun clickImeText(text: String) {
         TestRunnerState.awaitResume()

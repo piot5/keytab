@@ -61,15 +61,20 @@ class KeyTabTypingTest {
         // Zustand des Vorgaengers normalisieren (Symbol-Ebene, Tab). Das IME
         // bleibt gebunden — ein Umschalten pro Test brächte das Cold-Start-Rennen
         // zurück (siehe ImeTestReset).
-        // EIN Shell-Aufruf statt vier: jeder Roundtrip kostet auf dem Geraet
-        // spuerbar Startzeit.
-        // EIN Shell-Aufruf statt vier (Startzeit). Die LETZTE Zeile ist der
-        // aktuelle Standard-IME — darauf wird geprueft; die Reihenfolge der
-        // uebrigen Ausgaben ist nicht garantiert, deshalb keine Zeile davor lesen.
-        val active = shell(
-            "ime enable $KEYTAB_IME; ime set $KEYTAB_IME; " +
-                "settings get secure default_input_method"
-        ).trim().lines().lastOrNull()?.trim().orEmpty()
+        // WICHTIG: `executeShellCommand` faehrt KEINE Shell — es tokenisiert den
+        // String (UiAutomationConnection: `Runtime.getRuntime().exec(command)`).
+        // Ein zusammengefasstes "ime enable X; ime set X; settings get ..." wurde
+        // deshalb als EIN `ime enable` mit Semikolon-Rest ausgefuehrt; im
+        // CI-Logcat stand:
+        //   "ime enable com.piotv.keytab.debug/...KeyTabImeService;" failed due
+        //   to its unrecognized IME ID
+        // `settings get` lief nie -> Standard-IME leer -> sofort rot.
+        // Deshalb: ein Befehl pro Aufruf (drei Roundtrips, ~1 s — im Budget).
+        assertTrue("Kein KeyTab-IME auf dem Testgeraet registriert",
+            shell("ime list -s -a").contains(KEYTAB_IME))
+        shell("ime enable $KEYTAB_IME")
+        shell("ime set $KEYTAB_IME")
+        val active = shell("settings get secure default_input_method").trim()
         assertTrue("KeyTab ist nicht das Standard-IME (aktiv: $active)", active == KEYTAB_IME)
         runCatching { ImeTestReset.resetKeyboardState() }
         // Vorschlaege AN: nur so beweist der Passwort-Schritt, dass sie dort
@@ -141,7 +146,12 @@ class KeyTabTypingTest {
         clickUntilKeyCode("key_tab", KeyEvent.KEYCODE_TAB,
             "TAB muss als KEYCODE_TAB ankommen")
 
-        // 8) Shift: Grossbuchstabe tippen.
+        // 8) Shift: Grossbuchstabe tippen. Wichtig: TAB hat den Fokus
+        //    weitergeschoben (TextView springt zum naechsten View — auf dem
+        //    Geraet wandert er ins Passwortfeld). Ohne erneutes Fokussieren
+        //    tippt der Q-Klick in das falsche Feld und es kommt nichts an.
+        focus(normal)
+        waitForKeyboard()
         val beforeShift = normal.text.toString()
         shiftUntilUppercase()
         step(normal, beforeShift, beforeShift + "Q") { clickKey("Q") }
@@ -311,7 +321,17 @@ class KeyTabTypingTest {
         assertTrue("Nach Shift muessen Grossbuchstaben anliegen (Tasten: ${visibleButtonLabels()})",
             upper)
     }
-    /** Long-Press-Auswahl: [from] + Sonderzeichen; liefert das gewaehlte Zeichen. */
+    /**
+     * Long-Press am Buchstaben: erwartet GENAU ein angehaengtes Sonderzeichen
+     * aus der Popup-Reihe des Buchstabens (Schreibweise je nach Shift-Zustand
+     * gross oder klein).
+     *
+     * Die Drag-Auswahl im Popup (`LetterPopup.highlightCellUnder`) laesst sich
+     * von hier aus nicht nachstellen: das Popup entsteht erst, wenn der
+     * Long-Press feuert, und wird beim Loslassen der Taste wieder geschlossen —
+     * ein Klick auf eine Popup-Zelle kaeme dafuer zu spaet. Das Loslassen
+     * committet die erste Zelle der Reihe (`pickedChar()` → Fallback).
+     */
     private fun stepExtra(field: EditText, from: String, letter: String): String {
         var extra = ""
         repeat(2) {
@@ -320,7 +340,7 @@ class KeyTabTypingTest {
                 field.setText(from)
                 field.setSelection(from.length)
             }
-            extra = longPressAndPickExtra(letter)
+            extra = longPressExtra(field, from, letter)
             if (field.text.toString() != from + extra) extra = ""
         }
         assertEquals("Long-Press am '$letter' muss ein Sonderzeichen anfuegen " +
@@ -328,17 +348,39 @@ class KeyTabTypingTest {
         return extra
     }
 
-    /** Buchstaben lange druecken und die im Label angekuendigte Popup-Zelle waehlen. */
-    private fun longPressAndPickExtra(letter: String): String {
+    /** Long-Press ausloesen und das tatsaechlich angehaengte Zeichen liefern. */
+    private fun longPressExtra(field: EditText, from: String, letter: String): String {
         // Case-tolerant wie clickKey: bei Auto-Shift traegt die Taste "O" statt "o".
         val key = findKey(letter) ?: findKey(letter.swapCase()) ?: return ""
-        val extra = firstExtraOf(key.text.orEmpty()) ?: return ""
+        // Im Label kuendigt sich die erste Popup-Zelle an ("o\u00A0ö" -> "ö").
+        val hinted = firstExtraOf(key.text.orEmpty()) ?: return ""
         key.longClick()
         device.waitForIdle()
-        val cell = device.wait(Until.findObject(By.text(extra)), 2_000) ?: return ""
-        cell.click()
-        device.waitForIdle()
-        return extra
+        val appended = waitForAppendedText(field, from)
+        // Genau ein Zeichen, und es ist die angekuendigte Zelle — die
+        // Schreibweise darf kippen (Label und Popup lesen den Shift-Zustand
+        // zu unterschiedlichen Zeitpunkten).
+        val ok = appended.length == 1 &&
+            appended.first().lowercaseChar() == hinted.first().lowercaseChar()
+        return if (ok) appended else ""
+    }
+
+    /**
+     * Auf den angehaengten Text warten (max. [EXTRA_WAIT_MS]).
+     *
+     * Das Loslassen der Taste committet die Popup-Zelle auf dem IME-Thread;
+     * `waitForIdle` kehrt zurueck, bevor der Text im Feld steht (auf dem Geraet
+     * gemessen: der erste Blick sieht das Feld noch unveraendert).
+     */
+    private fun waitForAppendedText(field: EditText, from: String): String {
+        var waited = 0L
+        while (waited < EXTRA_WAIT_MS) {
+            val now = field.text.toString()
+            if (now.length > from.length && now.startsWith(from)) return now.removePrefix(from)
+            Thread.sleep(EXTRA_POLL_MS)
+            waited += EXTRA_POLL_MS
+        }
+        return ""
     }
 
     /**
@@ -399,8 +441,12 @@ class KeyTabTypingTest {
     /** IME-Zustand fuer die Fehlermeldung (welches IME, Fenster sichtbar?). */
     private fun imeState(): String {
         val current = shell("settings get secure default_input_method").trim()
-        val dump = shell("dumpsys input_method | grep -E " +
-            "'mCurMethodId|mServedView|mShowRequested|mImeWindowVis|mHaveConnection'")
+        // Kein `dumpsys ... | grep`: executeShellCommand kennt weder Pipes noch
+        // `;` (siehe activateKeyTab) — gefiltert wird deshalb hier im Test.
+        val dump = shell("dumpsys input_method")
+            .lines()
+            .filter { line -> IME_STATE_KEYS.any { line.contains(it) } }
+            .joinToString("\n")
         return "aktiv=$current erwartet=$KEYTAB_IME\n$dump"
     }
 
@@ -412,6 +458,15 @@ class KeyTabTypingTest {
 
     private companion object {
         const val KEYTAB_IME = "com.piotv.keytab.debug/com.piotv.keytab.ime.KeyTabImeService"
+
+        /** Zeilen, die den IME-Zustand in `dumpsys input_method` beschreiben. */
+        val IME_STATE_KEYS = listOf(
+            "mCurMethodId", "mServedView", "mShowRequested", "mImeWindowVis", "mHaveConnection"
+        )
+
+        /** Wartezeit auf das Long-Press-Zeichen (das Loslassen committet async). */
+        const val EXTRA_WAIT_MS = 2_000L
+        const val EXTRA_POLL_MS = 100L
     }
 }
 

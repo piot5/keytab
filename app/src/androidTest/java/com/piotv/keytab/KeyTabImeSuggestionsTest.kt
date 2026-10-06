@@ -150,7 +150,7 @@ class KeyTabImeSuggestionsTest {
     // Die Vorschlags-Engine laedt den Wortkorpus asynchron: auf langsamen
     // Geraeten/Emulatoren ist `sug_1` direkt nach dem ersten Tastendruck noch
     // nicht da (CI: "Kein Vorschlag gefunden" trotz korrekt getipptem "ha").
-    // Die Wartezeit ist deshalb grosszuegig (10 s statt der 5 s, die fuer einen
+    // Die Wartezeit ist deshalb grosszuegig (15 s statt der 5 s, die fuer einen
     // warmen Lauf reichen) — siehe SUGGESTION_WAIT_MS.
 
     private fun focus(field: EditText) {
@@ -204,6 +204,6 @@ class KeyTabImeSuggestionsTest {
     private companion object {
         const val KEYTAB_IME = "com.piotv.keytab.debug/com.piotv.keytab.ime.KeyTabImeService"
         /** Wartezeit auf den ersten Vorschlag (Korpus laedt asynchron). */
-        const val SUGGESTION_WAIT_MS = 10_000L
+        const val SUGGESTION_WAIT_MS = 15_000L
     }
 }

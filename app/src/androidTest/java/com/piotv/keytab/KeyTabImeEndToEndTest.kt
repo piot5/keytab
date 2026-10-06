@@ -175,8 +175,8 @@ class KeyTabImeEndToEndTest {
             upper = uppercaseLetterPresent(SHIFT_RELABEL_WAIT_MS)
         }
         assertTrue("Nach Shift muessen Grossbuchstaben anliegen. Tasten: ${visibleButtonLabels()}", upper)
-        clickImeText("A")
-        assertEquals("A", activity.normalField.text.toString())
+        clickImeText("Q")
+        assertEquals("Q", activity.normalField.text.toString())
     }
 
     @Test
@@ -205,9 +205,9 @@ class KeyTabImeEndToEndTest {
             caps = uppercaseLetterPresent(SHIFT_RELABEL_WAIT_MS)
         }
         assertTrue("CapsLock muss Grossbuchstaben liefern. Tasten: ${visibleButtonLabels()}", caps)
-        clickImeText("A")
-        clickImeText("B")
-        assertEquals("AB", activity.normalField.text.toString())
+        clickImeText("Q")
+        clickImeText("W")
+        assertEquals("QW", activity.normalField.text.toString())
         // CapsLock verlassen, damit Folgetests nicht im CapsLock starten.
         clickImeId("key_shift")
     }
@@ -346,7 +346,7 @@ class KeyTabImeEndToEndTest {
      */
     private fun uppercaseLetterPresent(timeoutMs: Long): Boolean =
         device.wait(Until.findObject(
-            By.clazz("android.widget.Button").textStartsWith("A")), timeoutMs) != null
+            By.clazz("android.widget.Button").textStartsWith(UPPERCASE_ANCHOR)), timeoutMs) != null
 
     /**
      * Taste klicken, bis der erwartete Keycode ankommt (max. 3 Anlaeufe).
@@ -408,5 +408,13 @@ class KeyTabImeEndToEndTest {
          * "Q | W | E ...", waehrend die Pruefung noch klein sah.
          */
         const val SHIFT_RELABEL_WAIT_MS = 4_000L
+
+        /**
+         * Anker fuer „Grossbuchstaben liegen an": die **q-Reihe** (QWERTZ, erste
+         * Buchstabenreihe). Bewusst nicht die a-Reihe: auf dem CI-Emulator war
+         * "A" nicht im Baum, obwohl die Tasten nachweislich gross standen
+         * (Diagnose: "Q | W - | E E | R .").
+         */
+        const val UPPERCASE_ANCHOR = "Q"
     }
 }

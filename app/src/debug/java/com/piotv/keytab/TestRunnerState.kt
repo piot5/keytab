@@ -12,6 +12,9 @@ package com.piotv.keytab
  * Oberfläche im UI-Thread — ohne das sähe der Poll-Schleife den Pause-Klick nie.
  */
 object TestRunnerState {
+    /** Poll-Abstand, solange pausiert wird (klein = flotter Wechsel). */
+    private const val POLL_MS = 50L
+
     /** Lauf pausiert (vom Pause-Knopf gesetzt). */
     @Volatile
     var paused: Boolean = false
@@ -83,7 +86,7 @@ object TestRunnerState {
                 stepOnce = false
                 return
             }
-            Thread.sleep(50)
+            Thread.sleep(POLL_MS)
         }
     }
 }

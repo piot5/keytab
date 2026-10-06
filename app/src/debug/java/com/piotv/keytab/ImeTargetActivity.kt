@@ -84,22 +84,29 @@ class ImeTargetActivity : Activity() {
 
     // ---------- Test-Runner-Oberfläche ----------
 
+    private companion object {
+        const val RUNNER_TITLE_SP = 14f
+        const val RUNNER_TEXT_SP = 12f
+        const val RUNNER_PAD_H_DP = 8
+        const val RUNNER_PAD_V_DP = 6
+    }
+
     private fun buildRunnerPanel(): View {
         testNameView = TextView(this).apply {
             setTypeface(typeface, Typeface.BOLD)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, RUNNER_TITLE_SP)
         }
         expectationView = TextView(this).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, RUNNER_TEXT_SP)
             setTextColor(Color.DKGRAY)
         }
-        statusView = TextView(this).apply { setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f) }
+        statusView = TextView(this).apply { setTextSize(TypedValue.COMPLEX_UNIT_SP, RUNNER_TEXT_SP) }
         pauseButton = runnerButton("⏸ Pause") { TestRunnerState.pause() }
         stepButton = runnerButton("⏭ Schritt") { TestRunnerState.step() }
         playButton = runnerButton("▶ Weiter") { TestRunnerState.resume() }
         notesField = EditText(this).apply {
             hint = "Abweichung beschreiben (wird mit dem Test protokolliert)"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, RUNNER_TEXT_SP)
             setMaxLines(3)
             setSingleLine(false)
             inputType = InputType.TYPE_CLASS_TEXT or
@@ -115,7 +122,7 @@ class ImeTargetActivity : Activity() {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.parseColor("#FFF3CD"))
-            setPadding(dp(8), dp(6), dp(8), dp(6))
+            setPadding(dp(RUNNER_PAD_H_DP), dp(RUNNER_PAD_V_DP), dp(RUNNER_PAD_H_DP), dp(RUNNER_PAD_V_DP))
             addView(testNameView)
             addView(expectationView)
             addView(LinearLayout(this@ImeTargetActivity).apply {
@@ -133,7 +140,7 @@ class ImeTargetActivity : Activity() {
     private fun runnerButton(label: String, action: () -> Unit): Button =
         Button(this).apply {
             text = label
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, RUNNER_TEXT_SP)
             setOnClickListener { action() }
         }
 

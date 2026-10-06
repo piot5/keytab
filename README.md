@@ -25,8 +25,8 @@ Every tagged release (`v*`) is built and published automatically by CI as a sign
 | Channel | Status |
 |---|---|
 | GitHub Releases | ✅ every `v*` tag, built and published by CI |
-| IzzyOnDroid | ⏳ submission prepared — see [`docs/IZZYONDROID_SUBMISSION.md`](docs/IZZYONDROID_SUBMISSION.md) |
-| F-Droid | ⏳ submission prepared — reproducible build verified (see [`docs/FDROID_SUBMISSION.md`](docs/FDROID_SUBMISSION.md)) |
+| IzzyOnDroid | ⏳ requested 2026-10-05 — [issue #672](https://codeberg.org/IzzyOnDroid/repodata/issues/672) is open (see [`docs/IZZYONDROID_SUBMISSION.md`](docs/IZZYONDROID_SUBMISSION.md)) |
+| F-Droid | ⏳ requested — [merge request !50822](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822) is open; reproducible build verified (see [`docs/FDROID_SUBMISSION.md`](docs/FDROID_SUBMISSION.md)) |
 
 Release history lives in **[CHANGELOG.md](CHANGELOG.md)**.
 

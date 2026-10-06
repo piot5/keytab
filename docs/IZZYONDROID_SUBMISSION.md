@@ -4,6 +4,13 @@ Status: **EINGEREICHT** — https://codeberg.org/IzzyOnDroid/repodata/issues/672
 
 WICHTIG: Das GitLab-Repo `IzzyOnDroid/repo` ist ARCHIVIERT (read-only, 403) — Anträge laufen jetzt über Codeberg (`codeberg.org/IzzyOnDroid/repodata/issues`, Template `[AppRequest]`). Antragstext: `docs/IZZYONDROID_REQUEST_v016.md`.
 
+**Stand 2026-10-06 (geprüft):** Issue #672 ist `open`, ohne Kommentare und ohne
+Labels; `https://apt.izzysoft.de/fdroid/index/apk/com.piotv.keytab` liefert noch
+404 (App also nicht gelistet). Im Tracker lagen die zuletzt geschlossenen
+`[AppRequest]`-Issues bei 1–4 Tagen Bearbeitungszeit (z. B. #659: 2026-10-02 →
+2026-10-03), der Antrag ist damit im normalen Fenster. Kein Doppel-Antrag
+(Suche „KeyTab" im Tracker: nur #672).
+
 IzzyOnDroid listet Apps aus dem Upstream-Repo und zieht Beschreibung, Icon und
 Screenshots aus dem **Fastlane-Baum** des Repos (Quelle:
 <https://izzyondroid.org/docs/general/Fastlane/>). Dieser Baum ist hier

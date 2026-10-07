@@ -1,23 +1,41 @@
-# F-Droid Submission — Antrag eingereicht (2026-10-01, v0.16-Update 2026-10-02)
+# F-Droid Submission — Antrag eingereicht (2026-10-01, v0.17-Update 2026-10-07)
 
-Status: **Antrag eingereicht — MR läuft, v0.16-Fix eingespielt** ([`fdroid/fdroiddata!50822`](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822)) · Paket-ID `com.piotv.keytab` · MIT · minSdk 24
+Status: **Antrag eingereicht — MR läuft, v0.17 nachgezogen** ([`fdroid/fdroiddata!50822`](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822)) · Paket-ID `com.piotv.keytab` · MIT · minSdk 24
 
-**Stand 2026-10-06 (geprüft):** MR `opened`, `detailed_merge_status: mergeable`,
-keine Konflikte, Labels `New App` / `reproducible-builds` / `review-requested`.
-Head-Pipeline **grün** (Pipeline `2909014937`, 2026-10-03; 9/9 Jobs: `check apk`,
-`fdroid build`, `fdroid lint`, `checkupdates`, `fdroid rewritemeta`,
-`schema validation`, `tools check scripts`, `git redirect`, `check source code`).
-Metadaten im MR stimmen mit dem Repo: `commit: 70246311e2d54b402502a1872491a5e46a3a90a5`
-== Tag `v0.16` (versionName 0.16 / versionCode 31); `Binaries:` rollt über `%v`.
+**Stand 2026-10-07 (geprüft):** MR `opened`, Labels `New App` /
+`reproducible-builds` / `review-requested`, keine Konflikte, keine offenen
+Review-Threads. Metadaten im MR: `versionName: '0.17'`, `versionCode: 32`,
+`commit: 135babd1cccd459eab01f9d82b4d38814b292b3c` (= Tag `v0.17`, Release mit
+APK + SHA-256 veröffentlicht), `Binaries:` rollt über `%v`.
 
-Reviewer `linsui` (2026-10-04): *„This MR is mostly ready. We'll test it later.
-If everything works well we'll merge it."* — offene Punkte gibt es keine mehr
-(Template, `subdir`, `output`, `Binaries` + `AllowedAPKSigningKeys` und der
-`check apk`-Fehler sind erledigt). **Warteschlange:** 267 offene MRs mit Label
-`review-requested`, KeyTab liegt auf Platz **221** (Sortierung nach Anlagedatum)
-— die Aufnahme kann also dauern. Auflage des Reviewers: **bei einer neuen
-Version den MR mitziehen** (`versionName`, `versionCode`, `commit:`,
-`CurrentVersion`/`CurrentVersionCode` in `metadata/com.piotv.keytab.yml`).
+**Review-Runde 2026-10-06 (`mezinster`):** Der statische Review ist vollständig
+bestanden (Lizenz MIT, Dependencies nur AndroidX/Material/kotlinx-coroutines,
+FrequencyWords CC-BY-SA-4.0 korrekt credited, Fastlane `en-US` komplett,
+VirusTotal 0/67, kein `INTERNET`). **Ein** offener Punkt: Die
+Speicher-Berechtigungen wurden in `MainActivity.onCreate` **beim App-Start**
+angefragt — ein IME kann den System-Dialog nicht selbst zeigen, und ein Ablehnen
+unterbrach das Tippen bei jedem Start erneut.
+
+**Adressiert in v0.17 (2026-10-07):**
+
+- Kein Prompt beim Start; stattdessen Status-Zeile + Button „Grant file access“
+  in den Einstellungen („Granted“ / „Only selected photos“ / „Not granted“).
+  Endgültig abgelehnte Berechtigungen führen per Dialog in die App-Einstellungen.
+- Hintergrundbild über den **System-Foto-Picker**
+  (`ActivityResultContracts.PickVisualMedia`) statt `OpenDocument` — braucht
+  **keine** Speicher-Berechtigung mehr.
+- Files-Tab ohne Zugriff listet nur Ordner und nennt den neuen Button.
+- Neuer Regressionsschutz `MainActivityTest` („App-Start fragt keine
+  Speicher-Berechtigung an“); 520 Unit-Tests in 55 Suites, 0 Failures.
+- APK-Berechtigungen unverändert (`READ_EXTERNAL_STORAGE` maxSdk 32,
+  `READ_MEDIA_IMAGES`, `READ_MEDIA_VISUAL_USER_SELECTED`) — **kein** `INTERNET`,
+  keine neuen Permissions.
+
+**Warteschlange:** 271 offene MRs mit Label `review-requested`, KeyTab auf Platz
+**211** (Sortierung nach Anlagedatum) — die Aufnahme kann dauern. Auflage des
+Reviewers: **bei einer neuen Version den MR mitziehen** (`versionName`,
+`versionCode`, `commit:`, `CurrentVersion`/`CurrentVersionCode` in
+`metadata/com.piotv.keytab.yml`) — mit v0.17 erledigt.
 
 Anders als IzzyOnDroid (listet unsere CI-APKs) **baut F-Droid die App selbst**
 aus dem Quellcode und verifiziert idealerweise, dass der F-Droid-Build binär
@@ -67,6 +85,26 @@ hier als Skriptverhalten abgefangen, nicht als lokale Frickelei.
 **Re-Verifikation nach jedem Release-Tag** (falls sich am Build geändert hat,
 vor dem nächsten Release erneut laufen lassen):
 
+**Wichtig — Reproduzierbarkeit gilt *pro Revision*.** Das APK enthält
+`META-INF/version-control-info.textproto` (AGP-Feature) mit dem Commit-Hash;
+`local_root_path` ist der pfadunabhängige Platzhalter `$PROJECT_DIR`:
+
+```
+repositories {
+  system: GIT
+  local_root_path: "$PROJECT_DIR"
+  revision: "135babd1cccd459eab01f9d82b4d38814b292b3c"
+}
+```
+
+Zwei Builds **desselben Commits** sind bit-identisch (so vergleicht auch F-Droid:
+eigener Build des Tags vs. unser `Binaries`-APK). Zwei Builds **verschiedener
+Commits** unterscheiden sich zwangsläufig — genau das erzeugte am 2026-10-07
+einen falschen Alarm, weil Tag `v0.17` mitten im Lauf verschoben wurde
+(Build A auf `3af3c3f`, Build B auf `135babd`). `scripts/verify_reproducible.sh`
+pinnt die Revision deshalb jetzt **vor** den beiden Builds und bricht ab, wenn
+die gebauten Revisionen auseinanderlaufen.
+
 Typische Stolpersteine, falls ein späterer Lauf abweicht (in dieser Reihenfolge
 prüfen):
 
@@ -96,8 +134,15 @@ prüfen):
    verifiziert (v0.15-APK enthält den Marker, `KeyTab-0.16.apk` nicht; gleicher
    Release-Key, `AllowedAPKSigningKeys` unverändert). MR per Commit `0cd86735`
    auf v0.16 (versionCode 31, Commit `70246311…`) gehoben, `@linsui` um Re-Run gebeten.
-4. ⏳ Läuft: Fork-Pipeline `2907680313` + MR-`check apk` abwarten; wenn F-Droid baut
-   und (optional) der Reproducible-Check gelingt, wird die App aufgenommen.
+4. ✅ v0.17-Pull (2026-10-07): Der Review-Punkt 1 (`mezinster`, 2026-10-06 —
+   Permission-Prompt beim Start) ist umgesetzt: kein Prompt beim Start,
+   Status-Zeile + „Grant file access“ in den Einstellungen, Hintergrundbild über
+   den System-Foto-Picker. Release `v0.17` (versionCode 32, Commit
+   `135babd1cccd459eab01f9d82b4d38814b292b3c`, signiertes APK + SHA-256
+   veröffentlicht). Metadaten im MR auf v0.17 gehoben (`versionName`,
+   `versionCode`, `commit:`, `CurrentVersion`/`CurrentVersionCode`).
+5. ⏳ Läuft: neue MR-Pipeline (`check apk`, `fdroid build`, `fdroid lint`, …)
+   nach dem v0.17-Commit; danach On-Device-Test durch den Reviewer und Merge.
 
 ## 4. Danach
 

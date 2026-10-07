@@ -26,14 +26,39 @@ trap cleanup EXIT INT TERM
 echo "== KeyTab Reproducible-Build-Check =="
 echo "   Referenz: $TAG"
 
+# Revision VOR den beiden Builds festnageln. Wird der Tag mitten im Lauf
+# verschoben, bauen A und B sonst verschiedene Commits und der Vergleich meldet
+# faelschlich "nicht reproduzierbar" — genau das passierte am 2026-10-07 mit
+# v0.17 (Build A auf 3af3c3f, Build B auf 135babd).
+PIN_REV=$(git -C "$PROJECT" rev-parse --verify --quiet "${TAG}^{commit}" 2>/dev/null || true)
+if [ -z "$PIN_REV" ]; then
+    echo "   Referenz '$TAG' nicht gefunden — nutze HEAD"
+    PIN_REV=$(git -C "$PROJECT" rev-parse HEAD)
+fi
+echo "   Revision: $PIN_REV"
+
+# Das APK enthaelt META-INF/version-control-info.textproto mit dem Commit-Hash
+# (local_root_path ist der Platzhalter $PROJECT_DIR) — Reproduzierbarkeit gilt
+# also pro Revision: derselbe Commit -> identische Bytes.
+AAPT2_OVERRIDE=$(grep -h '^android\.aapt2FromMavenOverride' "$HOME/.gradle/gradle.properties" 2>/dev/null || true)
+if [ -n "$AAPT2_OVERRIDE" ]; then
+    echo "   Hinweis: $AAPT2_OVERRIDE"
+    echo "            (Geraete-Workaround, weil das SDK-aapt2 x86-64 ist: dieser"
+    echo "             Lauf prueft Determinismus in DIESER Toolchain. Massgeblich"
+    echo "             fuer F-Droid ist der MR-Job 'fdroid build', der seinen Build"
+    echo "             gegen unser Release-APK vergleicht.)"
+fi
+
 build_once() {
     SRC=$1
     OUT=$2
     git clone --quiet "$PROJECT" "$SRC"
     (cd "$SRC"
-     [ "$TAG" != "HEAD" ] && git checkout --quiet "$TAG"
-     REV=$(git rev-parse --short HEAD)
-     echo "== Build $3 (Rev $REV) =="
+     git checkout --quiet "$PIN_REV"
+     HEAD_REV=$(git rev-parse HEAD)
+     [ "$HEAD_REV" = "$PIN_REV" ] || {
+         echo "  x Build $3 laeuft auf $HEAD_REV, erwartet $PIN_REV"; exit 1; }
+     echo "== Build $3 (Rev $(git rev-parse --short HEAD)) =="
      # gradlew ist im Repo nicht als +x committed — bewusst via sh aufrufen,
      # damit der Lauf vom committeten Inhalt abhaengt, nicht vom Dateisystem-Bit
      # im frischen Klon.

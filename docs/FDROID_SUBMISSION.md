@@ -82,6 +82,30 @@ Dabei traten zwei Prüfsteine auf (beide im Skript dauerhaft gelöst):
 Beide Punkte sind genau die häufigsten F-Droid-Build-Ablehnungen — sie sind
 hier als Skriptverhalten abgefangen, nicht als lokale Frickelei.
 
+**Re-Verifikation: 2026-10-07, Tag `v0.17` — BESTANDEN.** Beide Clean-Builds
+lieferten bit-identisch:
+
+```
+app-release-unsigned.apk
+dd98362ded0b260994b9cdfe2d69d70b27b3d6e87f5372ecca5070be283904d8
+```
+
+**Maßgeblich ist aber F-Droids eigener Vergleich:** Pipeline `2923311708`
+(2026-10-07, **9/9 Jobs grün**) hat `v0.17` auf der F-Droid-Toolchain gebaut und
+protokolliert *„compared built binary to supplied reference binary
+successfully"* — der F-Droid-Build ist also byte-identisch mit unserem
+Release-`KeyTab-0.17.apk`. Das ist der Test, der zählt (x86_64-Standard-aapt2,
+fremde Maschine), nicht der lokale Lauf.
+
+**Caveat des lokalen Laufs:** Auf diesem Gerät ist das SDK-aapt2 x86-64 und
+damit nicht lauffähig; `~/.gradle/gradle.properties` setzt deshalb
+`android.aapt2FromMavenOverride` auf ein **Vendor-aapt2 (2.19 aus einem
+OEM-Build-Tools-Paket)** statt aapt2 8.5.2 aus Maven. Der lokale Check prüft
+damit Determinismus *innerhalb dieser Toolchain*: 4 von 5 Läufen von `v0.17`
+ergaben denselben Hash, ein unter Last laufender Lauf wich ab (Ressourcen-
+Encoding des Vendor-aapt2). Das Skript weist auf einen aktiven Override jetzt
+explizit hin.
+
 **Re-Verifikation nach jedem Release-Tag** (falls sich am Build geändert hat,
 vor dem nächsten Release erneut laufen lassen):
 
@@ -141,8 +165,10 @@ prüfen):
    `135babd1cccd459eab01f9d82b4d38814b292b3c`, signiertes APK + SHA-256
    veröffentlicht). Metadaten im MR auf v0.17 gehoben (`versionName`,
    `versionCode`, `commit:`, `CurrentVersion`/`CurrentVersionCode`).
-5. ⏳ Läuft: neue MR-Pipeline (`check apk`, `fdroid build`, `fdroid lint`, …)
-   nach dem v0.17-Commit; danach On-Device-Test durch den Reviewer und Merge.
+5. ✅ v0.17-Pipeline `2923311708` (2026-10-07): **9/9 Jobs grün** — u. a.
+   `check apk` und `fdroid build` mit *„compared built binary to supplied
+   reference binary successfully"* (Reproducible Build bestätigt). ⏳ Offen:
+   On-Device-Test durch den Reviewer und Merge (Warteschlange, Platz 211).
 
 ## 4. Danach
 

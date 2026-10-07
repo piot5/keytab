@@ -109,6 +109,20 @@
         <TextView
             style="@style/SettingsSection"
             android:text="@string/settings_section_storage" />
+        <!-- Dateizugriff: Status + gezielte Freigabe (kein Prompt beim Start,
+             F-Droid-Review 2026-10-06). -->
+        <TextView
+            android:id="@+id/text_file_access"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:text="@string/settings_storage_missing" />
+        <Button
+            android:id="@+id/btn_grant_file_access"
+            style="@style/SettingsKeyButton"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_storage_grant" />
         <Button
             android:id="@+id/btn_update_config"
         style="@style/SettingsKeyButton"

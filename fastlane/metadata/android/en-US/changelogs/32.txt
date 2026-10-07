@@ -1,0 +1,5 @@
+- Version 0.17: no storage permission prompt at app start (F-Droid review)
+- File access is now granted on demand: "Grant file access" button in the settings
+- Background image uses the system photo picker — needs no permission at all
+- Files tab stays fully usable without access (folders only) and says where to grant it
+- 520 unit tests in 55 suites, 0 failures

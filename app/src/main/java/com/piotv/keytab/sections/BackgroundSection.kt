@@ -9,6 +9,7 @@ import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.piotv.keytab.Prefs
@@ -23,7 +24,15 @@ class BackgroundSection(
     private var sourceLabel: TextView? = null
     private var modes: Spinner? = null
     private val values = listOf(Prefs.FILL_FIT, Prefs.FILL_COVER, Prefs.FILL_STRETCH)
-    private val picker = activity.registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    /**
+     * System-Foto-Picker statt `OpenDocument`: er liefert Lesezugriff auf genau
+     * das gewählte Bild und braucht **keine** Speicher-Berechtigung
+     * (F-Droid-Review 2026-10-06). Der Zugriff wird persistiert, damit der IME
+     * das Bild auch nach einem Neustart laden kann.
+     */
+    private val picker = activity.registerForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
         if (uri != null) {
             try {
                 activity.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -39,7 +48,11 @@ class BackgroundSection(
         col.addView(TextView(activity).apply { setText(R.string.background_title); textSize = 18f })
         col.addView(Button(activity).apply {
             setText(R.string.background_choose)
-            setOnClickListener { picker.launch(arrayOf("image/*")) }
+            setOnClickListener {
+                picker.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }
         })
         sourceLabel = TextView(activity)
         col.addView(sourceLabel)

@@ -4,8 +4,16 @@
     <!-- Dateimanager-Tab + eigenes Hintergrundbild — bewusst minimal gehalten
          (Feature → Permission):
          - READ_EXTERNAL_STORAGE: Dateibrowser auf Android ≤ 12 (API 24–32).
-         - READ_MEDIA_IMAGES: Bilder browsen + Hintergrundbild der Themen-
-           Einstellungen decodieren (Android 13+).
+         - READ_MEDIA_IMAGES: Bilder browsen (Android 13+) — das Hintergrundbild
+           der Theme-Einstellungen läuft über den System-Foto-Picker
+           (ActivityResultContracts.PickVisualMedia) und braucht keine
+           Berechtigung.
+         - READ_MEDIA_VISUAL_USER_SELECTED: Android 14+ „nur ausgewählte Bilder“
+           (Teilzugriff) — der Zugriff wird dann als solcher angezeigt.
+         - Kein Prompt beim App-Start: die Berechtigungen werden gezielt über
+           „Grant file access“ in den Einstellungen angefragt (ein IME kann den
+           System-Dialog nicht selbst zeigen). Tippen funktioniert ohne Zugriff
+           vollständig — ohne Berechtigung listet der Files-Tab nur Ordner.
          - READ_MEDIA_AUDIO/READ_MEDIA_VIDEO wurden am 2026-09-22 entfernt: kein
            Codepfad liest Audio- oder Videodaten; für den Dateibrowser genügt der
            Name/Pfad einer Datei. Nicht lesbare Medien zeigen weiter den

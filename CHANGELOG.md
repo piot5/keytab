@@ -11,6 +11,24 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
+## 0.17
+
+- **Dateizugriff nur noch auf ausdrücklichen Wunsch (F-Droid-Review 2026-10-06,
+  Punkt 1).** Der App-Start fragt keine Speicher-Berechtigung mehr an — ein IME
+  kann den System-Dialog nicht selbst zeigen, und ein Ablehnen unterbrach das
+  Tippen sonst bei jedem Start erneut. Stattdessen:
+  - **Einstellungen:** Status-Zeile + Button „Grant file access“ („Granted“ /
+    „Only selected photos“ / „Not granted“). Ist die Berechtigung endgültig
+    abgelehnt, führt ein Dialog in die App-Einstellungen des Systems.
+  - **Hintergrundbild über den System-Foto-Picker**
+    (`ActivityResultContracts.PickVisualMedia`) statt `OpenDocument` — das Bild
+    braucht damit **keine** Speicher-Berechtigung mehr.
+  - **Files-Tab ohne Zugriff:** listet nur Ordner; der Hinweis nennt jetzt den
+    Button in den Einstellungen.
+  - **Tests:** 515 → **520** Unit-Tests in 55 Suites (0 Failures), u. a.
+    `MainActivityTest` mit „App-Start fragt keine Speicher-Berechtigung an“ als
+    Regressionsschutz.
+
 ## 0.16
 
 - **Performance: Tipp-Jank unter thermischer Last reduziert.** Die

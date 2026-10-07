@@ -25,16 +25,32 @@ import com.piotv.keytab.ime.ThemePrefs
 
 /**
  * KeyTab – Einstellungsbildschirm: Tastatur aktivieren/wechseln, Theme.
- * Fragt beim Start die Speicher-Berechtigungen an, damit der IME-Dateimanager
- * auch Dateien (nicht nur Ordner) auflisten kann.
+ *
+ * Der Dateizugriff für den IME-Dateimanager (und damit die Datei-Liste des
+ * Files-Tabs) wird **nicht** beim Start, sondern gezielt über den Button
+ * „Grant file access“ erteilt — der IME kann den System-Dialog nicht selbst
+ * zeigen, und Tippen funktioniert ohne Zugriff vollständig (F-Droid-Review
+ * 2026-10-06, Punkt 1). Daneben steht der aktuelle Status.
  */
 class MainActivity : AppCompatActivity() {
 
     private var displayedSettings: Map<String, Any?>? = null
 
+    /**
+     * Wird ausschließlich vom „Grant file access“-Button ausgelöst (kein Prompt
+     * beim App-Start). Die Rückmeldung richtet sich nach dem erreichten Zugriff:
+     * voll, nur ausgewählte Bilder (Android 14+) oder abgelehnt.
+     */
     private val permLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-            // Ergebnis ignorieren; IME zeigt Zugriff nur wenn erteilt.
+            refreshFileAccess()
+            when (fileAccessLevel()) {
+                2 -> Toast.makeText(this, R.string.settings_storage_granted,
+                    Toast.LENGTH_SHORT).show()
+                1 -> Toast.makeText(this, R.string.settings_storage_partial,
+                    Toast.LENGTH_LONG).show()
+                else -> onFileAccessDenied()
+            }
         }
 
     companion object {
@@ -177,20 +193,20 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, ThemeSettingsActivity::class.java))
         }
 
-        // Speicher-Berechtigung anstoßen, falls IME Zugriff verweigert.
-        // Nur READ_MEDIA_IMAGES (Bilder/Hintergrundbild) — Audio/Video werden
-        // nirgends gelesen (siehe AndroidManifest-Kommentar).
-        val missingStorage = when {
-            Build.VERSION.SDK_INT >= ANDROID_14 -> neededPermissions(
-                Manifest.permission.READ_MEDIA_IMAGES,
-                Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
-            )
-            Build.VERSION.SDK_INT >= 33 -> neededPermissions(Manifest.permission.READ_MEDIA_IMAGES)
-            else -> neededPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
+        // Dateizugriff nur auf ausdrücklichen Wunsch (F-Droid-Review 2026-10-06):
+        // kein Dialog beim Start, sondern Status-Zeile + Button. Nur
+        // READ_MEDIA_IMAGES/READ_EXTERNAL_STORAGE — Audio/Video liest kein
+        // Codepfad (siehe AndroidManifest-Kommentar).
+        findViewById<Button>(R.id.btn_grant_file_access).setOnClickListener {
+            val missing = missingFileAccessPermissions()
+            if (missing.isEmpty()) {
+                Toast.makeText(this, R.string.settings_storage_granted, Toast.LENGTH_SHORT).show()
+                refreshFileAccess()
+            } else {
+                permLauncher.launch(missing)
+            }
         }
-        if (missingStorage.isNotEmpty()) {
-            permLauncher.launch(missingStorage)
-        }
+        refreshFileAccess()
         displayedSettings = SettingsConfig.snapshot(prefs)
     }
 
@@ -244,6 +260,71 @@ class MainActivity : AppCompatActivity() {
                     is LearnedDictionaryApi.CleanupResult.Rejected ->
                         Toast.makeText(this, R.string.settings_cleanup_dictionary_failed, Toast.LENGTH_LONG).show()
                 }
+            }
+            .show()
+    }
+
+    /** 0 = kein Zugriff, 1 = nur ausgewählte Bilder (Android 14+), 2 = voll. */
+    private fun fileAccessLevel(): Int {
+        val images = isGranted(Manifest.permission.READ_MEDIA_IMAGES)
+        return when {
+            Build.VERSION.SDK_INT >= ANDROID_14 -> when {
+                images -> 2
+                isGranted(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) -> 1
+                else -> 0
+            }
+            Build.VERSION.SDK_INT >= 33 -> if (images) 2 else 0
+            else -> if (isGranted(Manifest.permission.READ_EXTERNAL_STORAGE)) 2 else 0
+        }
+    }
+
+    private fun isGranted(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+
+    /** Noch fehlende Berechtigungen für den Files-Tab (nichts anderes liest Dateien). */
+    private fun missingFileAccessPermissions(): Array<String> = when {
+        Build.VERSION.SDK_INT >= ANDROID_14 -> neededPermissions(
+            Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+        )
+        Build.VERSION.SDK_INT >= 33 -> neededPermissions(Manifest.permission.READ_MEDIA_IMAGES)
+        else -> neededPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
+    }
+
+    /** Status-Zeile und Button an den aktuellen Zugriff anpassen (ohne Dialog). */
+    private fun refreshFileAccess() {
+        val level = fileAccessLevel()
+        findViewById<android.widget.TextView>(R.id.text_file_access).setText(
+            when (level) {
+                2 -> R.string.settings_storage_granted
+                1 -> R.string.settings_storage_partial
+                else -> R.string.settings_storage_missing
+            }
+        )
+        findViewById<Button>(R.id.btn_grant_file_access).isEnabled = level != 2
+    }
+
+    /**
+     * Nach einer Ablehnung: läuft der System-Dialog noch, genügt ein Hinweis;
+     * ist die Berechtigung endgültig abgelehnt, zeigt das System keinen Dialog
+     * mehr — dann führt der Weg nur über die App-Einstellungen.
+     */
+    private fun onFileAccessDenied() {
+        val missing = missingFileAccessPermissions()
+        if (missing.isEmpty() || missing.any { shouldShowRequestPermissionRationale(it) }) {
+            Toast.makeText(this, R.string.settings_storage_denied, Toast.LENGTH_SHORT).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setMessage(R.string.settings_storage_denied)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.settings_open_app_settings) { _, _ ->
+                startActivity(
+                    Intent(
+                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        android.net.Uri.fromParts("package", packageName, null)
+                    )
+                )
             }
             .show()
     }

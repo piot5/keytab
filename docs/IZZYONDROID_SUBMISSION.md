@@ -1,28 +1,66 @@
-# IzzyOnDroid — Aufnahmeantrag EINGEREICHT, hängt ohne Labels (2026-10-05, Issue #672)
+# IzzyOnDroid — ABGELEHNT (2026-10-07): LLM/AI-Policy
 
-Status: **EINGEREICHT, aber außerhalb der Verarbeitungskette** — https://codeberg.org/IzzyOnDroid/repodata/issues/672 (`[AppRequest] KeyTab`) · Paket-ID `com.piotv.keytab` · MIT · App-Version für die Aufnahme: **v0.17 (versionCode 32)**
+Status: **ABGELEHNT** — https://codeberg.org/IzzyOnDroid/repodata/issues/684 (`[AppRequest] KeyTab`, Labels `app-request` + `llm/substantial` + `status/declined`) · Paket-ID `com.piotv.keytab` · MIT · eingereichte Version: **v0.17 (versionCode 32)**
 
-WICHTIG: Das GitLab-Repo `IzzyOnDroid/repo` ist ARCHIVIERT (read-only, 403) — Anträge laufen jetzt über Codeberg (`codeberg.org/IzzyOnDroid/repodata/issues`, Template `[AppRequest]`). Antragstext: `docs/IZZYONDROID_REQUEST_v017.md`.
+WICHTIG: Das GitLab-Repo `IzzyOnDroid/repo` ist ARCHIVIERT (read-only, 403) — Anträge laufen über Codeberg (`codeberg.org/IzzyOnDroid/repodata/issues`, Formular „App Inclusion Request"). Antragstext (Archiv): `docs/IZZYONDROID_REQUEST_v017.md`.
 
-**Stand 2026-10-07 (geprüft):** Issue #672 ist weiterhin `open`, **ohne Labels**,
-ohne Assignee und ohne Reaktion auf unseren Kommentar vom 2026-10-06
-(18:16 CEST). Der Tracker selbst ist sehr aktiv — 26 offene Issues, die zuletzt
-angelegten Anträge (#683 CalibRaw, #682 MileLog, #680 Dejavu Browser, #677,
-#676, #675, #674, #673, #671, #669) tragen **alle** automatisch `app-request` +
-`needs/apk-scan`, und #679 wurde am 2026-10-06 bis `passed/scan` +
-`status/declined` durchgearbeitet. **#672 ist damit der einzige `[AppRequest]`
-ohne Labels** und der älteste unbearbeitete Antrag: Es liegt außerhalb der
-Kette und wird von der Automatik nicht erfasst. Nachträglich selbst setzen geht
-nicht: `POST .../issues/672/labels` antwortet **403** (keine Schreibrechte im
-IzzyOnDroid-Repo — nur das Maintainer-Team kann Labels setzen). Die App ist
-weiterhin **nicht gelistet** (`apt.izzysoft.de/fdroid/index/apk/com.piotv.keytab`
-→ 404; Tracker-Suche „KeyTab": nur #672).
+## Ergebnis 2026-10-07
 
-**Nächster Schritt (Empfehlung):** Antrag **über das Codeberg-Formular neu
-anlegen** (Template „App Inclusion Request" — nur das setzt die Labels), Text
-fertig in `docs/IZZYONDROID_REQUEST_v017.md`; #672 danach mit Verweis schließen,
-damit kein Doppel-Antrag entsteht. Alternativ: weiter auf das Maintainer-Team
-warten (Kommentar-Ping ist seit 2026-10-06 gesetzt).
+1. ✅ Der per API angelegte Antrag **#672** (2026-10-05) hatte keine Labels und lag
+   damit außerhalb der Kette. Wir haben ihn am 2026-10-07 als Duplikat
+   geschlossen (Kommentar mit Verweis).
+2. ✅ **#684** wurde am 2026-10-07 20:10 korrekt **über das Formular** angelegt —
+   die Labels `app-request` + `needs/apk-scan` wurden automatisch gesetzt, der
+   Antrag lief also regulär in die Prüfung.
+3. ❌ **#684 wurde vier Minuten später abgelehnt** (20:14, Maintainer `sidhant`),
+   Labels `llm/substantial` + `status/declined`:
+
+   > „Upon review of your application, we regret to inform you that the project
+   > does not meet our requirements for inclusion. Our evaluation found that the
+   > level of LLM assistance used in the development of this application
+   > significantly exceeds our acceptable thresholds. Consequently, the
+   > application does not comply with the standards outlined in our App
+   > Inclusion AI Policy."
+
+   Die App ist weiterhin **nicht gelistet**
+   (`apt.izzysoft.de/fdroid/index/apk/com.piotv.keytab` → 404).
+
+## Warum das nicht verhandelbar ist
+
+Die [App Inclusion Policy](https://izzyondroid.org/docs/general/AppInclusionPolicy/)
+ist an dieser Stelle kategorisch:
+
+> „We are strongly opposed to apps which are fully or in part created by
+> generative AI tools. […] **Vibe-coded apps will be rejected.** […] Readme,
+> Changelogs and similar documentation files are allowed to include
+> LLM-generated texts, but **the code itself should be free of it**. Using LLMs
+> for research, brainstorming, inspiration, debugging, look-ups, and comparable
+> ‚read-only' tasks, is acceptable – provided their output is not included in
+> the app's code. Any lack of transparency discovered by us, can lead to the
+> project being degraded to rejected state."
+
+Das Label `llm/substantial` ist im Tracker definiert als *„LLM was used
+throughout development, or entire app vibe-coded"*. Die Einstufung stammt aus
+der eigenen Auswertung des Repos, nicht aus der Formularantwort (dort stand
+„Moderate – Used for specific tasks or modules") — KeyTab ist durchgehend
+KI-unterstützt entstanden, und die Repo-Doku sagt das auch offen (u. a.
+`docs/REFACTORING_HISTORY.md`, AI-Tool im Formular: Cline).
+
+**Konsequenz:** Ein Widerspruch wäre nur aussichtsreich, wenn der Code frei von
+LLM-Ausgaben wäre — das ist er nicht, und laut Policy kann „lack of
+transparency" den Status sogar weiter verschlechtern. **IzzyOnDroid ist damit
+für KeyTab kein Kanal**, solange der Code mit generativer KI entsteht. Das ist
+eine Richtlinien-Entscheidung, kein behebbarer Mangel.
+
+**F-Droid bleibt der Weg:** Bei den ebenfalls abgelehnten Anträgen #678/#679 hat
+der Maintainer die Autoren ausdrücklich an F-Droid verwiesen („they don't have
+an LLM Policy"). Unser MR `fdroid/fdroiddata!50822` ist grün (Pipeline
+`2923311708`, 9/9, Reproducible Build bestätigt) — siehe
+`docs/FDROID_SUBMISSION.md`.
+
+**Kein weiterer Izzy-Antrag** (weder Wiederholung noch Umformulierung): Die
+Einstufung ist reproduzierbar, und ein zweiter Anlauf mit „kleinerer"
+AI-Angabe wäre eine Falschangabe.
 
 IzzyOnDroid listet Apps aus dem Upstream-Repo und zieht Beschreibung, Icon und
 Screenshots aus dem **Fastlane-Baum** des Repos (Quelle:

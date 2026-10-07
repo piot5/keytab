@@ -1,6 +1,11 @@
-# IzzyOnDroid-Antrag — KeyTab v0.17 (Codeberg, Stand 2026-10-07)
+# IzzyOnDroid-Antrag — KeyTab v0.17 (Codeberg, Stand 2026-10-07) — **ARCHIV, ABGELEHNT**
 
-Tracker (NEU, GitLab-Repo ist archiviert!): https://codeberg.org/IzzyOnDroid/repodata/issues
+> **Ergebnis:** Antrag #684 wurde am 2026-10-07 vom Maintainer mit
+> `llm/substantial` + `status/declined` geschlossen (IzzyOnDroid-AI-Policy:
+> kein LLM-generierter Code). Dieser Text ist nur noch Archiv — siehe
+> `docs/IZZYONDROID_SUBMISSION.md`. Ein erneuter Antrag ist nicht geplant.
+
+Tracker (GitLab-Repo ist archiviert!): https://codeberg.org/IzzyOnDroid/repodata/issues
 
 **Wichtig — Antrag über das Codeberg-Formular anlegen** (`New issue` → Template
 „App Inclusion Request“), **nicht** per API/CLI: Nur das Formular setzt die

@@ -1,32 +1,28 @@
-# IzzyOnDroid — Aufnahmeantrag EINGEREICHT (2026-10-05, Issue #672; v0.16)
+# IzzyOnDroid — Aufnahmeantrag EINGEREICHT, hängt ohne Labels (2026-10-05, Issue #672)
 
-Status: **EINGEREICHT** — https://codeberg.org/IzzyOnDroid/repodata/issues/672 (`[AppRequest] KeyTab`, v0.16 / versionCode 31) · Paket-ID `com.piotv.keytab` · MIT
+Status: **EINGEREICHT, aber außerhalb der Verarbeitungskette** — https://codeberg.org/IzzyOnDroid/repodata/issues/672 (`[AppRequest] KeyTab`) · Paket-ID `com.piotv.keytab` · MIT · App-Version für die Aufnahme: **v0.17 (versionCode 32)**
 
-WICHTIG: Das GitLab-Repo `IzzyOnDroid/repo` ist ARCHIVIERT (read-only, 403) — Anträge laufen jetzt über Codeberg (`codeberg.org/IzzyOnDroid/repodata/issues`, Template `[AppRequest]`). Antragstext: `docs/IZZYONDROID_REQUEST_v016.md`.
+WICHTIG: Das GitLab-Repo `IzzyOnDroid/repo` ist ARCHIVIERT (read-only, 403) — Anträge laufen jetzt über Codeberg (`codeberg.org/IzzyOnDroid/repodata/issues`, Template `[AppRequest]`). Antragstext: `docs/IZZYONDROID_REQUEST_v017.md`.
 
-**Stand 2026-10-06 (geprüft):** Issue #672 ist `open`, ohne Assignee und **ohne
-Labels**; die Timeline ist leer (keine Events). Ursache verifiziert: Die Labels
-`app-request` + `needs/apk-scan` setzt **das Issue-Formular**
-(`.forgejo/issue_template/app-inclusion-request.yaml`, Feld `labels:`) — die
-Timelines von #671/#673/#674/#675 zeigen die Label-Events jeweils durch den
-*Antragsteller* zur Anlagezeit. #672 wurde also **nicht über das Formular**
-angelegt (z. B. per API/CLI mit eingefügtem Text) und hat deshalb keine Labels;
-damit fehlt der Einstieg in die Kette (`needs/apk-scan` → `passed/scan` →
-`passed/metadata` → `llm/*` → `needs/on-device-test` → `status/accepted`).
-Nachträglich selbst setzen geht nicht: `POST .../issues/672/labels` antwortet
-**403** (keine Schreibrechte im IzzyOnDroid-Repo — nur das Maintainer-Team kann
-Labels setzen). Deshalb am 2026-10-06 ein Kommentar auf #672 gepostet
-(<https://codeberg.org/IzzyOnDroid/repodata/issues/672#issuecomment-24796929>)
-mit der Bitte, die zwei Labels zu ergänzen bzw. den Antrag regulär zu behandeln.
+**Stand 2026-10-07 (geprüft):** Issue #672 ist weiterhin `open`, **ohne Labels**,
+ohne Assignee und ohne Reaktion auf unseren Kommentar vom 2026-10-06
+(18:16 CEST). Der Tracker selbst ist sehr aktiv — 26 offene Issues, die zuletzt
+angelegten Anträge (#683 CalibRaw, #682 MileLog, #680 Dejavu Browser, #677,
+#676, #675, #674, #673, #671, #669) tragen **alle** automatisch `app-request` +
+`needs/apk-scan`, und #679 wurde am 2026-10-06 bis `passed/scan` +
+`status/declined` durchgearbeitet. **#672 ist damit der einzige `[AppRequest]`
+ohne Labels** und der älteste unbearbeitete Antrag: Es liegt außerhalb der
+Kette und wird von der Automatik nicht erfasst. Nachträglich selbst setzen geht
+nicht: `POST .../issues/672/labels` antwortet **403** (keine Schreibrechte im
+IzzyOnDroid-Repo — nur das Maintainer-Team kann Labels setzen). Die App ist
+weiterhin **nicht gelistet** (`apt.izzysoft.de/fdroid/index/apk/com.piotv.keytab`
+→ 404; Tracker-Suche „KeyTab": nur #672).
 
-Für die nächste Einreichung: Antrag **über das Codeberg-Formular** anlegen
-(nicht per API/CLI), sonst fehlen die Labels wieder.
-
-Der Tracker ist aktiv (am 2026-10-06 wurden drei Issues bearbeitet, insgesamt
-nur 22 offen; zuletzt geschlossene `[AppRequest]`-Issues lagen bei 1–4 Tagen
-Bearbeitungszeit). Die App ist weiterhin **nicht gelistet**
-(`apt.izzysoft.de/fdroid/index/apk/com.piotv.keytab` → 404). Kein Doppel-Antrag
-(Tracker-Suche „KeyTab": nur #672).
+**Nächster Schritt (Empfehlung):** Antrag **über das Codeberg-Formular neu
+anlegen** (Template „App Inclusion Request" — nur das setzt die Labels), Text
+fertig in `docs/IZZYONDROID_REQUEST_v017.md`; #672 danach mit Verweis schließen,
+damit kein Doppel-Antrag entsteht. Alternativ: weiter auf das Maintainer-Team
+warten (Kommentar-Ping ist seit 2026-10-06 gesetzt).
 
 IzzyOnDroid listet Apps aus dem Upstream-Repo und zieht Beschreibung, Icon und
 Screenshots aus dem **Fastlane-Baum** des Repos (Quelle:

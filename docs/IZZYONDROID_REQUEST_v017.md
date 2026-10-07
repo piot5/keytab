@@ -1,7 +1,16 @@
-# IzzyOnDroid-Antrag — KeyTab v0.16 (Codeberg, Stand 2026-10-05)
+# IzzyOnDroid-Antrag — KeyTab v0.17 (Codeberg, Stand 2026-10-07)
 
 Tracker (NEU, GitLab-Repo ist archiviert!): https://codeberg.org/IzzyOnDroid/repodata/issues
-Dort: `New issue` → Titel: `[AppRequest] KeyTab`
+
+**Wichtig — Antrag über das Codeberg-Formular anlegen** (`New issue` → Template
+„App Inclusion Request“), **nicht** per API/CLI: Nur das Formular setzt die
+Labels `app-request` + `needs/apk-scan`. Ohne die kommt der Antrag nicht in die
+Kette (`needs/apk-scan` → `passed/scan` → `passed/metadata` → `llm/*` →
+`needs/on-device-test` → `status/accepted`) — genau das ist bei #672 passiert
+(per API angelegt, keine Labels, seither unbearbeitet; siehe
+`docs/IZZYONDROID_SUBMISSION.md`).
+
+Dort: `New issue` → Template wählen → Titel: `[AppRequest] KeyTab`
 Body: untenstehender Text.
 
 ---
@@ -19,7 +28,7 @@ https://github.com/piot5/keytab
 
 ### Link to app in another app store
 
-https://github.com/piot5/keytab/releases/latest (F-Droid submission pending: https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822)
+https://github.com/piot5/keytab/releases/latest (F-Droid submission pending: https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822 — pipeline green, F-Droid's own build compared byte-identically to our release APK)
 
 ### License used
 
@@ -43,7 +52,9 @@ Offline word prediction: an n-gram model with bigrams for next-word prediction, 
 
 Keyboard features: dedicated TAB key (great for Termux/SSH), shift/caps-lock, long-press popups for umlauts and special characters, accelerating backspace on long-press. Dynamic key sizing (likely-next keys scale up), toggleable in settings. Notes/editor tab with save/load plus persistent clipboard history (up to 50 entries).
 
-Fastlane metadata in repo at fastlane/metadata/android/en-US/ (title, short/full description, per-versionCode changelogs, phone screenshots). Current version: v0.16 (versionCode 31).
+Storage access (file browser) is requested **only on demand** — a "Grant file access" button in the settings, never at app start; the background image uses the system photo picker and needs no permission. Typing works fully without any storage permission.
+
+Fastlane metadata in repo at fastlane/metadata/android/en-US/ (title, short/full description, per-versionCode changelogs, phone screenshots). Current version: v0.17 (versionCode 32).
 
 ### Build instructions
 
@@ -52,7 +63,7 @@ Requires JDK 17 and the Gradle wrapper in the repo.
 ```
 git clone https://github.com/piot5/keytab.git
 cd keytab
-git checkout v0.16
+git checkout v0.17
 sh ./gradlew :app:assembleRelease --no-daemon
 ```
 
@@ -68,7 +79,7 @@ Muse Spark / Cline (coding agent, Termux environment)
 
 ### What did the tools help with, and how?
 
-Scaffolding, refactoring, tests (515 unit tests + 42 instrumented tests), docs/fastlane maintenance, CI scripts. All outputs were reviewed, edited and verified by the human developer (builds, tests on device + emulator).
+Scaffolding, refactoring, tests (520 unit tests + one instrumented typing pass), docs/fastlane maintenance, CI scripts. All outputs were reviewed, edited and verified by the human developer (builds, tests on device + emulator).
 
 ### AI Accountability
 
@@ -77,4 +88,6 @@ Scaffolding, refactoring, tests (515 unit tests + 42 instrumented tests), docs/f
 
 ### Further Notices
 
-F-Droid submission for the same version is pending (fdroid/fdroiddata!50822). Reproducible tag builds verified (v0.15 bit-identical APK hashes). APK well below the 30 MB limit.
+F-Droid submission for the same version is pending (fdroid/fdroiddata!50822; pipeline 2923311708 green — `check apk` and `fdroid build` "compared built binary to supplied reference binary successfully"). Reproducible tag builds verified (v0.15 and v0.17 bit-identical APK hashes). No `INTERNET` permission, no trackers. APK ~2.3 MB, well below the 30 MB limit.
+
+Note: an earlier request for this app exists as issue #672, but it was created without the issue-form labels and therefore never entered the processing chain. This is the proper re-submission through the form.

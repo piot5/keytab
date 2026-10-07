@@ -37,12 +37,11 @@ Reviewers: **bei einer neuen Version den MR mitziehen** (`versionName`,
 `versionCode`, `commit:`, `CurrentVersion`/`CurrentVersionCode` in
 `metadata/com.piotv.keytab.yml`) — mit v0.17 erledigt.
 
-Anders als IzzyOnDroid (listet unsere CI-APKs) **baut F-Droid die App selbst**
-aus dem Quellcode und verifiziert idealerweise, dass der F-Droid-Build binär
+Anders als Stores, die unsere CI-APKs einfach übernehmen, **baut F-Droid die App
+selbst** aus dem Quellcode und verifiziert, dass der F-Droid-Build binär
 identisch mit unserem Release-APK ist (**Reproducible Builds**,
-<https://f-droid.org/docs/Reproducible_Builds/>). Deshalb ist der Weg hier
-länger als bei IzzyOnDroid — aber einmal verifiziert, ist KeyTab im
-renommiertesten FOSS-Store.
+<https://f-droid.org/docs/Reproducible_Builds/>). Deshalb dauert der Weg länger
+— aber einmal verifiziert, ist KeyTab im renommiertesten FOSS-Store.
 
 ## 1. Bereits vorbereitet (in diesem Repo)
 
@@ -177,8 +176,10 @@ prüfen):
   („F-Droid: ⏳ → ✅").
 - `README.md`-Kanal-Tabelle und diesen Doc-Eintrag pflegen.
 
-## Abgrenzung zu IzzyOnDroid
+## Verhältnis zu IzzyOnDroid
 
-IzzyOnDroid listet unsere vor-signierten GitHub-Release-APKs und verlangt
-**keinen** Reproducible-Build — der Antrag dort (`docs/IZZYONDROID_SUBMISSION.md`)
-ist unabhängig von diesem Prozess und kann **jetzt** abgeschickt werden.
+IzzyOnDroid hat die Aufnahme am 2026-10-07 **abgelehnt** (Issue #684, Labels
+`llm/substantial` + `status/declined`): deren AI-Policy verbietet Code, der mit
+generativer KI entsteht („the code itself should be free of it"). Dort ist kein
+weiterer Antrag geplant — **F-Droid ist neben den GitHub-Releases der einzige
+Store-Kanal**.

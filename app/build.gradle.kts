@@ -75,7 +75,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // F-Droid/IzzyOnDroid-kompatibles Release-Signing: Passwörter kommen NUR
+            // F-Droid-kompatibles Release-Signing: Passwörter kommen NUR
             // aus der Umgebung oder aus keystore/keystore.properties (gitignored) —
             // keine Defaults im Buildfile. Ohne Credentials bleibt das Release-APK
             // unsigniert (Debug-Builds sind davon unberührt).

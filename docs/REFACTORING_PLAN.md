@@ -84,7 +84,7 @@ Status: 2026-09-25 · Goal: maintainable, testable, release-ready modules with n
 
 ## 4. Product/distribution backlog — separate from refactoring
 
-- [ ] IzzyOnDroid submission and reproducible-build verification.
+- [x] Reproducible-Build-Verifikation (`scripts/verify_reproducible.sh`, v0.15 und v0.17 bit-identisch) und F-Droid-Antrag (MR `!50822`, Pipeline grün). **IzzyOnDroid ist abgelehnt** (deren AI-Policy verbietet LLM-generierten Code, Issue #684 vom 2026-10-07) — dort kein weiterer Antrag.
 - [ ] `targetSdk 35` after API 35/AGP toolchain is available; treat this as release maintenance, not a refactor.
 - [ ] Editor robustness for non-UTF-8 and very large files.
 - [ ] Consider Termux deep link, Emoji support and a multi-module build only as separate product decisions.

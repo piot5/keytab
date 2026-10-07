@@ -59,11 +59,17 @@ jobs:
         run: |
           VC=$(sed -n 's/.*"versionCode": \([0-9]*\).*/\1/p' app/build/outputs/apk/release/output-metadata.json | head -1)
           CL="fastlane/metadata/android/en-US/changelogs/${VC}.txt"
+          NOTES="${RUNNER_TEMP}/release-notes.txt"
           if [ -f "$CL" ]; then
-            { printf 'body<<EOF\n'; awk 1 "$CL"; printf 'EOF\n'; } >> "$GITHUB_OUTPUT"
+            cp "$CL" "$NOTES"
           else
-            { echo "body<<EOF"; echo "Release ${GITHUB_REF_NAME}"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+            echo "Release ${GITHUB_REF_NAME}" > "$NOTES"
           fi
+          # Notes als DATEI, nicht als Inline-String: Anfuehrungszeichen im
+          # Changelog beendeten den `--notes "..."`-String, die Restwoerter
+          # landeten als Asset-Patterns bei gh ("no matches found for `file`",
+          # Release v0.17 am 2026-10-07). --notes-file ist davon unabhaengig.
+          echo "file=$NOTES" >> "$GITHUB_OUTPUT"
 
       - name: GitHub Release mit APK erstellen
         env:
@@ -80,6 +86,6 @@ jobs:
             gh release create "$GITHUB_REF_NAME" \
               --repo "$GITHUB_REPOSITORY" \
               --title "KeyTab ${GITHUB_REF_NAME}" \
-              --notes "${{ steps.notes.outputs.body }}" \
+              --notes-file "${{ steps.notes.outputs.file }}" \
               "$APK" "$SUM"
           fi

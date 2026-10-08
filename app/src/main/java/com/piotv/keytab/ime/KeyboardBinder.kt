@@ -174,7 +174,16 @@ internal class KeyboardBinder(
                     pendingLongPress?.let { host.longPressHandler.postDelayed(it, longPressTimeout) }
                     true
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                MotionEvent.ACTION_UP -> {
+                    btn.isPressed = false
+                    pendingLongPress?.let { host.longPressHandler.removeCallbacks(it) }
+                    repeater?.let { host.longPressHandler.removeCallbacks(it) }
+                    // Accessibility (Lint [ClickableViewAccessibility]): Klick als
+                    // View-Event melden (kein OnClickListener → folgenlos).
+                    btn.performClick()
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
                     btn.isPressed = false
                     pendingLongPress?.let { host.longPressHandler.removeCallbacks(it) }
                     repeater?.let { host.longPressHandler.removeCallbacks(it) }

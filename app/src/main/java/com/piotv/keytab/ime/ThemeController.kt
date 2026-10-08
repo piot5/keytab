@@ -57,6 +57,9 @@ internal class ThemeController(private val host: ThemeHost) {
                         host.letterPopup.dismiss()
                         host.haptic()
                         toggleDarkMode()
+                        // Accessibility (Lint [ClickableViewAccessibility]): Klick
+                        // als View-Event melden (kein OnClickListener → folgenlos).
+                        btn.performClick()
                     }
                     true
                 }

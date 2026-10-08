@@ -180,6 +180,12 @@ internal class LetterButtonTouchHandler(
                 // SwipeSamples verwerfen (Mindestbewegung nicht erreicht → Tap).
                 swipeManager?.clearSwipeSamples()
                 commitTap(btn)
+                // Accessibility (Lint [ClickableViewAccessibility]): ein reiner
+                // Tap meldet den Klick als View-Event, damit TalkBack die Taste
+                // auslösen kann. Folgenlos — die Tasten haben KEINEN
+                // OnClickListener, und View#performClick() spielt Sound und
+                // ruft den Listener nur, wenn einer gesetzt ist.
+                btn.performClick()
             }
         }
         btn.clearFocus()

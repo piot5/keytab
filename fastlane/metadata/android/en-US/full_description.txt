@@ -7,7 +7,7 @@ Browse folders in tabs, navigate with back-stack and parent-navigation. Tapping 
 An n-gram model (FrequencyWords de_50k, CC-BY-SA-4.0) with bigrams for next-word prediction, a self-learning user dictionary, prefix autocomplete, fuzzy correction (Damerau-Levenshtein) and case matching — all on-device. Export/Import lets you optimize suggestions with a local LLM. Your data never leaves the device.
 
 <b>Dynamic key sizing</b>
-Likely-next keys scale up to 1.15x, unlikely ones down to 0.85x, driven by the current suggestion scores. Toggleable in settings.
+Likely-next keys scale up to 1.21x (second grade 1.15x), unlikely neighbours down to 0.812x, driven by the current suggestion scores. Toggleable in settings.
 
 <b>Notes &amp; clipboard</b>
 An editor tab with save/load plus a persistent clipboard history (up to 50 entries) — tap an entry to insert it directly into the target field.

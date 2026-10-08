@@ -92,6 +92,17 @@ Pins veralten. Deshalb der feste Ablauf:
   `actions/attest-build-provenance` wäre der Weg; es braucht
   `id-token: write` und ist bewusst als eigener Punkt im Refactor-Plan
   geführt, nicht als Teil des Pinnings.
+- **Lokaler Produktions-Keystore in geteiltem Speicher (Befund 2026-10-08):**
+  `keystore/keytab-release.jks` + `keystore/keystore.properties` liegen im
+  Projektverzeichnis unter `/mnt/sdcard` — das ist ein `fuseblk`-Bind von
+  `/storage/emulated/0`, wo **Dateimodi nicht durchsetzbar sind** (`chmod 600`
+  blieb wirkungslos) und jeder Prozess mit Speicherzugriff lesen kann. Der
+  Schlüssel **ist** der Produktionsschlüssel (Zertifikat-SHA-256 `DE:BE:11:46:…`
+  = `AllowedAPKSigningKeys` des F-Droid-MR). Beides ist gitignored und war nie
+  im Git-Verlauf, aber das ist nur Schutz gegen ein Leak über GitHub, nicht
+  gegen lokalen Zugriff. **Reihenfolge:** nach der F-Droid-Aufnahme rotieren und
+  ausschließlich in CI-Secrets + Offline-Backup halten (nicht vorher — die
+  Rotation bräche Repro-Verifikation und Update-Kette).
 - **Clean-Cache-Auflösung auf einer frischen Maschine**: weiterhin nicht
   praktisch verifiziert — der Pin schützt vor verfälschten Artefakten, nicht
   vor einem Cache, der eine alte, korrekte Auflösung verdeckt.

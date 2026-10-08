@@ -151,6 +151,11 @@ echo "   Log:    $LOG"
 
 # setsid → eigene Session, Prozess überlebt das Ende der aufrufenden Shell.
 # stdin von /dev/null (nicht-interaktiv), stdout+stderr ins Log.
+# JAVA_HOME: Gradle 8.7 läuft NICHT unter Java 25 (Default auf diesem Host) —
+# wir pinnen Java 17, falls vorhanden (fällt sonst auf Umgebungs-Default zurück).
+if [ -z "${JAVA_HOME:-}" ] && [ -d /usr/lib/jvm/java-17-openjdk-arm64 ]; then
+    export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64
+fi
 setsid sh ./gradlew "$TASK" --no-daemon --offline > "$LOG" 2>&1 < /dev/null &
 PID=$!
 echo "$PID" > "$PID_FILE"

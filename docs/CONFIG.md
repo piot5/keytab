@@ -62,7 +62,7 @@ welcher Schlüssel wohin gehört.
 - `swipe` (Default `false` — v0.11): Gleit-Eingabe; der Finger gleitet über die
   Tastatur, die Route wird gegen die Engine bewertet (Auto-Commit bei klarem
   Ergebnis, sonst Kandidaten-Leiste). In Passwort-Feldern
-  hart deaktiviert (gleiche Regel wie `trail`). Siehe `docs/SWIPE_PLAN.md`.
+  hart deaktiviert (gleiche Regel wie `trail`).
   Entfernt 2026-09-29: `swipe_preview` (Schaltplan-Preview, passiv) — die
   Likely-Markierung **während** des aktiven Wischens bleibt.
 - `trail`, `trail_trace`: Tippspur an/aus und Treffer-Markierung an/aus

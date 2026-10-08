@@ -7,7 +7,7 @@ import java.util.concurrent.Executors
 
 /**
  * Zentrale Thread-Infrastruktur der App (Phase: Coroutine-Migration ohne neue
- * Dependencies – siehe docs/REFACTORING_PLAN.md). Vorher hatte jeder Erzeuger
+ * Dependencies). Vorher hatte jeder Erzeuger
  * (Service, FileManagerFragment, BackgroundImage) seinen eigenen
  * Single-Thread-Executor und teils lokale Main-Handler; jetzt gibt es pro
  * Prozess genau einen I/O- und einen Bild-Executor plus einen Main-Handler.

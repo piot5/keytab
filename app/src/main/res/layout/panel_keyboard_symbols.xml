@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Sonderzeichen-Ebene (?123): Zahlen, Interpunktion, Klammern.
-     Teil des Splits von keyboard_view.xml (siehe docs/REFACTORING_PLAN.md).
+     Teil des Splits von keyboard_view.xml.
      Wird via <include> in das sym_panel von keyboard_view.xml eingebettet. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"

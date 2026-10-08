@@ -25,7 +25,7 @@ Every tagged release (`v*`) is built and published automatically by CI as a sign
 | Channel | Status |
 |---|---|
 | GitHub Releases | ✅ every `v*` tag, built and published by CI |
-| F-Droid | ⏳ requested — [merge request !50822](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822) is open (pulled forward to v0.17 on 2026-10-07); reproducible build verified (see [`docs/FDROID_SUBMISSION.md`](docs/FDROID_SUBMISSION.md)) |
+| F-Droid | ⏳ requested — [merge request !50822](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822) is open (pulled forward to v0.17 on 2026-10-07); reproducible build verified |
 
 Release history lives in **[CHANGELOG.md](CHANGELOG.md)**.
 
@@ -56,7 +56,7 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 - **File manager in the keyboard** — browse folders with back-stack and parent-navigation, each tab remembers its own directory. Tapping a file inserts its path; in the app it opens via VIEW-Intent. Async listing so large folders don't freeze the UI.
 - **Notes tab** — editor and clipboard merged into one tab: folder-browser loading, persistent clipboard history (50 entries) with picker dialog.
 - **Snippets tab** — named commands as `name = text` lines in a plain-text file (`keytab_snippets.txt`, `#` comments, `\n` expanded); tap inserts, long-press previews, ＋/✎ add or edit inline. **Snippet suggestions** appear as chips when no word prediction is available at a sentence start (last 3 used).
-- **Swipe typing** (optional) — route scored against the same offline engine; clear winners auto-commit, otherwise candidates appear in the bar; likely next keys light up along the route. See [`docs/SWIPE_PLAN.md`](docs/SWIPE_PLAN.md).
+- **Swipe typing** (optional) — route scored against the same offline engine; clear winners auto-commit, otherwise candidates appear in the bar; likely next keys light up along the route.
 - **Dictionary maintenance** — in Settings, the learned dictionary can be scanned for artifacts and cleaned with explicit confirmation (preview first, base corpus untouched, entirely on-device).
 - **Dynamic key sizing + likely highlighting** — likely-next keys scale up (grades 1.21×/1.15×, shrink 0.812×/0.925×) and glow in an adjustable colour; reaching the top suggestion fires a pulse (colour flash + haptic). Both toggleable.
 - **Typing trail + suggestion-match marking** (optional) — last keys tint and fade (3/5/7/10 steps, drawn as key *foreground* overlay); with the trace on, letters turn green when the typed word matches the top suggestion. Typos stay unmarked (no red). Pure logic in `TrailLogic`, unit-tested.

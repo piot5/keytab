@@ -4,7 +4,7 @@ package com.piotv.keytab.ime
  * Pure Text-Aufbereitung der Buchstaben-Tasten: Groß-/Kleinschreibung und die
  * Liste der Sonderzeichen-Hinweise (Android-frei, JUnit-testbar).
  *
- * Refactoring (docs/REFACTORING_PLAN.md Phase 3): die reine Zeichen-Logik aus
+ * Refactoring (Phase 3): die reine Zeichen-Logik aus
  * [KeyboardBinder.applyLetterCase] und [KeyboardBinder.tapLetter] extrahiert.
  * Die Spans (Größe/Lift/Farbe) bleiben im Binder – sie brauchen den sekundären
  * Farbwert aus dem Theme.

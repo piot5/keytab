@@ -8,7 +8,7 @@ import android.content.SharedPreferences
  * die von mehreren Modulen geteilt werden ([MainActivity], [KeyTabImeService],
  * [FileManagerPanel], [ThemePrefs]).
  *
- * Zweck (Refactoring, siehe docs/REFACTORING_PLAN.md Phase 1): Die Datei beseitigt
+ * Zweck (Refactoring, Phase 1): Die Datei beseitigt
  * die duplizierte `PREFS = "keytab_prefs"`-Konstante, die zuvor in
  * [MainActivity] UND [KeyTabImeService] getrennt existierte und per
  * `MainActivity.PREFS`/`<eigene>.PREFS` gemischt verwendet wurde → Drift-Risiko.

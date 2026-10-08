@@ -104,6 +104,6 @@ if [ "$FAIL" -eq 0 ]; then
     exit 0
 fi
 echo "== ERGEBNIS: NICHT reproduzierbar — haeufigste Ursachen: Zeitstempel im"
-echo "   APK, nicht-deterministische Codegenerierung, Locale/umask. Siehe"
-echo "   docs/FDROID_SUBMISSION.md, Abschnitt Reproducible Builds."
+echo "   APK, nicht-deterministische Codegenerierung, Locale/umask. Hintergrund:"
+echo "   https://f-droid.org/docs/Reproducible_Builds/"
 exit 1

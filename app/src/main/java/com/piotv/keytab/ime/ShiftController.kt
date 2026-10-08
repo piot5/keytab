@@ -4,7 +4,7 @@ package com.piotv.keytab.ime
  * Shift-/CapsLock-Zustandsmaschine – rein, ohne Android-View-Abhängigkeit.
  *
  * Verarbeitet die Übergänge, die zuvor inline im [KeyTabImeService] lagen
- * (Refactoring, docs/REFACTORING_PLAN.md Phase 2):
+ * (Refactoring, Phase 2):
  * - [tapShift]      – Shift-Taste: Doppel-Tap ⇒ CapsLock, sonst Toggle/Exit
  * - [consume]       – nach übernommenen Zeichen: einzelne Shift-Eingabe zurücksetzen
  * - [resetForInput] – beim Start in ein Feld: ggf. Auto-Caps, CapsLock aus

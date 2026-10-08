@@ -9,7 +9,7 @@ import android.text.style.RelativeSizeSpan
  * Setzt den Text einer Buchstaben-Taste zusammen: Hauptbuchstabe plus – falls
  * vorhanden – das erste Sonderzeichen als klein abgedunkelter Hinweis.
  *
- * Refactoring (docs/REFACTORING_PLAN.md, P2): die Span-Komposition aus
+ * Refactoring (P2): die Span-Komposition aus
  * [KeyboardBinder.applyLetterCase] herausgelöst. Vorher lagen die fünf
  * Lay-out-Werte als Magic Numbers im Binder; jetzt sind sie benannte Konstanten
  * an der einzigen Stelle, die sie verwendet, und der Binder orchestriert nur noch.

@@ -74,7 +74,7 @@ Pins veralten. Deshalb der feste Ablauf:
 5. **Commit.** Eigener Commit, Message nach Schema
    `ci: actions/<name> auf <tag> gepinnt (<kurzer-sha>)`. Kein Mix mit
    Code-Änderungen — der Pin-Bump muss isoliert reviewbar sein.
-6. **Nach dem ersten erfolgreichen Lauf** den Plan (`docs/REFACTORING_PLAN.md`)
+6. **Nach dem ersten erfolgreichen Lauf** den Plan (liegt außerhalb dieses Repos)
    aktualisieren, falls der Punkt dort als offen geführt war.
 
 ### Was ausdrücklich nicht passiert

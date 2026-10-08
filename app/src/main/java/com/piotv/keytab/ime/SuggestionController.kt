@@ -10,7 +10,7 @@ import com.piotv.keytab.R
  * Suggestion-Controller – Vorschlagsleiste, dynamische Tastengröße und
  * Likely-Highlights.
  *
- * Refactoring (docs/REFACTORING_PLAN.md Phase 4): aus [KeyTabImeService]
+ * Refactoring (Phase 4): aus [KeyTabImeService]
  * extrahiert. Kapselt:
  * - [setup]               – Vorschlag-Views binden, Engine laden, Skaler aufbauen
  * - [update]              – Vorschläge berechnen + Tasten skalieren + Likely-

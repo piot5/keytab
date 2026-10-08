@@ -7,7 +7,7 @@ import android.widget.Button
  * Touch-Logik der Buchstaben-Tasten: Tap, Long-Press (Drag-Popup bzw.
  * Auto-Select im Swipe-Modus) und Swipe-Erkennung.
  *
- * Refactoring (docs/REFACTORING_PLAN.md Phase 3): aus [KeyboardBinder.setupLetterButton]
+ * Refactoring (Phase 3): aus [KeyboardBinder.setupLetterButton]
  * extrahiert. Pro Buchstaben-Taste wird eine eigene Instanz erzeugt – die
  * Zustandsflags (longPressFired/autoSelected/swipeActive) gelten also je Taste,
  * genau wie vorher die lokalen Variablen in [KeyboardBinder.setupLetterButton].

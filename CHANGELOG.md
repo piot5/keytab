@@ -121,7 +121,7 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
   mehr: ein neuer Befund mit bekanntem Muster wäre stillschweigend durchgegangen.
   Neu gemessen sind 157 Befunde, davon 5 durch die obige Extraktion behoben.
   Baseline-IDs lassen sich nur durch Neuerzeugen entfernen, nicht durch
-  Editieren — die Werte in `docs/REFACTORING_PLAN.md` wurden mitgemessen.
+  Editieren — die Werte im damaligen Refactoring-Plan wurden mitgemessen.
 
 - **Supply-Chain-Doku ergänzt:** Neue `docs/SUPPLY_CHAIN.md` dokumentiert die
   Gradle-Dependency-Verification (inkl. Wrapper-Distribution, Lint-Toolchain,

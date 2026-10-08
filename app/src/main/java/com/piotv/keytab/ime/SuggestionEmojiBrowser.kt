@@ -9,7 +9,7 @@ import com.piotv.keytab.R
  * [EmojiModule]-Katalog, Katalog-Chrome der Leiste und das Raster-Popup mit
  * dem ganzen Katalog.
  *
- * Refactoring (docs/REFACTORING_PLAN.md Phase 4): aus [SuggestionController]
+ * Refactoring (Phase 4): aus [SuggestionController]
  * extrahiert („Umziehen statt Umschreiben“, verhaltensneutral). Die Leiste
  * blendet im Katalog-Modus anstelle der Wortvorschläge je 5 Emoji-Chips
  * (sug_1..sug_5); der ☺-Button links öffnet Seite 0, jeder weitere Tap blättert

@@ -72,5 +72,6 @@ sh ~/bin/rsh 'settings get secure default_input_method'
 ## 6. Nach dem Release
 
 - `CHANGELOG.md` und fastlane-Changelog sind Teil des Release-Commits
-- `docs/REFACTORING_HISTORY.md` bekommt abgeschlossene Arbeiten (Archiv)
-- `docs/REFACTORING_PLAN.md` enthält danach **nur noch offene** Arbeit
+- Refactoring-Plan und sein Archiv (abgeschlossene Arbeiten) liegen **außerhalb**
+  dieses Repos — im Repo bleibt nur, was zum Bauen, Testen und Veröffentlichen
+  nötig ist

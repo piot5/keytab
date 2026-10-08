@@ -17,7 +17,7 @@ import com.piotv.keytab.R
 import java.util.concurrent.Executor
 
 /**
- * Baut den kompletten Keyboard-View auf (Phase 6, docs/REFACTORING_PLAN.md):
+ * Baut den kompletten Keyboard-View auf (Phase 6):
  * Themed-Context, Theme-Anwendung, Panel-Instanzen, Input-Router,
  * Wortvorhersage-Manager und Tasten-Skaler.
  *

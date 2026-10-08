@@ -10,7 +10,7 @@ import com.piotv.keytab.R
  * Theme-Controller – Dark/Light-Umschaltung, Theme-Taste (Mond/Sonne) und
  * Theme-Version-Rebuild-Erkennung.
  *
- * Refactoring (docs/REFACTORING_PLAN.md Phase 4): aus [KeyTabImeService]
+ * Refactoring (Phase 4): aus [KeyTabImeService]
  * extrahiert. Der Service delegiert Theme-Aktionen hierher; Theme-spezifische
  * Konstanten ([LONG_PRESS_TIMEOUT], [SUN_SYMBOL], [MOON_SYMBOL]) leben nun hier
  * statt im Service-Companion.

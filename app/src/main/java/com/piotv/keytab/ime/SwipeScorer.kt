@@ -6,7 +6,7 @@ package com.piotv.keytab.ime
  * liefert die besten Kandidaten für die Vorschlags-Leiste (Auto-Commit bei
  * klarem Ergebnis).
  *
- * **Design** (vgl. `docs/SWIPE_PLAN.md` §3): der Scorer nutzt ausschließlich die
+ * **Design**: der Scorer nutzt ausschließlich die
  * lokale Engine (kein Netz, kein neues Modell). Die Route liefert eine
  * Buchstabenfolge (Tastenwechsel, keine Wiederholungen). Bewertet werden alle
  * Basis-/User-Wörter, deren **Buchstabenfolge eine Teilfolge der Route** ist

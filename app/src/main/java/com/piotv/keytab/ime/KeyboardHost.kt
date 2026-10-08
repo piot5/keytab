@@ -11,7 +11,7 @@ import android.widget.Button
  * Jede Rolle erbt von [KeyboardHost] und wird von genau den Modulen konsumiert,
  * die diese Rolle tatsächlich brauchen. Dadurch hängt kein Modul mehr am
  * 25-Member-Interface, sondern nur an den 3–8 Membern seiner Rolle
- * (Interface Segregation, docs/REFACTORING_PLAN.md Phase 7/P3).
+ * (Interface Segregation, Phase 7/P3).
  */
 interface KeyboardHost {
 

@@ -4,7 +4,7 @@ package com.piotv.keytab.ime
  * Pure Parameter + Intervall-Rechnung für das beschleunigende Wort-Löschen
  * auf der Del-Taste (Android-frei, JUnit-testbar).
  *
- * Refactoring (docs/REFACTORING_PLAN.md Phase 3): die Konstanten aus
+ * Refactoring (Phase 3): die Konstanten aus
  * [KeyboardBinder] und die Intervall-Berechnung aus [RepeatScheduler.next]
  * hierher verschoben – eine einzige Quelle für die Repeat-Timing-Werte.
  *

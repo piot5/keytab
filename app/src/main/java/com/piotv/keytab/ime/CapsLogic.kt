@@ -5,7 +5,7 @@ import android.view.inputmethod.EditorInfo
 
 /**
  * Reine Ableitungen rund um Groß-/Kleinschreibung (keine View-Abhängigkeit).
- * Refactoring (docs/REFACTORING_PLAN.md Phase 2): aus [KeyTabImeService]
+ * Refactoring (Phase 2): aus [KeyTabImeService]
  * extrahiert, damit die Auto-Caps-Entscheidung unit-testbar ist.
  */
 object CapsLogic {

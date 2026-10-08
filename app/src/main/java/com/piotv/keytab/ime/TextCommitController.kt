@@ -3,7 +3,7 @@ package com.piotv.keytab.ime
 import android.view.inputmethod.InputConnection
 
 /**
- * Text-Eingabe-Orchestrierung (Phase 6, docs/REFACTORING_PLAN.md):
+ * Text-Eingabe-Orchestrierung (Phase 6):
  * kapselt die Logik, die zuvor inline in [KeyTabImeService] lag:
  * - [commit]       – Text an aktives Ziel (Vorhersage-Buchführung)
  * - [commitToApp]  – direktes Einfügen ins App-Feld (Clipboard/Editor-Load)

@@ -12,7 +12,7 @@ import com.piotv.keytab.R
 /**
  * Tasten-Binder – verbindet alle Tasten des Tastatur-Views mit Event-Listenern.
  *
- * Refactoring (docs/REFACTORING_PLAN.md Phase 3): aus [KeyTabImeService] extrahiert.
+ * Refactoring (Phase 3): aus [KeyTabImeService] extrahiert.
  * Kapselt die Touch-/Long-Press-Logik aller Tasten:
  * - [hook]              – Haupteinstieg: alle Tasten gemäß Tag/ID binden
  * - [setupLetterButton] – Buchstaben-Taste mit Long-Press-Popup (Drag-Auswahl);

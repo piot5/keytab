@@ -8,7 +8,7 @@ import android.view.inputmethod.EditorInfo
  * Pfad-Sampling (Dedup + Buchstaben-Zuordnung über eine Zentren-Matrix) und die
  * Prognose-Knoten für die Schaltplan-Preview.
  *
- * **Zwei Betriebsarten** (Details in `docs/SWIPE_PLAN.md`):
+ * **Zwei Betriebsarten**:
  *  - **Schaltplan-Preview (passiv):** die wahrscheinlichen Folge-Tasten des
  *    aktuell getippten Worts werden als verbundener Pfad sichtbar – Knoten =
  *    skalierte, einfarbige Tasten in der Pfad-Farbe (`KIND_SWIPE`).

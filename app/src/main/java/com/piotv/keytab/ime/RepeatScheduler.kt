@@ -3,7 +3,7 @@ package com.piotv.keytab.ime
 /**
  * Pure Zeitlogik für den beschleunigenden Del-Repeat (Android-frei, JUnit-testbar).
  *
- * Refactoring (docs/REFACTORING_PLAN.md Phase 3): die Zeit-/Intervall-Berechnung
+ * Refactoring (Phase 3): die Zeit-/Intervall-Berechnung
  * aus [KeyTabImeService.setupDelButton] extrahiert. Der Service ruft [interval]
  * nach jedem Repeat; [next] liefert das nächste Intervall (kleiner werdend,
  * bis zum Minimum) – die Handler-Post-Logik bleibt beim Aufrufer ([KeyboardBinder]),

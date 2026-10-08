@@ -9,7 +9,7 @@ package com.piotv.keytab.ime
  * Style-Labels (Hauptbuchstabe leicht angehoben, Hinweis-Zeichen klein
  * rechts-UNTEN stark abgesenkt – vgl. Verwendung in [KeyTabImeService]).
  *
- * Refactoring (docs/REFACTORING_PLAN.md Phase 1): aus innerer Klasse des
+ * Refactoring (Phase 1): aus innerer Klasse des
  * [KeyTabImeService] herausgezogen, damit er unabhängig vom Service als
  * wiederverwendbarer Text-Span vorliegt.
  */

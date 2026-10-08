@@ -7,7 +7,7 @@ import org.json.JSONObject
  * aus dem JSON. Reine Parser-Logik ohne Prefs-Zugriff, damit sie ohne Android
  * testbar ist.
  *
- * Refactoring (docs/REFACTORING_PLAN.md, P2): der Teil von
+ * Refactoring (P2): der Teil von
  * [ThemePrefs.importColors], der nur JSON liest, ist hierher gewandert. Vorher
  * steckten acht [org.json.JSONObject]-Zugriffe, zwei `for`-Schleifen und ein
  * `when` in einer Funktion — Grund für zwei der drei detekt-Befunde dort.

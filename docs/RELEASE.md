@@ -75,3 +75,45 @@ sh ~/bin/rsh 'settings get secure default_input_method'
 - Refactoring-Plan und sein Archiv (abgeschlossene Arbeiten) liegen **außerhalb**
   dieses Repos — im Repo bleibt nur, was zum Bauen, Testen und Veröffentlichen
   nötig ist
+
+## 7. F-Droid-Schutz (verbindlich, solange ein MR offen ist)
+
+F-Droid baut die App **selbst** aus einem gepinnten Commit und vergleicht das
+Ergebnis mit unserem Release-APK. Solange der MR
+[`!50822`](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822) offen ist,
+ist dieser Stand unantastbar:
+
+- MR-Metadaten: `versionName: '0.17'`, `versionCode: 32`,
+  `commit: 135babd1cccd459eab01f9d82b4d38814b292b3c` (= Tag `v0.17`),
+  `AllowedAPKSigningKeys: debe1146…`
+- `Binaries:` zeigt auf
+  `https://github.com/piot5/keytab/releases/download/v0.17/KeyTab-0.17.apk`
+  (`sha256:e85da877…`) — **Release und Asset dürfen nicht gelöscht oder
+  ersetzt werden** (dagegen gibt es keine automatische Sperre: GitHub schützt
+  Releases nicht per Ruleset).
+
+Drei Schutzschichten verhindern versehentliche Beschädigung (gesetzt 2026-10-08):
+
+| Schicht | Wirkung |
+|---|---|
+| GitHub-Ruleset **„F-Droid-Schutz: Tags unveraenderlich"** (`target: tag`, `~ALL`, Regeln `deletion` + `update`) | Tags können **nicht gelöscht oder verschoben** werden. Ein verschobener Tag war am 2026-10-07 die Ursache eines falschen Repro-Vergleichs (Build A auf `3af3c3f`, Build B auf `135babd`) |
+| GitHub-Ruleset **„main: kein Force-Push, keine Loeschung"** (`refs/heads/main`, Regeln `deletion` + `non_fast_forward`) | `main` kann nicht umgeschrieben oder gelöscht werden → `135babd` bleibt dauerhaft erreichbar |
+| Git-Hook **`pre-push`** (`scripts/git-hooks/pre-push`, Installation `sh scripts/install_git_hooks.sh`) | blockiert **lokal** jeden Push, der einen Tag oder einen Force-Push enthält — greift vor dem Netzwerk |
+
+Die Rulesets sind serverseitig und damit auch für andere Rechner/Klone wirksam;
+sie sind nur im Web-UI bzw. per API (`gh api repos/piot5/keytab/rulesets`) änderbar.
+
+**Regel für das nächste Release:** erst den MR auf die neue Version ziehen
+(`versionName`, `versionCode`, `commit:`, `CurrentVersion`/`CurrentVersionCode`),
+**dann** taggen. Ein neuer Tag ohne MR-Pull-forward lässt F-Droids `checkupdates`
+eine neuere Version sehen und rollt den Review neu auf.
+
+Notausgänge des Hooks (bewusst und einzeln):
+
+```bash
+KEYTAB_ALLOW_TAG_PUSH=1   git push --tags
+KEYTAB_ALLOW_FORCE_PUSH=1 git push --force-with-lease
+```
+
+Ein normaler Branch-Push (`git push origin main`) läuft ohne Sonderfall durch.
+

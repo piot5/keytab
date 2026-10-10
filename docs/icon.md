@@ -19,3 +19,4 @@ Farbwerte des KeyTab-Icons.
 | Tasten/Fläche (dunkel) | `#2E2E2E` | `values-night/colors.xml` `surface` |
 | Grund (dunkel) | `#1A1A1A` | `values-night/colors.xml` `background` |
 | Alt-Icon-Blau (abgelöst) | `#1B6EF3` | ehemals `drawable/ic_launcher.xml` (nicht mehr im Tree) |
+

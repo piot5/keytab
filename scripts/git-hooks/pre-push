@@ -1,0 +1,64 @@
+#!/bin/sh
+# KeyTab — Schutz-Hook: verhindert Pushs, die die laufende F-Droid-Aufnahme
+# beschädigen könnten.
+#
+# Warum: F-Droids MR !50822 pinnt versionCode 32 und commit 135babd (= Tag v0.17)
+# und vergleicht seinen eigenen Build mit dem Release-APK von v0.17. Zwei Dinge
+# brechen das:
+#   1. Ein NEUER Tag → der Release-Workflow startet und F-Droids `checkupdates`
+#      sieht eine neuere Version als die im MR gepinnte (Review rollt neu auf).
+#   2. Ein FORCE-PUSH auf main → der gepinnte Commit kann unerreichbar werden,
+#      der Reproducible-Build-Vergleich schlägt fehl.
+# Ein verschobener Tag war am 2026-10-07 bereits die Ursache eines falschen
+# Repro-Vergleichs (Build A auf 3af3c3f, Build B auf 135babd).
+#
+# Ergänzend (serverseitig, greift auch ohne diesen Hook): GitHub-Rulesets
+# „F-Droid-Schutz: Tags unveraenderlich" und „main: kein Force-Push, keine
+# Loeschung" — siehe docs/RELEASE.md, Abschnitt 7.
+#
+# Notausgänge (bewusst und einzeln):
+#   KEYTAB_ALLOW_TAG_PUSH=1   git push --tags
+#   KEYTAB_ALLOW_FORCE_PUSH=1 git push --force-with-lease
+# Installation: sh scripts/install_git_hooks.sh
+set -u
+
+allow_tags="${KEYTAB_ALLOW_TAG_PUSH:-0}"
+allow_force="${KEYTAB_ALLOW_FORCE_PUSH:-0}"
+zero="0000000000000000000000000000000000000000"
+rc=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -n "${local_ref:-}" ] || continue
+
+    # 1) Tags: Anlegen, Verschieben und Löschen blockieren.
+    case "$remote_ref" in
+        refs/tags/*)
+            if [ "$allow_tags" != "1" ]; then
+                printf 'ABGEBROCHEN: Push enthaelt Tag %s\n' "$remote_ref" >&2
+                printf '  F-Droid MR !50822 pinnt versionCode 32 / commit 135babd.\n' >&2
+                printf '  Ein neuer/verschobener Tag startet den Release-Workflow und\n' >&2
+                printf '  laesst F-Droids checkupdates eine neuere Version sehen.\n' >&2
+                printf '  Erst den MR mitziehen, dann: KEYTAB_ALLOW_TAG_PUSH=1 git push --tags\n' >&2
+                rc=1
+            fi
+            ;;
+    esac
+
+    # 2) Force-Push (Nicht-Fast-Forward) auf einen existierenden Ref blockieren.
+    case "$local_sha" in "$zero") continue ;; esac
+    case "$remote_sha" in "$zero") continue ;; esac
+    # Nur pruefen, wenn wir den Remote-Stand lokal haben - sonst waere die
+    # Vorfahren-Pruefung ein falscher Alarm.
+    if git cat-file -e "${remote_sha}^{commit}" 2>/dev/null; then
+        if [ "$allow_force" != "1" ] && \
+           ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+            printf 'ABGEBROCHEN: Push auf %s ist kein Fast-Forward.\n' "$remote_ref" >&2
+            printf '  Der F-Droid-Build klont commit 135babd - die Historie muss bleiben.\n' >&2
+            printf '  Falls wirklich gewollt: KEYTAB_ALLOW_FORCE_PUSH=1 git push --force-with-lease\n' >&2
+            rc=1
+        fi
+    fi
+done
+
+[ "$rc" -eq 0 ] || printf '\nHinweis: Schutzregeln siehe docs/RELEASE.md, Abschnitt 7 (F-Droid-Schutz).\n' >&2
+exit "$rc"

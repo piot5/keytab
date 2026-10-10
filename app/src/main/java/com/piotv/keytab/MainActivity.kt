@@ -74,6 +74,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         SettingsConfig.importIfChanged(this)
         setContentView(R.layout.activity_main)
+        // Edge-to-Edge + Systembar-Insets (Pflicht ab targetSdk 35) — siehe SystemBars.kt
+        applyEdgeToEdgeInsets()
 
         // Versionszeile aus PackageManager
         try {

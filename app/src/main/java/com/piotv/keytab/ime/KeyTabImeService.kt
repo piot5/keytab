@@ -10,6 +10,8 @@ import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -179,6 +181,21 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         predictionManager = result.predictionManager
         keyScaler = result.keyScaler
         val root = result.root
+        // Edge-to-Edge-Erzwingung (targetSdk ≥ 35): Das IME-Fenster läuft bis
+        // zum Bildschirmrand, die always-on-Navigationsleiste überlagert die
+        // unterste Tastenreihe. Gelauscht wird am decorView des IME-Fensters —
+        // dort landen die Insets als Erstes; das interne IMS-Layout konsumiert
+        // sie sonst, bevor sie den Keyboard-Root erreichen (Listener am Root
+        // feuerte deshalb nie, Praxis-Test 2026-10-10). Oben kein Padding —
+        // über dem IME liegt kein Systembar; insets bleiben unkonsumiert, damit
+        // PanelHeights.maximizeAvailableHeight weiter rechnen kann.
+        window.window?.decorView?.let { decor ->
+            ViewCompat.setOnApplyWindowInsetsListener(decor) { _, insets ->
+                val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+                keyboardRoot?.setPadding(nav.left, 0, nav.right, nav.bottom)
+                insets
+            }
+        }
         // Module einhängen
         tabController.setup(root)
         // Trail-Manager erstellen (baseLetters noch leer, wird nach hook() aktualisiert)
@@ -247,6 +264,21 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         // zuverlässiger als onStartInput (z. B. bei Fokuswechsel ohne neues Feld).
         lastEditorInfo = editorInfo
         if (::keyboardBinder.isInitialized) keyboardBinder.setEditorInfo(editorInfo)
+    }
+
+    /**
+     * Insets-Dispatch nachziehen, sobald das Fenster sicher sichtbar ist: Der
+     * Listener am Keyboard-Root (siehe [onCreateInputView]) feuerte beim
+     * View-Attach im Praxis-Test 2026-10-10 nicht zuverlässig — die Tastatur
+     * lief weiter bis unter die Navigationsleiste (targetSdk-36-Edge-to-Edge).
+     * Hier ist alles attached und [ViewCompat.requestApplyInsets] liefert das
+     * Event nach; die Listener-Logik selbst bleibt unverändert.
+     */
+    override fun onWindowShown() {
+        super.onWindowShown()
+        // Insets-Event nachziehen: am decorView anfragen (Quelle aller Insets),
+        // nicht am Root — dort können sie von internen IMS-Views konsumiert sein.
+        window.window?.decorView?.let { ViewCompat.requestApplyInsets(it) }
     }
 
     private fun autoCapitalize(attribute: android.view.inputmethod.EditorInfo?): Boolean =

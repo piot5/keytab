@@ -123,6 +123,8 @@ class ThemeSettingsActivity : AppCompatActivity() {
         col.addView(actionRow(), rowParams())
 
         setContentView(scroll)
+        // Edge-to-Edge + Systembar-Insets (Pflicht ab targetSdk 35) — siehe SystemBars.kt
+        applyEdgeToEdgeInsets()
         updatePreview()
         refreshThemeIcons()
         refreshTargetButtons()

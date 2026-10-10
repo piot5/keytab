@@ -56,12 +56,12 @@ tasks.register("coverageGate") {
 
 android {
     namespace = "com.piotv.keytab"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.piotv.keytab"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 32
         versionName = "0.17"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -148,6 +148,9 @@ android {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
+    // Edge-to-Edge (Pflicht ab targetSdk 35): enableEdgeToEdge() braucht activity ≥ 1.9.0;
+    // aufgelöst lag bisher nur 1.8.1 (über fragment-ktx).
+    implementation("androidx.activity:activity-ktx:1.9.3")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")

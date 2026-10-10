@@ -17,6 +17,8 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 
 /**
  * Foreign target window for real InputMethodService instrumentation tests.
@@ -68,6 +70,22 @@ class ImeTargetActivity : Activity() {
         setContentView(
             if (TestRunnerState.enabled) ScrollView(this).apply { addView(content) } else content
         )
+        // Edge-to-Edge (ab targetSdk 35 erzwungen): Auf API-35+-Geräten läuft das
+        // Fenster hinter den Systembars, das erste Feld läge sonst unter der
+        // Statusleiste. Bewusst NUR Insets-Padding statt `enableEdgeToEdge()`:
+        // die View-Hierarchie bleibt unverändert (CI-Messungen bleiben
+        // vergleichbar), und die Klasse bleibt ein schlichtes `Activity` — der
+        // Key-Event-Mitschnitt braucht `dispatchKeyEvent`, das in
+        // `ComponentActivity` als RestrictedApi gilt (Lint-Befund 2026-10-10).
+        // Auf Geräten ohne erzwungenes Edge-to-Edge sind die Insets konsumiert
+        // (Padding 0) — dort ändert sich nichts.
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { v, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
 
         if (TestRunnerState.enabled) {
             TestRunnerState.onChange = { runOnUiThread { refreshRunner() } }

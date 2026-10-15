@@ -123,6 +123,13 @@
             style="@style/SettingsKeyButton"
             android:layout_marginTop="8dp"
             android:text="@string/settings_storage_grant" />
+        <!-- All-files access (API 30+): optional, mit Begründungs-Dialog vor dem
+             System-Screen. Wird unter API 30 im Code ausgeblendet. -->
+        <Button
+            android:id="@+id/btn_grant_all_files"
+            style="@style/SettingsKeyButton"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_storage_all_files_grant" />
         <Button
             android:id="@+id/btn_update_config"
         style="@style/SettingsKeyButton"

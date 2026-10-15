@@ -11,6 +11,33 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
+## 0.19
+
+- **Files-Tab: „Alle Dateien“ als optionale Freigabe (F-Droid-konform).** Ab
+  Android 13 zeigt der Files-Tab nur Ordner und Bilder, weil `READ_MEDIA_IMAGES`
+  genau das freigibt (F-Droid-Testerbericht 2026-10-13). Wer jeden Dateityp sehen
+  will (PDF, ZIP, XLSX, Logs), wählt in den Einstellungen jetzt
+  **„Grant all-files access“**: erst ein Begründungs-Dialog, dann der System-Screen
+  `ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION` (`MANAGE_EXTERNAL_STORAGE`,
+  API 30+). Die Berechtigung wird **nie** beim Start und **nie** im Hintergrund
+  erfragt, es gibt weiterhin kein `INTERNET` und keinen Dienst, der Dateien liest —
+  Dateien können das Gerät also nicht verlassen. Ohne die Freigabe bleibt alles
+  wie bisher nutzbar (Tippen, Vorschläge, Ordner + Bilder, Pfad-Einfügen); die
+  Statuszeile nennt die Stufe („All files“ / „folders and pictures“ /
+  „selected photos“ / „not granted“) und der Hinweis über der Dateiliste
+  verschwindet, sobald „Alle Dateien“ gilt. Die Abfrage liegt zentral in
+  `StorageAccess` (ein Zugriffspunkt für Einstellungen und Files-Tab, damit sich
+  Status und Hinweis nie widersprechen) und ist defensiv gekapselt: Robolectric
+  hat keinen Shadow für `Environment.isExternalStorageManager()`, einzelne ROMs
+  werfen dort `SecurityException` — beides darf die Einstellungen nicht kippen.
+  Tests: `All-files access zeigt Vollzugriff und deaktiviert beide Buttons`,
+  `Ohne All-files bleibt der Button anfragbar und der Medienstatus stehen`,
+  `Klick auf All-files begruendet zuerst und oeffnet dann die
+  System-Einstellungen`, `Mit All-files access nennt der Hinweis keine
+  Bild-Einschraenkung`.
+- **Tests:** 556 Unit-Tests in 57 Suites (0 Failures).
+
+
 ## 0.18.1
 
 Reine Release-/Build-Korrektur — **kein Verhaltensunterschied zur App in 0.18**.

@@ -292,7 +292,8 @@ class FileManagerPanel(
                 entries = loaded
                 hint?.text = when {
                     raw == null -> context.getString(R.string.fm_no_storage_access)
-                    mediaOnlyAccess() -> context.getString(R.string.fm_dir_summary_media, dirs, files)
+                    !allFilesAccess() && mediaOnlyAccess() ->
+                        context.getString(R.string.fm_dir_summary_media, dirs, files)
                     else -> context.getString(R.string.fm_dir_summary, dirs, files)
                 }
                 list?.adapter = themedAdapter(
@@ -317,4 +318,13 @@ class FileManagerPanel(
     ).any {
         ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
     }
+
+    /**
+     * True, wenn „Alle Dateien“ freigegeben ist (API 30+, nur über den
+     * System-Screen zu erteilen): dann sind **alle** Dateitypen sichtbar und der
+     * Medien-Hinweis wäre falsch. Der Zugriff ist bewusst optional — ohne ihn
+     * bleibt der Files-Tab bei Ordnern und Bildern. Die Abfrage liegt zentral in
+     * [StorageAccess], damit der Hinweis zum Status in den Einstellungen passt.
+     */
+    private fun allFilesAccess(): Boolean = StorageAccess.allFilesGranted()
 }

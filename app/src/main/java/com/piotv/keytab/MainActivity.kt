@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import com.piotv.keytab.ime.KeyboardLanguage
 import com.piotv.keytab.ime.Languages
 import com.piotv.keytab.ime.SettingsConfig
+import com.piotv.keytab.ime.StorageAccess
 import com.piotv.keytab.ime.SuggestionEngine
 import com.piotv.keytab.ime.ThemePrefs
 
@@ -55,6 +56,9 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val ANDROID_14 = 34
+
+        /** „Alle Dateien“ (MANAGE_EXTERNAL_STORAGE) gibt es ab API 30 (Android 11). */
+        private const val ANDROID_11 = 30
 
         /** Alias-Kompatibilität: `MainActivity.PREFS` == `Prefs.FILE` (alter Aufrufer). */
         const val PREFS = Prefs.FILE
@@ -208,6 +212,9 @@ class MainActivity : AppCompatActivity() {
                 permLauncher.launch(missing)
             }
         }
+        // All-files access (API 30+) — bewusst optional und nur hier, auf
+        // ausdrücklichen Wunsch (Details in [setupAllFilesButton]).
+        setupAllFilesButton()
         refreshFileAccess()
         displayedSettings = SettingsConfig.snapshot(prefs)
     }
@@ -216,6 +223,8 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         applyDarkModeOverride()
         SettingsConfig.importIfChanged(this)
+        // Zurück aus den System-Einstellungen (All-files access) → Status neu lesen.
+        refreshFileAccess()
         val current = SettingsConfig.snapshot(Prefs.of(this))
         if (displayedSettings != current) recreate()
     }
@@ -266,8 +275,9 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    /** 0 = kein Zugriff, 1 = nur ausgewählte Bilder (Android 14+), 2 = voll. */
+    /** 0 = kein Zugriff, 1 = nur ausgewählte Bilder (Android 14+), 2 = Medien, 3 = alle Dateien. */
     private fun fileAccessLevel(): Int {
+        if (hasAllFilesAccess()) return 3
         val images = isGranted(Manifest.permission.READ_MEDIA_IMAGES)
         return when {
             Build.VERSION.SDK_INT >= ANDROID_14 -> when {
@@ -277,6 +287,58 @@ class MainActivity : AppCompatActivity() {
             }
             Build.VERSION.SDK_INT >= 33 -> if (images) 2 else 0
             else -> if (isGranted(Manifest.permission.READ_EXTERNAL_STORAGE)) 2 else 0
+        }
+    }
+
+    /**
+     * „Alle Dateien“ (API 30+) — nur über den System-Screen zu erteilen, nie
+     * automatisch und nie im Hintergrund. Ohne diese Freigabe bleibt der
+     * Medien-Weg (Ordner + Bilder) der Standard; mit ihr listet der Files-Tab
+     * jeden Dateityp (siehe AndroidManifest-Begründung). Die Abfrage selbst liegt
+     * in [StorageAccess], damit Statuszeile und Files-Tab nie auseinanderlaufen.
+     */
+    private fun hasAllFilesAccess(): Boolean = StorageAccess.allFilesGranted()
+
+    /**
+     * Button „Grant all-files access“ (API 30+): erst der Begründungs-Dialog, dann
+     * der System-Screen — nie beim Start, nie im Hintergrund. Unter API 30 gibt es
+     * die Berechtigung nicht, dort bleibt der Button ausgeblendet. Ausgelagert,
+     * damit `onCreate` unter der detekt-Komplexitätsgrenze bleibt.
+     */
+    private fun setupAllFilesButton() {
+        findViewById<Button>(R.id.btn_grant_all_files).apply {
+            visibility = if (Build.VERSION.SDK_INT >= ANDROID_11) View.VISIBLE else View.GONE
+            setOnClickListener { confirmAllFilesAccess() }
+        }
+    }
+
+    /**
+     * Begründung **vor** dem System-Screen (F-Droid-Konvention: Berechtigungen
+     * erklären und im Kontext erfragen, nicht beim Start). MANAGE_EXTERNAL_STORAGE
+     * lässt sich nur dort erteilen — ein Dialog kann das nicht.
+     */
+    private fun confirmAllFilesAccess() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_all_files_title)
+            .setMessage(R.string.settings_all_files_message)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.settings_all_files_open) { _, _ -> openAllFilesSettings() }
+            .show()
+    }
+
+    /**
+     * System-Screen „Alle Dateien“ öffnen. Der paketbezogene Intent ist der
+     * direkteste Weg; kennt ein ROM ihn nicht, greift die allgemeine Variante.
+     */
+    private fun openAllFilesSettings() {
+        val appSpecific = Intent(
+            android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+            android.net.Uri.fromParts("package", packageName, null)
+        )
+        try {
+            startActivity(appSpecific)
+        } catch (_: Exception) {
+            startActivity(Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
         }
     }
 
@@ -293,17 +355,19 @@ class MainActivity : AppCompatActivity() {
         else -> neededPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
-    /** Status-Zeile und Button an den aktuellen Zugriff anpassen (ohne Dialog). */
+    /** Status-Zeile und Buttons an den aktuellen Zugriff anpassen (ohne Dialog). */
     private fun refreshFileAccess() {
         val level = fileAccessLevel()
         findViewById<android.widget.TextView>(R.id.text_file_access).setText(
             when (level) {
+                3 -> R.string.settings_storage_all_files
                 2 -> grantedStatusText()
                 1 -> R.string.settings_storage_partial
                 else -> R.string.settings_storage_missing
             }
         )
-        findViewById<Button>(R.id.btn_grant_file_access).isEnabled = level != 2
+        findViewById<Button>(R.id.btn_grant_file_access).isEnabled = level < 2
+        findViewById<Button>(R.id.btn_grant_all_files).isEnabled = level < 3
     }
 
     /**

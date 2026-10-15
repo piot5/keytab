@@ -34,6 +34,13 @@ class FileManagerPanelTest {
 
     private lateinit var base: File
     private lateinit var sub: File
+    /** Testhaken für „Alle Dateien“ zurücksetzen (Robolectric hat keinen Shadow dafür). */
+    @org.junit.After
+    fun resetStorageAccessOverride() {
+        StorageAccess.resetForTests()
+    }
+
+
 
     /** legt <tmp>/fmp-<suffix>/ an, setzt fm_dir-Prefs und baut das Panel */
     private fun panelWithTree(suffix: String, committed: MutableList<String>? = null): Triple<View, FileManagerPanel, File> {
@@ -141,6 +148,18 @@ class FileManagerPanelTest {
     @Test
     fun `Ohne Medienzugriff bleibt der Hinweis bei reinen Zahlen`() {
         val (root, _, _) = panelWithTree("plain")
+        val hint = root.findViewById<TextView>(R.id.file_hint).text.toString()
+        assertEquals(app.getString(R.string.fm_dir_summary, 1, 1), hint)
+    }
+
+    /**
+     * „Alle Dateien“ (API 30+, ab v0.19) hebt die Medien-Einschränkung auf: der
+     * Hinweis nennt dann wieder nur Zahlen — der Bild-Zusatz wäre falsch.
+     */
+    @Test
+    fun `Mit All-files access nennt der Hinweis keine Bild-Einschraenkung`() {
+        StorageAccess.allFilesOverride = true
+        val (root, _, _) = panelWithTree("allfiles")
         val hint = root.findViewById<TextView>(R.id.file_hint).text.toString()
         assertEquals(app.getString(R.string.fm_dir_summary, 1, 1), hint)
     }

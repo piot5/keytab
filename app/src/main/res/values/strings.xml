@@ -39,6 +39,12 @@
          statt „kann Dateien auflisten“ zu versprechen (F-Droid-Testerbericht
          2026-10-13, junkerderprovinz: nur .png sichtbar, PDF/ZIP/XLSX fehlten). -->
     <string name="settings_storage_granted_media">Granted — the Files tab lists folders and pictures.</string>
+    <!-- All-files access (ab v0.19): bewusst optional, nur über den System-Screen. -->
+    <string name="settings_storage_all_files">All files — the Files tab can list any file type.</string>
+    <string name="settings_storage_all_files_grant">🗂️ Grant all-files access</string>
+    <string name="settings_all_files_title">All-files access</string>
+    <string name="settings_all_files_message">Without this access Android 13+ only exposes folders and pictures in the Files tab (PDF, ZIP, XLSX … stay hidden). All-files access lets the Files tab list, open and edit any file. KeyTab has no INTERNET permission, so no file can leave the device. The next screen is a system setting — you can revoke the access there at any time.</string>
+    <string name="settings_all_files_open">Open system settings</string>
     <string name="settings_storage_partial">Only selected photos — folders outside the selection stay hidden.</string>
     <string name="settings_storage_missing">Not granted — the Files tab shows folders only.</string>
     <string name="settings_storage_denied">Not granted — you can grant file access any time.</string>

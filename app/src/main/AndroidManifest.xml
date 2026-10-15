@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Dateimanager-Tab + eigenes Hintergrundbild — bewusst minimal gehalten
          (Feature → Permission):
@@ -18,13 +19,40 @@
            Codepfad liest Audio- oder Videodaten; für den Dateibrowser genügt der
            Name/Pfad einer Datei. Nicht lesbare Medien zeigen weiter den
            "fm_no_storage_access"-Hinweis.
-         - MANAGE_EXTERNAL_STORAGE: bewusst nicht (Play-/F-Droid-Blocker, viel zu
-           breit) — siehe Roadmap. -->
+         - MANAGE_EXTERNAL_STORAGE: **optional** (ab v0.19), Details direkt am
+           Eintrag unten. -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <!-- Android 14+: selected-photo access is the least-privilege image picker. -->
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+
+    <!-- All-files access (API 30+) — bewusst optional und nur auf ausdrücklichen
+         Wunsch des Nutzers (v0.19). Begründung für den F-Droid-Review:
+
+         * Zweck: Der Files-Tab ist Kernfunktion der App (mobiler IDE-Ansatz) —
+           Dateien jeder Art auflisten, Pfade in Termux/proot einfügen, im
+           Editor-Tab öffnen und speichern. Ab Android 13 sind ohne diese
+           Berechtigung nur Ordner und Bilder sichtbar (READ_MEDIA_IMAGES) — genau
+           der Punkt aus dem unabhängigen F-Droid-Testerbericht vom 2026-10-13
+           (`.pdf`/`.zip`/`.xlsx` fehlten).
+         * Kein Prompt beim Start: ein IME kann den System-Screen nicht selbst
+           zeigen. Die Freigabe läuft ausschließlich über den Button
+           „Grant all-files access“ in den Einstellungen, mit vorgeschaltetem
+           Begründungs-Dialog und anschließendem System-Screen
+           (ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).
+         * Kein Hintergrundzugriff: kein Dienst liest Dateien, kein INTERNET in
+           der App (0 Netz-Berechtigungen) — Dateien können das Gerät nicht
+           verlassen. Der Zugriff endet mit der App-Session.
+         * Vollwertiger Fallback: ohne die Berechtigung bleiben Tippen,
+           Vorschläge, Ordner + Bilder (READ_MEDIA_IMAGES) und das Einfügen von
+           Pfaden uneingeschränkt nutzbar; der Status nennt den Unterschied.
+         * Scoped-Storage-Lint ist hier bewusst aus (tools:ignore): die Nutzung
+           ist opt-in, begründet und ohne Netzkanal. Google Play verlangt für
+           diese Berechtigung ein separates Antragsformular — für den F-Droid-Weg
+           ist die Begründung hier und im CHANGELOG dokumentiert. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
 
     <!-- `requestLegacyExternalStorage` wirkt ausschließlich auf Android 10 (API 29):
          dort bekommt der Dateibrowser über den Legacy-Pfad Zugriff auf den externen

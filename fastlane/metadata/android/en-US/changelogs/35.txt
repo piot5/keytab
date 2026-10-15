@@ -1,0 +1,4 @@
+- Version 0.19: the Files tab can now list every file type — opt-in "Grant all-files access" in the settings (opens the system screen, never asked at start, app still has no INTERNET)
+- Settings: the file-access status now names the exact level ("All files" / "folders and pictures" / "selected photos" / "not granted")
+- Files tab: the "Android 13+ exposes pictures only" note disappears once all-files access is granted
+- 556 unit tests in 57 suites, 0 failures

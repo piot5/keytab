@@ -9,6 +9,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -16,6 +17,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowAlertDialog
+import org.robolectric.shadows.ShadowLooper
+import com.piotv.keytab.ime.StorageAccess
 
 /**
  * Robolectric-Tests für den Einstellungs-Screen (`MainActivity`).
@@ -36,6 +40,12 @@ class MainActivityTest {
 
     private fun status(activity: MainActivity): String =
         activity.findViewById<TextView>(R.id.text_file_access).text.toString()
+
+    /** Testhaken für „Alle Dateien“ zurücksetzen (Robolectric hat keinen Shadow dafür). */
+    @After
+    fun resetStorageAccessOverride() {
+        StorageAccess.resetForTests()
+    }
 
     private fun grantButton(activity: MainActivity): Button =
         activity.findViewById(R.id.btn_grant_file_access)
@@ -102,4 +112,55 @@ class MainActivityTest {
         assertEquals(activity.getString(R.string.settings_storage_partial), status(activity))
         assertTrue("Teilzugriff lässt sich aufweiten", grantButton(activity).isEnabled)
     }
+
+    // ---------- All-files access (API 30+), ab v0.19 ----------
+    //
+    // F-Droid-Konvention: kein Prompt beim Start, kein Hintergrundzugriff,
+    // Berechtigung nur im Kontext und mit Begründung anfragen, vollwertiger
+    // Fallback ohne sie. MANAGE_EXTERNAL_STORAGE lässt sich nur über den
+    // System-Screen erteilen — deshalb führt der Weg über einen Dialog dorthin.
+
+    private fun allFilesButton(activity: MainActivity): Button =
+        activity.findViewById(R.id.btn_grant_all_files)
+
+    @Test
+    fun `All-files access zeigt Vollzugriff und deaktiviert beide Buttons`() {
+        StorageAccess.allFilesOverride = true
+        val activity = start()
+        assertEquals(activity.getString(R.string.settings_storage_all_files), status(activity))
+        assertFalse("Vollzugriff braucht keinen Medien-Prompt", grantButton(activity).isEnabled)
+        assertFalse("Vollzugriff braucht keinen zweiten All-files-Prompt",
+            allFilesButton(activity).isEnabled)
+    }
+
+    @Test
+    fun `Ohne All-files bleibt der Button anfragbar und der Medienstatus stehen`() {
+        shadowOf(app).grantPermissions(Manifest.permission.READ_MEDIA_IMAGES)
+        val activity = start()
+        assertEquals(activity.getString(R.string.settings_storage_granted_media), status(activity))
+        assertTrue("All-files ist optional und muss anfragbar bleiben",
+            allFilesButton(activity).isEnabled)
+    }
+
+    @Test
+    fun `Klick auf All-files begruendet zuerst und oeffnet dann die System-Einstellungen`() {
+        val activity = start()
+        assertNull("Kein System-Screen ohne Klick", shadowOf(activity).nextStartedActivity)
+        allFilesButton(activity).performClick()
+        assertNull("Kein Runtime-Prompt für All-files", shadowOf(activity).lastRequestedPermission)
+        val dialog = ShadowAlertDialog.getLatestAlertDialog()
+        assertNotNull("Begründungs-Dialog vor dem System-Screen", dialog)
+        dialog!!.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+        // AlertController verschickt den Button-Klick über einen Handler des
+        // Main-Loopers — unter Robolectric (PAUSED) muss er erst laufen.
+        ShadowLooper.runUiThreadTasks()
+        val started = shadowOf(activity).nextStartedActivity
+        assertEquals(
+            "Der paketbezogene System-Screen für „Alle Dateien“",
+            android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+            started?.action
+        )
+        assertEquals("package:${activity.packageName}", started?.data?.toString())
+    }
+
 }

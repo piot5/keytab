@@ -11,6 +11,31 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
+## 0.18.1
+
+Reine Release-/Build-Korrektur — **kein Verhaltensunterschied zur App in 0.18**.
+Alle Punkte aus `## 0.18` sind enthalten; 0.18 selbst wurde nie veröffentlicht
+(der Release-Workflow scheiterte, siehe unten).
+
+- **Dependency-Verifikation: aapt2 des AGP 8.13.2 ergänzt.** Der Release-Workflow
+  brach in `compileReleaseNavigationResources` (CI zusätzlich in der
+  Debug-Variante) mit `Dependency verification failed` ab: für
+  `com.android.tools.build:aapt2:8.13.2-14304508` fehlten die Prüfsummen in
+  `gradle/verification-metadata.xml`. Lokal fiel das nicht auf, weil
+  `~/.gradle/gradle.properties` per `android.aapt2FromMavenOverride` ein
+  ARM-aapt2 einsetzt — das Maven-Artefakt wird dort nie aufgelöst. Die
+  Prüfsummen wurden am 2026-10-15 direkt von Google Maven geladen und belegt
+  (Gegenprobe: eine absichtlich falsche Summe lässt die Verifikation wieder
+  fehlschlagen). Betraf auch F-Droids eigenen Build, deshalb vor dem
+  MR-Pull-forward behoben.
+- **Test ohne zweites Robolectric-SDK-Level.** `@Config(sdk = [32])` für den
+  Textvergleich „bis Android 12“ ließ Robolectric in CI ein zusätzliches
+  `android-all`-Jar nachladen; der TLS-Download scheiterte und kippte den Lauf
+  (552 Tests, 1 Fehler). Der Statustext wird jetzt über den Parameter
+  `grantedStatusText(sdkInt)` geprüft — beide Formulierungen bleiben abgedeckt.
+- **Tests:** 552 Unit-Tests in 57 Suites (0 Failures).
+
+
 ## 0.18
 
 Bugfix-Release — dazu eine bewusste Entfernung: die zweite Symbol-Ebene

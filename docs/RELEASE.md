@@ -83,14 +83,37 @@ Ergebnis mit unserem Release-APK. Solange der MR
 [`!50822`](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822) offen ist,
 ist dieser Stand unantastbar:
 
-- MR-Metadaten: `versionName: '0.17'`, `versionCode: 32`,
-  `commit: 135babd1cccd459eab01f9d82b4d38814b292b3c` (= Tag `v0.17`),
+- MR-Metadaten: `versionName: '0.18.1'`, `versionCode: 34`,
+  `commit: 0baa0afeb839b200275a0d6c84e656fca85c1a73` (= Tag `v0.18.1`),
   `AllowedAPKSigningKeys: debe1146…`
 - `Binaries:` zeigt auf
-  `https://github.com/piot5/keytab/releases/download/v0.17/KeyTab-0.17.apk`
-  (`sha256:e85da877…`) — **Release und Asset dürfen nicht gelöscht oder
-  ersetzt werden** (dagegen gibt es keine automatische Sperre: GitHub schützt
-  Releases nicht per Ruleset).
+  `https://github.com/piot5/keytab/releases/download/v0.18.1/KeyTab-0.18.1.apk`
+  — **Release und Asset dürfen nicht gelöscht oder ersetzt werden** (dagegen gibt
+  es keine automatische Sperre: GitHub schützt Releases nicht per Ruleset).
+
+### 7.1 Vorfall 2026-10-15: `v0.18` kam ohne Release heraus (aapt2-Verifikation)
+
+- Der Release-Workflow für `v0.18` (`4fda1d5`) brach in
+  `compileReleaseNavigationResources` mit `Dependency verification failed` ab:
+  in `gradle/verification-metadata.xml` fehlten die Prüfsummen für
+  `com.android.tools.build:aapt2:8.13.2-14304508` (mit dem AGP-8.13.2-Upgrade
+  eingeführt). Lokal blieb das unsichtbar, weil
+  `~/.gradle/gradle.properties` per `android.aapt2FromMavenOverride` ein
+  ARM-aapt2 einsetzt — das Maven-Artefakt wird dort nie aufgelöst. **F-Droids
+  eigener Build wäre im selben Task gescheitert** (der MR wurde deshalb noch
+  nicht auf 0.18 gezogen).
+- Gefixt in `ee9a530` (Prüfsummen von Google Maven; Gegenprobe: absichtlich
+  falsche Summe → Verifikation schlägt wieder fehl).
+- Der Tag `v0.18` ist per Ruleset unveränderlich (kein Bypass) und **bleibt** auf
+  dem kaputten Commit stehen. Er hat kein Release und wird von F-Droid nicht
+  referenziert; statt ihn zu verschieben, wurde **`v0.18.1` (versionCode 34)**
+  getaggt — inhaltlich dieselbe App plus Build-/Test-Fix.
+- **Lehre für den nächsten Tag:** vorher ein Release-Trockenlauf **ohne**
+  aapt2-Override, damit die Dependency-Verifikation wirklich greift:
+
+  ```bash
+  sh gradlew -Pandroid.aapt2FromMavenOverride= :app:assembleRelease
+  ```
 
 Drei Schutzschichten verhindern versehentliche Beschädigung (gesetzt 2026-10-08):
 

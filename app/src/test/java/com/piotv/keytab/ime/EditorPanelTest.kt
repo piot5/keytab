@@ -15,6 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.util.concurrent.Executor
 
@@ -147,5 +148,40 @@ class EditorPanelTest {
         assertTrue(et.editableText.getSpans(0, et.length(), android.text.style.ForegroundColorSpan::class.java).isNotEmpty())
         et.setText("")
         assertTrue(et.editableText.getSpans(0, 0, android.text.style.ForegroundColorSpan::class.java).isEmpty())
+    }
+
+    @Test
+    fun `zu grosse Datei wird nicht geladen - Editor bleibt unveraendert`() {
+        // OOM-Schutz (v0.18): ohne Groessen-Gate wuerde die Datei komplett
+        // gelesen und in den EditText gesetzt.
+        val root = inflateKeyboardRoot(app)
+        val panel = EditorPanel(app, root, directExecutor, Handler(Looper.getMainLooper()))
+        val et = root.findViewById<EditText>(R.id.editor_input)
+        et.setText("unveraendert")
+        val big = java.io.File(app.cacheDir, "zu_gross.txt")
+        big.writeText("x".repeat((EditorTextState.MAX_EDITOR_BYTES + 1).toInt()))
+        try {
+            panel.openFile(big)
+            shadowOf(Looper.getMainLooper()).idle()
+            assertEquals("Editor-Inhalt bleibt unangetastet", "unveraendert", et.text.toString())
+        } finally {
+            big.delete()
+        }
+    }
+
+    @Test
+    fun `kleine Datei wird geladen - Gegenprobe zum Groessen-Gate`() {
+        val root = inflateKeyboardRoot(app)
+        val panel = EditorPanel(app, root, directExecutor, Handler(Looper.getMainLooper()))
+        val et = root.findViewById<EditText>(R.id.editor_input)
+        val small = java.io.File(app.cacheDir, "klein.txt")
+        small.writeText("hallo welt")
+        try {
+            panel.openFile(small)
+            shadowOf(Looper.getMainLooper()).idle()
+            assertEquals("hallo welt", et.text.toString())
+        } finally {
+            small.delete()
+        }
     }
 }

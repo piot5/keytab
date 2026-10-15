@@ -26,8 +26,13 @@
     <!-- Android 14+: selected-photo access is the least-privilege image picker. -->
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
 
+    <!-- `requestLegacyExternalStorage` wirkt ausschließlich auf Android 10 (API 29):
+         dort bekommt der Dateibrowser über den Legacy-Pfad Zugriff auf den externen
+         Speicher. Ab API 30 ist das Attribut wirkungslos (Scoped Storage). -->
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:requestLegacyExternalStorage="true"

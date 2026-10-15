@@ -51,11 +51,32 @@ object TextEditLogic {
     /** Clipboard-Historie serialisieren (NUL-getrennt). */
     fun encodeClipHistory(entries: List<String>): String = entries.joinToString("\u0000")
 
+    /**
+     * Obergrenze für Texte, die die App **dauerhaft speichert**
+     * (Clipboard-Historie, Snippets). Ein einzelner riesiger Clipboard-Inhalt
+     * (Browser-Seite, Log-Dump) würde sonst Historie, Persistenz-Datei und
+     * Speicher fluten — der Datei-Kopierpfad hat dafür schon ein eigenes Limit.
+     */
+    const val MAX_STORED_TEXT_CHARS = 100_000
+
+    /** true, wenn [text] die Speichergrenze überschreitet ([MAX_STORED_TEXT_CHARS]). */
+    fun exceedsStoredTextLimit(text: String, maxChars: Int = MAX_STORED_TEXT_CHARS): Boolean =
+        text.length > maxChars
+
     /** Clipboard-Historie deserialisieren; leere Einträge werden verworfen. */
     fun decodeClipHistory(raw: String): List<String> =
         raw.split('\u0000').filter { it.isNotEmpty() }
 
-    /** Kompakte Anzeigezeile für die Clipboard-Liste (max. [maxLen] Zeichen). */
-    fun clipDisplayText(s: String, maxLen: Int = 80): String =
-        if (s.length > maxLen) s.take(maxLen) + "…" else s.replace("\n", " ")
+    /**
+     * Kompakte Anzeigezeile für die Clipboard-Liste (max. [maxLen] Zeichen).
+     *
+     * Zeilenumbrüche werden **vor** dem Kürzen ersetzt: die Liste rendert in
+     * `simple_list_item_1` (einzeilig), ein roher `\n` brach die Zeile sonst auf
+     * — genau das passierte bei Einträgen über [maxLen] Zeichen, weil der
+     * Ersatz vorher nur im Kurz-Zweig lief.
+     */
+    fun clipDisplayText(s: String, maxLen: Int = 80): String {
+        val oneLine = s.replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ')
+        return if (oneLine.length > maxLen) oneLine.take(maxLen) + "…" else oneLine
+    }
 }

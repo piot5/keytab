@@ -11,6 +11,192 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
+## 0.18
+
+Bugfix-Release — dazu eine bewusste Entfernung: die zweite Symbol-Ebene
+(`<v>`). Grundlage: eine Fehlersuche in v0.17
+(Unit-Tests, detekt, Android Lint, manuelle Prüfung der Risikopfade) plus ein
+vom Gerät gemeldeter Absturz.
+
+- **Tastatur: zweite Symbol-Ebene (`<v>`) vollständig entfernt.** Der
+  `?123`-Schalter wechselt jetzt nur noch zwischen abc und ?123. Raus sind die
+  Zusatzsymbole (€ £ ¥ ¢ ° § ± ≈ ≠ ¿ ¡ « » † …) und das große Pfeiltasten-Kreuz
+  samt der kompletten Kette: `CursorMove`, die `moveCursor`-Delegation in
+  `InputTarget`/`InputRouter`, `EditorPanel.moveCursor`, die
+  `key_cursor_*`-Strings und der `sym_more_panel`-Container. Die Pfeiltasten
+  waren die einzige Cursor-Steuerung der IME für Fremd-Apps
+  (Termux/neovim/AndroidIDE) — Cursor-Bewegung dort jetzt über die
+  System-Cursor-Griffe bzw. den Editor-Tab.
+- **Clipboard/Snippets: Größen-Gate für gespeicherte Texte.** Ein einzelner
+  riesiger Clipboard-Inhalt (Browser-Seite, Log-Dump) landete ungebremst in der
+  Historie (50 Einträge) und in `clipboard_history.txt` — der Datei-Kopierpfad
+  hatte längst ein Limit, der Capture-Pfad nicht. Neu:
+  `TextEditLogic.MAX_STORED_TEXT_CHARS` (100 000 Zeichen) mit Hinweis statt
+  stillem Speichern; dasselbe Gate für „als Snippet übernehmen". Außerdem
+  serialisiert `persistAsync` die Historie jetzt auf dem ioDispatcher — der
+  `joinToString` lief vorher auf dem Main-Thread.
+- **`onFinishInput` + `onTrimMemory` im IME-Service.** Beim Feld-Ende wird der
+  gemerkte `EditorInfo` verworfen (kein Nachwirken des Passwort-Zustands) und die
+  Swipe-Vorschau abgeräumt. Bei Speicherdruck bzw. versteckter Tastatur
+  (`TRIM_MEMORY_UI_HIDDEN`) wird das gelernte Wörterbuch gesichert und der
+  Wortkorpus freigegeben (`WordPredictionManager.releaseEngine()`; der nächste
+  Anzeige-Vorgang lädt ihn neu).
+- **Panel-Höhen rechnen mit den modernen Insets.** `maximizeAvailableHeight`
+  nutzte die seit API 30 deprecated `systemWindowInsetBottom/Top`-Getter, die im
+  Edge-to-Edge-Fenster (targetSdk 36) teils 0 liefern → jetzt
+  `ViewCompat.getRootWindowInsets` + `WindowInsetsCompat.Type.navigationBars()/
+  statusBars()`; der Statusleisten-Fallback über die System-Ressource bleibt.
+- **Toter No-op entfernt:** `TrailManager.updateBaseLetters(...)` tat nichts
+  (`@Suppress("UNUSED_PARAMETER")`), wurde aber im Service als „TrailManager
+  aktualisieren" aufgerufen — Manager und Painter halten die BaseLetters-Map
+  ohnehin per Referenz.
+- **detekt-Baseline neu erzeugt** (stale Einträge aus früheren Umbauten raus,
+  z. B. `MagicNumber:FileManagerFragment$33`), `docs/BASELINE.md` mitgezogen.
+- **`requestLegacyExternalStorage` dokumentiert** (wirkt nur auf Android 10) —
+  Verhalten unverändert.
+- **Dateimanager: Schrift deutlich kleiner.** Die Zeilen der Dateiliste im
+  „Files"-Tab hatten die Plattform-Größe aus `simple_list_item_1` (16sp plus
+  Mindesthöhe) — jetzt **11sp** mit kompaktem Zeilen-Padding, dadurch passen
+  deutlich mehr Einträge ins Panel (`themedAdapter(..., textSizeSp, compactRows)`,
+  nur die Dateilisten nutzen das; Clipboard/Snippets bleiben unverändert). Der
+  Dateimanager der App (`item_file.xml`) geht von 16sp auf **12sp** und 6dp
+  Zeilen-Padding. Tests in `ThemedAdapterTest`.
+- **Likely-Highlighting: Puls-/Blitz-Effekt entfernt** (auf Wunsch). Er war
+  **unerreichbarer Code**: `LikelyHighlightLogic.completed` verlangt *gleiche*
+  Wortlänge, wurde aber nur unter `nextChar != null` (Vorschlag *länger*)
+  geprüft. Entfernt: `completed`, `likelyCompletionEffect` (Farblitz +
+  Scale-Puls + Haptik), der Schalter „Effect" (`gaming_effect`) samt Pref,
+  Export-/Import-Feld und `theme_likely_effect_toggle`. Die
+  Tasten-Hervorhebung selbst bleibt unverändert.
+- **IME-Hot-Path ohne Datei-I/O:** `SettingsConfig.importIfChanged` las und
+  hashte bei **jedem Feldwechsel** (`onStartInput`/`onStartInputView`) den
+  kompletten Inhalt von `keytab_config.txt` auf dem Main-Thread. Jetzt
+  entscheidet ein `stat`-Vergleich (`mtime:Länge`, in Prefs gemerkt); gelesen
+  und gehasht wird nur bei echter Änderung. Tests:
+  `unveraenderteDateiWirdNichtErneutImportiert`, `geaenderteDateiWirdErneutImportiert`.
+- **Clipboard-Historie nicht mehr im Tastatur-Aufbau gelesen:**
+  `ClipboardPanel.init` las `clipboard_history.txt` synchron im Konstruktor —
+  der läuft in `onCreateInputView` auf dem Main-Thread (jeder Rebuild:
+  Theme-Wechsel, Config-Änderung, IME-Start). Jetzt liest der ioDispatcher,
+  angewendet wird auf dem Main-Thread und nur, wenn inzwischen nichts
+  aufgenommen wurde.
+- **Editor: Größen-Gate (1 MB) vor dem Laden.** Bisher wurde jede Datei
+  komplett gelesen und in den `EditText` gesetzt — eine große Datei (Log, Video,
+  Backup) konnte den IME-Prozess per OOM beenden. Die Grenze liegt in
+  `EditorTextState.MAX_EDITOR_BYTES` (wie der Clipboard-Inhalt), mit Hinweis
+  statt Absturz; Tests mit Gegenprobe.
+- **FileProvider gibt nicht mehr das ganze Dateisystem frei.** `root-path` in
+  `res/xml/file_paths.xml` erlaubte eine URI für **jede** Datei (auch unter
+  `/data/…`) an beliebige Apps mit `ACTION_VIEW`. Entfernt (externer Speicher,
+  App-Speicher und Cache bleiben); zusätzlich liegt `getUriForFile` jetzt im
+  `try/catch` — Dateien außerhalb der Wurzeln melden einen Hinweis statt zu
+  crashen.
+- **Vier Tests prüfen jetzt, was ihr Name verspricht** (`SuggestionControllerTest`:
+  Likely-Highlight an/aus, Swipe-Kandidaten bei deaktivierten Vorschlägen,
+  Rückkehr aus dem Emoji-Katalog). Sie liefen vorher ohne Assertion durch — und
+  hätten genau den Effekt-Bug nicht gefunden.
+- **Absturz im Files-Tab (Long-Press) behoben.** Ein Long-Press auf einen
+  Eintrag (z. B. ein Bild) öffnete das Kontextmenü und beendete die App:
+  `WindowManager$BadTokenException: Unable to add window -- token null is not
+  valid` aus `FileManagerPanel.showFileMenu` (reproduziert am 2026-10-12 per
+  `logcat -b crash`). Ursache: ein IME hat keine Activity, ein `AlertDialog` an
+  diesem Context hat kein Fenster-Token. Neu: `ImeDialog` setzt zentral
+  `TYPE_APPLICATION_ATTACHED_DIALOG` + Token des Input-Views und zeigt ohne Token
+  **nichts** (Hinweis-Toast statt Absturz). Umgestellt: Files-Kontextmenü,
+  Eigenschaften-Dialog, der neue Überschreiben-Dialog, der Clipboard-Dialog (der
+  bei fehlendem Token ebenfalls abstürzte) und der Editor-Datei-Picker.
+  Regressionstest: `ImeDialogTest`.
+
+- **Clipboard-Liste: Zeilenumbrüche wurden bei langen Einträgen nicht ersetzt.**
+  `TextEditLogic.clipDisplayText` ersetzte `\n` nur im Kurz-Zweig — Einträge über
+  80 Zeichen behielten den Umbruch und brachen die einzeilige Listenzeile
+  (`simple_list_item_1`) auf. Jetzt wird erst einzeilig gemacht (auch `\r\n` und
+  `\r`), dann gekürzt. Regressionstests: `Langer Text mit Newline bleibt
+  einzeilig und gekuerzt`, `CRLF und CR werden ebenfalls ersetzt`.
+- **i18n: Sprachen in den Ressourcen waren vertauscht** (Rückfall hinter den
+  0.13-Fix „values-en vervollständigt"): `values/` (Default) enthielt **17
+  deutsche** Strings in einer sonst englischen Datei — komplette
+  Hintergrundbild-Sektion (`background_strings.xml`, 10 Strings), Trail-/
+  Gradient-Hinweise und der Snippet-Hinweis; `values-en/` enthielt **8 deutsche**
+  — der komplette „Gelerntes Wörterbuch"-Dialog, „Konfiguration schreiben" und
+  „Konfiguration bereit". Beide Dateien sind jetzt durchgängig englisch
+  (153/153, Platzhalter deckungsgleich); die deutschen Fassungen liegen in der
+  neuen **`values-de/strings.xml`** (32 Strings, bewusst eine **Teil-Übersetzung**
+  — nicht übersetzte Strings fallen pro String auf Englisch zurück; Lint meldet
+  das über `app/lint.xml` als „informational" statt als Fehler, damit
+  `lintVitalRelease` grün bleibt). Deutsche Geräte sehen damit dieselben Texte
+  wie vorher. Die README-Angabe „default = German" war falsch.
+- **Dateimanager: stilles Überschreiben und Ordner-in-sich-selbst.** „Einfügen"
+  überschrieb vorhandene Ziele ohne Rückfrage (`overwrite = true`); ein Ordner,
+  der in einen eigenen Unterordner eingefügt wurde, ließ `copyRecursively` in den
+  gerade erzeugten Teilbaum laufen. Neu: Android-freie, testbare Regeln in
+  `FileCopyRules` (Ziel == Quelle bzw. *innerhalb* der Quelle wird abgelehnt,
+  sonst Bestätigungsdialog) + 5 Tests in `FileManagerModelTest`. Außerdem löst
+  das Kontextmenü seine Aktion jetzt über den Listenindex statt über den
+  Label-Text auf (zwei gleiche Beschriftungen hätten die falsche Aktion
+  ausgeführt), und „Inhalt kopieren" meldet ein zu großes File mit eigenem Text.
+- **Sprachwechsel: verspätete Engine wird verworfen.** `loadEngine` setzte
+  `engineLanguage` vor dem asynchronen Laden und hatte keinen Schutz gegen
+  verspätet zurückkommende Aufträge — bei schnellem Sprachwechsel konnte die
+  Engine der alten Sprache aktiv bleiben (Vorschläge in der falschen Sprache).
+  Jetzt entscheidet eine `@Volatile`-Laufnummer, welche Antwort gilt; das tote
+  Feld `engineLoading` (wurde nie gelesen) ist damit ersetzt. Neue Suite
+  `WordPredictionManagerEngineTest` (2 Tests, deterministisches Rennen über
+  einen Queue-Executor).
+- **Toter Code entfernt:** `FileManagerFragment.requestPermissionsIfNeeded()` und
+  der dazugehörige `permissionLauncher` wurden nie aufgerufen (Dateizugriff läuft
+  seit 0.17 ausschließlich über die Einstellungen) — inklusive der dadurch
+  unbenutzten Ressource `storage_denied`. Ebenso entfernt: unbenutztes
+  `R.string.theme_section_gaming`.
+- **Lint:** IME-eigene Texte liegen in Ressourcen (`LikelyHighlightSection`,
+  `PreviewSection`, vorher `SetTextI18n`), das Farbwahlrad allokiert nichts mehr
+  im Draw-Pfad (`ColorWheelView`: Hue-Farben einmalig, Shader in
+  `onSizeChanged`), und das Manifest nutzt `dataExtractionRules`
+  (kein Cloud-Backup/Geräte-Transfer, passend zu `allowBackup="false"`).
+- **Dateizugriff: der Statustext verspricht keine vollständige Dateiliste mehr.**
+  Grundlage ist der unabhängige F-Droid-Testerbericht vom 2026-10-13
+  (Android-16-Emulator, deutsches System): mit erteiltem Zugriff stand in den
+  Einstellungen „Granted – the Files tab can list files“, im Download-Ordner
+  erschien aber nur ein `.png` — `.pdf`, `.gpx`, `.pem` und `.zip` fehlten, und
+  ein Ordner mit drei `.xlsx` wirkte leer. Ursache: ab Android 13 gibt
+  `READ_MEDIA_IMAGES` nur **Bilder** frei (Ordner und Bilder sind sichtbar, alles
+  andere nicht) — das ist Absicht, der volle Speicherzugriff
+  (`MANAGE_EXTERNAL_STORAGE`) wird bewusst nicht angefragt. Jetzt sagt der Status
+  ab Android 13 „Granted — the Files tab lists folders and pictures“ (bis
+  Android 12 bleibt „can list files“, dort deckt `READ_EXTERNAL_STORAGE` den
+  ganzen gemeinsamen Speicher ab), und über der Dateiliste im Files-Tab steht der
+  Zusatz „Android 13+ exposes pictures only“, damit ein Ordner ohne Bilder nicht
+  wie ein Fehler wirkt. Tests: `Voller Medienzugriff nennt Ordner und Bilder
+  statt aller Dateien`, `Bis Android 12 nennt der Status weiter die vollstaendige
+  Dateiliste`, `Mit Medienzugriff nennt der Hinweis nur Ordner und Bilder`.
+
+- **Clipboard-Historie: kein Verlust mehr beim IME-Aufbau (Race).** Genau die
+  Umstellung aus diesem Release (Datei lesen auf dem ioDispatcher statt im
+  Konstruktor) hatte eine Lücke: ein Capture aus dem Clip-Tab konnte die Datei
+  überschreiben, *bevor* der Load sie gelesen hatte — die gespeicherte Historie
+  war dann dauerhaft weg; ein „Clear" vor dem Load wurde umgekehrt vom Load
+  wieder aufgefüllt. Jetzt wird erst geschrieben, nachdem die Datei gelesen ist;
+  ein Load wird nicht mehr verworfen, sondern mit dem inzwischen Aufgenommenen
+  zusammengeführt (neue Einträge zuerst, ohne Duplikate, Deckel bleibt 50).
+  Regressionstests: `Capture vor dem Laden verliert die gespeicherte Historie
+  nicht`, `Clear vor dem Laden holt die alte Historie nicht zurueck`.
+- **Wörterbuch-Roundtrip testgesichert (kein Fehler gefunden).** Ein neuer Test
+  hält fest, dass gelernte Bigramme (Next-Word-Prediction) Serialisierung und
+  Wiederherstellung überstehen: der Bigramm-Schlüssel ist `"prev word"` und
+  enthält damit ein Leerzeichen, **kein** `SEP_FIELD` (`\u0002`) — die Zeile wird
+  weiterhin in genau zwei Felder zerlegt. Verhalten unverändert, der Test
+  verhindert künftige Format-Änderungen ohne Migrationspfad.
+
+- **Bewusst nicht geändert** (damit die Diskussion nicht jedes Release neu
+  aufkommt): Key-Aufdrucke in den Layouts bleiben hartkodiert (87 ×
+  `HardcodedText` — Tastenlegenden sind keine Übersetzungstexte), `Autofill`
+  fehlt absichtlich (für IME-Eingabefelder ohne Bedeutung), `Overdraw`,
+  `NestedWeights` und `SmallSp` sind Layout-/Optikwerte ohne
+  Geräteverifikation, die `status_bar_height`-Reflexion in `PanelHeights` bleibt
+  der dokumentierte Fallback (Inset ist beim ersten Messen noch 0),
+  `PluralsCandidate`/`TypographyFractions` sind Übersetzer-Politur.
+- **Tests:** 520 → **552** Unit-Tests in 57 Suites (0 Failures).
+
 ## 0.17
 
 - **Dateizugriff nur noch auf ausdrücklichen Wunsch (F-Droid-Review 2026-10-06,

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lint-Konfiguration (Modul app).
+
+  `values-de/` ist bewusst eine **Teil-Übersetzung**: dort liegen die deutschen
+  Fassungen der Strings, die in v0.17 fälschlich deutsch im Default (`values/`)
+  bzw. in `values-en/` standen (i18n-Fix v0.18). Ohne Eintrag hier meldet Lint
+  für die 120 noch nicht übersetzten Strings je einen `MissingTranslation`
+  **Fehler** und bricht `lintDebug`/`lintVitalRelease` ab.
+
+  Bewusst `severity="informational"` statt `ignore`: die Meldungen bleiben im
+  Lint-Report sichtbar (nichts wird versteckt), blockieren aber das Release
+  nicht. Fehlende Strings fallen pro String auf den Default (Englisch) zurück —
+  das ist das dokumentierte Verhalten der App (Englisch ist die Default-Sprache).
+-->
+<lint>
+    <issue id="MissingTranslation" severity="informational" />
+</lint>

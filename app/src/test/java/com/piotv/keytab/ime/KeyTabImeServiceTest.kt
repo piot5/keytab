@@ -94,6 +94,14 @@ class KeyTabImeServiceTest {
     }
 
     @Test
+    fun `onFinishInput und onTrimMemory ohne View crashen nicht`() {
+        val s = service()
+        s.onFinishInput()
+        s.onTrimMemory(android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN)
+        s.onTrimMemory(android.content.ComponentCallbacks2.TRIM_MEMORY_COMPLETE)
+    }
+
+    @Test
     fun `isEditorTab startet false (ABC-Tab)`() {
         assertFalse(service().isEditorTab())
     }

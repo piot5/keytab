@@ -41,9 +41,13 @@ Editieren der Datei.
 
 ## Stand (2026-09-29)
 
-- Baseline: **47 Einträge** (zuvor 148 in der Datei — davon waren 95 stale,
-  real gemessen 57; davor 148/152, dokumentiert ist der 24-stale-Vorfall mit
-  181 behaupteten vs. 157 realen Befunden).
+- Baseline: **43 Einträge** (neu erzeugt am 2026-10-13 nach dem v0.18-Umbau:
+  47 → 43, d. h. 4 stale Einträge entfernt — u. a.
+  `MagicNumber:FileManagerFragment$33` und
+  `NestedBlockDepth:SuggestionController.updateLikelyKeys`, beide durch
+  gelöschten Code; keine neuen Befunde. Zuvor: 47 Einträge, davor 148 in der
+  Datei — davon waren 95 stale, real gemessen 57; dokumentiert ist auch der
+  24-stale-Vorfall mit 181 behaupteten vs. 157 realen Befunden).
 - Die Reduktion 57 → 47 ist **im Code** passiert, nicht per Regel-Konfiguration:
   6 MagicNumber-Literale wurden zu benannten Konstanten (`EASE_FACTOR` und
   `FALLBACK_ROW_HEIGHT_DP` in `KeyAnimations`, `FALLBACK_KEY_RADIUS_PX` in

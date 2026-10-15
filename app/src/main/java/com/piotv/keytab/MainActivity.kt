@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             refreshFileAccess()
             when (fileAccessLevel()) {
-                2 -> Toast.makeText(this, R.string.settings_storage_granted,
+                2 -> Toast.makeText(this, grantedStatusText(),
                     Toast.LENGTH_SHORT).show()
                 1 -> Toast.makeText(this, R.string.settings_storage_partial,
                     Toast.LENGTH_LONG).show()
@@ -202,7 +202,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_grant_file_access).setOnClickListener {
             val missing = missingFileAccessPermissions()
             if (missing.isEmpty()) {
-                Toast.makeText(this, R.string.settings_storage_granted, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, grantedStatusText(), Toast.LENGTH_SHORT).show()
                 refreshFileAccess()
             } else {
                 permLauncher.launch(missing)
@@ -298,13 +298,24 @@ class MainActivity : AppCompatActivity() {
         val level = fileAccessLevel()
         findViewById<android.widget.TextView>(R.id.text_file_access).setText(
             when (level) {
-                2 -> R.string.settings_storage_granted
+                2 -> grantedStatusText()
                 1 -> R.string.settings_storage_partial
                 else -> R.string.settings_storage_missing
             }
         )
         findViewById<Button>(R.id.btn_grant_file_access).isEnabled = level != 2
     }
+
+    /**
+     * Text für vollen Zugriff. Ab Android 13 ist das **kein** voller Dateizugriff:
+     * `READ_MEDIA_IMAGES` gibt nur Bilder frei (Ordner + Bilder sichtbar, PDF/ZIP/
+     * XLSX nicht) — bis Android 12 deckt `READ_EXTERNAL_STORAGE` den ganzen
+     * gemeinsamen Speicher ab. Der Status sagt jeweils, was gilt
+     * (F-Droid-Testerbericht 2026-10-13).
+     */
+    private fun grantedStatusText(): Int =
+        if (Build.VERSION.SDK_INT >= 33) R.string.settings_storage_granted_media
+        else R.string.settings_storage_granted
 
     /**
      * Nach einer Ablehnung: läuft der System-Dialog noch, genügt ein Hinweis;

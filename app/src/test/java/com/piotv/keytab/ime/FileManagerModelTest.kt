@@ -255,4 +255,38 @@ class FileManagerModelTest {
         m.goUp()
         assertEquals(File("/"), m.dir)
     }
+
+    // ---------- FileCopyRules (v0.18: Einfügen in sich selbst, Überschreiben) ----------
+
+    @Test
+    fun `Einfuegen-Ziel ist der Quellname im Zielordner`() {
+        assertEquals(File(aDir, "c.txt"), FileCopyRules.pasteTarget(cFile, aDir))
+    }
+
+    @Test
+    fun `Ziel gleich Quelle gilt als sich selbst`() {
+        assertTrue(FileCopyRules.isSameOrInside(cFile, cFile))
+    }
+
+    @Test
+    fun `Ordner in eigenem Unterordner wird erkannt`() {
+        val outer = java.nio.file.Files.createTempDirectory("test_fm_outer").toFile()
+        val inner = File(outer, "inner").apply { mkdirs() }
+        assertTrue(FileCopyRules.isSameOrInside(outer, inner))
+        assertTrue(FileCopyRules.isSameOrInside(outer, File(inner, "tief")))
+        assertFalse("umgekehrt ist es kein Unterordner", FileCopyRules.isSameOrInside(inner, outer))
+    }
+
+    @Test
+    fun `Gleichnamiges Geschwisterverzeichnis ist kein Unterordner`() {
+        // "/…/a-dir" ist Prefix von "/…/a-dir2" — darf NICHT als "innen" gelten.
+        assertFalse(FileCopyRules.isSameOrInside(aDir, File(rootDir, "a-dir2")))
+    }
+
+    @Test
+    fun `Nachfragen nur wenn das Ziel schon existiert`() {
+        assertTrue(FileCopyRules.needsOverwriteConfirm(cFile))
+        assertTrue(FileCopyRules.needsOverwriteConfirm(aDir))
+        assertFalse(FileCopyRules.needsOverwriteConfirm(File(rootDir, "gibt-es-nicht.txt")))
+    }
 }

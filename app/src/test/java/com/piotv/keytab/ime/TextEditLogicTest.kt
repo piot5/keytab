@@ -1,6 +1,8 @@
 package com.piotv.keytab.ime
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TextEditLogicTest {
@@ -132,5 +134,43 @@ class TextEditLogicTest {
         val shown = TextEditLogic.clipDisplayText(s)
         assertEquals(81, shown.length)
         assertEquals("…", shown.last().toString())
+    }
+
+    // Regression v0.18: der Newline-Ersatz lief nur im Kurz-Zweig — lange
+    // Einträge behielten den '\n' und brachen die einzeilige Listenzeile auf.
+    @Test
+    fun `Langer Text mit Newline bleibt einzeilig und gekuerzt`() {
+        val shown = TextEditLogic.clipDisplayText("Zeile1\n" + "x".repeat(90))
+        assertFalse("kein Zeilenumbruch in der Anzeigezeile", shown.contains('\n'))
+        assertEquals(81, shown.length)
+        assertTrue(shown.endsWith("…"))
+        assertTrue(shown.startsWith("Zeile1 "))
+    }
+
+    @Test
+    fun `CRLF und CR werden ebenfalls ersetzt`() {
+        assertEquals("a b", TextEditLogic.clipDisplayText("a\r\nb"))
+        assertEquals("a b", TextEditLogic.clipDisplayText("a\rb"))
+    }
+
+    // ---------- Speichergrenze für gespeicherte Texte (v0.18) ----------
+
+    @Test
+    fun `exceedsStoredTextLimit greift genau oberhalb der Grenze`() {
+        val limit = TextEditLogic.MAX_STORED_TEXT_CHARS
+        assertFalse(
+            "genau auf der Grenze ist erlaubt",
+            TextEditLogic.exceedsStoredTextLimit("x".repeat(limit))
+        )
+        assertTrue(
+            "ein Zeichen darueber wird abgelehnt",
+            TextEditLogic.exceedsStoredTextLimit("x".repeat(limit + 1))
+        )
+    }
+
+    @Test
+    fun `exceedsStoredTextLimit respektiert ein eigenes Limit`() {
+        assertFalse(TextEditLogic.exceedsStoredTextLimit("abc", maxChars = 3))
+        assertTrue(TextEditLogic.exceedsStoredTextLimit("abcd", maxChars = 3))
     }
 }

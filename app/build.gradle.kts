@@ -62,8 +62,8 @@ android {
         applicationId = "com.piotv.keytab"
         minSdk = 24
         targetSdk = 36
-        versionCode = 32
-        versionName = "0.17"
+        versionCode = 33
+        versionName = "0.18"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -143,6 +143,9 @@ android {
     lint {
         // lintVital liefert jetzt saubere Ergebnisse (SuspiciousIndentation gefixt)
         checkReleaseBuilds = true
+        // MissingTranslation ist in app/lint.xml auf "informational" gesetzt:
+        // values-de/ ist bewusst eine Teil-Übersetzung (siehe Kommentar dort).
+        lintConfig = file("lint.xml")
     }
 }
 

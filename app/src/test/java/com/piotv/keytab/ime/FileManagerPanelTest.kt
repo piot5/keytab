@@ -1,5 +1,6 @@
 package com.piotv.keytab.ime
 
+import android.Manifest
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -122,4 +123,26 @@ class FileManagerPanelTest {
         assertEquals("Nach Zurück ist fm_dir wieder base",
             base.absolutePath, prefs.getString("fm_dir", null))
     }
+
+    /**
+     * Android 13+: `READ_MEDIA_IMAGES` gibt nur Bilder frei — der Hinweis über der
+     * Liste nennt deshalb „Ordner und Bilder“, nicht nur Zahlen. Ohne diesen Zusatz
+     * wirkt ein Ordner ohne Bilder wie ein Fehler (F-Droid-Testerbericht 2026-10-13).
+     */
+    @Test
+    fun `Mit Medienzugriff nennt der Hinweis nur Ordner und Bilder`() {
+        shadowOf(app).grantPermissions(Manifest.permission.READ_MEDIA_IMAGES)
+        val (root, _, _) = panelWithTree("media")
+        val hint = root.findViewById<TextView>(R.id.file_hint).text.toString()
+        assertEquals(app.getString(R.string.fm_dir_summary_media, 1, 1), hint)
+    }
+
+    /** Bis Android 12 deckt `READ_EXTERNAL_STORAGE` den ganzen Speicher ab → alte Zeile. */
+    @Test
+    fun `Ohne Medienzugriff bleibt der Hinweis bei reinen Zahlen`() {
+        val (root, _, _) = panelWithTree("plain")
+        val hint = root.findViewById<TextView>(R.id.file_hint).text.toString()
+        assertEquals(app.getString(R.string.fm_dir_summary, 1, 1), hint)
+    }
+
 }

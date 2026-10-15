@@ -53,6 +53,23 @@ class SnippetPanelTest {
     }
 
     @Test
+    fun `zu grosser Clipboard-Text wird nicht als Snippet uebernommen`() {
+        snippetsFile().delete()
+        val root = inflateKeyboardRoot(app)
+        val panel = SnippetPanel(app, directExecutor, mainHandler) {}
+        panel.onSelected(root)
+        shadowOf(Looper.getMainLooper()).idle()
+        val listBefore = names(root)
+        val fileBefore = snippetsFile().readText()
+
+        panel.addFromClipboard("x".repeat(TextEditLogic.MAX_STORED_TEXT_CHARS + 1))
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals("Liste bleibt unveraendert", listBefore, names(root))
+        assertEquals("Datei bleibt unveraendert", fileBefore, snippetsFile().readText())
+    }
+
+    @Test
     fun `Parser ignoriert Kommentare Leerzeilen und Zeilen ohneassignment`() {
         snippetsFile().writeText(
             """

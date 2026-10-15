@@ -51,8 +51,51 @@ class ClipboardPanel(
     private val history = mutableListOf<String>()
     private val persistMutex = Mutex()
 
+    /** Die Datei-Historie ist gelesen und in [history] angewendet (nur Main-Thread). */
+    private var historyLoaded = false
+
+    /** Vor dem Laden wurde die Historie geändert — danach wird nachgeschrieben. */
+    private var writePendingBeforeLoad = false
+
+    /** Vor dem Laden explizit geleert: der Load darf die alte Liste nicht zurückholen. */
+    private var clearedBeforeLoad = false
+
     init {
-        loadHistory()
+        // Konstruktor läuft im IME-Aufbau auf dem Main-Thread
+        // (KeyboardViewFactory.create → onCreateInputView) — Datei-I/O gehört
+        // deshalb auf den ioDispatcher. Das Ergebnis wird auf dem Main-Thread
+        // angewendet, damit `history` weiterhin nur dort verändert wird.
+        //
+        // Geschrieben wird erst, nachdem die Datei gelesen wurde
+        // ([historyLoaded], siehe [persistAsync]): sonst überschrieb ein früher
+        // Capture (Clip-Tab mit canAutoCapture) die Datei, *bevor* dieser Load sie
+        // gelesen hatte — die gespeicherte Historie war dann dauerhaft weg. Ein
+        // Load wird außerdem nicht mehr verworfen, sondern mit dem, was inzwischen
+        // dazukam, zusammengeführt.
+        coroutineScope.launch {
+            val loaded = withContext(ioDispatcher) {
+                runCatching { readHistoryFile() }.getOrDefault(emptyList())
+            }
+            mainHandler.post { applyLoaded(loaded) }
+        }
+    }
+
+    /**
+     * Wendet die geladene Historie an (Main-Thread): neue Einträge bleiben vorne,
+     * die geladenen folgen ohne Duplikate, der Deckel gilt weiter. Ein vor dem
+     * Laden ausgelöstes Schreiben wird danach nachgeholt.
+     */
+    private fun applyLoaded(loaded: List<String>) {
+        if (!clearedBeforeLoad) {
+            val known = history.toMutableSet()
+            for (entry in loaded) if (known.add(entry)) history.add(entry)
+            while (history.size > MAX_ENTRIES) history.removeAt(history.lastIndex)
+        }
+        historyLoaded = true
+        if (writePendingBeforeLoad) {
+            writePendingBeforeLoad = false
+            persistAsync()
+        }
     }
 
     /** Öffentliche Historie (für die Picker-Dialoge und Tests). */
@@ -71,6 +114,12 @@ class ClipboardPanel(
 
     fun capture() {
         val text = currentClipboardText() ?: return
+        // Größen-Gate: ein einzelner riesiger Clipboard-Inhalt würde Historie,
+        // Persistenz-Datei und Speicher fluten (siehe [TextEditLogic]).
+        if (TextEditLogic.exceedsStoredTextLimit(text)) {
+            callbacks.onError(context.getString(R.string.clip_entry_too_large))
+            return
+        }
         if (history.firstOrNull() == text) return
         history.removeAll { it == text }
         history.add(0, text)
@@ -95,20 +144,17 @@ class ClipboardPanel(
         }
         list.setOnItemLongClickListener { _, _, position, _ ->
             history.getOrNull(position)?.let { entry ->
-                android.app.AlertDialog.Builder(context)
+                val dialog = android.app.AlertDialog.Builder(context)
                     .setTitle(R.string.clip_entry_actions)
                     .setItems(arrayOf(context.getString(R.string.clip_add_to_snippet))) { _, which ->
                         if (which == 0) callbacks.onAddToSnippet(entry)
                     }
                     .setNegativeButton(android.R.string.cancel, null)
                     .create()
-                .also { dialog ->
-                    dialog.window?.apply {
-                        setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-                        attributes.token = root.windowToken
-                    }
+                // IME ohne Activity: Fenster-Token nötig (sonst BadTokenException).
+                if (!ImeDialog.show(dialog, root.windowToken)) {
+                    Toast.makeText(context, R.string.dialog_unavailable, Toast.LENGTH_SHORT).show()
                 }
-                .show()
             }
             true
         }
@@ -120,6 +166,8 @@ class ClipboardPanel(
     }
 
     fun clear() {
+        // Vor dem ersten Load darf der Load die Liste nicht zurückholen.
+        if (!historyLoaded) clearedBeforeLoad = true
         history.clear()
         persistAsync()
     }
@@ -129,7 +177,8 @@ class ClipboardPanel(
      * gewählten Eintrag zurück (z. B. in das aktive Eingabefeld einsetzen).
      *
      * [windowToken] ist das Token des IME-Input-Views – nötig in einer IME ohne
-     * Activity, sonst wirft ein AlertDialog eine BadTokenException und zeigt nichts.
+     * Activity, sonst wirft ein AlertDialog eine BadTokenException und zeigt
+     * nichts. Fehlt es, erscheint ein Hinweis statt eines Absturzes.
      */
     fun showPicker(windowToken: android.os.IBinder?, onPick: (String) -> Unit) {
         val items = history.map { TextEditLogic.clipDisplayText(it) }
@@ -144,24 +193,33 @@ class ClipboardPanel(
             }
             .setNegativeButton(android.R.string.cancel, null)
             .create()
-        if (windowToken != null) {
-            dialog.window?.apply {
-                setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-                attributes.token = windowToken
-            }
+        if (!ImeDialog.show(dialog, windowToken)) {
+            Toast.makeText(context, R.string.dialog_unavailable, Toast.LENGTH_SHORT).show()
         }
-        dialog.show()
     }
 
     private fun historyFile(): File = File(context.filesDir, "clipboard_history.txt")
 
     private fun persistAsync() {
-        val encoded = TextEditLogic.encodeClipHistory(history)
+        // Solange die Datei nicht gelesen ist, darf sie nicht überschrieben
+        // werden: der Load würde sonst eine Liste lesen, die wir gerade ersetzt
+        // haben, und die alte Historie wäre endgültig weg. Stattdessen wird das
+        // Schreiben gemerkt und nach dem Load nachgeholt ([applyLoaded]).
+        if (!historyLoaded) {
+            writePendingBeforeLoad = true
+            return
+        }
+        // Snapshot auf dem Main-Thread (nur die Liste kopieren), Serialisieren und
+        // Schreiben auf dem ioDispatcher: der Join über die ganze Historie lief
+        // vorher auf dem Main-Thread und konnte bei großen Einträgen stocken.
+        val snapshot = history.toList()
         val f = historyFile()
         coroutineScope.launch {
             try {
                 persistMutex.withLock {
-                    withContext(ioDispatcher) { f.writeText(encoded) }
+                    withContext(ioDispatcher) {
+                        f.writeText(TextEditLogic.encodeClipHistory(snapshot))
+                    }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Clipboard history could not be persisted", e)
@@ -171,15 +229,9 @@ class ClipboardPanel(
         mainHandler.post { refresh() }
     }
 
-    private fun loadHistory() {
-        try {
-            val f = historyFile()
-            if (f.exists()) {
-                history.clear()
-                history.addAll(TextEditLogic.decodeClipHistory(f.readText()))
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Clipboard history could not be loaded", e)
-        }
+    /** Liest die persistierte Historie (reines Lesen, kein Zustandswechsel). */
+    private fun readHistoryFile(): List<String> {
+        val f = historyFile()
+        return if (f.exists()) TextEditLogic.decodeClipHistory(f.readText()) else emptyList()
     }
 }

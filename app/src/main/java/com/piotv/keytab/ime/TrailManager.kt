@@ -250,12 +250,6 @@ class TrailManager(
     fun snapshotForTest(): Map<Char, Pair<Int, TrailLogic.TrailKind>> =
         steps.mapValues { (c, s) -> s to (kinds[c] ?: TrailLogic.TrailKind.TYPED) }
 
-    /** Aktualisiert die BaseLetters-Map (z.B. nach Language-Wechsel oder View-Neuaufbau).
-     *  Da der Trail nur Foreground-Overlays nutzt, müssen keine Hintergründe
-     *  verwaltet werden; alte Overlays auf entfernten Buttons sind unbeobachtbar. */
-    @Suppress("UNUSED_PARAMETER")
-    fun updateBaseLetters(newBaseLetters: Map<Button, Char>) = Unit
-
     // ---------- Interne Hilfsmethoden ----------
     private fun trailEnabled(): Boolean = ThemePrefs.trailEnabled(prefs)
     private fun traceEnabled(): Boolean = ThemePrefs.trailTraceEnabled(prefs)

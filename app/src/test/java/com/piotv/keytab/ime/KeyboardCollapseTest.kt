@@ -131,4 +131,45 @@ class KeyboardCollapseTest {
         val target = KeyboardCollapse.targetPanel(r)
         assertEquals("Ziel im abc-Tab ist die Tastatur", R.id.kb_panel, target?.id)
     }
+
+    @Test
+    fun `Editor-Vollbild laesst die sichtbare Symbol-Ebene stehen`() {
+        // Wer in der Symbol-Ebene maximiert, tippt weiter Sonderzeichen: die
+        // sichtbare Ebene bleibt (frueher wurde immer kb_panel eingeblendet).
+        val r = root().apply {
+            findViewById<View>(R.id.editor_panel).visibility = View.VISIBLE
+            findViewById<View>(R.id.sym_panel).visibility = View.VISIBLE
+            findViewById<View>(R.id.kb_panel).visibility = View.GONE
+            findViewById<View>(R.id.bottom_row).visibility = View.VISIBLE
+        }
+
+        KeyboardCollapse.collapse(r, keyboardVisible = true, maximizeRowVisible = false)
+
+        assertEquals("Symbol-Ebene bleibt", View.VISIBLE, vis(r, R.id.sym_panel))
+        assertEquals("Buchstaben-Ebene bleibt weg", View.GONE, vis(r, R.id.kb_panel))
+        assertEquals("Funktionsleiste bleibt", View.VISIBLE, vis(r, R.id.bottom_row))
+    }
+
+    @Test
+    fun `Editor-Vollbild reserviert die Hoehe der Symbol-Ebene`() {
+        // Regression: keyboardBlockHeight zaehlte frueher nur kb_panel — bei
+        // aktiver Symbol-Ebene wurde das Panel um deren Hoehe zu gross gerechnet
+        // und die untere Key-Leiste rutschte aus dem IME-Fenster.
+        val r = root().apply {
+            findViewById<View>(R.id.editor_panel).visibility = View.VISIBLE
+            findViewById<View>(R.id.sym_panel).visibility = View.VISIBLE
+            findViewById<View>(R.id.kb_panel).visibility = View.GONE
+            findViewById<View>(R.id.bottom_row).visibility = View.VISIBLE
+        }
+        val window = PanelHeights.maximizeAvailableHeight(r)
+
+        KeyboardCollapse.collapse(r, keyboardVisible = true, maximizeRowVisible = false)
+
+        val panel = r.findViewById<View>(R.id.editor_panel).layoutParams.height
+        assertTrue("Tastaturblock muss gemessen sein",
+            PanelHeights.keyboardBlockHeight(r, width(r)) > 0)
+        assertEquals("Panel + Chrome + Symbol-Ebene = Fenster", window,
+            panel + PanelHeights.chromeHeight(r, width(r)) +
+                PanelHeights.keyboardBlockHeight(r, width(r)))
+    }
 }

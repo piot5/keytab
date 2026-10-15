@@ -96,3 +96,25 @@ class FileManagerModel(
         }
     }
 }
+
+/**
+ * Regeln für Kopieren/Einfügen im Dateimanager — Android-frei und damit
+ * JUnit-testbar. Deckt die beiden Fälle ab, die vorher Datenverlust bzw. eine
+ * endlose Rekursion auslösen konnten: Ziel == Quelle und Ziel **innerhalb** der
+ * Quelle (Ordner in einen eigenen Unterordner einfügen).
+ */
+internal object FileCopyRules {
+
+    /** Ziel für „Einfügen“ von [src] in das Verzeichnis [dir]. */
+    fun pasteTarget(src: File, dir: File): File = File(dir, src.name)
+
+    /** true, wenn [dst] identisch mit [src] ist oder innerhalb von [src] liegt. */
+    fun isSameOrInside(src: File, dst: File): Boolean {
+        val srcPath = src.absolutePath.trimEnd(File.separatorChar)
+        val dstPath = dst.absolutePath
+        return dstPath == srcPath || dstPath.startsWith(srcPath + File.separator)
+    }
+
+    /** true, wenn vor dem Einfügen nach dem Überschreiben gefragt werden muss. */
+    fun needsOverwriteConfirm(dst: File): Boolean = dst.exists()
+}

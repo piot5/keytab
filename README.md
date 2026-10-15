@@ -25,7 +25,7 @@ Every tagged release (`v*`) is built and published automatically by CI as a sign
 | Channel | Status |
 |---|---|
 | GitHub Releases | ✅ every `v*` tag, built and published by CI |
-| F-Droid | ⏳ requested — [merge request !50822](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822) is open (pulled forward to v0.17 on 2026-10-07); reproducible build verified |
+| F-Droid | ⏳ requested — [merge request !50822](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822) is open (pulled forward to v0.17 on 2026-10-07); reproducible build verified. The open MR deliberately keeps pinning v0.17 — a new commit would invalidate its green reference pipeline (see `docs/RELEASE.md`, section 7) |
 
 Release history lives in **[CHANGELOG.md](CHANGELOG.md)**.
 
@@ -58,28 +58,29 @@ KeyTab is a **mobile IDE built as an IME**: every feature lives in its own tab o
 - **Snippets tab** — named commands as `name = text` lines in a plain-text file (`keytab_snippets.txt`, `#` comments, `\n` expanded); tap inserts, long-press previews, ＋/✎ add or edit inline. **Snippet suggestions** appear as chips when no word prediction is available at a sentence start (last 3 used).
 - **Swipe typing** (optional) — route scored against the same offline engine; clear winners auto-commit, otherwise candidates appear in the bar; likely next keys light up along the route.
 - **Dictionary maintenance** — in Settings, the learned dictionary can be scanned for artifacts and cleaned with explicit confirmation (preview first, base corpus untouched, entirely on-device).
-- **Dynamic key sizing + likely highlighting** — likely-next keys scale up (grades 1.21×/1.15×, shrink 0.812×/0.925×) and glow in an adjustable colour; reaching the top suggestion fires a pulse (colour flash + haptic). Both toggleable.
+- **Dynamic key sizing + likely highlighting** — likely-next keys scale up (grades 1.21×/1.15×, shrink 0.812×/0.925×) and glow in an adjustable colour. Both toggleable.
 - **Typing trail + suggestion-match marking** (optional) — last keys tint and fade (3/5/7/10 steps, drawn as key *foreground* overlay); with the trace on, letters turn green when the typed word matches the top suggestion. Typos stay unmarked (no red). Pure logic in `TrailLogic`, unit-tested.
 - **Emoji catalog** — offline keyword→emoji catalog (de/en) behind the ☦ button, browsable page by page or as a full grid; insertion does not disturb n-gram learning.
 - **Theme customization** — long-press the tab/☾ key (or open it from app settings): dark/light, gradient presets or fully custom background/key/highlight/text colors per theme via color wheel (hue/saturation), brightness and alpha sliders, plus a background image (fit/cover/stretch). Built-in dark theme: `#1a1a1a` background, `#2e2e2e` keys.
 - **Keyboard essentials** — `KEYCODE_TAB` for Tab-completion in Termux/SSH, shift/caps-lock, long-press accent popups, accelerating backspace (250 ms → 30 ms).
+- **Two key planes in one switch** — the `?123` key toggles `abc` ⇄ `?123`; the former third plane (`<v>` with extra symbols and the big arrow pad) was removed. The **bottom row (switch, TAB, space, dot, Enter) and the suggestion/emoji row (☺, ‹, ▦, ⇲) never disappear while paging** — they are the only way back and the emoji-catalogue access, so they belong to the keyboard, not to the letter plane (the emoji row used to be a child of it and vanished on `?123`).
 - **Multi-language** — 7 latin-script languages (de, en, es, fr, it, pt, nl), each with its own frequency corpus and accent popups; instant switching with on-the-fly engine reload.
 
 **Privacy in sensitive fields is enforced in code, not by preference** (`TrailLogic.isTrailAllowed` / `.isPersonalizedProcessingAllowed`): in password fields and whenever an app sets `IME_FLAG_NO_PERSONALIZED_LEARNING`, trail, swipe, suggestions and dictionary learning are all suppressed — a visual side channel or a learned password fragment cannot happen. Covered by unit tests with positive controls in normal fields, so the rule cannot be silently weakened into a dead `return`.
 
 ## Architecture
 
-`KeyTabImeService` is the keyboard core (383 lines of orchestration). Every feature lives in its own class — panels for UI, controllers for stateful wiring, pure modules for logic (Android-free, unit-testable). All five panels receive narrow dependencies (`Context`, `Executor`, `Handler`, callbacks) and **none of them references `KeyTabImeService`**, which makes them directly unit-testable with Robolectric and no service mock. Panels use the shared main handler for UI updates; background work goes through the shared `KeyTabExecutors.io` / image executors, `ClipboardPanel` persistence is lifecycle-aware coroutine work with stale results discarded on navigation. The full file tree with per-class responsibilities is in [Project structure](#project-structure).
+`KeyTabImeService` is the keyboard core (419 lines of orchestration). Every feature lives in its own class — panels for UI, controllers for stateful wiring, pure modules for logic (Android-free, unit-testable). All five panels receive narrow dependencies (`Context`, `Executor`, `Handler`, callbacks) and **none of them references `KeyTabImeService`**, which makes them directly unit-testable with Robolectric and no service mock. Panels use the shared main handler for UI updates; background work goes through the shared `KeyTabExecutors.io` / image executors, `ClipboardPanel` persistence is lifecycle-aware coroutine work with stale results discarded on navigation. The full file tree with per-class responsibilities is in [Project structure](#project-structure).
 
 ## Tests
 
 Unit tests run via `./gradlew :app:testDebugUnitTest` (Robolectric for Android-dependent panels). The pure-logic classes (`SuggestionEngine`, `TextEditLogic`, `KeyScaleLogic`, `CapsLogic`, `LiftSpan`, `LikelyHighlightLogic`, `TrailLogic`, `PanelHeights`) are fully Android-free and fast.
 
-**520 unit tests in 55 suites, 0 failures** (verified 2026-10-01, `testDebugUnitTest` + `koverVerify` green):
+**552 unit tests in 57 suites, 0 failures** (verified 2026-10-15, `testDebugUnitTest` + `koverVerify` green):
 
 The largest suites: `SuggestionEngineTest` (33), `SwipePathLogicTest` (23), `PanelHeightsTest` (22), `SwipeManagerTest` (20), `TextEditLogicTest` (20), `SwipeScorerTest` (19), `TrailLogicTest` (19), `FileManagerModelTest`/`SuggestionControllerTest`/`SuggestionReplaceLogicTest` (17 each) — plus 41 further suites down to `TrailPerformanceTest` (1).
 
-Test code is 7,740 lines in 55 files against 11,111 lines of main code (76 files) — a **69.7 % test-to-main ratio**. Line coverage measured with Kover is **68.8 %** (`LINE` 3293/4788), branch coverage **54.5 %** (`BRANCH` 1777/3263); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-10-10). Per package: the Android-free logic (`com.piotv.keytab.ime`: 72.2 %), the theme UI sections (`sections`: 93.8 %) and the in-app file manager (`file`: 77.4 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `knowsWord`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Frame timing is measured on-device with `scripts/device_perf.py` (Shizuku/rish, `dumpsys gfxinfo`, target: the debug `ImeTargetActivity`'s plain text field). Re-measured 2026-09-29 with a verified setup and median-of-runs methodology (see [`docs/DEVICE_PERF.md`](docs/DEVICE_PERF.md)): **backspace-autorepeat PASS** — 400 ms repeat bursts into a filled field, 3 runs, median Jank@60 1.3 % (≤ 10 %), p50 5 ms / p95 13 ms, UI-thread p95 3.2 ms. The earlier "FAIL" (61 % Jank on 36 frames from 2 events) was a measurement artifact. **Typing (empty field, active predictions, 192 events) is thermal-state dependent**: 3.4 % Jank@60 at 34.1 °C battery temperature (PASS) vs. 39–42 % at ≥ 35.1 °C (FAIL) on the identical workload — a device throttling threshold, not app behavior; single-run numbers without a thermal log are not usable as a gate. UI-thread p95 stays ≤ 6.4 ms in every scenario (deadline misses are draw-side, not logic-side). The instrumented suite is **one** comprehensive typing test (`KeyTabTypingTest`): a single pass through every typing function of the real IME — long standard text, number row, symbol layer (`?123`), long-press extra picker, backspace, space, dot, Enter, TAB, Shift and the password field (types normally, shows no suggestions). Each step has its own expected result, so a failure names the typing function that broke. It runs in CI on an API-34 emulator via `scripts/run_instrumented_tests.sh` (build/install outside the budget, then `am instrument` with a hard **3-minute budget**, `TEST_BUDGET_S`, default 180). Device-first: run it on a real device **before** a push (`scripts/test_on_device.sh`, `-e runner true` shows the test-runner panel in the debug host) — the CI emulator is much slower and produces flakes that real hardware does not. Measured 2026-10-06: ~50 s on the CI emulator (well inside the 180 s budget) and 42–60 s on a real device.
+Test code is 8,334 lines in 57 files against 11,507 lines of main code (77 files) — a **72.4 % test-to-main ratio**. Line coverage measured with Kover is **68.8 %** (`LINE` 3293/4788), branch coverage **54.5 %** (`BRANCH` 1777/3263); the CI gate is **60 % line / 45 % branch** (hard `koverVerify`, re-measured 2026-10-10). Per package: the Android-free logic (`com.piotv.keytab.ime`: 72.2 %), the theme UI sections (`sections`: 93.8 %) and the in-app file manager (`file`: 77.4 %) — the latter two were historically untested and are now covered by `SectionsTest`, `SectionsMoreTest`, `EditorPanelTest`, `ClipboardPanelTest`, `SnippetPanelTest`, `FileManagerPanelTest`, `FileManagerFragmentTest` and `LearnedDictionaryApiTest`; remaining gaps are listed under [Known gaps](#known-gaps). The keyboard hot paths (correction trace → `knowsWord`, swipe sampling → `charAt`/`dedup`, swipe scoring) are JVM-benchmarked in `TrailPerformanceTest` and `SwipePerformanceTest` (avg µs per call, asserted far below the 50 ms keystroke budget). Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert CapsLock`). Frame timing is measured on-device with `scripts/device_perf.py` (Shizuku/rish, `dumpsys gfxinfo`, target: the debug `ImeTargetActivity`'s plain text field). Re-measured 2026-09-29 with a verified setup and median-of-runs methodology (see [`docs/DEVICE_PERF.md`](docs/DEVICE_PERF.md)): **backspace-autorepeat PASS** — 400 ms repeat bursts into a filled field, 3 runs, median Jank@60 1.3 % (≤ 10 %), p50 5 ms / p95 13 ms, UI-thread p95 3.2 ms. The earlier "FAIL" (61 % Jank on 36 frames from 2 events) was a measurement artifact. **Typing (empty field, active predictions, 192 events) is thermal-state dependent**: 3.4 % Jank@60 at 34.1 °C battery temperature (PASS) vs. 39–42 % at ≥ 35.1 °C (FAIL) on the identical workload — a device throttling threshold, not app behavior; single-run numbers without a thermal log are not usable as a gate. UI-thread p95 stays ≤ 6.4 ms in every scenario (deadline misses are draw-side, not logic-side). The instrumented suite is **one** comprehensive typing test (`KeyTabTypingTest`): a single pass through every typing function of the real IME — long standard text, number row, symbol layer (`?123`), long-press extra picker, backspace, space, dot, Enter, TAB, Shift and the password field (types normally, shows no suggestions). Each step has its own expected result, so a failure names the typing function that broke. It runs in CI on an API-34 emulator via `scripts/run_instrumented_tests.sh` (build/install outside the budget, then `am instrument` with a hard **3-minute budget**, `TEST_BUDGET_S`, default 180). Device-first: run it on a real device **before** a push (`scripts/test_on_device.sh`, `-e runner true` shows the test-runner panel in the debug host) — the CI emulator is much slower and produces flakes that real hardware does not. Measured 2026-10-06: ~50 s on the CI emulator (well inside the 180 s budget) and 42–60 s on a real device.
 
 ```bash
 # Run all unit tests
@@ -101,7 +102,7 @@ Documented honestly rather than implied away — these are the things that are *
 | **Trail frame timing measured on device (backspace PASS, typing thermal-dependent)** | The correction trace classifies the typed word against the engine on **every keystroke** (`TrailLogic.classifyTypedWord` → `SuggestionEngine.knowsWord`). Algorithm cost is JVM-benchmarked in `TrailPerformanceTest` — ~2 µs per classification on a 6,000-word corpus, ~4 orders of magnitude below the 50 ms keystroke budget (hard assertion). **Device frame timing re-measured 2026-09-29 with median-of-runs** (`scripts/device_perf.py --pkg com.piotv.keytab.debug`, 120 Hz panel, see [`docs/DEVICE_PERF.md`](docs/DEVICE_PERF.md)): backspace-autorepeat **PASS** (median Jank@60 1.3 %, p50 5 ms / p95 13 ms, UI p95 3.2 ms; the historical "FAIL" of 61 % came from only 2 events = 36 frames). Typing stays **thermal-state dependent** (3.4 % Jank@60 cool vs. 39–42 % above 35.1 °C battery temperature, same workload). What remains open: visual smoothness of the trail overlay and red/green trace contrast per theme palette (still not screenshot-verified). |
 | **Trail visuals not screenshot-verified** | The regression fix for contradictory trace states (see 0.9.7) is proven at the **state level** by unit tests — no screenshot or instrumented test asserts the rendered colours. The red/green contrast against each custom theme palette has not been measured. |
 | **Swipe frame timing not measured on device** | The swipe hot path (`charAt` + `dedup` per Move-Event, `SwipeScorer.score` on release) is JVM-benchmarked in `SwipePerformanceTest` — `charAt` and `dedup` are asserted < 5 ms avg over 10 000 calls, the scorer < 50 ms on a 6 000-word corpus (hard assertions so regressions fail the build). What remains open: **frame timing on a real display** (profiling the overlay invalidate + edge redraw on the device) and visual smoothness of the likely-keys path during an active swipe. |
-| ~~English locale incomplete~~ **Resolved 2026-09-21** | `values-en` now covers all strings (was 92/163); no German fallback in English-locale devices any more. |
+| ~~English locale incomplete~~ **Resolved 2026-09-21, cleaned up in 0.18** | `values-en` now covers all strings (was 92/163); no German fallback in English-locale devices any more. In 0.18 the German strings that had crept back into `values/` (17) and `values-en/` (8) were moved to `values-de/`: the default locale is English, and no file mixes languages any more. |
 | **Instrumented coverage is one broad pass** | The real IME contract is checked by a single pass (`KeyTabTypingTest`): long standard text, number row, symbol layer, long-press extras, backspace, space, dot, Enter, TAB, Shift, and the password / no-personalised-learning fields. Verified green in CI (API-34 emulator) and on a real device (2026-10-06). Visual rendering (themes, trail colours) is still not screenshot-asserted — the doc-capture tools (screenshots/GIFs/showcase videos) were dropped: they were recording scripts, not tests. |
 
 ## Icon
@@ -190,7 +191,7 @@ See [`docs/RELEASE.md`](docs/RELEASE.md) for the full release process. Dependenc
 ## Project structure
 
 ```
-app/src/main/java/com/piotv/keytab/            # 76 Kotlin files
+app/src/main/java/com/piotv/keytab/            # 77 Kotlin files
 ├── Prefs.kt                       # Central preference keys
 ├── MainActivity.kt                # Settings: enable keyboard, theme, language, toggles
 ├── ThemeSettingsActivity.kt       # Theme settings: color wheel, gradients, per-theme colors
@@ -205,7 +206,7 @@ app/src/main/java/com/piotv/keytab/            # 76 Kotlin files
 │   ├── TrailSection.kt            #   typing trail: on/off, steps, correction trace
 │   └── PreviewSection.kt          #   live preview
 └── ime/
-    ├── KeyTabImeService.kt   # Keyboard core / orchestration (383 lines)
+    ├── KeyTabImeService.kt   # Keyboard core / orchestration (419 lines)
     ├── KeyboardHost.kt       # Interface consumed by the controllers
     ├── KeyboardViewFactory.kt # Builds the keyboard view tree
     ├── KeyboardBinder.kt     # Touch / long-press, backspace repeat
@@ -242,10 +243,10 @@ app/src/main/java/com/piotv/keytab/            # 76 Kotlin files
     ├── KeyTabExecutors.kt    # Shared executor + main handler
     └── …                     # InputTargets, LiftSpan, KeyTabConfig
 
-app/src/test/java/com/piotv/keytab/            # 55 test classes, 520 tests, 7,740 lines
-app/src/androidTest/                           # 1 instrumented test, 631 lines (kompletter Tippdurchlauf, CI: API 34 emulator)
-app/src/main/res/values/strings.xml            # 147 strings (default = German)
-app/src/main/res/values-en/                    # English locale (147 strings — complete)
+app/src/test/java/com/piotv/keytab/            # 57 test classes, 552 tests, 8,334 lines
+app/src/androidTest/                           # 1 instrumented test, 648 lines (kompletter Tippdurchlauf, CI: API 34 emulator)
+app/src/main/res/values/strings.xml            # 159 strings (default = English; values-de/ = partial German translation)
+app/src/main/res/values-en/                    # English locale (159 strings — complete)
 app/src/main/res/values-night/                 # Night-mode resource qualifiers
 app/src/main/assets/
 ├── de_freq_top6000.txt              # corpus (CC-BY-SA-4.0)
@@ -273,7 +274,7 @@ Issues and pull requests are welcome. Before opening a PR:
 
 ```bash
 sh scripts/check_docs_drift.sh                     # docs must match the code
-sh ./gradlew :app:testDebugUnitTest --offline      # 520 tests must stay green
+sh ./gradlew :app:testDebugUnitTest --offline      # 552 tests must stay green
 bash build_keytab.sh debug                         # must build
 sh scripts/test_on_device.sh                       # instrumented typing test on a real device (before a push)
 ```

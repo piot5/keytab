@@ -1,6 +1,5 @@
 package com.piotv.keytab.ime
 
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.widget.Button
@@ -28,10 +27,6 @@ internal class SuggestionController(private val host: SuggestionHost) {
 
     companion object {
         private const val LIKELY_RADIUS_DP = 8f
-        private const val FLASH_ALPHA = 230
-        private const val PULSE_SCALE = 1.3f
-        private const val PULSE_OUT_MS = 130L
-        private const val PULSE_BACK_MS = 170L
         private const val CONTEXT_HISTORY_CHARS = 16
     }
 
@@ -147,10 +142,13 @@ internal class SuggestionController(private val host: SuggestionHost) {
 
     /**
      * Likely Highlighting: die wahrscheinlichste nächste Taste bekommt die
-     * Hervorhebungs-Farbe (Pref [ThemePrefs.KEY_LIKELY]); wenn das getippte Wort
-     * dem Top-Vorschlag entspricht (Wahrscheinlichkeit erreicht), gibt es einen
-     * Puls-Effekt ([ThemePrefs.KEY_LIKELY_EFFECT]). Ohne Modus werden die
+     * Hervorhebungs-Farbe (Pref [ThemePrefs.KEY_LIKELY]). Ohne Modus werden die
      * Highlights zurückgesetzt.
+     *
+     * Der frühere Puls-/Blitz-Effekt bei „Vervollständigung erreicht" ist in
+     * v0.18 **entfernt**: er hing an `LikelyHighlightLogic.completed`, das nur bei
+     * *gleicher* Wortlänge true liefert, während der Effekt-Zweig unter
+     * `nextChar != null` stand (Vorschlag *länger*) — unerreichbarer Code.
      */
     private fun updateLikelyKeys() {
         val prefs = com.piotv.keytab.Prefs.of(host.context)
@@ -160,23 +158,17 @@ internal class SuggestionController(private val host: SuggestionHost) {
         val typed = (pm?.currentTypedWord).orEmpty()
         val next = LikelyHighlightLogic.nextChar(sugs, typed.length)
         restoreLikelyKeys()
-        if (next != null) {
-            val likelyColor = ThemePrefs.getColor(prefs, host.isDarkMode(), ThemePrefs.KIND_LIKELY,
-                ThemePrefs.defaultColor(host.context, host.isDarkMode(), ThemePrefs.KIND_LIKELY))
-            val dip = host.context.resources.displayMetrics.density
-            for ((btn, c) in host.baseLetters) {
-                if (c.lowercaseChar() == next) {
-                    likelyHighlighted.add(btn to btn.background)
-                    btn.background = GradientDrawable().apply {
-                        cornerRadius = LIKELY_RADIUS_DP * dip
-                        setColor(likelyColor)
-                    }
+        if (next == null) return
+        val likelyColor = ThemePrefs.getColor(prefs, host.isDarkMode(), ThemePrefs.KIND_LIKELY,
+            ThemePrefs.defaultColor(host.context, host.isDarkMode(), ThemePrefs.KIND_LIKELY))
+        val dip = host.context.resources.displayMetrics.density
+        for ((btn, c) in host.baseLetters) {
+            if (c.lowercaseChar() == next) {
+                likelyHighlighted.add(btn to btn.background)
+                btn.background = GradientDrawable().apply {
+                    cornerRadius = LIKELY_RADIUS_DP * dip
+                    setColor(likelyColor)
                 }
-            }
-            if (ThemePrefs.likelyEffect(prefs) && LikelyHighlightLogic.completed(sugs, typed)) {
-                likelyCompletionEffect(
-                    host.baseLetters.filter { it.value.lowercaseChar() == next }.keys.toList(),
-                    likelyColor)
             }
         }
     }
@@ -187,26 +179,6 @@ internal class SuggestionController(private val host: SuggestionHost) {
             if (btn.isAttachedToWindow) btn.background = bg
         }
         likelyHighlighted.clear()
-    }
-
-    /** Zufriedenstellender Effekt: Farblitz + Scale-Puls + Haptik. */
-    private fun likelyCompletionEffect(buttons: List<Button>, color: Int) {
-        if (buttons.isEmpty()) return
-        host.haptic()
-        val dip = host.context.resources.displayMetrics.density
-        for (b in buttons) {
-            val saved = likelyHighlighted.firstOrNull { it.first === b }?.second ?: b.background
-            val flash = GradientDrawable().apply {
-                cornerRadius = LIKELY_RADIUS_DP * dip
-                setColor(Color.argb(FLASH_ALPHA,
-                    Color.red(color), Color.green(color), Color.blue(color)))
-            }
-            b.background = flash
-            b.animate().scaleX(PULSE_SCALE).scaleY(PULSE_SCALE).setDuration(PULSE_OUT_MS).withEndAction {
-                b.animate().scaleX(1f).scaleY(1f).setDuration(PULSE_BACK_MS).start()
-                b.background = saved
-            }.start()
-        }
     }
 
     /**

@@ -43,6 +43,19 @@ class ColorWheelView @JvmOverloads constructor(
     private var cy = 0f
     private var radius = 0f
 
+    /**
+     * Hue-Stützfarben des Rings — **einmalig** berechnet. Vorher entstanden sie
+     * in jedem `onDraw` neu (13 Segmentfarben + 13 `floatArrayOf`), also bei
+     * jedem gezeichneten Frame (Lint: `DrawAllocation`).
+     */
+    private val hueColors = IntArray(HUE_SEGMENT_COUNT) { i ->
+        Color.HSVToColor(floatArrayOf(i * HUE_STEP_DEG % HUE_FULL_CIRCLE_DEG, 1f, 1f))
+    }
+
+    /** Shader werden in [onSizeChanged] gebaut, nicht im Draw-Pfad. */
+    private var hueShader: SweepGradient? = null
+    private var whiteShader: RadialGradient? = null
+
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val markerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -86,21 +99,30 @@ class ColorWheelView @JvmOverloads constructor(
         cx = w / 2f
         cy = h / 2f
         radius = min(w, h) / 2f - RING_INNER_PADDING
+        // Shader einmal pro Größenänderung bauen statt in jedem onDraw.
+        // radius <= 0 ist für den RadialGradient ungültig → dann keine Shader
+        // (onDraw steigt in dem Fall ohnehin aus).
+        if (radius > 0f) {
+            hueShader = SweepGradient(cx, cy, hueColors, null)
+            whiteShader = RadialGradient(
+                cx, cy, radius, Color.WHITE, Color.TRANSPARENT, Shader.TileMode.CLAMP
+            )
+        } else {
+            hueShader = null
+            whiteShader = null
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        if (radius <= 0f) return
+        val hue = hueShader
+        val white = whiteShader
+        if (radius <= 0f || hue == null || white == null) return
         // Farbring (Hue)
-        val n = HUE_SEGMENT_COUNT
-        val hueColors = IntArray(n) { i ->
-            Color.HSVToColor(floatArrayOf(i * HUE_STEP_DEG % HUE_FULL_CIRCLE_DEG, 1f, 1f))
-        }
-        paint.shader = SweepGradient(cx, cy, hueColors, null)
+        paint.shader = hue
         canvas.drawCircle(cx, cy, radius, paint)
         // Weiß im Zentrum (Sättigung außen = 1)
-        paint.shader = RadialGradient(cx, cy, radius,
-            Color.WHITE, Color.TRANSPARENT, Shader.TileMode.CLAMP)
+        paint.shader = white
         canvas.drawCircle(cx, cy, radius, paint)
         // Helligkeit: gleichmäßiges schwarzes Overlay (nicht radial – sonst
         // wäre der Rand dunkler als das Zentrum bei niedrigem Value)

@@ -102,12 +102,10 @@ internal object ThemeColorImport {
     /** Likely-Highlighting-Schalter. */
     internal fun readLikely(
         root: JSONObject,
-        onEnabled: (Boolean) -> Unit,
-        onEffect: (Boolean) -> Unit
+        onEnabled: (Boolean) -> Unit
     ): Boolean {
         val lk = root.optJSONObject("likely") ?: return false
         if (lk.has("enabled")) onEnabled(lk.getBoolean("enabled"))
-        if (lk.has("effect")) onEffect(lk.getBoolean("effect"))
         return true
     }
 

@@ -11,6 +11,16 @@ import java.util.Locale
 object SettingsConfig {
     internal const val KEY_FINGERPRINT = "config_import_sha256"
 
+    /**
+     * Zustand der Config-Datei beim letzten Import (`mtime:Länge`).
+     *
+     * Der Import liegt im IME-Hot-Path (`onStartInput`/`onStartInputView`) und
+     * darf dort **nicht** lesen oder hashen: dieser Wert wird per `stat`
+     * verglichen (kein Dateizugriff), nur bei Abweichung wird gelesen und über
+     * [KEY_FINGERPRINT] geprüft, ob der Inhalt wirklich anders ist.
+     */
+    internal const val KEY_FILE_STAT = "config_import_stat"
+
     private const val HEX_RADIX = 16
     private const val RGB_HEX_LENGTH = 7
     private const val OPAQUE_ALPHA_MASK = 0xFF000000L
@@ -43,7 +53,7 @@ object SettingsConfig {
         put("bg_image_fill", Setting(Prefs.KEY_BG_IMAGE_FILL, Prefs.FILL_FIT, "enum",
             setOf(Prefs.FILL_FIT, Prefs.FILL_COVER, Prefs.FILL_STRETCH)))
         put(ThemePrefs.KEY_DARK, Setting(ThemePrefs.KEY_DARK, "true", "dark"))
-        for (key in listOf(ThemePrefs.KEY_LIKELY, ThemePrefs.KEY_LIKELY_EFFECT)) {
+        for (key in listOf(ThemePrefs.KEY_LIKELY)) {
             put(key, Setting(key, "true", "boolean"))
         }
         for (key in listOf(ThemePrefs.KEY_GRADIENT_OFF, ThemePrefs.KEY_GRADIENT_OFF_LIGHT)) {
@@ -89,9 +99,27 @@ object SettingsConfig {
     fun importIfChanged(context: Context): Boolean = importIfChanged(
         configFile(context), Prefs.of(context))
 
-    /** Missing/unreadable files never clear preferences. */
+    /**
+     * Import nur bei geänderter Datei.
+     *
+     * Schneller Pfad: `mtime` + Länge vergleichen (ein `stat`, **kein** Lesen).
+     * Stimmen sie mit dem letzten Import überein, ist nichts zu tun — das ist der
+     * Normalfall bei jedem Feldwechsel im IME. Erst bei Abweichung wird die Datei
+     * gelesen und per [KEY_FINGERPRINT] geprüft (fängt „nur berührt, Inhalt
+     * gleich" ab); der neue `stat` wird auch dann gemerkt, damit der nächste
+     * Aufruf nicht erneut liest.
+     */
     fun importIfChanged(file: File, prefs: SharedPreferences): Boolean = try {
-        if (file.isFile) importTextIfChanged(file.readText(), prefs) else false
+        if (!file.isFile) false
+        else {
+            val stat = "${file.lastModified()}:${file.length()}"
+            if (prefs.getString(KEY_FILE_STAT, null) == stat) false
+            else {
+                val changed = importTextIfChanged(file.readText(), prefs)
+                prefs.edit().putString(KEY_FILE_STAT, stat).apply()
+                changed
+            }
+        }
     } catch (_: Exception) { false }
 
     internal fun fingerprint(text: String): String = MessageDigest.getInstance("SHA-256")

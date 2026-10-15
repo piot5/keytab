@@ -160,9 +160,8 @@ class ThemePrefsTest {
     }
 
     @Test
-    fun `Likely-Defaults sind an-an`() {
+    fun `Likely-Default ist an`() {
         // Nutzer-Standard (keytab_config.txt, 2026-09-28): `gaming_mode = true`.
         assertTrue(ThemePrefs.likelyHighlighting(prefs))
-        assertTrue(ThemePrefs.likelyEffect(prefs))
     }
 }

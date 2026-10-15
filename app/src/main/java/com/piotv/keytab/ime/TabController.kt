@@ -5,12 +5,32 @@ import android.widget.Button
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
 
+/**
+ * Die Ebenen, die der `?123`-Schalter durchblättert — in Blätter-Reihenfolge.
+ *
+ * Ein Tipp geht immer **eine** Ebene weiter:
+ * `LETTERS` (abc) → `SYMBOLS` (?123) → `LETTERS`.
+ *
+ * [labelRes] ist die Beschriftung des Schalters, *solange diese Ebene sichtbar
+ * ist* — sie zeigt die **nächste** Ebene (auf der Buchstaben-Ebene „?123", auf
+ * der Symbol-Ebene „abc"). [panelId] ist das Tastatur-Panel der Ebene;
+ * die gemeinsame Funktionsleiste (`bottom_row`) gehört zu keiner Ebene und
+ * bleibt in beiden sichtbar.
+ */
+internal enum class SymbolPlane(val labelRes: Int, val panelId: Int) {
+    LETTERS(R.string.key_toggle_symbols, R.id.kb_panel),
+    SYMBOLS(R.string.key_toggle_letters, R.id.sym_panel);
+
+    /** Nächste Ebene beim Tippen auf den Schalter (zyklisch). */
+    fun next(): SymbolPlane = values()[(ordinal + 1) % values().size]
+}
+
 /** Tab-Controller für ABC, Editor, Files, Clipboard und Snippets. */
 internal class TabController(private val host: TabHost) {
     private companion object { const val TAB_TEXT_SIZE_SP = 8f }
 
     internal enum class TabKind { ABC, EDITOR, FILES, CLIP, SNIPPET }
-    private var showSymbols = false
+    private var plane: SymbolPlane = SymbolPlane.LETTERS
     private var kinds: List<TabKind> = listOf(TabKind.ABC, TabKind.EDITOR, TabKind.FILES)
     private var currentKind: TabKind = TabKind.ABC
     private var currentTabs: TabLayout? = null
@@ -21,7 +41,10 @@ internal class TabController(private val host: TabHost) {
         val index = kinds.indexOf(kind)
         if (index >= 0) currentTabs?.getTabAt(index)?.select()
     }
-    fun resetSymbols() { showSymbols = false }
+    fun resetSymbols() { plane = SymbolPlane.LETTERS }
+
+    /** Aktuell sichtbare Tastatur-Ebene (Buchstaben oder eine Symbol-Ebene). */
+    fun currentPlane(): SymbolPlane = plane
 
     private fun applyUniformTabTextSize(tabs: TabLayout) {
         val group = tabs.getChildAt(0) as? android.view.ViewGroup ?: return
@@ -147,15 +170,21 @@ internal class TabController(private val host: TabHost) {
     }
 
     /**
-     * Geschwister der Vorschlagsleiste zurücksetzen: nach dem Vollbild-Modus
-     * können dort Zeilen GONE geblieben sein.
+     * Zeilen der Buchstaben-Ebene zurücksetzen: nach dem Vollbild-Modus können
+     * dort Zeilen GONE geblieben sein ([KeyAnimations.collapseRow]).
+     *
+     * Die optionale Zahlenreihe folgt dabei der Einstellung: sie wird nicht
+     * blind eingeblendet, sonst käme sie nach jedem Tab-Wechsel zurück, obwohl
+     * sie in den Einstellungen aus ist.
      */
-    private fun resetSuggestionSiblings(root: View) {
-        val lettersRoot =
-            root.findViewById<View>(R.id.suggestion_bar)?.parent as? android.view.ViewGroup
-            ?: return
-        for (i in 0 until lettersRoot.childCount) {
-            lettersRoot.getChildAt(i).visibility = View.VISIBLE
+    private fun resetLettersRows(root: View) {
+        val rows = root.findViewById<View>(R.id.letters_rows) as? android.view.ViewGroup ?: return
+        val numRow = com.piotv.keytab.Prefs.of(host.context)
+            .getBoolean(com.piotv.keytab.Prefs.KEY_NUM_ROW, true)
+        for (i in 0 until rows.childCount) {
+            val child = rows.getChildAt(i)
+            child.visibility =
+                if (child.id == R.id.num_row && !numRow) View.GONE else View.VISIBLE
         }
     }
 
@@ -168,7 +197,7 @@ internal class TabController(private val host: TabHost) {
      * weil sie beim Start noch nicht messbar sind.
      */
     private fun applyTabVisibility(root: View, kind: TabKind) {
-        resetSuggestionSiblings(root)
+        resetLettersRows(root)
         root.findViewById<View>(R.id.editor_panel).applyVisibility(kind == TabKind.EDITOR)
         root.findViewById<View>(R.id.file_panel).applyVisibility(kind == TabKind.FILES)
         root.findViewById<View>(R.id.clip_panel).applyVisibility(kind == TabKind.CLIP)
@@ -177,14 +206,18 @@ internal class TabController(private val host: TabHost) {
         applyMaximizeVisibility(root, kind)
     }
 
-    /** Tastatur, Symbol-Ebene und die gemeinsame Funktionsleiste. */
+    /** Tastatur-Ebene und die gemeinsame Funktionsleiste. */
     private fun applyKeyboardRowVisibility(root: View, keyboardVisible: Boolean) {
-        // GONE statt INVISIBLE für die Tastatur: in den Inhalts-Tabs ist sie
-        // wirklich weg. INVISIBLE liess sie ihren Platz stehen und verdoppelte
-        // so die Hoehe (Panel + unsichtbare Tastatur).
-        root.findViewById<View>(R.id.kb_panel).applyVisibility(keyboardVisible)
-        root.findViewById<View>(R.id.sym_panel).applyVisibility(showSymbols && keyboardVisible)
+        applyKeyboardPlane(root, keyboardVisible)
+        // Die Funktionsleiste (Schalter, TAB, Leertaste, Punkt, Enter) bleibt in
+        // *jeder* Tastatur-Ebene sichtbar — auch beim Blättern zwischen abc,
+        // ?123 und <v: sie ist der einzige Weg zurück.
         root.findViewById<View>(R.id.bottom_row).applyVisibility(true)
+        // Die Vorschlags-/Emoji-Zeile (☺, ‹, ▦, Vorschläge, ⇲) gehört zur
+        // Tastatur: sie bleibt beim Blättern abc -> ?123 -> <v stehen — der
+        // ☺-Katalog-Zugang darf nicht verschwinden. In den Inhalts-Tabs ist sie
+        // weg, weil dort die Tastatur weg ist (GONE, damit kein Leerraum bleibt).
+        root.findViewById<View>(R.id.suggestion_bar).applyVisibility(keyboardVisible)
         // Die Tasten der Funktionsleiste bleiben als Platzhalter stehen
         // (INVISIBLE), Enter ist immer nutzbar.
         root.findViewById<View>(R.id.key_toggle).applyVisibility(keyboardVisible, View.INVISIBLE)
@@ -193,7 +226,22 @@ internal class TabController(private val host: TabHost) {
         root.findViewById<View>(R.id.key_dot).applyVisibility(keyboardVisible, View.INVISIBLE)
         root.findViewById<View>(R.id.key_enter).applyVisibility(true)
         root.findViewById<View>(R.id.key_del)
-            .applyVisibility(keyboardVisible && !showSymbols, View.INVISIBLE)
+            .applyVisibility(keyboardVisible && plane == SymbolPlane.LETTERS, View.INVISIBLE)
+    }
+
+    /**
+     * Genau **eine** Tastatur-Ebene zeigen und den Schalter auf die nächste Ebene
+     * beschriften.
+     *
+     * GONE statt INVISIBLE für die nicht gewählten Ebenen: in den Inhalts-Tabs
+     * (und in den jeweils anderen Ebenen) ist die Tastatur wirklich weg —
+     * INVISIBLE liesse sie ihren Platz stehen und verdoppelte so die Hoehe.
+     */
+    private fun applyKeyboardPlane(root: View, keyboardVisible: Boolean) {
+        for (p in SymbolPlane.values()) {
+            root.findViewById<View>(p.panelId).applyVisibility(keyboardVisible && p == plane)
+        }
+        root.findViewById<Button>(R.id.key_toggle)?.text = host.context.getString(plane.labelRes)
     }
 
     /**
@@ -245,11 +293,17 @@ internal class TabController(private val host: TabHost) {
     fun isKeyboardAlwaysVisible(): Boolean =
         currentKind == TabKind.ABC || currentKind == TabKind.EDITOR
 
+    /**
+     * Ein Tipp auf den `?123`-Schalter: eine Ebene weiter
+     * (abc → ?123 → abc). Die Beschriftung zeigt dabei immer die
+     * *nächste* Ebene.
+     *
+     * `bottom_row` wird hier bewusst nicht angefasst: die Funktionsleiste mit
+     * dem Schalter, der Leertaste und Enter bleibt in allen Ebenen stehen —
+     * sonst käme man aus der Symbol-Ebene nicht mehr heraus.
+     */
     fun toggleSymbols(root: View) {
-        showSymbols = !showSymbols
-        root.findViewById<View>(R.id.kb_panel)?.visibility = if (showSymbols) View.GONE else View.VISIBLE
-        root.findViewById<View>(R.id.sym_panel)?.visibility = if (showSymbols) View.VISIBLE else View.GONE
-        root.findViewById<Button>(R.id.key_toggle)?.text =
-            if (showSymbols) host.context.getString(R.string.key_toggle_letters) else "?123"
+        plane = plane.next()
+        applyKeyboardPlane(root, keyboardVisible = true)
     }
 }

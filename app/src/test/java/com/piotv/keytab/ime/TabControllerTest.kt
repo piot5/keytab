@@ -5,6 +5,7 @@ import android.os.Looper
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.Prefs
 import com.piotv.keytab.R
@@ -166,9 +167,68 @@ class TabControllerTest {
     }
     @Test fun `Symbol Toggle schaltet Ebenen um`() {
         val r = setup(false, false)
+        // Ein Tipp = eine Ebene weiter: abc -> ?123 -> abc
         controller.toggleSymbols(r)
         assertEquals(View.GONE, r.findViewById<View>(R.id.kb_panel).visibility)
+        assertEquals(View.VISIBLE, r.findViewById<View>(R.id.sym_panel).visibility)
         controller.toggleSymbols(r)
         assertEquals(View.VISIBLE, r.findViewById<View>(R.id.kb_panel).visibility)
+        assertEquals(View.GONE, r.findViewById<View>(R.id.sym_panel).visibility)
+    }
+
+    @Test fun `Schalter blaettert durch zwei Ebenen und laesst die Funktionsleiste stehen`() {
+        val r = setup(false, false)
+        val toggle = r.findViewById<Button>(R.id.key_toggle)
+        val labels = mutableListOf<String>()
+        for (step in 0 until 2) {
+            labels += toggle.text.toString()
+            controller.toggleSymbols(r)
+            assertEquals("Schritt $step: Funktionsleiste bleibt stehen", View.VISIBLE,
+                r.findViewById<View>(R.id.bottom_row).visibility)
+            assertEquals("Schritt $step: Schalter bleibt bedienbar", View.VISIBLE,
+                toggle.visibility)
+            assertEquals("Schritt $step: genau eine Tastatur-Ebene sichtbar", 1,
+                listOf(R.id.kb_panel, R.id.sym_panel)
+                    .count { r.findViewById<View>(it).visibility == View.VISIBLE })
+        }
+        // Der Schalter zeigt immer die *naechste* Ebene: abc -> ?123 -> abc
+        assertEquals(
+            listOf(
+                app.getString(R.string.key_toggle_symbols),
+                app.getString(R.string.key_toggle_letters)
+            ),
+            labels
+        )
+        assertEquals("nach zwei Tipps wieder Buchstaben", SymbolPlane.LETTERS,
+            controller.currentPlane())
+        assertEquals(View.VISIBLE, r.findViewById<View>(R.id.kb_panel).visibility)
+        assertEquals(View.GONE, r.findViewById<View>(R.id.sym_panel).visibility)
+    }
+
+    @Test fun `Vorschlags- und Smiley-Zeile bleibt beim Blaettern stehen`() {
+        val r = setup(false, false)
+        val bar = r.findViewById<View>(R.id.suggestion_bar)
+        // So laesst SuggestionController die Zeile stehen (Vorschlaege an).
+        bar.visibility = View.VISIBLE
+        controller.toggleSymbols(r)   // ?123
+        assertEquals("Smiley-Zeile bleibt in ?123", View.VISIBLE, bar.visibility)
+        controller.toggleSymbols(r)   // abc
+        assertEquals("Smiley-Zeile bleibt in abc", View.VISIBLE, bar.visibility)
+    }
+
+    @Test fun `Vorschlagszeile ist in den Inhalts-Tabs weg`() {
+        val r = setup(true, true)
+        val tabs = r.findViewById<TabLayout>(R.id.ime_tabs)
+        val bar = r.findViewById<View>(R.id.suggestion_bar)
+        // abc (0) und Editor (1) haben die Tastatur — dort bleibt die Zeile
+        // (im Editor traegt sie das ⇲-Symbol). Inhalts-Tabs (ab 2) nicht.
+        assertEquals("abc: Zeile sichtbar", View.VISIBLE, bar.visibility)
+        for (i in 1 until tabs.tabCount) {
+            tabs.getTabAt(i)!!.select()
+            val expected = if (i == 1) View.VISIBLE else View.GONE
+            assertEquals("Tab $i: Zeile wie die Tastatur", expected, bar.visibility)
+        }
+        tabs.getTabAt(0)!!.select()
+        assertEquals("zurueck im abc-Tab", View.VISIBLE, bar.visibility)
     }
 }

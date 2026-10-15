@@ -67,15 +67,19 @@ object ThemePrefs {
     const val KEY_TRAIL_ACCEPTED_COLOR = "trail_accepted_color"
 
     // ---------- Likely Highlighting (Theme-Einstellungen) ----------
-    /** Farbe der wahrscheinlichsten nächsten Taste („likely highlight"). */
+    /**
+     * Farbe der wahrscheinlichsten nächsten Taste („likely highlight").
+     *
+     * Der frühere Puls-Effekt-Schalter (`gaming_effect`) ist in v0.18 entfallen —
+     * er war unerreichbarer Code (siehe `SuggestionController.updateLikelyKeys`).
+     * Ein evtl. noch gespeicherter Wert wird ignoriert und beim Theme-Reset
+     * entfernt.
+     */
     const val KEY_LIKELY = "gaming_mode"
-    /** Zufriedenstellender Puls-Effekt, wenn die Wahrscheinlichkeit erreicht ist. */
-    const val KEY_LIKELY_EFFECT = "gaming_effect"
 
     /** Likely-Highlighting (Schalter `gaming_mode`). Standard **an** (Nutzer-Standard). */
     fun likelyHighlighting(prefs: SharedPreferences): Boolean =
         prefs.getBoolean(KEY_LIKELY, true)
-    fun likelyEffect(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_LIKELY_EFFECT, true)
 
     // ---------- Trail-Effekt (Tippspur) ----------
     /** Trail-Effekt an/aus. Default: false (aus). */
@@ -195,7 +199,6 @@ object ThemePrefs {
         b.put("gradient", g)
         val lk = org.json.JSONObject()
         lk.put("enabled", likelyHighlighting(prefs))
-        lk.put("effect", likelyEffect(prefs))
         b.put("likely", lk)
         val tr = org.json.JSONObject()
         tr.put("enabled", trailEnabled(prefs))
@@ -245,8 +248,7 @@ object ThemePrefs {
         }
         ThemeColorImport.readLikely(
             root,
-            onEnabled = { prefs.edit().putBoolean(KEY_LIKELY, it).apply() },
-            onEffect = { prefs.edit().putBoolean(KEY_LIKELY_EFFECT, it).apply() }
+            onEnabled = { prefs.edit().putBoolean(KEY_LIKELY, it).apply() }
         )
         ThemeColorImport.readTrail(
             root,
@@ -275,7 +277,7 @@ object ThemePrefs {
             .remove(colorKey(false, KIND_HL)).remove(colorKey(false, KIND_TEXT))
             .remove(colorKey(false, KIND_LIKELY)).remove(colorKey(false, KIND_TRAIL))
             .remove(colorKey(false, KIND_SWIPE)).remove(colorKey(false, KIND_SWIPE_EDGE))
-            .remove(KEY_LIKELY).remove(KEY_LIKELY_EFFECT)
+            .remove(KEY_LIKELY).remove("gaming_effect")
             .remove(KEY_TRAIL).remove(KEY_TRAIL_COLOR).remove(KEY_TRAIL_STEPS)
             .remove(KEY_GRADIENT_COLOR1).remove(KEY_GRADIENT_COLOR2)
             .remove(KEY_GRADIENT_MODE).remove(KEY_GRADIENT_OFF)

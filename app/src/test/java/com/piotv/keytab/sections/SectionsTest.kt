@@ -52,11 +52,11 @@ class LikelyHighlightSectionTest : SectionsTestBase() {
     }
 
     @Test
-    fun `build zeigt beiden Schalter in einer Reihe und Defaults`() {
+    fun `build zeigt den Schalter in einer Reihe und Defaults`() {
         val s = section()
         val r = row(s)
         assertEquals(1, col.childCount)
-        assertEquals(2, r.childCount)
+        assertEquals(1, r.childCount)
         // Standard ist an (Nutzer-Standard, 2026-09-28).
         assertTrue(ThemePrefs.likelyHighlighting(prefs))
     }
@@ -72,15 +72,6 @@ class LikelyHighlightSectionTest : SectionsTestBase() {
         r.getChildAt(0).performClick()
         assertTrue(ThemePrefs.likelyHighlighting(prefs))
         assertEquals(2, changedCount)
-    }
-
-    @Test
-    fun `Klick auf Effect-Toggle schaltet Pref um`() {
-        val s = section()
-        val r = row(s)
-        r.getChildAt(1).performClick()
-        assertFalse(ThemePrefs.likelyEffect(prefs))
-        assertEquals(1, changedCount)
     }
 }
 

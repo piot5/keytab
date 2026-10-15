@@ -27,9 +27,9 @@ import java.io.InputStreamReader
  *
  * Ersetzt die frühere Suite aus sechs Klassen. Statt vieler kleiner Tests läuft
  * ein Durchlauf über alle Tippfunktionen der echten IME: langer Standardtext,
- * Zahlenreihe, Sonderzeichen-Ebene (`?123`), Long-Press-Auswahl am Buchstaben,
- * Backspace, Leertaste, Punkt, Enter, TAB, Shift und das Passwortfeld (tippt
- * normal, zeigt keine Vorschläge).
+ * Zahlenreihe, Sonderzeichen-Ebene (`?123`), Long-Press-Auswahl am
+ * Buchstaben, Backspace, Leertaste, Punkt, Enter, TAB, Shift und das
+ * Passwortfeld (tippt normal, zeigt keine Vorschläge).
  *
  * Warum ein Test: der CI-Emulator ist extrem langsam (gemessene Frame-Zeit
  * ~500 ms). Viele kleine Tests kosteten dort mehr Zeit in Aufbau und
@@ -239,7 +239,7 @@ class KeyTabTypingTest {
         if (ch == ' ') clickKeyById("key_space") else clickKey(ch.toString())
     }
 
-    /** Sonderzeichen-Ebene an, [block] ausfuehren, danach zurueck auf Buchstaben. */
+    /** Sonderzeichen-Ebene (`?123`) an, [block] ausfuehren, danach zurueck auf Buchstaben. */
     private fun withSymbols(block: () -> Unit) {
         ensureLetters()
         clickKeyById("key_toggle")
@@ -247,10 +247,19 @@ class KeyTabTypingTest {
         ensureLetters()
     }
 
-    /** Buchstaben-Ebene sicherstellen: der Toggle zeigt „abc", wenn Symbole aktiv sind. */
+    /**
+     * Buchstaben-Ebene sicherstellen.
+     *
+     * Der Schalter traegt "?123", wenn die Buchstaben-Ebene aktiv ist — er zeigt
+     * immer die *naechste* Ebene (abc -> "?123" -> abc). Aus der Symbol-Ebene
+     * fuehrt deshalb ein Tipp zurueck. Die Beschriftung wird pro
+     * Durchlauf neu gelesen: UiObject2 cached den Knoten nach einem Klick.
+     */
     private fun ensureLetters() {
-        val toggle = device.wait(Until.findObject(By.res(pkg, "key_toggle")), 1_500)
-        if (toggle?.text?.contains("abc", ignoreCase = true) == true) {
+        repeat(2) {
+            val toggle = device.wait(Until.findObject(By.res(pkg, "key_toggle")), 1_500)
+                ?: return
+            if (toggle.text?.contains("?123") == true) return
             toggle.click()
             device.waitForIdle()
         }

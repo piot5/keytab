@@ -32,6 +32,13 @@ import com.piotv.keytab.R
  */
 internal object KeyboardCollapse {
 
+    /**
+     * Die zwei Ebenen-Panels der Tastatur (Buchstaben und Symbol-Ebene,
+     * siehe [SymbolPlane]) — sichtbar ist immer genau eines.
+     */
+    private val KEYBOARD_PANEL_IDS =
+        intArrayOf(R.id.kb_panel, R.id.sym_panel)
+
     /** Die Panels, die ihre Sichtbarkeit selbst steuern und nie umgeschaltet werden. */
     private val PANEL_IDS = setOf(
         R.id.editor_panel,
@@ -83,7 +90,6 @@ internal object KeyboardCollapse {
         // sichtbaren Zeilen ab, und vorher stand sie vor dem Umschalten — dadurch
         // wurde die untere Key-Leiste versteckt, ihr Platz aber weiter
         // abgezogen (rund 46dp Leerraum in jedem Vollbild).
-        root.findViewById<View>(R.id.sym_panel)?.visibility = View.GONE
         // Oberkante bleibt als Orientierung; die Ausweg-Zeile nur, wo sie hingehoert.
         root.findViewById<View>(R.id.ime_tabs)?.visibility = View.VISIBLE
         root.findViewById<View>(R.id.maximize_row)?.visibility =
@@ -101,14 +107,35 @@ internal object KeyboardCollapse {
                 panel.visibility = View.GONE
             }
         }
-        root.findViewById<View>(R.id.kb_panel)?.visibility =
-            if (keyboardVisible) View.VISIBLE else View.GONE
+        // Die **sichtbare Tastatur-Ebene** bleibt stehen (Editor-Tab) — und zwar
+        // die, die gerade gewaehlt ist: Buchstaben oder eine der beiden
+        // Symbol-Ebenen. Vorher wurde hier immer `kb_panel` eingeblendet; bei
+        // aktiver Symbol-Ebene stand damit eine Ebene im Bild, die der
+        // ?123-Schalter gar nicht meinte.
+        applyKeyboardPlane(root, keyboardVisible)
 
         val width = root.resources.displayMetrics.widthPixels
         val maximized = PanelHeights.maximizedPanelHeight(root, width, keyboardVisible, heightPx)
         if (maximized <= 0) return
 
         target.layoutParams = target.layoutParams.apply { height = maximized }
+    }
+
+    /**
+     * Sichtbarkeit der Tastatur-Ebenen im Vollbild: genau die **sichtbare** Ebene
+     * bleibt stehen (Editor-Tab), alle anderen verschwinden — und wenn die
+     * Tastatur gar nicht sichtbar sein soll, alle drei.
+     *
+     * Ohne gemerkte Auswahl (keine Ebene sichtbar) gilt die Buchstaben-Ebene.
+     */
+    private fun applyKeyboardPlane(root: View, keyboardVisible: Boolean) {
+        val visible = KEYBOARD_PANEL_IDS.firstOrNull {
+            root.findViewById<View>(it)?.visibility == View.VISIBLE
+        } ?: R.id.kb_panel
+        for (id in KEYBOARD_PANEL_IDS) {
+            root.findViewById<View>(id)?.visibility =
+                if (keyboardVisible && id == visible) View.VISIBLE else View.GONE
+        }
     }
 
     /**

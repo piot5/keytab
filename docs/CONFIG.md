@@ -20,7 +20,6 @@ dieselben Werte in eine neu angelegte Datei:
 | `suggestions` | `true` | `theme_dark_gradient_mode` | `invert` |
 | `clip_tab` | `true` | `theme_light_gradient_mode` | `top_down` |
 | `snippet_tab` | `true` | `gaming_mode` | `true` |
-| `dynamic_keys` | `true` | `gaming_effect` | `true` |
 | `swipe` | `false` | `trail`, `trail_trace` | `false` |
 | `trail_steps` | `5` | `language` | `de` |
 | `bg_image_uri` | leer | `bg_image_fill` | `fit` |
@@ -69,12 +68,14 @@ welcher Schlüssel wohin gehört.
   (Default `false`). Die Treffer-Markierung färbt ein Wort **grün**, wenn es
   exakt dem obersten Vorschlag entspricht (reine Bestätigung, es wird nichts
   geändert). Die frühere rote Warnfärbung („würde korrigiert") ist entfernt.
-- `gaming_mode`, `gaming_effect`: Hervorhebung der nächsten Taste und Puls-Effekt
-  (Defaults beide `true`). Die
-  Namen sind historisch (aus der Zeit vor „Likely Highlighting") und bleiben
-  als Schlüssel stabil — im Code sind sie `ThemePrefs.KEY_LIKELY` /
-  `KEY_LIKELY_EFFECT`. `gaming` ist außerdem der interne `KIND_LIKELY`-Name für
-  die Highlight-Farbe in `theme_<dark|light>_gaming`.
+- `gaming_mode`: Hervorhebung der wahrscheinlichsten nächsten Taste (Default
+  `true`). Der Name ist historisch (aus der Zeit vor „Likely Highlighting") und
+  bleibt als Schlüssel stabil — im Code ist er `ThemePrefs.KEY_LIKELY`.
+  `gaming` ist außerdem der interne `KIND_LIKELY`-Name für die Highlight-Farbe
+  in `theme_<dark|light>_gaming`.
+  Der frühere Schalter `gaming_effect` (Puls-/Blitz-Effekt) ist in v0.18
+  **entfernt**: die Bedingung war unerreichbarer Code. Ein noch vorhandener
+  Eintrag in der Datei wird ignoriert.
 - `gradient_off_dark`, `gradient_off_light`.
 
 **Zahlen**, Importer `SettingsConfig`:

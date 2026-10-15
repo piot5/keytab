@@ -1,0 +1,17 @@
+- Version 0.18: bug-fix release plus one removal (see below)
+- Keyboard: the second symbol plane (`<v>` — extra symbols and the big arrow pad) is gone; the `?123` key now toggles between abc and ?123 only
+- Clipboard list: long entries no longer break the single-line list item (line breaks were stripped only for short entries)
+- i18n: German leftovers removed from the default and the English locale; German translations now live in values-de/
+- File manager: pasting asks before overwriting and refuses to copy a folder into itself
+- Word suggestions: a late engine load from a previous language switch can no longer replace the active language
+- Likely highlighting: the pulse/flash effect was unreachable code and is removed (toggle, pref and export field included)
+- No more file I/O in the IME hot path (config import uses a stat check, clipboard history loads off the main thread)
+- Editor refuses files larger than 1 MB instead of risking an OOM
+- The FileProvider no longer exposes the whole filesystem; files outside the shared folders report instead of crashing
+- Files tab: much smaller list font (11sp) and denser rows — far more entries fit on screen (app file manager: 12sp)
+- Clipboard/snippets: oversized clipboard content is no longer stored (100 KB gate) and history serialising moved off the main thread
+- IME service: field end clears the remembered EditorInfo, and hidden/low-memory releases the word corpus (reloaded on next show)
+- Panel heights use the modern window insets (deprecated getters returned 0 in edge-to-edge)
+- Clipboard history: no longer lost when a capture arrives before the stored history has been read (a v0.18 race could overwrite the file)
+- Files tab: with file access granted on Android 13+ the settings now say "lists folders and pictures" instead of promising a full file list, and the list itself notes "Android 13+ exposes pictures only" — other file types (PDF, ZIP, …) stay hidden by design, no full storage access is requested
+- 552 unit tests in 57 suites, 0 failures

@@ -64,7 +64,7 @@ class SettingsConfigTest {
         assertEquals("content://media/image/1#fragment", prefs.getString(Prefs.KEY_BG_IMAGE_URI, null))
         assertEquals("stretch", prefs.getString(Prefs.KEY_BG_IMAGE_FILL, null))
         assertFalse(ThemePrefs.likelyHighlighting(prefs))
-        assertFalse(ThemePrefs.likelyEffect(prefs))
+        assertFalse("der entfernte Effekt-Schalter wird ignoriert", prefs.contains("gaming_effect"))
     }
 
     @Test fun explicitDefaultsRemoveColorAndDarkOverrides() {
@@ -96,14 +96,43 @@ class SettingsConfigTest {
         } finally { file.delete() }
     }
 
+    @Test fun unveraenderteDateiWirdNichtErneutImportiert() {
+        val file = File.createTempFile("keytab", ".txt")
+        try {
+            file.writeText("num_row = false\n")
+            assertTrue("erster Import liest die Datei", SettingsConfig.importIfChanged(file, prefs))
+            // Nutzer ändert die Einstellung in der App …
+            prefs.edit().putBoolean(Prefs.KEY_NUM_ROW, true).apply()
+            // … dann kommt der nächste Feldwechsel (IME-Hot-Path): die Datei ist
+            // unverändert → der `stat`-Vorab-Check darf sie nicht erneut lesen.
+            assertFalse(
+                "unveraenderte Datei wird nicht erneut importiert",
+                SettingsConfig.importIfChanged(file, prefs)
+            )
+            assertTrue("App-Einstellung bleibt erhalten", prefs.getBoolean(Prefs.KEY_NUM_ROW, false))
+        } finally { file.delete() }
+    }
+
+    @Test fun geaenderteDateiWirdErneutImportiert() {
+        val file = File.createTempFile("keytab", ".txt")
+        try {
+            file.writeText("num_row = false\n")
+            SettingsConfig.importIfChanged(file, prefs)
+            file.writeText("num_row = true\n")
+            assertTrue("geänderte Datei wird importiert", SettingsConfig.importIfChanged(file, prefs))
+            assertTrue(prefs.getBoolean(Prefs.KEY_NUM_ROW, false))
+        } finally { file.delete() }
+    }
+
     @Test fun fullExportImportsAllUiSettingsWithoutCreatingColorOverrides() {
         val completed = SettingsConfig.completeText("", prefs)
         // 42 Alt-Keys + 2 Verlauf-Modi (dark/light) + 4 Verlaufs-Farben (je Modus)
         // + 8 Höhen-Vorgaben (4 Tabs × normal/maximiert).
         // 45 war es vor der Entfernung von `emoji_suggestions` (2026-09-27),
         // 44 die Höhe davor (Panel-Höhen kamen am 28.09.2026 dazu),
-        // 52 mit `autocorrect`/`swipe_preview` (entfernt am 29.09.2026).
-        assertEquals(50, KeyTabConfig.entries(completed).size)
+        // 52 mit `autocorrect`/`swipe_preview` (entfernt am 29.09.2026),
+        // 49 seit dem Ausbau des Puls-Effekts (`gaming_effect`, v0.18).
+        assertEquals(49, KeyTabConfig.entries(completed).size)
         assertTrue(SettingsConfig.importTextIfChanged(completed, prefs))
         // Die Defaults sind die aus keytab_config.txt des Nutzers (2026-09-28):
         // Nummernreihe an, Dark-Mode fest an, Verlauf

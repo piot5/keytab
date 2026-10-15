@@ -60,4 +60,26 @@ class ThemedAdapterTest {
         val a = themedAdapter(app, emptyList())
         assertEquals(0, a.count)
     }
+
+    @Test
+    fun `textSizeSp setzt die Schriftgroesse der Zeile`() {
+        val parent = LinearLayout(app)
+        val view = themedAdapter(app, listOf("zeile"), textSizeSp = 11f)
+            .getView(0, null, parent) as TextView
+        val expectedPx = android.util.TypedValue.applyDimension(
+            android.util.TypedValue.COMPLEX_UNIT_SP, 11f, app.resources.displayMetrics
+        )
+        assertEquals("Schriftgroesse in px (sp umgerechnet)", expectedPx, view.textSize, 0.5f)
+    }
+
+    @Test
+    fun `compactRows setzt Mindesthoehe 0 und enges Padding`() {
+        val parent = LinearLayout(app)
+        val compact = themedAdapter(app, listOf("zeile"), textSizeSp = 11f, compactRows = true)
+            .getView(0, null, parent) as TextView
+        val density = app.resources.displayMetrics.density
+        assertEquals("kein Plattform-Mindestmass mehr", 0, compact.minHeight)
+        assertEquals("vertikales Padding = 2dp", (2 * density).toInt(), compact.paddingTop)
+        assertEquals("horizontales Padding = 8dp", (8 * density).toInt(), compact.paddingLeft)
+    }
 }

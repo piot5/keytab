@@ -19,6 +19,8 @@ import java.lang.reflect.Proxy
  *  - **TAB = KEYCODE_TAB-Key-Event**, niemals `commitText("\t")`
  *    (Termux/vim/nano & Tab-Completion warten auf das Tastenereignis)
  *  - **Enter = KEYCODE_ENTER**, Backspace = KEYCODE_DEL
+ *  - **Pfeiltasten = KEYCODE_DPAD_*** (zweite Symbol-Ebene; Termux/neovim
+ *    erwarten auch die Cursor-Bewegung als Tastenereignis)
  *  - Normaler Text = `commitText`
  *  - `deleteBefore` = deleteSurroundingText; `deleteBeforeKeys` = Einzel-KEYCODE_DEL
  */

@@ -16,13 +16,18 @@
     <string name="key_del_label">⌫</string>
     <string name="key_space_label">␣</string>
     <string name="key_toggle_letters">abc</string>
+    <!-- Beschriftungen des ?123-Schalters: er zeigt immer die *naechste* Ebene
+         (abc -> ?123 -> abc). Siehe SymbolPlane.
+         Das "?" ist escaped (\?), sonst liest aapt2 "?123" als Theme-Attribut-
+         Referenz und der Resource-Link scheitert ("resource attr/123 not found"). -->
+    <string name="key_toggle_symbols">\?123</string>
     <string name="key_enter_label">↵</string>
     <string name="close_tab">✕</string>
     <string name="app_subtitle">Keyboard with tabbed file manager</string>
-    <string name="storage_denied">Storage access denied – grant the permission in Settings.</string>
     <!-- Dateizugriff: Status + gezielte Freigabe (F-Droid-Review 2026-10-06) -->
     <string name="settings_storage_grant">🔓 Grant file access</string>
     <string name="settings_storage_granted">Granted – the Files tab can list files.</string>
+    <string name="settings_storage_granted_media">Granted – the Files tab lists folders and pictures.</string>
     <string name="settings_storage_partial">Only selected photos – folders outside the selection stay hidden.</string>
     <string name="settings_storage_missing">Not granted – the Files tab shows folders only.</string>
     <string name="settings_storage_denied">Not granted – you can grant file access any time.</string>
@@ -34,6 +39,7 @@
     <string name="fm_no_storage_access">No storage access – open the KeyTab app and tap „Grant file access“.</string>
     <string name="fm_entry_dir">Folder</string>
     <string name="fm_dir_summary">%1$d folders · %2$d files</string>
+    <string name="fm_dir_summary_media">%1$d folders · %2$d files – Android 13+ exposes pictures only</string>
     <string name="fm_open_no_app">No app to open: %1$s</string>
     <!-- Editor -->
     <string name="editor_saved">Saved: %1$s</string>
@@ -73,14 +79,14 @@
     <string name="sug_grid_desc">Select from full emoji catalog</string>
     <string name="key_maximize_label">⇲</string>
     <string name="sug_hide_desc">Hide keyboard</string>
-    <string name="settings_update_config">⚙️ Konfiguration schreiben (keytab_config.txt)</string>
-    <string name="settings_cleanup_learned_dictionary">🧹 Gelerntes Wörterbuch prüfen</string>
-    <string name="settings_cleanup_dictionary_title">Gelerntes Wörterbuch</string>
-    <string name="settings_cleanup_dictionary_empty">Keine verdächtigen gelernten Einträge gefunden.</string>
-    <string name="settings_cleanup_dictionary_found">%1$d verdächtige gelernte Einträge gefunden. Löschen?</string>
-    <string name="settings_cleanup_dictionary_done">Wörterbuch bereinigt: %1$d Einträge entfernt.</string>
-    <string name="settings_cleanup_dictionary_failed">Das gelernte Wörterbuch konnte nicht bereinigt werden.</string>
-    <string name="config_ready">Konfiguration bereit: %1$s</string>
+    <string name="settings_update_config">⚙️ Write config (keytab_config.txt)</string>
+    <string name="settings_cleanup_learned_dictionary">🧹 Check learned dictionary</string>
+    <string name="settings_cleanup_dictionary_title">Learned dictionary</string>
+    <string name="settings_cleanup_dictionary_empty">No suspicious learned entries found.</string>
+    <string name="settings_cleanup_dictionary_found">%1$d suspicious learned entries found. Delete them?</string>
+    <string name="settings_cleanup_dictionary_done">Learned dictionary cleaned: %1$d entries removed.</string>
+    <string name="settings_cleanup_dictionary_failed">The learned dictionary could not be cleaned.</string>
+    <string name="config_ready">Config ready: %1$s</string>
     <string name="ime_tab_editor_short">Editor</string>
     <string name="ime_tab_clip_short">Clip</string>
     <!-- Editor: Ordnerauswahl beim Laden -->
@@ -139,7 +145,6 @@
     <string name="theme_import_fail">Import failed — theme-export.json not found/invalid</string>
     <string name="theme_settings_title">🎨 Theme settings</string>
     <string name="settings_theme_button">🎨 Theme settings</string>
-    <string name="theme_section_gaming">Likely Highlighting</string>
     <string name="theme_reset">Reset</string>
     <string name="theme_gradient_hint">Set color 1 / color 2 and their alpha in the color wheel below (target “color 1/2”).</string>
     <string name="background_title">Background image</string>
@@ -152,4 +157,15 @@
     <string name="background_error">Could not access the image.</string>
     <string name="background_ratio">Recommendation: landscape around 2:1 (for example 1600 × 800 px). The ideal ratio depends on your device, orientation, number row, and tab.</string>
     <string name="gradient_enabled">Gradient enabled</string>
+    <string name="theme_likely_toggle">Likely Highlighting</string>
+    <string name="theme_preview_suggestion">Suggestion</string>
+    <string name="fm_overwrite_title">Overwrite?</string>
+    <string name="fm_overwrite_message">%1$s already exists. Overwrite it?</string>
+    <string name="fm_paste_into_self">Cannot paste: the target is inside the source folder (%1$s).</string>
+    <string name="fm_copy_content_failed">Not copied (file too large): %1$s</string>
+    <string name="dialog_unavailable">Dialog not available right now — please tap again.</string>
+    <string name="editor_file_too_large">File too large for the editor (max. 1 MB): %1$s</string>
+    <string name="fm_open_outside">Cannot share files outside the app\'s folders: %1$s</string>
+    <string name="clip_entry_too_large">Clipboard entry too large — not added (max. 100 KB).</string>
+    <string name="snip_from_clip_too_large">Clipboard text too large for a snippet (max. 100 KB).</string>
 </resources>

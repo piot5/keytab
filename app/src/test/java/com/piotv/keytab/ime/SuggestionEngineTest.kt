@@ -111,6 +111,26 @@ class SuggestionEngineTest {
         assertTrue(e2.suggest("", "das").first().word == "haus")
     }
 
+    /**
+     * Bigramme (Next-Word-Prediction) müssen den Roundtrip durch die Persistenz
+     * überstehen. Der Bigramm-Schlüssel ist `"prev word"` — er enthält ein
+     * Leerzeichen, **kein** SEP_FIELD (`\u0002`); beim Zerlegen der Zeile darf
+     * also nichts verworfen werden. Der Test prüft die gelernten Gewichte direkt
+     * (nicht die Vorschlagsrangfolge), damit er nicht von Score-Konstanten abhängt.
+     */
+    @Test
+    fun `Bigramme ueberleben den Roundtrip durch Serialisierung`() {
+        val e = engine()
+        repeat(3) { e.learn("das", "haus") }
+        repeat(2) { e.learn(null, "spezial") }
+        val raw = e.serializeUserDict()
+        val e2 = engine()
+        e2.restoreUserDict(raw)
+        assertEquals("Wortgewicht erhalten", e.userFreq["spezial"], e2.userFreq["spezial"])
+        assertEquals("Bigramm-Gewicht erhalten", e.bigrams["das haus"], e2.bigrams["das haus"])
+        assertTrue("Bigramm muss im restaurierten Wörterbuch liegen", e2.bigrams.containsKey("das haus"))
+    }
+
     // ---------- Fuzzy-Korrektur ----------
 
     @Test

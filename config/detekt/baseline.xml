@@ -10,9 +10,7 @@
     <ID>CyclomaticComplexMethod:EditorHighlightLogic.kt$EditorHighlightLogic$fun spans(text: String, maxChars: Int = MAX_SCAN_CHARS): List&lt;Span&gt;</ID>
     <ID>CyclomaticComplexMethod:KeyTabConfig.kt$KeyTabConfig$private fun with(key: String, value: String): KeyTabConfig</ID>
     <ID>CyclomaticComplexMethod:LearnedDictionaryApi.kt$LearnedDictionaryApi$fun batchPreview( store: SuggestionEngine, deletes: List&lt;CleanupOperation.Delete&gt;, adds: List&lt;CleanupOperation.Add&gt; ): BatchPreview</ID>
-    <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
     <ID>CyclomaticComplexMethod:SettingsConfig.kt$SettingsConfig$internal fun importTextIfChanged(text: String, prefs: SharedPreferences): Boolean</ID>
-    <ID>CyclomaticComplexMethod:SuggestionEngine.kt$SuggestionEngine$fun autoCorrect(typed: String, prev: String? = null): String?</ID>
     <ID>CyclomaticComplexMethod:SuggestionEngine.kt$SuggestionEngine$private fun completeWord(cur: String, prev: String?, max: Int): List&lt;Suggestion&gt;</ID>
     <ID>CyclomaticComplexMethod:SuggestionEngine.kt$SuggestionEngine$private fun predictNext(prev: String?, max: Int, sentenceStart: Boolean = false): List&lt;Suggestion&gt;</ID>
     <ID>CyclomaticComplexMethod:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
@@ -31,7 +29,6 @@
     <ID>LoopWithTooManyJumpStatements:SuggestionEngine.kt$SuggestionEngine$for</ID>
     <ID>MagicNumber:BackgroundImage.kt$BackgroundImage$2048</ID>
     <ID>MagicNumber:BackgroundSection.kt$BackgroundSection$18f</ID>
-    <ID>MagicNumber:FileManagerFragment.kt$FileManagerFragment$33</ID>
     <ID>MagicNumber:KeyboardViewFactory.kt$KeyboardViewFactory$14f</ID>
     <ID>MagicNumber:LikelyHighlightSection.kt$LikelyHighlightSection$32</ID>
     <ID>MagicNumber:LikelyHighlightSection.kt$LikelyHighlightSection$4</ID>
@@ -43,7 +40,6 @@
     <ID>MagicNumber:WordPredictionManager.kt$WordPredictionManager$16</ID>
     <ID>NestedBlockDepth:EditorHighlightLogic.kt$EditorHighlightLogic$fun spans(text: String, maxChars: Int = MAX_SCAN_CHARS): List&lt;Span&gt;</ID>
     <ID>NestedBlockDepth:SettingsConfig.kt$SettingsConfig$internal fun importTextIfChanged(text: String, prefs: SharedPreferences): Boolean</ID>
-    <ID>NestedBlockDepth:SuggestionController.kt$SuggestionController$private fun updateLikelyKeys()</ID>
     <ID>NestedBlockDepth:SuggestionEngine.kt$SuggestionEngine$private fun completeWord(cur: String, prev: String?, max: Int): List&lt;Suggestion&gt;</ID>
     <ID>NestedBlockDepth:ThemeApplier.kt$ThemeApplier$fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context)</ID>
     <ID>TooManyFunctions:KeyTabImeService.kt$KeyTabImeService : InputMethodServiceThemeHostTabHostSuggestionHostKeyboardInputHost</ID>

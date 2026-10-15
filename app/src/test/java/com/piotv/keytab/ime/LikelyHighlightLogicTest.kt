@@ -1,12 +1,11 @@
 package com.piotv.keytab.ime
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Reine Likely-Highlighting-Logik: nächstes Zeichen + Vervollständigungs-Erkennung. */
+/** Reine Likely-Highlighting-Logik: das wahrscheinlichste nächste Zeichen. */
 class LikelyHighlightLogicTest {
 
     private fun sug(word: String, score: Double = 1.0) =
@@ -32,14 +31,5 @@ class LikelyHighlightLogicTest {
     fun `nextChar liefert Kleinbuchstaben auch bei Grossschreibung`() {
         assertEquals("h", LikelyHighlightLogic.nextChar(listOf(sug("Hallo")), 0)?.toString())
         assertEquals("p", LikelyHighlightLogic.nextChar(listOf(sug("Apfel")), 1)?.toString())
-    }
-
-    @Test
-    fun `completed wenn getipptes Wort dem Top-Vorschlag entspricht`() {
-        assertTrue(LikelyHighlightLogic.completed(listOf(sug("hello")), "hello"))
-        assertTrue(LikelyHighlightLogic.completed(listOf(sug("hello")), "Hello"))
-        assertFalse(LikelyHighlightLogic.completed(listOf(sug("hello")), "hell"))
-        assertFalse(LikelyHighlightLogic.completed(emptyList(), "hello"))
-        assertFalse(LikelyHighlightLogic.completed(listOf(sug("hello")), ""))
     }
 }

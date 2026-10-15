@@ -1,12 +1,12 @@
 <resources>
-    <string name="background_title">Hintergrundbild</string>
-    <string name="background_choose">Bild auswählen</string>
-    <string name="background_remove">Bild entfernen</string>
-    <string name="background_none">Kein Hintergrundbild</string>
-    <string name="background_fit">Einpassen – ganzes Bild, ggf. Ränder</string>
-    <string name="background_cover">Ausfüllen – proportional beschneiden</string>
-    <string name="background_stretch">Strecken – ohne Ränder, ggf. verzerrt</string>
-    <string name="background_error">Bildzugriff fehlgeschlagen.</string>
-    <string name="background_ratio">Empfehlung: Querformat etwa 2:1 (z. B. 1600 × 800 px) für den abc-Tab. Das ideale Verhältnis ist Tastaturbreite : Tastaturhöhe und variiert mit Gerät, Ausrichtung, Zahlenreihe und Tab. Einpassen zeigt das gesamte Bild. Nicht lesbare Bilder fallen auf die Theme-Farbe oder den Verlauf zurück.</string>
-    <string name="gradient_enabled">Verlauf aktiv</string>
+    <string name="background_title">Background image</string>
+    <string name="background_choose">Choose image</string>
+    <string name="background_remove">Remove image</string>
+    <string name="background_none">No background image</string>
+    <string name="background_fit">Fit – show the whole image</string>
+    <string name="background_cover">Fill – crop proportionally</string>
+    <string name="background_stretch">Stretch – fill without borders</string>
+    <string name="background_error">Could not access the image.</string>
+    <string name="background_ratio">Recommendation: landscape around 2:1 (for example 1600 × 800 px). The ideal ratio depends on your device, orientation, number row, and tab.</string>
+    <string name="gradient_enabled">Gradient enabled</string>
 </resources>

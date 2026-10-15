@@ -1,8 +1,6 @@
 package com.piotv.keytab.file
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -12,8 +10,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -38,12 +34,6 @@ class FileManagerFragment : Fragment() {
         super.onDestroy()
         // Kein shutdown(): der Pool ist prozessweit und überlebt Fragment-Fragmente
     }
-
-    private val permissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            if (result.values.any { it }) reload()
-            else Toast.makeText(requireContext(), R.string.storage_denied, Toast.LENGTH_LONG).show()
-        }
 
     private inner class FileAdapter : RecyclerView.Adapter<FileHolder>() {
         val entries = mutableListOf<File>()
@@ -112,22 +102,6 @@ class FileManagerFragment : Fragment() {
         } else {
             reload()
         }
-        requestPermissionsIfNeeded()
-    }
-
-    private fun requestPermissionsIfNeeded() {
-        val wanted = buildList {
-            if (android.os.Build.VERSION.SDK_INT >= 33) {
-                // Nur Bilder: Audio/Video liest kein Codepfad (siehe Manifest).
-                add(Manifest.permission.READ_MEDIA_IMAGES)
-            } else {
-                add(Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
-        }.filter {
-            ContextCompat.checkSelfPermission(requireContext(), it) !=
-                PackageManager.PERMISSION_GRANTED
-        }
-        if (wanted.isNotEmpty()) permissionLauncher.launch(wanted.toTypedArray())
     }
 
     private fun addTab(dir: File = tabs.getOrNull(current) ?: File("/")) {
@@ -177,14 +151,27 @@ class FileManagerFragment : Fragment() {
     }
 
     private fun openFile(f: File) {
-        val uri = androidx.core.content.FileProvider.getUriForFile(
-            requireContext(),
-            "${requireContext().packageName}.fileprovider",
-            f
-        )
-        val i = Intent(Intent.ACTION_VIEW)
-            .setDataAndType(uri, "*/*")
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        // URI-Erzeugung gehört in den try: liegt die Datei außerhalb der
+        // FileProvider-Wurzeln (z. B. beim Navigieren ab "/" ohne
+        // Speicherzugriff), wirft getUriForFile eine IllegalArgumentException.
+        val i = try {
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                f
+            )
+            Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, "*/*")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        } catch (e: IllegalArgumentException) {
+            Log.w("KeyTab", "Datei ausserhalb der FileProvider-Wurzeln: ${f.absolutePath}", e)
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.fm_open_outside, f.name),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
         try {
             startActivity(i)
         } catch (e: Exception) {

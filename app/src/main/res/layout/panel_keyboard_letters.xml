@@ -1,118 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Buchstaben-Tastatur (QWERTZ): Vorhersage-, Zahlen- und drei Buchstabenreihen.
+<!-- Buchstaben-Tastatur (QWERTZ): Zahlen- und drei Buchstabenreihen.
+     Die Vorschlags-/Emoji-Zeile liegt nicht mehr hier, sondern als
+     Geschwister ueber kb_container (keyboard_view.xml) - so bleibt sie beim
+     Blaettern auf ?123/<v stehen.
      Teil des Splits von keyboard_view.xml.
      Wird via <include> in das kb_panel von keyboard_view.xml eingebettet. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/letters_rows"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
-
-            <LinearLayout
-                android:id="@+id/suggestion_bar"
-                android:layout_width="match_parent"
-                android:layout_height="26dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:visibility="gone"
-                android:layout_marginBottom="4dp"
-                android:background="@color/kbd_bg">
-                <!-- marginBottom 4dp: größerer Abstand zwischen Wortvorhersage und
-                     Q-Reihe (vorher nur 2dp über den Key-Margin). Wirkt nur, wenn
-                     die Wortvorhersage sichtbar ist → gezielt dieser Abstand. -->
-
-                <!-- ☺ exakt UNTER der ☾-Taste (36dp, ganz links): feste Breite 36dp,
-                     zentriert → Symbol-Mitte auf gleicher X-Position wie ☾/☀. -->
-                <TextView
-                    android:id="@+id/sug_emoji"
-                    android:layout_width="36dp" android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:singleLine="true" android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:clickable="true" android:focusable="true"
-                    android:background="@color/key_bg" android:text="☺︎"
-                    android:contentDescription="@string/settings_emoji" />
-                <!-- Nur im Emoji-Katalog-Modus sichtbar: ◀ zurück zu Wortvorschlägen,
-                     ▦ ganzen Katalog als Tabelle auswählen. -->
-                <TextView
-                    android:id="@+id/sug_back"
-                    android:layout_width="36dp" android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:singleLine="true" android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:clickable="true" android:focusable="true"
-                    android:background="@color/key_bg" android:text="‹"
-                    android:contentDescription="@string/sug_back_desc"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/sug_grid"
-                    android:layout_width="36dp" android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:singleLine="true" android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:clickable="true" android:focusable="true"
-                    android:background="@color/key_bg" android:text="▦"
-                    android:contentDescription="@string/sug_grid_desc"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/sug_1"
-                    android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="2" android:gravity="center"
-                    android:singleLine="true" android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary" android:clickable="true"
-                    android:focusable="true" android:background="@drawable/sug_top_bg" />
-                <TextView
-                    android:id="@+id/sug_2"
-                    android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:gravity="center"
-                    android:singleLine="true" android:textSize="13sp"
-                    android:textColor="@color/text_primary" android:clickable="true"
-                    android:focusable="true" android:background="@color/key_bg"
-                    android:layout_marginStart="2dp" />
-                <TextView
-                    android:id="@+id/sug_3"
-                    android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:gravity="center"
-                    android:singleLine="true" android:textSize="13sp"
-                    android:textColor="@color/text_primary" android:clickable="true"
-                    android:focusable="true" android:background="@color/key_bg"
-                    android:layout_marginStart="2dp" />
-                <!-- 2 zusätzliche Slots NUR für den Katalog-Browser (5 Emojis pro
-                     Seite statt 3); im Wortvorschlag-Modus hidden. -->
-                <TextView
-                    android:id="@+id/sug_4"
-                    android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:gravity="center"
-                    android:singleLine="true" android:textSize="13sp"
-                    android:textColor="@color/text_primary" android:clickable="true"
-                    android:focusable="true" android:background="@color/key_bg"
-                    android:layout_marginStart="2dp"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/sug_5"
-                    android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:gravity="center"
-                    android:singleLine="true" android:textSize="13sp"
-                    android:textColor="@color/text_primary" android:clickable="true"
-                    android:focusable="true" android:background="@color/key_bg"
-                    android:layout_marginStart="2dp"
-                    android:visibility="gone" />
-                <!-- Maximieren (Vollbild-Modus) rechts in der
-                     Wortvorhersage-Zeile — nur im Editor-Tab sichtbar. Die
-                     maximize_row am unteren Rand bleibt in JEDEM Tab; dieses
-                     Symbol hier ist die kurze Variante direkt neben den
-                     Vorschlaegen, wie vor der Zeile. -->
-                <TextView
-                    android:id="@+id/sug_hide"
-                    android:layout_width="36dp" android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:singleLine="true" android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:clickable="true" android:focusable="true"
-                    android:background="@color/key_bg" android:text="⇲"
-                    android:contentDescription="@string/sug_hide_desc"
-                    android:layout_marginStart="2dp" />
-            </LinearLayout>
 
             <!-- Optionale Zahlenreihe (Einstellung in der App) -->
             <LinearLayout

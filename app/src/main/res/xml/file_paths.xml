@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Freigegebene Wurzeln für den FileProvider („Datei öffnen" im Files-Tab).
+     Bewusst OHNE `root-path`: das würde das komplette Dateisystem (inkl.
+     /data) für beliebige Apps freigeben, die eine ACTION_VIEW-URI bekommen.
+     Abgedeckt ist, was der Files-Tab wirklich anbietet: externer Speicher,
+     App-Speicher und Cache. Dateien außerhalb (z. B. beim Navigieren ab „/")
+     kann die App nicht teilen — siehe FileManagerFragment.openFile. -->
 <paths>
     <external-path name="external" path="." />
     <external-files-path name="external_files" path="." />
     <cache-path name="cache" path="." />
     <files-path name="files" path="." />
-    <root-path name="root" path="." />
 </paths>

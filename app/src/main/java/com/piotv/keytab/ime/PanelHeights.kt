@@ -1,6 +1,8 @@
 package com.piotv.keytab.ime
 
 import android.view.View
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.piotv.keytab.R
 
 /**
@@ -201,9 +203,12 @@ object PanelHeights {
      */
     fun maximizeAvailableHeight(root: View?): Int {
         val display = root?.resources?.displayMetrics?.heightPixels ?: 0
-        val insets = root?.rootWindowInsets
-        val navBar = insets?.systemWindowInsetBottom ?: 0
-        val statusBar = insets?.systemWindowInsetTop?.takeIf { it > 0 }
+        // Moderne Insets: die früheren `systemWindowInsetBottom/Top`-Getter sind
+        // seit API 30 deprecated und liefern im Edge-to-Edge-Fenster (targetSdk 36)
+        // teils 0 — das Band wäre dann um die Systemleisten zu groß.
+        val insets = root?.let { ViewCompat.getRootWindowInsets(it) }
+        val navBar = insets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+        val statusBar = insets?.getInsets(WindowInsetsCompat.Type.statusBars())?.top?.takeIf { it > 0 }
             ?: statusBarHeightPx(root?.resources)
         return (display - navBar - statusBar).coerceAtLeast(0)
     }
@@ -221,11 +226,30 @@ object PanelHeights {
      * sind Geschwister von `kb_panel`/`file_panel` im Layout, ihre Hoehe ist also
      * additiv.
      *
-     * Die Prediction-Zeile (R.id.suggestion_bar) gehoert *innerhalb* des
-     * Buchstaben-Panels und steckt deshalb schon in dessen gemessener Hoehe.
+     * Die Prediction-Zeile (R.id.suggestion_bar) ist seit dem Umbau der
+     * Symbol-Ebenen ein **Geschwister** der Ebenen (sie bleibt beim Blaettern
+     * abc/?123/<v stehen) und steckt deshalb **nicht** mehr in der gemessenen
+     * Hoehe von `kb_panel` — sie zaehlt ueber [keyboardBlockHeight] mit.
      * GONE-Zeilen (im abc-Tab die Maximieren-Zeile) zaehlen nicht mit.
      */
     private val CHROME_IDS = intArrayOf(R.id.ime_tabs, R.id.maximize_row)
+
+    /**
+     * Die zwei Ebenen-Panels der Tastatur (Buchstaben und Symbol-Ebene,
+     * siehe [SymbolPlane]) plus die gemeinsame Funktionsleiste und die
+     * Vorschlags-/Emoji-Zeile. Sichtbar ist immer genau ein Ebenen-Panel;
+     * [keyboardBlockHeight] summiert daher nur die tatsaechlich sichtbaren.
+     *
+     * Die Vorschlags-Zeile liegt seit dem Umbau der Symbol-Ebenen **ausserhalb**
+     * des Buchstaben-Panels (sie bleibt beim Blaettern stehen, siehe
+     * [TabController]); im Editor-Vollbild muss sie deshalb hier mitgezaehlt
+     * werden — sonst wurde das Panel um ihre Hoehe zu gross gerechnet und die
+     * untere Key-Leiste rutschte aus dem IME-Fenster.
+     */
+    private val KEYBOARD_BLOCK_IDS = intArrayOf(
+        R.id.kb_panel, R.id.sym_panel,
+        R.id.suggestion_bar, R.id.bottom_row
+    )
 
     /**
      * Höhe einer Zeile für die Rechnung: die **feste Layout-Höhe**, wenn das
@@ -269,13 +293,19 @@ object PanelHeights {
         root.resources.getDimensionPixelSize(R.dimen.maximize_row_height)
 
     /**
-     * Hoehe der Buchstaben-Tastatur **und** ihrer unteren Key-Leiste — also
-     * alles, was im Editor-Tab dauerhaft sichtbar ist und im maximierten Zustand
-     * Platz braucht. 0 wenn nichts davon sichtbar ist.
+     * Hoehe der **sichtbaren Tastatur-Ebene** **und** ihrer unteren Key-Leiste —
+     * also alles, was im Editor-Tab dauerhaft sichtbar ist und im maximierten
+     * Zustand Platz braucht. 0 wenn nichts davon sichtbar ist.
+     *
+     * Geprueft werden alle drei Ebenen-Panels (Buchstaben und beide
+     * Symbol-Ebenen): sichtbar ist immer genau eines. Wurde nur `kb_panel`
+     * gezaehlt, fehlte im Editor-Vollbild bei aktiver Symbol-Ebene deren Hoehe —
+     * das Panel wurde dann um die Tastaturhoehe zu gross gerechnet und die
+     * untere Key-Leiste rutschte aus dem IME-Fenster.
      */
     fun keyboardBlockHeight(root: View, widthPx: Int): Int {
         var total = 0
-        for (id in intArrayOf(R.id.kb_panel, R.id.bottom_row)) {
+        for (id in KEYBOARD_BLOCK_IDS) {
             val v = root.findViewById<View>(id) ?: continue
             if (v.visibility == View.VISIBLE) {
                 total += rowHeight(v, widthPx)

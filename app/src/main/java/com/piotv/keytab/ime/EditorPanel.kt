@@ -7,7 +7,6 @@ import android.os.Handler
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.View
-import android.view.WindowManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ListView
@@ -180,18 +179,19 @@ class EditorPanel(
                 loadFile(target)
             }
         }
-        dialog = AlertDialog.Builder(context)
+        val picker = AlertDialog.Builder(context)
             .setTitle(context.getString(R.string.editor_load_title))
             .setView(listView)
             .setNegativeButton(android.R.string.cancel, null)
             .create()
+        dialog = picker
         // WICHTIG (IME ohne Activity): Dialogfenster an das IME-Fenster anhängen,
-        // sonst BadTokenException ("token null is not valid")
-        dialog.window?.apply {
-            setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-            rootView.windowToken?.let { attributes.token = it }
+        // sonst BadTokenException ("token null is not valid") — [ImeDialog] macht
+        // das zentral und meldet statt eines Absturzes `false`.
+        if (!ImeDialog.show(picker, rootView.windowToken)) {
+            toast(R.string.dialog_unavailable)
+            return
         }
-        dialog.show()
         dir?.let { refreshList(it) }
     }
 
@@ -200,6 +200,12 @@ class EditorPanel(
 
     /** Lädt [f] asynchron in den Editor und merkt sie als Save-Ziel. */
     private fun loadFile(f: File) {
+        // Größen-Gate VOR dem Lesen: eine riesige Datei würde sonst den
+        // IME-Prozess per OOM beenden (siehe [EditorTextState.MAX_EDITOR_BYTES]).
+        if (EditorTextState.isTooLargeForEditor(f)) {
+            toast(R.string.editor_file_too_large, f.name)
+            return
+        }
         ioExecutor.execute {
             try {
                 val content = EditorTextState.readFile(f)

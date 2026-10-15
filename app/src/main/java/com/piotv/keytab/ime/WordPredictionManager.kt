@@ -46,8 +46,18 @@ class WordPredictionManager(
 
     var engine: SuggestionEngine? = null
         private set
-    private var engineLoading = false
     private var engineLanguage: String? = null
+
+    /**
+     * Laufende Nummer des letzten Ladeauftrags. Ein verspätet zurückkommender
+     * Ladevorgang (schneller Sprachwechsel: A angefragt, B angefragt, A fertig)
+     * darf die Engine von B nicht überschreiben — sonst stünde die Engine einer
+     * anderen Sprache unter dem neuen [engineLanguage] und die Vorschläge wären
+     * in der falschen Sprache. `@Volatile`, weil der Wert vom Main-Thread
+     * geschrieben und im I/O-Thread gelesen wird.
+     */
+    @Volatile
+    private var engineRequestId = 0
 
         var currentTypedWord = ""
         private set
@@ -70,18 +80,32 @@ class WordPredictionManager(
     fun loadEngine(language: KeyboardLanguage, forceReload: Boolean = false) {
         if (engine != null && !forceReload && language.code == engineLanguage) return
         engine = null
-        engineLoading = false
         engineLanguage = language.code
-        engineLoading = true
+        val requestId = ++engineRequestId
         ioExecutor.execute {
-            engine = WordCorpusLoader.load(context, context.assets, language)
-            engineLoading = false
-            mainHandler.post { onEngineReady?.invoke() }
+            val loaded = WordCorpusLoader.load(context, context.assets, language)
+            // Veraltete Antwort verwerfen (siehe [engineRequestId]).
+            if (requestId != engineRequestId) return@execute
+            engine = loaded
+            mainHandler.post {
+                if (requestId == engineRequestId) onEngineReady?.invoke()
+            }
         }
     }
 
     private var onEngineReady: (() -> Unit)? = null
     fun setOnEngineReady(callback: (() -> Unit)?) { onEngineReady = callback }
+
+    /**
+     * Gibt die geladene Engine frei (Speicherdruck, Tastatur versteckt). Der
+     * nächste [loadEngine]-Aufruf lädt sie neu; das gelernte Wörterbuch liegt in
+     * den Prefs und geht nicht verloren. Laufende Ladevorgänge werden verworfen.
+     */
+    fun releaseEngine() {
+        engine = null
+        engineLanguage = null
+        engineRequestId++
+    }
 
             /** Berechnet Vorschläge und aktualisiert die Leiste. */
     fun updateSuggestions(bar: View?, enabled: Boolean) {

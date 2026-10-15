@@ -1,5 +1,6 @@
 package com.piotv.keytab.ime
 
+import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
 import android.inputmethodservice.InputMethodService
@@ -10,6 +11,7 @@ import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
+import androidx.core.content.edit
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.CoroutineScope
@@ -208,8 +210,9 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         swipeManager = sm
         keyboardBinder = KeyboardBinder(this, LONG_PRESS_TIMEOUT, tabController, themeController, suggestionController, trailManager, sm)
         keyboardBinder.hook(root)
-        // Jetzt baseLetters gefüllt - TrailManager aktualisieren
-        trailManager.updateBaseLetters(baseLetters)
+        // baseLetters sind jetzt gefüllt; TrailManager und SwipeManager halten die
+        // Map per Referenz (kein Nachtrag nötig — der frühere No-op-Aufruf
+        // `trailManager.updateBaseLetters(...)` ist in v0.18 entfallen).
         keyboardBinder.applyLetterCase(root)
         // Suggestion-Views holen, Module starten (Engine lazy, Skaler aufbauen)
         suggestionController.setup(root, suggestionViews, activeLanguage)
@@ -279,6 +282,38 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         // Insets-Event nachziehen: am decorView anfragen (Quelle aller Insets),
         // nicht am Root — dort können sie von internen IMS-Views konsumiert sein.
         window.window?.decorView?.let { ViewCompat.requestApplyInsets(it) }
+    }
+
+    /**
+     * Feld beendet (Fokus weg / App geschlossen): den gemerkten [EditorInfo]
+     * verwerfen, damit der Passwort-/Sensibel-Zustand nicht in den nächsten
+     * Kontext nachwirkt, und die Swipe-Vorschau abräumen.
+     */
+    override fun onFinishInput() {
+        super.onFinishInput()
+        lastEditorInfo = null
+        swipeManager?.clearPreview()
+    }
+
+    /**
+     * Speicherdruck bzw. Tastatur versteckt: gelerntes Wörterbuch sichern und die
+     * Vorschlags-Engine (Wortkorpus) freigeben — sie wird beim nächsten Anzeigen
+     * neu geladen. Ab [ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN] ist die Tastatur
+     * nicht sichtbar, es geht also kein Tipp-Kontext verloren.
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+            predictionManager?.let { pm ->
+                pm.engine?.let { engine ->
+                    com.piotv.keytab.Prefs.of(this).edit {
+                        putString(com.piotv.keytab.Prefs.KEY_USER_DICT, engine.serializeUserDict())
+                    }
+                }
+                pm.releaseEngine()
+            }
+            swipeManager?.setEngine(null)
+        }
     }
 
     private fun autoCapitalize(attribute: android.view.inputmethod.EditorInfo?): Boolean =
@@ -369,8 +404,9 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
     override fun onDestroy() {
         predictionManager?.engine?.let {
             val raw = it.serializeUserDict()
-            com.piotv.keytab.Prefs.of(this)
-                .edit().putString(com.piotv.keytab.Prefs.KEY_USER_DICT, raw).apply()
+            com.piotv.keytab.Prefs.of(this).edit {
+                putString(com.piotv.keytab.Prefs.KEY_USER_DICT, raw)
+            }
         }
         swipeManager?.clearPreview()
         swipeManager = null

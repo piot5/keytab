@@ -66,15 +66,28 @@ class MainActivityTest {
             requested.contains(Manifest.permission.READ_MEDIA_IMAGES))
     }
 
+    /**
+     * Android 13+: `READ_MEDIA_IMAGES` gibt nur Bilder frei — der Status darf
+     * keine vollständige Dateiliste versprechen (F-Droid-Testerbericht 2026-10-13).
+     */
     @Test
-    fun `Voller Zugriff zeigt Status und deaktiviert den Button`() {
+    fun `Voller Medienzugriff nennt Ordner und Bilder statt aller Dateien`() {
         shadowOf(app).grantPermissions(
             Manifest.permission.READ_MEDIA_IMAGES,
             Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
         )
         val activity = start()
-        assertEquals(activity.getString(R.string.settings_storage_granted), status(activity))
+        assertEquals(activity.getString(R.string.settings_storage_granted_media), status(activity))
         assertFalse("Mit Zugriff braucht es keinen zweiten Prompt", grantButton(activity).isEnabled)
+    }
+
+    /** Bis Android 12 deckt `READ_EXTERNAL_STORAGE` den ganzen Speicher ab. */
+    @Test
+    @Config(sdk = [32])
+    fun `Bis Android 12 nennt der Status weiter die vollstaendige Dateiliste`() {
+        shadowOf(app).grantPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
+        val activity = start()
+        assertEquals(activity.getString(R.string.settings_storage_granted), status(activity))
     }
 
     /** Android 14+: „nur ausgewählte Bilder“ ist Teilzugriff — sichtbar als solcher. */

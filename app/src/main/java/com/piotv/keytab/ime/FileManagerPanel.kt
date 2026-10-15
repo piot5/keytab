@@ -1,9 +1,11 @@
 package com.piotv.keytab.ime
 
+import android.Manifest
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Environment
 import android.os.Handler
 import android.view.View
@@ -12,6 +14,7 @@ import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.R
 import java.io.File
@@ -51,6 +54,9 @@ class FileManagerPanel(
         const val MAX_CLIP_CONTENT_BYTES = 1_000_000
         const val KEY_DIR = "fm_dir"
         const val KEY_BACKSTACK = "fm_backstack"
+
+        /** Schriftgröße der Dateiliste (sp) — bewusst kleiner als der Plattform-Default. */
+        const val LIST_TEXT_SP = 11f
     }
 
     init {
@@ -95,26 +101,42 @@ class FileManagerPanel(
 
     private fun showFileMenu(e: FileEntry) {
         val f = e.file
-        val items = mutableListOf(
-            context.getString(R.string.fm_properties),
-            context.getString(R.string.fm_copy_path),
-            context.getString(R.string.fm_copy_file)
-        )
-        if (f.isFile) items.add(context.getString(R.string.fm_copy_content))
-        val actions: List<Pair<String, () -> Unit>> = listOf(
-            context.getString(R.string.fm_properties) to { showProperties(f) },
-            context.getString(R.string.fm_copy_path) to { copyTextToClipboard(f.absolutePath) },
-            context.getString(R.string.fm_copy_file) to {
-                pendingCopy = f
-                paste?.visibility = View.VISIBLE
-                toast(context.getString(R.string.fm_copied, f.name))
-            },
-            context.getString(R.string.fm_copy_content) to { copyFileContent(f) }
-        )
+        // Beschriftungen und Aktionen werden **paarweise** aufgebaut und über den
+        // Listenindex aufgelöst: vorher wurde die Aktion per Label-Vergleich
+        // gesucht — zwei gleiche Beschriftungen (künftige Übersetzung) hätten die
+        // falsche Aktion ausgelöst.
+        val items = mutableListOf<String>()
+        val actions = mutableListOf<() -> Unit>()
+        items += context.getString(R.string.fm_properties)
+        actions += { showProperties(f) }
+        items += context.getString(R.string.fm_copy_path)
+        actions += { copyTextToClipboard(f.absolutePath) }
+        items += context.getString(R.string.fm_copy_file)
+        actions += {
+            pendingCopy = f
+            paste?.visibility = View.VISIBLE
+            toast(context.getString(R.string.fm_copied, f.name))
+        }
+        if (f.isFile) {
+            items += context.getString(R.string.fm_copy_content)
+            actions += { copyFileContent(f) }
+        }
         AlertDialog.Builder(context)
             .setTitle(e.label)
-            .setItems(items.toTypedArray()) { _, which -> actions.firstOrNull { it.first == items[which] }?.second?.invoke() }
-            .show()
+            .setItems(items.toTypedArray()) { _, which -> actions.getOrNull(which)?.invoke() }
+            .create()
+            .let(::showImeDialog)
+    }
+
+    /**
+     * Zeigt [dialog] im IME an. Ohne Fenster-Token (kein Input-View aktiv) bleibt
+     * nur ein Hinweis — vorher stürzte der Long-Press hier mit einer
+     * `BadTokenException` ab.
+     */
+    private fun showImeDialog(dialog: AlertDialog) {
+        if (!ImeDialog.show(dialog, root.windowToken)) {
+            toast(context.getString(R.string.dialog_unavailable))
+        }
     }
 
     private fun showProperties(f: File) {
@@ -125,7 +147,8 @@ class FileManagerPanel(
             .setMessage(context.getString(R.string.fm_props_fmt, f.absolutePath, type,
                 TextEditLogic.formatSize(f.length()), modified))
             .setPositiveButton(android.R.string.ok, null)
-            .show()
+            .create()
+            .let(::showImeDialog)
     }
 
     private fun copyTextToClipboard(text: String) {
@@ -141,7 +164,7 @@ class FileManagerPanel(
                 if (f.length() > MAX_CLIP_CONTENT_BYTES) null else f.readText()
             } catch (_: Exception) { null }
             mainHandler.post {
-                if (text == null) toast(context.getString(R.string.fm_paste_failed, f.name))
+                if (text == null) toast(context.getString(R.string.fm_copy_content_failed, f.name))
                 else {
                     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                     cm?.setPrimaryClip(ClipData.newPlainText(f.name, text))
@@ -154,12 +177,30 @@ class FileManagerPanel(
     private fun pasteIntoCurrent() {
         val src = pendingCopy ?: return
         val dir = currentDir ?: return
-        val dst = File(dir, src.name)
-        // Bugfix: Eigene Verzeichniskopie würde die Quelle zerstören (copyTo trunciert bei src==dst)
-        if (dst.absolutePath == src.absolutePath) {
-            toast(context.getString(R.string.fm_paste_failed, src.name))
+        val dst = FileCopyRules.pasteTarget(src, dir)
+        // Eigene Verzeichniskopie würde die Quelle zerstören (copyTo trunciert bei
+        // src==dst); ein Ordner in einem eigenen Unterordner ließe copyRecursively
+        // in den gerade erzeugten Teilbaum laufen.
+        if (FileCopyRules.isSameOrInside(src, dst)) {
+            toast(context.getString(R.string.fm_paste_into_self, src.name))
             return
         }
+        // Vorhandenes Ziel nicht mehr still überschreiben (Datenverlust).
+        if (FileCopyRules.needsOverwriteConfirm(dst)) {
+            AlertDialog.Builder(context)
+                .setTitle(R.string.fm_overwrite_title)
+                .setMessage(context.getString(R.string.fm_overwrite_message, dst.name))
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok) { _, _ -> copyInto(src, dst) }
+                .create()
+                .let(::showImeDialog)
+            return
+        }
+        copyInto(src, dst)
+    }
+
+    /** Kopiert [src] nach [dst] (I/O im Hintergrund) und aktualisiert die Liste. */
+    private fun copyInto(src: File, dst: File) {
         ioExecutor.execute {
             val ok = try {
                 if (src.isDirectory) {
@@ -249,10 +290,31 @@ class FileManagerPanel(
                 // Ergebnis verwerfen, wenn inzwischen navigiert wurde
                 if (currentDir?.absolutePath != target.absolutePath) return@post
                 entries = loaded
-                hint?.text = if (raw == null) context.getString(R.string.fm_no_storage_access)
-                else context.getString(R.string.fm_dir_summary, dirs, files)
-                list?.adapter = themedAdapter(context, entries.map { it.label })
+                hint?.text = when {
+                    raw == null -> context.getString(R.string.fm_no_storage_access)
+                    mediaOnlyAccess() -> context.getString(R.string.fm_dir_summary_media, dirs, files)
+                    else -> context.getString(R.string.fm_dir_summary, dirs, files)
+                }
+                list?.adapter = themedAdapter(
+                    context, entries.map { it.label },
+                    textSizeSp = LIST_TEXT_SP, compactRows = true
+                )
             }
         }
+    }
+
+    /**
+     * True, wenn nur Medien-Zugriff besteht: ab Android 13 gibt
+     * `READ_MEDIA_IMAGES` (bzw. ab Android 14 „nur ausgewählte Bilder“) nur Bilder
+     * frei — sichtbar sind Ordner und Bilder, alles andere (PDF, ZIP, XLSX …)
+     * nicht. Der Hinweis über der Liste sagt das dann ausdrücklich, sonst wirkt ein
+     * Ordner ohne Bilder wie ein Fehler (F-Droid-Testerbericht 2026-10-13).
+     * Bis Android 12 deckt `READ_EXTERNAL_STORAGE` den ganzen Speicher ab → false.
+     */
+    private fun mediaOnlyAccess(): Boolean = listOf(
+        Manifest.permission.READ_MEDIA_IMAGES,
+        Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+    ).any {
+        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
     }
 }

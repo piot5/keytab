@@ -126,6 +126,12 @@ class SnippetPanel(
     fun addFromClipboard(text: String) {
         val clean = text.trim()
         if (clean.isEmpty()) return
+        // Größen-Gate: ein riesiger Clipboard-Text würde als eine Zeile in
+        // keytab_snippets.txt landen (siehe [TextEditLogic]).
+        if (TextEditLogic.exceedsStoredTextLimit(clean)) {
+            Toast.makeText(context, R.string.snip_from_clip_too_large, Toast.LENGTH_SHORT).show()
+            return
+        }
         val normalized = clean.replace("\\n", "\n")
         val firstPart = normalized.lineSequence()
             .map(String::trim)

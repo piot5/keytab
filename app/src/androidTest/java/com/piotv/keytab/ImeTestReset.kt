@@ -9,17 +9,19 @@ import androidx.test.uiautomator.Until
  * Tastatur-Zustand zwischen Tests normalisieren (CI-Flake-Fix, v0.16.1).
  *
  * Der IME-Dienst überlebt Tests. `onStartInput` setzt beim Feldwechsel nur
- * CapsLock/Shift zurück — die **Symbol-Ebene** (`showSymbols`) und der zuletzt
- * genutzte Tab bleiben bestehen. v0.16 liess das Fenster über den ganzen Lauf
- * aktiv (schneller, kein Cold-Start-Rennen), dadurch vergiftete ein Test den
- * nächsten: im Symbol-Layout fehlen die Buchstaben ("letter not found: A")
- * bzw. Taps landen auf Sonderzeichen (Feld bekam "@;|._" statt "normal").
+ * CapsLock/Shift zurück — die **Symbol-Ebene** (`SymbolPlane`, der Zustand des
+ * `?123`-Schalters) und der zuletzt genutzte Tab bleiben bestehen. v0.16 liess
+ * das Fenster über den ganzen Lauf aktiv (schneller, kein Cold-Start-Rennen),
+ * dadurch vergiftete ein Test den nächsten: im Symbol-Layout fehlen die
+ * Buchstaben ("letter not found: A") bzw. Taps landen auf Sonderzeichen (Feld
+ * bekam "@;|._" statt "normal").
  *
  * Fix rein testseitig: vor jedem Test den sichtbaren Zustand normalisieren.
- * Anker ist die **Toggle-Beschriftung** — `TabController.toggleSymbols` setzt
- * sie auf `key_toggle_letters` ("abc"), solange die Symbol-Ebene aktiv ist,
- * sonst "?123". `key_space` taugt NICHT als Anker: die gemeinsame
- * Funktionsleiste (`bottom_row`) bleibt auch im Symbol-Layout sichtbar.
+ * Anker ist die **Toggle-Beschriftung** — `TabController` beschriftet den
+ * Schalter mit der *nächsten* Ebene: "?123" auf der Buchstaben-Ebene, "<v" auf
+ * `?123`, "abc" auf der zweiten Symbol-Ebene. Die Buchstaben-Ebene ist also
+ * genau dann aktiv, wenn dort "?123" steht. `key_space` taugt NICHT als Anker:
+ * die gemeinsame Funktionsleiste (`bottom_row`) bleibt in *jeder* Ebene sichtbar.
  *
  * Bewusst KEIN IME-Umschalten pro Test (das war der Stand vor v0.16): es
  * beendet den Dienst zwar und löscht allen Zustand, erzeugt aber das
@@ -42,9 +44,15 @@ object ImeTestReset {
         device.wait(Until.findObject(By.textStartsWith("ABC")), 800)?.click()
         device.waitForIdle()
 
-        // 2) Symbol-Ebene verlassen: der Toggle zeigt dann "abc" statt "?123".
-        val toggle = device.wait(Until.findObject(By.res(pkg, "key_toggle")), 800)
-        if (toggle?.text?.contains("abc", ignoreCase = true) == true) {
+        // 2) Symbol-Ebenen verlassen: der Toggle traegt "?123", wenn die
+        //    Buchstaben-Ebene aktiv ist — er zeigt immer die *naechste* Ebene
+        //    (abc -> "?123" -> "<v"). Aus jeder Symbol-Ebene fuehren daher
+        //    hoechstens zwei Tipps zurueck. Die Beschriftung wird pro Durchlauf
+        //    neu gelesen: UiObject2 cached den Knoten nach einem Klick.
+        repeat(3) {
+            val toggle = device.wait(Until.findObject(By.res(pkg, "key_toggle")), 800)
+                ?: return@repeat
+            if (toggle.text?.contains("?123") == true) return@repeat
             toggle.click()
             device.waitForIdle()
         }

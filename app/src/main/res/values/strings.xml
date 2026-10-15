@@ -17,6 +17,11 @@
     <string name="key_del_label">⌫</string>
     <string name="key_space_label">␣</string>
     <string name="key_toggle_letters">abc</string>
+    <!-- Beschriftungen des ?123-Schalters: er zeigt immer die *naechste* Ebene
+         (abc -> ?123 -> abc). Siehe SymbolPlane.
+         Das "?" ist escaped (\?), sonst liest aapt2 "?123" als Theme-Attribut-
+         Referenz und der Resource-Link scheitert ("resource attr/123 not found"). -->
+    <string name="key_toggle_symbols">\?123</string>
     <string name="key_enter_label">↵</string>
     <string name="close_tab">✕</string>
     <string name="app_subtitle">Keyboard with tabbed file manager</string>
@@ -27,10 +32,13 @@
     <string name="settings_section_storage">💾 Storage &amp; config</string>
     <string name="settings_section_test">🧪 Test area</string>
     <string name="settings_test_hint">Type here to test the keyboard …</string>
-    <string name="storage_denied">Storage access denied — grant permission in settings.</string>
     <!-- Dateizugriff: Status + gezielte Freigabe (F-Droid-Review 2026-10-06) -->
     <string name="settings_storage_grant">🔓 Grant file access</string>
     <string name="settings_storage_granted">Granted — the Files tab can list files.</string>
+    <!-- Android 13+ gibt über READ_MEDIA_IMAGES nur Bilder frei: der Status sagt das,
+         statt „kann Dateien auflisten“ zu versprechen (F-Droid-Testerbericht
+         2026-10-13, junkerderprovinz: nur .png sichtbar, PDF/ZIP/XLSX fehlten). -->
+    <string name="settings_storage_granted_media">Granted — the Files tab lists folders and pictures.</string>
     <string name="settings_storage_partial">Only selected photos — folders outside the selection stay hidden.</string>
     <string name="settings_storage_missing">Not granted — the Files tab shows folders only.</string>
     <string name="settings_storage_denied">Not granted — you can grant file access any time.</string>
@@ -43,6 +51,9 @@
     <string name="fm_no_storage_access">No storage access — open the KeyTab app and tap „Grant file access“.</string>
     <string name="fm_entry_dir">Folder</string>
     <string name="fm_dir_summary">%1$d folders · %2$d files</string>
+    <!-- Wird auf Android 13+ statt fm_dir_summary gezeigt, sobald Dateizugriff
+         erteilt ist: dann sind nur Ordner und Bilder sichtbar (READ_MEDIA_IMAGES). -->
+    <string name="fm_dir_summary_media">%1$d folders · %2$d files — Android 13+ exposes pictures only</string>
     <string name="fm_open_no_app">No app to open: %1$s</string>
 
     <!-- Editor -->
@@ -102,9 +113,9 @@
     <string name="settings_snippet_tab">⚡ Snippet tab</string>
     <string name="settings_snippet_tab_on">Snippet tab enabled</string>
     <string name="settings_snippet_tab_off">Snippet tab disabled</string>
-    <string name="snippet_hint_empty">Keine Snippets – keytab_snippets.txt im Files-Tab anlegen (Format: name = text)</string>
+    <string name="snippet_hint_empty">No snippets — create keytab_snippets.txt in the Files tab (format: name = text)</string>
     <string name="snip_edit">✎ Bearbeiten</string>
-    <string name="snip_added_from_clip">Aus Zwischenablage als Snippet hinzugefügt</string>
+    <string name="snip_added_from_clip">Added to snippets from clipboard</string>
     <string name="settings_clip_tab_on">Clipboard tab enabled</string>
     <string name="settings_clip_tab_off">Clipboard tab disabled</string>
     <string name="clip_clear">🗑 Clear</string>
@@ -131,20 +142,30 @@
     <string name="theme_export_toast">Theme-Farben exportiert nach: %s</string>
     <string name="theme_import">Import Theme</string>
     <string name="theme_import_ok">Theme importiert (theme-export.json)</string>
-    <string name="theme_import_fail">Import fehlgeschlagen – theme-export.json nicht gefunden/ungültig</string>
+    <string name="theme_import_fail">Import failed — theme-export.json not found/invalid</string>
     <string name="theme_settings_title">🎨 Theme settings</string>
     <string name="settings_theme_button">🎨 Theme settings</string>
-    <string name="theme_section_gaming">Likely Highlighting</string>
     <string name="theme_section_trail">Trail (Tipp trace)</string>
     <string name="theme_trail_toggle">🌊 Tippspur (Trail)</string>
-    <string name="theme_trail_hint">Der zuletzt geklickte Buchstabe wird farblich markiert und mit jeder neuen Eingabe stufenweise weniger sichtbar, bis er ganz verschwindet. Standardfarbe: Blau. In Passwort-Feldern bleibt die Spur aus.</string>
+    <string name="theme_trail_hint">The last clicked letter is highlighted and fades step by step with each new input until it disappears completely. Default color: Blue. The trail stays off in password fields.</string>
     <string name="theme_trail_steps">Stufen: %1$d</string>
-    <string name="theme_trail_trace_toggle">✅ Vorschlag-Treffer grün markieren</string>
-    <string name="theme_trail_trace_hint">Passt das getippte Wort genau zum obersten Vorschlag, werden seine Buchstaben kurz grün markiert. Es wird nichts geändert — nur eine Bestätigung. Nur in normalen Textfeldern.</string>
+    <string name="theme_trail_trace_toggle">✅ Green-mark suggestion matches</string>
+    <string name="theme_trail_trace_hint">When the typed word matches the top suggestion exactly, its letters are briefly marked green. Nothing is changed — it is only a confirmation. Normal text fields only.</string>
     <string name="theme_reset">Reset</string>
-    <string name="theme_gradient_hint">Farbe 1 / Farbe 2 und deren Alpha stellst du im Farbwahlrad unten ein (Ziel „Farbe 1/2").</string>
+    <string name="theme_gradient_hint">Set color 1 / color 2 and their alpha in the color wheel below (target “color 1/2”).</string>
     <string name="editor_pick_parent">▲ …</string>
     <string name="editor_pick_empty">Empty folder</string>
     <string name="settings_language_label">Keyboard language</string>
     <string name="language_changed_to">Language: %1$s</string>
+    <string name="theme_likely_toggle">Likely Highlighting</string>
+    <string name="theme_preview_suggestion">Suggestion</string>
+    <string name="fm_overwrite_title">Overwrite?</string>
+    <string name="fm_overwrite_message">%1$s already exists. Overwrite it?</string>
+    <string name="fm_paste_into_self">Cannot paste: the target is inside the source folder (%1$s).</string>
+    <string name="fm_copy_content_failed">Not copied (file too large): %1$s</string>
+    <string name="dialog_unavailable">Dialog not available right now — please tap again.</string>
+    <string name="editor_file_too_large">File too large for the editor (max. 1 MB): %1$s</string>
+    <string name="fm_open_outside">Cannot share files outside the app\'s folders: %1$s</string>
+    <string name="clip_entry_too_large">Clipboard entry too large — not added (max. 100 KB).</string>
+    <string name="snip_from_clip_too_large">Clipboard text too large for a snippet (max. 100 KB).</string>
 </resources>

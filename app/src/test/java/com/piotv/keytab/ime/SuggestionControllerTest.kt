@@ -181,8 +181,17 @@ class SuggestionControllerTest {
     @Test
     fun `sug_back kehrt aus dem Katalog zurueck`() {
         root.findViewById<TextView>(R.id.sug_emoji).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(
+            "Gegenprobe: im Katalog ist das Raster-Symbol sichtbar",
+            View.VISIBLE, root.findViewById<View>(R.id.sug_grid).visibility
+        )
         root.findViewById<TextView>(R.id.sug_back).performClick()
         shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(
+            "nach ◀ ist der Katalog-Chrome wieder weg",
+            View.GONE, root.findViewById<View>(R.id.sug_grid).visibility
+        )
     }
 
     @Test
@@ -223,8 +232,12 @@ class SuggestionControllerTest {
     fun `showSwipeCandidates respektiert deaktivierte Vorschlaege`() {
         Prefs.of(app).edit().putBoolean(Prefs.KEY_SUGGESTIONS, false).commit()
         controller.showSwipeCandidates(listOf("haus"))
-        // Leiste bleibt wie sie ist — kein Crash, kein Einblenden.
         shadowOf(Looper.getMainLooper()).idle()
+        val texts = slots.map { it?.text?.toString().orEmpty() }
+        val tags = slots.map { it?.tag as? String }
+        assertTrue("Swipe-Kandidat darf nicht gerendert werden, war: $texts",
+            texts.none { it.equals("haus", ignoreCase = true) })
+        assertTrue("kein Swipe-Tag in der Leiste, war: $tags", tags.none { it == "haus" })
     }
 
     @Test
@@ -258,23 +271,44 @@ class SuggestionControllerTest {
         controller.update()
     }
 
+    /** Registriert alle 26 Buchstaben-Tasten am FakeHost (für Likely-Highlights). */
+    private fun registerLetterButtons(): List<android.widget.Button> =
+        ('a'..'z').map { c ->
+            android.widget.Button(app).apply { text = c.toString() }.also { host.letters[it] = c }
+        }
+
     @Test
     fun `update mit Likely-an markiert naechste Taste`() {
         Prefs.of(app).edit().putBoolean(ThemePrefs.KEY_LIKELY, true).commit()
-        val btn = android.widget.Button(app)
-        btn.text = "h"
-        host.letters[btn] = 'h'
-        val pm = host.pm!!
-        pm.onCharacter("h")
+        val buttons = registerLetterButtons()
+        val before = buttons.map { it.background }
+
+        host.pm!!.onCharacter("h")
         controller.update()
         shadowOf(Looper.getMainLooper()).idle()
+
+        val changed = buttons.indices.filter { buttons[it].background !== before[it] }
+        assertEquals("genau eine Taste ist hervorgehoben, war: $changed", 1, changed.size)
+        assertTrue(
+            "Hervorhebung ist eine Farbflaeche (GradientDrawable)",
+            buttons[changed.first()].background is android.graphics.drawable.GradientDrawable
+        )
     }
 
     @Test
-    fun `update mit Likely-aus stellt Hintergruende wieder her`() {
+    fun `update mit Likely-aus laesst die Tasten unveraendert`() {
         Prefs.of(app).edit().putBoolean(ThemePrefs.KEY_LIKELY, false).commit()
+        val buttons = registerLetterButtons()
+        val before = buttons.map { it.background }
+
+        host.pm!!.onCharacter("h")
         controller.update()
         shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue(
+            "ohne Likely-Modus darf kein Hintergrund getauscht werden",
+            buttons.indices.none { buttons[it].background !== before[it] }
+        )
     }
 
     @Test

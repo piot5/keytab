@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.piotv.keytab.ime.ThemePrefs
+import com.piotv.keytab.R
 
 class PreviewSection(
     private val activity: android.app.Activity,
@@ -55,7 +56,7 @@ class PreviewSection(
         ).apply { marginEnd = (KEY_SPACING_DP * dip).toInt() })
 
         val sug = TextView(activity).apply {
-            text = "Suggestion"
+            text = activity.getString(R.string.theme_preview_suggestion)
             textSize = SUG_TEXT_SP
         }
         row.addView(sug, LinearLayout.LayoutParams(

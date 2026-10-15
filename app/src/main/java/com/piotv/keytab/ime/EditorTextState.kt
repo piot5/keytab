@@ -106,6 +106,18 @@ internal object EditorTextState {
     /** Liest [f] (fehlende Datei = leerer Text), wirft wie [File.readText]. */
     fun readFile(f: File): String = if (f.exists()) f.readText() else ""
 
+    /**
+     * Obergrenze für Dateien, die der Editor laden darf (1 MB, wie der
+     * Clipboard-Inhalt in [FileManagerPanel]). Ohne Grenze würde eine große Datei
+     * den IME-Prozess per `OutOfMemoryError` beenden: gelesen wird komplett und
+     * der Text landet danach in einem `EditText`.
+     */
+    const val MAX_EDITOR_BYTES = 1_000_000L
+
+    /** true, wenn [f] zu groß für den Editor ist (siehe [MAX_EDITOR_BYTES]). */
+    fun isTooLargeForEditor(f: File, maxBytes: Long = MAX_EDITOR_BYTES): Boolean =
+        f.length() > maxBytes
+
     /** Schreibt [text] nach [f] und legt bei Bedarf das Elternverzeichnis an. */
     fun writeFile(f: File, text: String) {
         f.parentFile?.mkdirs()

@@ -88,6 +88,8 @@ ist dieser Stand unantastbar:
   `AllowedAPKSigningKeys: debe1146…`
 - `Binaries:` zeigt auf
   `https://github.com/piot5/keytab/releases/download/v0.18.1/KeyTab-0.18.1.apk`
+  (`sha256:9579c18179285fbe1c62c4bbbec2d8e9860fa34e35ccd79f4cdca2825ba08181`, Signer
+  `debe1146…` = `AllowedAPKSigningKeys`, veröffentlicht 2026-10-15 21:19 UTC)
   — **Release und Asset dürfen nicht gelöscht oder ersetzt werden** (dagegen gibt
   es keine automatische Sperre: GitHub schützt Releases nicht per Ruleset).
 

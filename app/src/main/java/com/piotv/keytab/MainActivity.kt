@@ -312,9 +312,14 @@ class MainActivity : AppCompatActivity() {
      * XLSX nicht) — bis Android 12 deckt `READ_EXTERNAL_STORAGE` den ganzen
      * gemeinsamen Speicher ab. Der Status sagt jeweils, was gilt
      * (F-Droid-Testerbericht 2026-10-13).
+     *
+     * `sdkInt` ist ein Parameter, damit **beide** Formulierungen ohne zweites
+     * Robolectric-SDK-Level testbar sind (`@Config(sdk = [32])` lädt in CI ein
+     * zusätzliches android-all-Jar nach — genau das scheiterte dort am
+     * TLS-Download).
      */
-    private fun grantedStatusText(): Int =
-        if (Build.VERSION.SDK_INT >= 33) R.string.settings_storage_granted_media
+    internal fun grantedStatusText(sdkInt: Int = Build.VERSION.SDK_INT): Int =
+        if (sdkInt >= 33) R.string.settings_storage_granted_media
         else R.string.settings_storage_granted
 
     /**

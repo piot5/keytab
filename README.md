@@ -2,21 +2,21 @@
 
 [![CI](https://github.com/piot5/keytab/actions/workflows/ci.yml/badge.svg)](https://github.com/piot5/keytab/actions/workflows/ci.yml)
 [![Release](https://github.com/piot5/keytab/actions/workflows/release.yml/badge.svg)](https://github.com/piot5/keytab/actions/workflows/release.yml)
-[![Latest release](https://img.shields.io/github/v/release/piot5/keytab?include_prereleases&label=release)](https://github.com/piot5/keytab/releases/latest)
+[![Latest release](https://badgen.net/github/release/piot5/keytab)](https://github.com/piot5/keytab/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/piot5/keytab/total?label=downloads)](https://github.com/piot5/keytab/releases)
-[![Stars](https://img.shields.io/github/stars/piot5/keytab?logo=github&labelColor=gray)](https://github.com/piot5/keytab/stargazers)
-[![Issues](https://img.shields.io/github/issues/piot5/keytab)](https://github.com/piot5/keytab/issues)
-[![PRs](https://img.shields.io/github/issues-pr/piot5/keytab)](https://github.com/piot5/keytab/pulls)
-[![Last commit](https://img.shields.io/github/last-commit/piot5/keytab/main?label=last%20commit)](https://github.com/piot5/keytab/commits/main)
-![Platform](https://img.shields.io/badge/platform-Android%207%2B%20(API%2024%2B)-3ddc84?logo=android&logoColor=white)
+[![Stars](https://badgen.net/github/stars/piot5/keytab)](https://github.com/piot5/keytab/stargazers)
+[![Issues](https://badgen.net/github/issues/piot5/keytab)](https://github.com/piot5/keytab/issues)
+[![PRs](https://badgen.net/github/prs/piot5/keytab)](https://github.com/piot5/keytab/pulls)
+[![Last commit](https://badgen.net/github/last-commit/piot5/keytab/main)](https://github.com/piot5/keytab/commits/main)
+![Platform](https://img.shields.io/badge/platform-Android%207%2B%20%28API%2024%2B%29-3ddc84?logo=android&logoColor=white)
 ![Language](https://img.shields.io/badge/language-100%25%20Kotlin-7f52ff?logo=kotlin&logoColor=white)
-[![License](https://img.shields.io/github/license/piot5/keytab)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 Mobile IDE shaped like a keyboard (IME): a tabbed file manager, an editor/clipboard, snippets, with offline word prediction. 100% Kotlin, builds with Gradle.
 
 ## Download & Installation
 
-[![Download APK](https://img.shields.io/github/v/release/piot5/keytab?include_prereleases&label=download%20APK&color=3ddc84)](https://github.com/piot5/keytab/releases/latest)
+[![Download APK](https://img.shields.io/badge/download%20APK-latest-3ddc84)](https://github.com/piot5/keytab/releases/latest)
 
 Every tagged release (`v*`) is built and published automatically by CI as a signed APK with SHA-256 checksum.
 
@@ -25,7 +25,7 @@ Every tagged release (`v*`) is built and published automatically by CI as a sign
 | Channel | Status |
 |---|---|
 | GitHub Releases | ✅ every `v*` tag, built and published by CI |
-| F-Droid | ⏳ requested — [merge request !50822](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822) is open (pulled forward to v0.17 on 2026-10-07); reproducible build verified. The open MR deliberately keeps pinning v0.17 — a new commit would invalidate its green reference pipeline (see `docs/RELEASE.md`, section 7) |
+| F-Droid | ⏳ requested — [merge request !50822](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822) is open and green (pulled forward to **v0.18.1** on 2026-10-15, reproducible build verified; waiting on the reviewer). The MR deliberately keeps pinning v0.18.1 — a new commit would invalidate its green reference pipeline (see `docs/RELEASE.md`, section 7) |
 
 Release history lives in **[CHANGELOG.md](CHANGELOG.md)**.
 
@@ -290,4 +290,11 @@ Conventions:
 
 ## License
 
-MIT -- see [LICENSE](LICENSE)
+MIT -- see [LICENSE](LICENSE).
+
+Bundled third-party content is **not** MIT: the word-frequency corpora in
+`app/src/main/assets/*_freq_top6000.txt` come from
+[FrequencyWords](https://github.com/hermitdave/FrequencyWords) (OpenSubtitles 2018)
+and are licensed **CC-BY-SA-4.0** (attribution and the exact changes are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)). The AndroidX / Material / Kotlin
+libraries are Apache-2.0 and are pulled in as Gradle dependencies, not vendored.

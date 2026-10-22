@@ -86,6 +86,22 @@ internal object KeyboardCollapse {
         // Normalhoehe merken, damit expand() sie verlustfrei zuruecksetzen kann.
         root.setTag(R.id.maximize_normal_height, target.layoutParams?.height ?: 0)
 
+        // N2: Die verfuegbare Hoehe **vor** den Sichtbarkeits-Umstellungen
+        // berechnen. Bisher stand der `maximized <= 0`-Abbruch erst danach: die
+        // Panels waren dann schon ausgeblendet, ihre Hoehe aber unveraendert —
+        // sichtbar wurde ein leeres Keyboard. Jetzt bricht der Aufruf vorher ab
+        // und laesst den Zustand unangetastet.
+        //
+        // `maximizeRowVisible` wird als **geplanter** Zustand uebergeben: die
+        // Zeile wird im Vollbild ausgeblendet, belegt im aktuellen Zustand aber
+        // noch Platz — ohne diesen Hinweis waere das Panel um genau diese Zeile
+        // zu hoch und endete ausserhalb des IME-Fensters.
+        val width = root.resources.displayMetrics.widthPixels
+        val maximized = PanelHeights.maximizedPanelHeight(
+            root, width, keyboardVisible, heightPx, maximizeRowVisible
+        )
+        if (maximized <= 0) return
+
         // Sichtbarkeiten **zuerst**, die Hoehe danach: die Rechnung zieht die
         // sichtbaren Zeilen ab, und vorher stand sie vor dem Umschalten — dadurch
         // wurde die untere Key-Leiste versteckt, ihr Platz aber weiter
@@ -113,10 +129,6 @@ internal object KeyboardCollapse {
         // aktiver Symbol-Ebene stand damit eine Ebene im Bild, die der
         // ?123-Schalter gar nicht meinte.
         applyKeyboardPlane(root, keyboardVisible)
-
-        val width = root.resources.displayMetrics.widthPixels
-        val maximized = PanelHeights.maximizedPanelHeight(root, width, keyboardVisible, heightPx)
-        if (maximized <= 0) return
 
         target.layoutParams = target.layoutParams.apply { height = maximized }
     }
@@ -154,8 +166,11 @@ internal object KeyboardCollapse {
             PanelHeights.applyNormalHeights(root, root.resources.displayMetrics.widthPixels)
         }
         // Sichtbarkeit gibt danach der Tab-Wechsler vor — der kennt die
-        // Tastatur-Regeln (Editor immer, Files/Clip/Snip nie).
-        for (id in intArrayOf(R.id.ime_tabs)) {
+        // Tastatur-Regeln (Editor immer, Files/Clip/Snip nie). Die
+        // Tastatur-Ebenen (kb_panel/sym_panel) bleiben hier unangetastet:
+        // `TabController.applyKeyboardPlane` schaltet sie zyklisch um, und
+        // beides sichtbar zu machen würde zwei Ebenen gleichzeitig zeigen.
+        for (id in intArrayOf(R.id.ime_tabs, R.id.bottom_row)) {
             root.findViewById<View>(id)?.visibility = View.VISIBLE
         }
     }

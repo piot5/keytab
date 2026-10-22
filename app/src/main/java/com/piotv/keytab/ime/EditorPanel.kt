@@ -12,7 +12,9 @@ import android.widget.EditText
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
+import com.piotv.keytab.Prefs
 import com.piotv.keytab.R
+import com.piotv.keytab.ime.ClineFileWatcher
 import java.io.File
 import java.util.concurrent.Executor
 
@@ -24,7 +26,7 @@ import java.util.concurrent.Executor
  * Datei-I/O läuft auf [ioExecutor], UI-Updates kehren über [mainHandler] zurück.
  * Toolbar und Editor-Chrome siehe [setupToolbar] und [setupEditorChrome].
  */
-class EditorPanel(
+open class EditorPanel(
     private val context: Context,
     private val rootView: View,
     private val ioExecutor: Executor,
@@ -38,6 +40,112 @@ class EditorPanel(
     private val gutter: TextView? = rootView.findViewById(R.id.editor_gutter)
     private val highlightSpans = mutableListOf<ForegroundColorSpan>()
     private var editorFile: File = defaultFile()
+
+    /**
+     * Im Editor während der Sitzung geöffnete Dateien (Plaketten-Zähler).
+     *
+     * Gezählt werden **unterschiedliche** Dateien: ein erneutes Laden derselben
+     * Datei (Toolbar-↻, Kontextmenü "Neu laden") erhöht den Zähler nicht.
+     * Gesteuert wird die Zahl über [openFiles]; die Pfad-Historie steht in
+     * [openedPaths].
+     */
+    open var openFiles: Int = 0
+
+    /** Bindung zum Tab-Host (Plakette am Editor-Tab aktualisieren). */
+    internal var tabHost: TabHost? = null
+        internal set
+
+    /** Optionaler Cline-Watcher (Auto-Load im Companion-Mode). */
+    private var clineWatcher: ClineFileWatcher? = null
+
+    /** Verzeichnis, das der laufende Watcher überwacht (für Restart-Vermeidung). */
+    private var watchedDirectory: File? = null
+
+    /** Inkrementiert den Zähler und informiert den Editor-Tab (nur im Companion-Mode sichtbar). */
+    private fun onFileOpened(file: File) {
+        // Nur unterschiedliche Dateien zählen — ein Reload derselben Datei
+        // (Toolbar-↻) soll die Plakette nicht hochzählen.
+        if (openedPaths.add(file.absolutePath)) {
+            openFiles = openedPaths.size
+        }
+        tabHost?.refreshEditorBadge()
+        startClineWatch(file.parentFile)
+    }
+
+    /** Pfade der in dieser Sitzung geöffneten Dateien (Plaketten-Zähler). */
+    private val openedPaths = mutableSetOf<String>()
+
+    /**
+     * Startet/abort den Cline-Watcher für das übergebene Verzeichnis.
+     *
+     * Der Watcher wird **nicht** bei jedem Datei-Öffnen neu erzeugt: sonst
+     * wäre sein interner Zustand (`knownPaths`) jedes Mal leer, jedes bereits
+     * bekannte File gälte als "neu" und würde erneut geladen — eine
+     * Endlos-Schleife aus "Datei öffnen → Watcher neu → Datei öffnen".
+     * Deshalb wird nur bei einem **Verzeichniswechsel** neu gestartet.
+     */
+    private fun startClineWatch(directory: File?) {
+        if (directory == null) return
+        if (!Prefs.of(context).getBoolean(Prefs.KEY_CLINE_COMPANION_MODE, false) ||
+            !Prefs.of(context).getBoolean(Prefs.KEY_CLINE_AUTO_LOAD, false)) {
+            stopClineWatch()
+            return
+        }
+        if (clineWatcher != null && watchedDirectory == directory) return
+        stopClineWatch()
+        watchedDirectory = directory
+        clineWatcher = ClineFileWatcher(
+            context, directory, CLINE_POLL_MS,
+            { openFile(it) }
+        )
+        // Vorhandene Dateien als "bekannt" markieren — sonst würde der erste
+        // Poll den ganzen Verzeichnisinhalt in den Editor laden.
+        clineWatcher?.seedExistingFiles()
+        clineWatcher?.start()
+    }
+
+    /** Stoppt den Watcher (z. B. beim Schließen aller Dateien oder Modus-Aus). */
+    private fun stopClineWatch() {
+        clineWatcher?.stop()
+        clineWatcher = null
+        watchedDirectory = null
+    }
+
+    /**
+     * "Alle schließen": Editor leeren, Zähler zurücksetzen, Watcher stoppen.
+     *
+     * Das ist die Aktion aus dem Long-Press-Kontextmenü am Editor-Tab
+     * (siehe [TabController]); sie beendet auch die Auto-Load-Überwachung,
+     * damit keine Datei sofort wieder in den (leeren) Editor geladen wird.
+     */
+    fun closeAllFiles() {
+        stopClineWatch()
+        openedPaths.clear()
+        openFiles = 0
+        clearEditor()
+        tabHost?.refreshEditorBadge()
+    }
+
+    /** Lädt die aktuelle Datei neu (Toolbar-↻ und Kontextmenü). */
+    fun reloadCurrent() = loadFile(editorFile)
+
+    private companion object {
+        /** Max. Zahl der Nachpost-Versuche fuer das Gutter (N7). */
+        const val GUTTER_REPOST_LIMIT = 5
+        /** Poll-Intervall für Cline-Datei-Hinweis-Watcher (ms). */
+        private const val CLINE_POLL_MS = 1000L
+    }
+
+    /**
+     * Anzahl der Nachpost-Versuche fuer das Gutter (N7).
+     *
+     * Das Gutter braucht die Feldbreite, um die Zeilennummern korrekt um
+     * Soft-Wraps zu setzen. Solange das Feld noch keine Breite hat, wird
+     * neu gepostet — das war aber unbegrenzt (Endlos-Schleife auf der
+     * Haupt-CPU). Der Zaehler begrenzt das auf wenige Versuche; danach
+     * bleibt die logische Zeilennummerung (ohne Wrap) stehen.
+     */
+    private var gutterRepostCount = 0
 
     init {
         fileLabel?.text = editorFile.name
@@ -99,18 +207,7 @@ class EditorPanel(
      * an die App darüber, ✕ leert das Feld, ⎘ kopiert ins Clipboard, ↻ lädt neu.
      */
     private fun setupToolbar(root: View) {
-        onClick(root, R.id.btn_editor_save) {
-            val f = editorFile
-            val text = input?.text?.toString() ?: return@onClick
-            ioExecutor.execute {
-                try {
-                    EditorTextState.writeFile(f, text)
-                    mainHandler.post { toast(R.string.editor_saved, f.name) }
-                } catch (e: Exception) {
-                    mainHandler.post { toast(R.string.editor_save_failed, e.message.orEmpty()) }
-                }
-            }
-        }
+        onClick(root, R.id.btn_editor_save) { saveCurrent() }
         onClick(root, R.id.btn_editor_load) { showFilePicker() }
         onClick(root, R.id.btn_editor_send_up) {
             val text = input?.let { et ->
@@ -122,10 +219,7 @@ class EditorPanel(
                 toast(R.string.editor_sent_to_app)
             }
         }
-        onClick(root, R.id.btn_editor_clear) {
-            input?.setText("")
-            toast(R.string.editor_cleared)
-        }
+        onClick(root, R.id.btn_editor_clear) { clearEditor() }
         onClick(root, R.id.btn_editor_copy) {
             val text = (input?.text?.toString()).orEmpty()
             if (text.isEmpty()) toast(R.string.editor_empty_nothing)
@@ -170,13 +264,20 @@ class EditorPanel(
                 dir?.parentFile?.let { refreshList(it) }
                 return@setOnItemClickListener
             }
-            val target = dir?.listFiles()?.firstOrNull { EditorTextState.entryLabel(it) == item }
-                ?: return@setOnItemClickListener
-            if (target.isDirectory) {
-                refreshList(target)
-            } else {
-                dialog?.dismiss()
-                loadFile(target)
+            // Verzeichnis-Listing nicht auf dem Main-Thread (N21).
+            val d = dir ?: return@setOnItemClickListener
+            ioExecutor.execute {
+                val target = EditorTextState.visibleEntries(d)
+                    .firstOrNull { EditorTextState.entryLabel(it) == item }
+                mainHandler.post {
+                    if (target == null) return@post
+                    if (target.isDirectory) {
+                        refreshList(target)
+                    } else {
+                        dialog?.dismiss()
+                        loadFile(target)
+                    }
+                }
             }
         }
         val picker = AlertDialog.Builder(context)
@@ -198,6 +299,25 @@ class EditorPanel(
     /** Lädt eine Datei in den Editor; der Tab bleibt beim Editor. */
     fun openFile(f: File) { loadFile(f) }
 
+    /** Editor-Inhalt leeren (für die Aktion 'Neue Datei'). */
+    fun clearEditor() {
+        input?.setText("")
+    }
+
+    /** Aktuelle Datei speichern (Toolbar-⇨Save). */
+    fun saveCurrent() {
+        val f = editorFile
+        val text = input?.text?.toString() ?: return
+        ioExecutor.execute {
+            try {
+                EditorTextState.writeFile(f, text)
+                mainHandler.post { toast(R.string.editor_saved, f.name) }
+            } catch (e: Exception) {
+                mainHandler.post { toast(R.string.editor_save_failed, e.message.orEmpty()) }
+            }
+        }
+    }
+
     /** Lädt [f] asynchron in den Editor und merkt sie als Save-Ziel. */
     private fun loadFile(f: File) {
         // Größen-Gate VOR dem Lesen: eine riesige Datei würde sonst den
@@ -215,6 +335,7 @@ class EditorPanel(
                     input?.setText(content)
                     if (f.exists()) toast(R.string.editor_loaded, f.name)
                     else toast(R.string.editor_file_empty)
+                    onFileOpened(f)
                 }
             } catch (e: Exception) {
                 mainHandler.post { toast(R.string.editor_load_failed, e.message.orEmpty()) }
@@ -266,7 +387,11 @@ class EditorPanel(
         val et = input ?: return
         val text = et.text ?: return
         val width = et.width - et.paddingLeft - et.paddingRight
-        val numbers = if (width > 0 && text.isNotEmpty()) {
+        // Performance-Guard: bei sehr großen Texten kein StaticLayout je
+        // Tastendruck (N21) — dann nur logische Zeilennummern.
+        val numbers = if (width > 0 && text.isNotEmpty() &&
+            text.length <= EditorHighlightLogic.MAX_SCAN_CHARS
+        ) {
             val layout = android.text.StaticLayout.Builder
                 .obtain(text, 0, text.length, et.paint, width).build()
             val starts = IntArray(layout.lineCount) { layout.getLineStart(it) }
@@ -275,7 +400,16 @@ class EditorPanel(
             EditorTextState.gutterLogical(text)
         }
         g.text = numbers
-        if (et.width == 0 && text.isNotEmpty()) et.post { refreshGutter() }
+        // N7: Das Nachposten war eine Endlos-Schleife: ohne Breite wurde
+        // endlos neu gepostet (nie gemessenes Feld → CPU-Last). Jetzt
+        // begrenzt: hoechstens [GUTTER_REPOST_LIMIT] Versuche, und nur wenn
+        // das Panel wirklich noch am Fenster haengt.
+        if (et.width == 0 && text.isNotEmpty() && et.isAttachedToWindow &&
+            gutterRepostCount < GUTTER_REPOST_LIMIT
+        ) {
+            gutterRepostCount++
+            et.post { refreshGutter() }
+        }
     }
 
     /** Highlight-Spans neu anwenden; vorherige werden entfernt (kein Stau). */
@@ -286,9 +420,10 @@ class EditorPanel(
             for (s in highlightSpans) editable.removeSpan(s)
             highlightSpans.clear()
         }
+        // Performance-Guard VOR dem Kopieren des Textes (N21): große Dateien
+        // bleiben einfarbig, statt bei jedem Tastendruck den ganzen Text zu kopieren.
+        if (editable.length > EditorHighlightLogic.MAX_SCAN_CHARS) return
         val text = editable.toString()
-        // Performance-Guard: große Dateien bleiben einfarbig statt UI zu blockieren
-        if (text.length > EditorHighlightLogic.MAX_SCAN_CHARS) return
         for (span in EditorHighlightLogic.spans(text)) {
             val color = androidx.core.content.ContextCompat.getColor(
                 context, EditorTextState.colorRes(span.kind)
@@ -298,4 +433,5 @@ class EditorPanel(
             highlightSpans.add(fg)
         }
     }
+
 }

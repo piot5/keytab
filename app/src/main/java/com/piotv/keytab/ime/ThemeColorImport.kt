@@ -22,8 +22,7 @@ internal object ThemeColorImport {
     /** Farb-Arten, die je Modus importiert werden (Reihenfolge = Export-Reihenfolge). */
     internal val COLOR_KINDS = listOf(
         ThemePrefs.KIND_BG, ThemePrefs.KIND_KEY, ThemePrefs.KIND_HL, ThemePrefs.KIND_TEXT,
-        ThemePrefs.KIND_LIKELY, ThemePrefs.KIND_TRAIL,
-        ThemePrefs.KIND_SWIPE, ThemePrefs.KIND_SWIPE_EDGE
+        ThemePrefs.KIND_LIKELY, ThemePrefs.KIND_TRAIL
     )
 
     /** Die beiden Modi, in denen gesucht wird. */

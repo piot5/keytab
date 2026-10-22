@@ -72,6 +72,9 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
 
     private var revisionCounter: Long = 0
 
+    /** Zähler der Lernschnitte — Grundlage für den sanften Decay (unabhängig von der Wörterbuchgröße). */
+    private var learnCount: Int = 0
+
     /** Basiswortschatz: word → normalisierte Log-Frequenz (0..1). */
     private val baseFreq: MutableMap<String, Double> = ConcurrentHashMap()
     /** Gelernte Wörter: word → Gewicht (öffentlich lesbar/änderbar für die Cleanup-API). */
@@ -167,8 +170,11 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
                 bigrams.minByOrNull { it.value }?.let { bigrams.remove(it.key) }
             }
         }
-        // Sanftes Decay, Schwaches verliert an Gewichtung
-        if (userFreq.size % DECAY_INTERVAL == 0) {
+        // Sanftes Decay, Schwaches verliert an Gewichtung — gezählt in Lernschnitten,
+        // nicht an der Wörterbuchgröße. Sonst würde bei Größe 25 **jeder** weitere
+        // Abschluss eines bereits bekannten Wortes das Gewicht erneut dämpfen.
+        learnCount++
+        if (learnCount % DECAY_INTERVAL == 0) {
             for (k in userFreq.keys.toList()) userFreq[k]?.let { cur -> userFreq[k] = cur * DECAY_FACTOR }
         }
     }
@@ -197,36 +203,60 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         /** Next-Word-Prediction: Bigramm zuerst, dann häufigste Basis-/Nutzerwörter. */
     private fun predictNext(prev: String?, max: Int, sentenceStart: Boolean = false): List<Suggestion> {
         val results = LinkedHashMap<String, Double>()
-        if (prev != null && !sentenceStart) {
-            bigrams.entries
-                .filter { it.key.startsWith("$prev ") }
-                .map { it.key.substringAfter(' ') to it.value }
-                .sortedByDescending { it.second }.take(MAX_BIGRAM_PREDICTIONS)
-                .forEach { (w, weight) ->
-                    results[w] = weight * PREDICT_BIGRAM_WEIGHT + baseScore(w) * PREDICT_BASE_WEIGHT + (userFreq[w] ?: 0.0)
-                }
-        }
-        if (results.size < max) {
-            var added = 0
-            val limit = max * USER_SCAN_LIMIT_FACTOR
-            for ((w, bonus) in userFreq.entries) {
-                if (w == prev || results.containsKey(w)) continue
+        if (prev != null && !sentenceStart) addBigramPredictions(results, prev)
+        if (results.size < max) addScoredCandidates(results, prev, sentenceStart, max)
+        return finalize(results, max)
+    }
+
+    /** Nutzer- und Basiswörter nach Score ergänzen (gemeinsames Limit). */
+    private fun addScoredCandidates(
+        results: LinkedHashMap<String, Double>,
+        prev: String?,
+        sentenceStart: Boolean,
+        max: Int
+    ) {
+        var added = 0
+        val limit = max * USER_SCAN_LIMIT_FACTOR
+        val userEntries = userFreq.entries.toList()
+        var i = 0
+        while (i < userEntries.size && added <= limit) {
+            val (w, bonus) = userEntries[i]
+            i++
+            if (w != prev && !results.containsKey(w)) {
                 var score = baseScore(w) * BASE_WEIGHT + bonus
                 if (sentenceStart) score *= sentenceStartBoost(w)
                 results[w] = score
-                if (++added > limit) break
+                added++
             }
-            for (w in topBaseOrder) {
-                if (w == prev || results.containsKey(w)) continue
+        }
+        i = 0
+        while (i < topBaseOrder.size && added <= limit) {
+            val w = topBaseOrder[i]
+            i++
+            if (w != prev && !results.containsKey(w)) {
                 var score = baseScore(w) * BASE_WEIGHT
                 if (sentenceStart) score *= sentenceStartBoost(w)
                 results[w] = score
-                if (++added > limit) break
+                added++
             }
         }
-        return results.entries.sortedByDescending { it.value }.take(max)
-            .map { Suggestion(it.key, it.value) }
     }
+
+    /** Bigramm-Vorhersagen für [prev] ergänzen (gewichtete Mischung mit Basis-Score). */
+    private fun addBigramPredictions(results: LinkedHashMap<String, Double>, prev: String) {
+        bigrams.entries
+            .filter { it.key.startsWith("$prev ") }
+            .map { it.key.substringAfter(' ') to it.value }
+            .sortedByDescending { it.second }.take(MAX_BIGRAM_PREDICTIONS)
+            .forEach { (w, weight) ->
+                results[w] = weight * PREDICT_BIGRAM_WEIGHT + baseScore(w) * PREDICT_BASE_WEIGHT + (userFreq[w] ?: 0.0)
+            }
+    }
+
+    /** Ergebnisse absteigend sortieren und auf [max] Einträge begrenzen. */
+    private fun finalize(results: LinkedHashMap<String, Double>, max: Int): List<Suggestion> =
+        results.entries.sortedByDescending { it.value }.take(max)
+            .map { Suggestion(it.key, it.value) }
 
     /** Satzanfang-Boost, siehe [SuggestionCorrection.sentenceStartBoost]. */
     private fun sentenceStartBoost(word: String): Double =
@@ -235,45 +265,51 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
     /** Autovervollständigung + Fehlerkorrektur für das aktuelle Teilwort. */
     private fun completeWord(cur: String, prev: String?, max: Int): List<Suggestion> {
         val results = LinkedHashMap<String, Double>()
-        val bigramBonus: (String) -> Double = { w ->
-            if (prev != null) bigrams["$prev $w"] ?: 0.0 else 0.0
-        }
-        val userBonus: (String) -> Double = { w -> userFreq[w] ?: 0.0 }
-        fun consider(w: String, penalty: Double = 0.0) {
-            // Exakt getipptes Wort nie vorschlagen ( Nutzer tippt es ja schon )
-            if (w.lowercase() == cur) return
-            // Längere Kandidaten leicht abwerten: kürzere Vervollständigungen
-            // sind näher an der Eingabe (Deterministisch, winziger Faktor).
-            val lenPenalty = (w.length - cur.length).coerceAtLeast(0) * LEN_PENALTY_FACTOR
-            val s = baseScore(w) + userBonus(w) * USER_WEIGHT + bigramBonus(w) * BIGRAM_WEIGHT -
-                penalty - lenPenalty
-            val existing = results[w]
-            if (existing == null || existing < s) results[w] = s
-        }
         // Prefix-Kandidaten kommen aus dem Char-Index (case-insensitiv aufgebaut,
         // [cur] ist bereits lowercase) statt aus einem Voll-Scan über alle
         // ~6.000 Korpuswörter pro Tastendruck — gleiches Ergebnis, ~10x weniger
         // Kandidaten (vgl. [fuzzyCandidates] für den Fuzzy-Pfad).
         forEachBaseWordStartingWith(cur[0]) { w ->
-            if (w.lowercase().startsWith(cur)) consider(w)
+            if (w.lowercase().startsWith(cur)) consider(results, cur, prev, w)
         }
-        for (w in userFreq.keys) if (w.startsWith(cur)) consider(w)
-        if (results.size < max) {
-            val maxDist = if (cur.length >= FUZZY_DIST2_MIN_LENGTH) 2
-                else if (cur.length >= FUZZY_DIST1_MIN_LENGTH) 1 else 0
-            if (maxDist > 0) {
-                val first = cur[0]
-                val second = cur.getOrNull(1)
-                for (w in fuzzyCandidates(first, second)) {
-                    // Längen-Differenz ist eine Untergrenze der Edit-Distanz
-                    if (Math.abs(w.length - cur.length) > maxDist) continue
-                    val dist = editDistance(cur, w)
-                    if (dist in 1..maxDist) consider(w, penalty = dist * DIST_PENALTY)
-                }
-            }
+        for (w in userFreq.keys) if (w.startsWith(cur)) consider(results, cur, prev, w)
+        if (results.size < max) addFuzzyMatches(cur, prev, results)
+        return finalize(results, max)
+    }
+
+    /** Kandidat [w] bewerten und ggf. in [results] aufnehmen. */
+    private fun consider(
+        results: LinkedHashMap<String, Double>,
+        cur: String,
+        prev: String?,
+        w: String,
+        penalty: Double = 0.0
+    ) {
+        // Exakt getipptes Wort nie vorschlagen (Nutzer tippt es ja schon).
+        if (w.lowercase() == cur) return
+        // Längere Kandidaten leicht abwerten: kürzere Vervollständigungen
+        // sind näher an der Eingabe (deterministisch, winziger Faktor).
+        val lenPenalty = (w.length - cur.length).coerceAtLeast(0) * LEN_PENALTY_FACTOR
+        val bigramBonus = if (prev != null) bigrams["$prev $w"] ?: 0.0 else 0.0
+        val userBonus = userFreq[w] ?: 0.0
+        val s = baseScore(w) + userBonus * USER_WEIGHT + bigramBonus * BIGRAM_WEIGHT - penalty - lenPenalty
+        val existing = results[w]
+        if (existing == null || existing < s) results[w] = s
+    }
+
+    /** Fuzzy-Vervollständigungen (Edit-Distanz 1..2) ergänzen, solange Platz ist. */
+    private fun addFuzzyMatches(cur: String, prev: String?, results: LinkedHashMap<String, Double>) {
+        val maxDist = if (cur.length >= FUZZY_DIST2_MIN_LENGTH) 2
+            else if (cur.length >= FUZZY_DIST1_MIN_LENGTH) 1 else 0
+        if (maxDist == 0) return
+        val first = cur[0]
+        val second = cur.getOrNull(1)
+        for (w in fuzzyCandidates(first, second)) {
+            // Längen-Differenz ist eine Untergrenze der Edit-Distanz.
+            if (Math.abs(w.length - cur.length) > maxDist) continue
+            val dist = editDistance(cur, w)
+            if (dist in 1..maxDist) consider(results, cur, prev, w, dist * DIST_PENALTY)
         }
-        return results.entries.sortedByDescending { it.value }.take(max)
-            .map { Suggestion(it.key, it.value) }
     }
 
     /** Groß-/Kleinschreibung übertragen, siehe [SuggestionCorrection.matchCase]. */
@@ -298,12 +334,22 @@ class SuggestionEngine(baseWords: List<Pair<String, Int>>) {
         bigrams.clear()
         var inBigrams = false
         for (entry in raw.split(SEP_ENTRY)) {
-            if (entry.isEmpty()) { inBigrams = true; continue }
-            val parts = entry.split(SEP_FIELD)
-            if (parts.size != 2) continue
-            val f = parts[1].toDoubleOrNull() ?: continue
-            if (!inBigrams) userFreq[parts[0]] = f else bigrams[parts[0]] = f
+            if (entry.isEmpty()) {
+                inBigrams = true
+                continue
+            }
+            parseEntry(entry)?.let { (word, freq) ->
+                if (inBigrams) bigrams[word] = freq else userFreq[word] = freq
+            }
         }
+    }
+
+    /** Parst einen serialisierten Eintrag (`word SEP_FIELD freq`); null bei Fehlformat. */
+    private fun parseEntry(entry: String): Pair<String, Double>? {
+        val parts = entry.split(SEP_FIELD)
+        if (parts.size != 2) return null
+        val f = parts[1].toDoubleOrNull() ?: return null
+        return parts[0] to f
     }
 }
 

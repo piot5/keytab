@@ -147,6 +147,16 @@ class ThemePrefsTest {
     }
 
     @Test
+    fun `importColors schreibt bei Typfehler nichts (kein Halb-Import)`() {
+        ThemePrefs.setColor(prefs, true, ThemePrefs.KIND_BG, 123)
+        val before = prefs.all
+        // "dark"."bg" ist ein String statt einer Zahl → getInt wirft mitten im Parse.
+        val json = """{"dark":{"bg":"kein-int"},"light":{"key":456}}"""
+        assertFalse(ThemePrefs.importColors(prefs, json))
+        assertEquals("Prefs bleiben unveraendert", before, prefs.all)
+    }
+
+    @Test
     fun `resetAll entfernt alle Overrides`() {
         ThemePrefs.setColor(prefs, true, ThemePrefs.KIND_BG, 1)
         ThemePrefs.setColor(prefs, false, ThemePrefs.KIND_KEY, 2)
@@ -161,7 +171,15 @@ class ThemePrefsTest {
 
     @Test
     fun `Likely-Default ist an`() {
-        // Nutzer-Standard (keytab_config.txt, 2026-09-28): `gaming_mode = true`.
+        // Nutzer-Standard (keytab_config.txt, 2026-09-28): `likely = true`.
         assertTrue(ThemePrefs.likelyHighlighting(prefs))
+    }
+
+    @Test
+    fun `Legacy-Key gaming_mode wird nach likely migriert`() {
+        prefs.edit().putBoolean("gaming_mode", false).apply()
+        assertFalse(ThemePrefs.likelyHighlighting(prefs))
+        assertFalse("Legacy-Key wird entfernt", prefs.contains("gaming_mode"))
+        assertTrue("Wert landet unter dem neuen Key", prefs.contains(ThemePrefs.KEY_LIKELY))
     }
 }

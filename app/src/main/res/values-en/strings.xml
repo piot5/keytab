@@ -91,6 +91,17 @@
     <string name="settings_cleanup_dictionary_found">%1$d suspicious learned entries found. Delete them?</string>
     <string name="settings_cleanup_dictionary_done">Learned dictionary cleaned: %1$d entries removed.</string>
     <string name="settings_cleanup_dictionary_failed">The learned dictionary could not be cleaned.</string>
+    <string name="settings_section_cline_companion">Cline companion mode</string>
+    <string name="settings_cline_companion">Cline companion mode</string>
+    <string name="settings_cline_companion_off">Cline companion mode disabled</string>
+    <string name="settings_cline_file_badge">File badge (number of open files)</string>
+    <string name="settings_cline_auto_load">Auto-load (files written by cline)</string>
+    <string name="settings_cline_tab_context_menu">Tab context menu (long-press)</string>
+    <string name="editor_tab_menu_title">Editor</string>
+    <string name="editor_tab_close_all">Close all</string>
+    <string name="editor_tab_new_file">New file</string>
+    <string name="editor_tab_save_current">Save current</string>
+    <string name="editor_tab_reload">Reload</string>
     <string name="config_ready">Config ready: %1$s</string>
     <string name="ime_tab_editor_short">Editor</string>
     <string name="ime_tab_clip_short">Clip</string>
@@ -162,7 +173,6 @@
     <string name="background_error">Could not access the image.</string>
     <string name="background_ratio">Recommendation: landscape around 2:1 (for example 1600 × 800 px). The ideal ratio depends on your device, orientation, number row, and tab.</string>
     <string name="gradient_enabled">Gradient enabled</string>
-    <string name="theme_likely_toggle">Likely Highlighting</string>
     <string name="theme_preview_suggestion">Suggestion</string>
     <string name="fm_overwrite_title">Overwrite?</string>
     <string name="fm_overwrite_message">%1$s already exists. Overwrite it?</string>

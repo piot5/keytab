@@ -77,10 +77,10 @@ object KeyScaleLogic {
         //    (Nachbarn können selbst keinen Score haben — müssen trotzdem geprüft werden)
         val candidates = rel.keys + rel.keys.flatMap { neighborsOf(it) }
         for (c in candidates) {
-            if (out.containsKey(c)) continue
             val hotNeighborRel = neighborsOf(c).mapNotNull { rel[it] }
                 .filter { it >= p.midThreshold }
-                .maxOrNull() ?: continue
+                .maxOrNull()
+            if (out.containsKey(c) || hotNeighborRel == null) continue
             out[c] = if (hotNeighborRel >= p.hotThreshold) p.minNeighborScale
             else p.midNeighborScale
         }

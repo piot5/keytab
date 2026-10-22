@@ -44,6 +44,12 @@ object EditorHighlightLogic {
     /** Performance-Guard: darüber wird nicht mehr hervorgehoben. */
     const val MAX_SCAN_CHARS = 20_000
 
+    /** true, wenn ab [i] ein Hex-Literal beginnt (`0x`/`0X`). */
+    private fun isHexPrefix(text: String, i: Int, n: Int): Boolean {
+        if (text[i] != '0' || i + 1 >= n) return false
+        return text[i + 1] == 'x' || text[i + 1] == 'X'
+    }
+
     /** Liefert sortierte, nicht überlappende Span-Bereiche für [text]. */
     fun spans(text: String, maxChars: Int = MAX_SCAN_CHARS): List<Span> {
         if (text.isEmpty()) return emptyList()
@@ -51,47 +57,55 @@ object EditorHighlightLogic {
         val out = ArrayList<Span>()
         var i = 0
         while (i < n) {
-            val c = text[i]
             when {
-                c == '#' || (c == '/' && i + 1 < n && text[i + 1] == '/') -> {
-                    var end = i
-                    while (end < n && text[end] != '\n') end++
-                    out.add(Span(i, end, Kind.COMMENT))
-                    i = end
-                }
-                c == '"' || c == '\'' -> {
-                    val quote = c
-                    var end = i + 1
-                    while (end < n) {
-                        val e = text[end]
-                        if (e == '\\') { end += 2; continue }
-                        if (e == quote || e == '\n') break
-                        end++
-                    }
-                    val close = if (end < n && text[end] == quote) end + 1 else minOf(end, n)
-                    out.add(Span(i, close, Kind.STRING))
-                    i = close
-                }
-                c.isDigit() -> {
-                    var end = i
-                    if (c == '0' && i + 1 < n && (text[i + 1] == 'x' || text[i + 1] == 'X')) {
-                        end = i + 2
-                        while (end < n && text[end] in "0123456789abcdefABCDEF") end++
-                    } else {
-                        while (end < n && (text[end].isDigit() || text[end] == '.')) end++
-                    }
-                    out.add(Span(i, end, Kind.NUMBER))
-                    i = end
-                }
-                c.isLetter() || c == '_' -> {
-                    var end = i
-                    while (end < n && (text[end].isLetterOrDigit() || text[end] == '_')) end++
-                    if (text.substring(i, end) in KEYWORDS) out.add(Span(i, end, Kind.KEYWORD))
-                    i = end
-                }
+                text[i] == '#' || isLineCommentStart(text, i, n) -> i = scanComment(text, i, n, out)
+                text[i] == '"' || text[i] == '\'' -> i = scanString(text, i, n, out)
+                text[i].isDigit() -> i = scanNumber(text, i, n, out)
+                text[i].isLetter() || text[i] == '_' -> i = scanWord(text, i, n, out)
                 else -> i++
             }
         }
         return out
+    }
+
+    private fun isLineCommentStart(text: String, i: Int, n: Int): Boolean =
+        text[i] == '/' && i + 1 < n && text[i + 1] == '/'
+
+    private fun scanComment(text: String, i: Int, n: Int, out: MutableList<Span>): Int {
+        var end = i
+        while (end < n && text[end] != '\n') end++
+        out.add(Span(i, end, Kind.COMMENT))
+        return end
+    }
+
+    private fun scanString(text: String, i: Int, n: Int, out: MutableList<Span>): Int {
+        val quote = text[i]
+        var end = i + 1
+        while (end < n && text[end] != quote && text[end] != '\n') {
+            if (text[end] == '\\') { end += 2; continue }
+            end++
+        }
+        val close = if (end < n && text[end] == quote) end + 1 else minOf(end, n)
+        out.add(Span(i, close, Kind.STRING))
+        return close
+    }
+
+    private fun scanNumber(text: String, i: Int, n: Int, out: MutableList<Span>): Int {
+        var end = i
+        if (isHexPrefix(text, i, n)) {
+            end = i + 2
+            while (end < n && text[end] in "0123456789abcdefABCDEF") end++
+        } else {
+            while (end < n && (text[end].isDigit() || text[end] == '.')) end++
+        }
+        out.add(Span(i, end, Kind.NUMBER))
+        return end
+    }
+
+    private fun scanWord(text: String, i: Int, n: Int, out: MutableList<Span>): Int {
+        var end = i
+        while (end < n && (text[end].isLetterOrDigit() || text[end] == '_')) end++
+        if (text.substring(i, end) in KEYWORDS) out.add(Span(i, end, Kind.KEYWORD))
+        return end
     }
 }

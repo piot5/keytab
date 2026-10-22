@@ -53,145 +53,140 @@ object ThemeApplier {
      * @param ctx Kontext im übersteuerten Theme (Standard-Farben hieraus)
      */
     fun apply(prefs: SharedPreferences, dark: Boolean, root: View, ctx: Context) {
-        val v = root
-        val context = ctx
-        val defKbdBg = ContextCompat.getColor(context, R.color.kbd_bg)
-        val defKeyBg = ContextCompat.getColor(context, R.color.key_bg)
-        val defPressed = ContextCompat.getColor(context, R.color.key_pressed)
-        val defText = ContextCompat.getColor(context, R.color.key_text)
-        val defPrimary = ContextCompat.getColor(context, R.color.primary)
-        val bg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_BG, defKbdBg)
-        val keyBg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_KEY, defKeyBg)
-        val hl = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_HL, defPressed)
-        val text = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_TEXT, defText)
+        val s = resolveTheme(prefs, dark, ctx)
+        ThemePrefs.gradientDrawable(prefs, dark, ctx.resources.displayMetrics.widthPixels)
+            ?.let { root.background = it }
+            ?: run { root.background = ColorDrawable(s.bg) }
+        forEachView(root) { view -> recolourView(view, root, s) }
+        applyTabBar(root, s)
+        applySuggestionBar(root, s)
+        BackgroundImage.apply(root, ctx, root.background ?: ColorDrawable(s.bg))
+    }
 
-        val dip = context.resources.displayMetrics.density
-        fun rounded(color: Int) = GradientDrawable().apply {
-            cornerRadius = KEY_RADIUS_DP * context.resources.displayMetrics.density
-            setColor(color)
+    private fun resolveTheme(prefs: SharedPreferences, dark: Boolean, ctx: Context): ThemeState {
+        val baseKbdBg = ContextCompat.getColor(ctx, R.color.kbd_bg)
+        val baseKeyBg = ContextCompat.getColor(ctx, R.color.key_bg)
+        val basePressed = ContextCompat.getColor(ctx, R.color.key_pressed)
+        val baseText = ContextCompat.getColor(ctx, R.color.key_text)
+        val basePrimary = ContextCompat.getColor(ctx, R.color.primary)
+        return ThemeState().apply {
+            bg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_BG, baseKbdBg)
+            keyBg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_KEY, baseKeyBg)
+            hl = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_HL, basePressed)
+            text = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_TEXT, baseText)
+            defKeyBg = baseKeyBg
+            defKbdBg = baseKbdBg
+            defPressed = basePressed
+            defText = baseText
+            defPrimary = basePrimary
+            defTabState = ContextCompat.getDrawable(ctx, R.drawable.tab_bg_flat)?.constantState
+            defSugState = ContextCompat.getDrawable(ctx, R.drawable.sug_top_bg)?.constantState
+            dip = ctx.resources.displayMetrics.density
         }
-        fun keyBackground() = StateListDrawable().apply {
-            addState(intArrayOf(android.R.attr.state_pressed), rounded(hl))
-            addState(intArrayOf(), rounded(keyBg))
-        }
-        /** FLACHE (eckige) Variante ohne cornerRadius: für die obere Zeile
-         *  (Tab-Zellen, ☾/☀-Taste, ⚙-Taste). Diese Elemente sollen die Zelle
-         *  komplett ausfüllen und NICHT auf abgerundeten Feldern sitzen. */
-        fun flatKeyState() = StateListDrawable().apply {
-            addState(intArrayOf(android.R.attr.state_pressed), ColorDrawable(hl))
-            addState(intArrayOf(), ColorDrawable(keyBg))
-        }
-        /** Vorschlagsleisten-Look: key_bg + flacher 3dp-Streifen oben (primär). */
-        fun sugLayer() = LayerDrawable(
-            arrayOf(ColorDrawable(keyBg), GradientDrawable().apply { setColor(defPrimary) }))
-            .apply {
-                setLayerGravity(1, Gravity.TOP)
-                setLayerHeight(1, (3 * dip).toInt())
-            }
-        val defTabState = ContextCompat.getDrawable(context, R.drawable.tab_bg_flat)?.constantState
-        val defSugState = ContextCompat.getDrawable(context, R.drawable.sug_top_bg)?.constantState
+    }
 
-        // Root: Verlauf wenn aktiv (Default je Modus), sonst Background-Farbe
-        // (explizite BG-Farbe oder Verlauf-OFF → flat, separat hell/dunkel)
-        ThemePrefs.gradientDrawable(prefs, dark,
-            context.resources.displayMetrics.widthPixels)?.let { v.background = it }
-            ?: run { v.background = ColorDrawable(bg) }
-        forEachView(v) { view ->
-            val state = view.background?.constantState
-            when (state) {
-                defTabState -> view.background = flatKeyState()
-                defSugState -> view.background = sugLayer()
-                else -> {
-                    val d = view.background
-                    // Tab-Hintergrund (tab_bg_inset = InsetDrawable um key_bg):
-                    // constantState-Match greift nicht → Abgleich per Typ.
-                    if (d is InsetDrawable) {
-                        view.background = InsetDrawable(
-                            keyBackground(),
-                            (KEY_INSET_H_DP * dip).toInt(), (KEY_INSET_V_DP * dip).toInt(),
-                            (KEY_INSET_H_DP * dip).toInt(), (KEY_INSET_V_DP * dip).toInt())
-                    }
-                    // KeyTab-Tasten (KeyDark-Style, @drawable/key_bg): der constantState
-                    // des inflaten Drawables weicht vom frisch aufgelösten ab (enthält
-                    // Laufzeit-State) → Abgleich per Typ statt constantState. Alle
-                    // Tastatur-Tasten sind Buttons mit StateListDrawable-Hintergrund.
-                    else if (view is Button && d is StateListDrawable) {
-                        view.background = keyBackground()
-                    } else if (d is ColorDrawable) {
-                        when (d.color) {
-                            defKeyBg -> view.background = ColorDrawable(keyBg)
-                            // Container mit kbd_bg (obere Tab-Zeile, Vorschlagsleiste):
-                            // TRANSPARENT statt erneut bg. Sonst stapeln sich Root-bg +
-                            // Zeilen-bg (+ TabLayout) und bei halbtransparentem BG wirken
-                            // diese Zeilen undurchsichtiger als die Buchstabenreihen,
-                            // die keinen eigenen Hintergrund haben. Außerdem bleibt ein
-                            // konfigurierter Verlauf so in den oberen Zeilen sichtbar.
-                            defKbdBg -> view.background = if (view === v) ColorDrawable(bg)
-                                else ColorDrawable(android.graphics.Color.TRANSPARENT)
-                            defPressed -> view.background = ColorDrawable(hl)
-                        }
-                    }
-                }
+    private fun recolourView(view: View, root: View, s: ThemeState) {
+        val state = view.background?.constantState
+        if (state == s.defTabState) {
+            view.background = s.flatKeyState()
+        } else if (state == s.defSugState) {
+            view.background = s.sugLayer()
+        } else {
+            recolourByType(view, root, s)
+        }
+        if (view is TextView && view.currentTextColor == s.defText) {
+            view.setTextColor(s.text)
+        }
+    }
+
+    private fun recolourByType(view: View, root: View, s: ThemeState) {
+        val d = view.background
+        if (d is InsetDrawable) {
+            view.background = InsetDrawable(
+                s.keyBackground(),
+                (KEY_INSET_H_DP * s.dip).toInt(), (KEY_INSET_V_DP * s.dip).toInt(),
+                (KEY_INSET_H_DP * s.dip).toInt(), (KEY_INSET_V_DP * s.dip).toInt())
+        } else if (view is Button && d is StateListDrawable) {
+            view.background = s.keyBackground()
+        } else if (d is ColorDrawable) {
+            when (d.color) {
+                s.defKeyBg -> view.background = ColorDrawable(s.keyBg)
+                s.defKbdBg -> view.background =
+                    if (view === root) ColorDrawable(s.bg)
+                    else ColorDrawable(android.graphics.Color.TRANSPARENT)
+                s.defPressed -> view.background = ColorDrawable(s.hl)
             }
-            if (view is TextView && view.currentTextColor == defText) {
-                view.setTextColor(text)
         }
-        }
-        // Tab-Leiste (ABC/Notes/Files): Material legt sein eigenes Drawable
-        // (Ripple/tabBackground) um die TabViews → constantState-Match schlägt fehl.
-        // Explizit pro TabView setzen (SlidingTabIndicator → TabView-Kinder).
-        v.findViewById<TabLayout>(R.id.ime_tabs)?.let { tabs ->
-            // Textfarben ZUERST: Material kann bei Text-/Tab-Updates das XML-
-            // tabBackground erneut auf die TabViews legen – danach gesetzte
-            // Hintergründe gewinnen dann immer.
-            val dimText = androidx.core.graphics.ColorUtils.setAlphaComponent(
-                text, (android.graphics.Color.alpha(text) * TAB_TEXT_DIM_FACTOR).toInt().coerceAtMost(FULL_ALPHA))
-            tabs.setTabTextColors(dimText, text)
-            // Die Tab-Leiste SELBST trägt von Material colorSurface (= surface, grau)
-            // als Hintergrund. Würde sie grau bleiben, schimmert sie durch
-            // halbtransparente (Alpha-)Tab-Hintergründe → Tastenfarbe/Alpha wirkt
-            // dort nicht. TRANSPARENT (nicht bg!): Der themierte Hintergrund kommt
-            // ausschließlich vom Root. Ein zusätzliches bg hier würde sich mit dem
-            // Root-bg stapeln und die obere Zeile bei Alpha undurchsichtiger machen
-            // als die Buchstabenreihen (ein Verlauf wäre hier verdeckt).
-            tabs.background = ColorDrawable(
-                android.graphics.Color.TRANSPARENT)
-            for (i in 0 until tabs.childCount) {
-                val indicator = tabs.getChildAt(i)
-                if (indicator is ViewGroup) {
-                    indicator.background = ColorDrawable(
-                        android.graphics.Color.TRANSPARENT)
-                    for (j in 0 until indicator.childCount) {
-                        // FLACH + eckig: Zelle komplett gefüllt, keine Rundung,
-                        // keine Insets → keine Lücken links/rechts der Zellen.
-                        indicator.getChildAt(j).background = flatKeyState()
-                        // Material kann ein Ripple-Foreground darüberlegen
-                        indicator.getChildAt(j).foreground = null
-                    }
+    }
+
+    private fun applyTabBar(root: View, s: ThemeState) {
+        val tabs = root.findViewById<TabLayout>(R.id.ime_tabs) ?: return
+        val dimText = androidx.core.graphics.ColorUtils.setAlphaComponent(
+            s.text, (android.graphics.Color.alpha(s.text) * TAB_TEXT_DIM_FACTOR).toInt().coerceAtMost(FULL_ALPHA))
+        tabs.setTabTextColors(dimText, s.text)
+        tabs.background = ColorDrawable(android.graphics.Color.TRANSPARENT)
+        for (i in 0 until tabs.childCount) {
+            val indicator = tabs.getChildAt(i)
+            if (indicator is ViewGroup) {
+                indicator.background = ColorDrawable(android.graphics.Color.TRANSPARENT)
+                for (j in 0 until indicator.childCount) {
+                    indicator.getChildAt(j).background = s.flatKeyState()
+                    indicator.getChildAt(j).foreground = null
                 }
             }
         }
-        // Vorschlagsleiste: sug_1 bekommt sugLayer(), sug_2/3 soliden keyBg-Hintergrund.
-        // Per ID (nicht über constantState-Match, der beim 2. Durchlauf unter Alpha nicht trifft).
-        // Alpha + Textfarbe immer aktiv setzen, damit Änderungen sofort wirksam sind.
-        // Hinweis: sug_* sind TextView (nicht Button), key_theme/key_settings sind Buttons.
-        // ☾/☀ und ⚙ FLACH/eckig (flatKeyState) statt keyBackground(): die abgerundete
-        // Variante ließ die Taste „abgerundet" aussehen und an den Rändern der obersten
-        // Zeile Lücken entstehen. Beide Tasten gleich behandeln → konsistenter Look.
-        // key_maximize: Maximieren-Zeile am unteren Rand, gleicher flacher Look
-        // wie die obere Leiste (Button, nicht TextView).
+    }
+
+    private fun applySuggestionBar(root: View, s: ThemeState) {
         for (id in intArrayOf(R.id.key_theme, R.id.key_settings, R.id.key_maximize)) {
-            val btn = v.findViewById<Button>(id) ?: continue
-            btn.setTextColor(text)
-            btn.background = flatKeyState()
+            val btn = root.findViewById<Button>(id) ?: continue
+            btn.setTextColor(s.text)
+            btn.background = s.flatKeyState()
         }
         for (id in intArrayOf(R.id.sug_emoji, R.id.sug_back, R.id.sug_grid,
                 R.id.sug_1, R.id.sug_2, R.id.sug_3, R.id.sug_4, R.id.sug_5,
                 R.id.sug_hide)) {
-            val sug = v.findViewById<View>(id) ?: continue
-            sug.background = if (id == R.id.sug_1) sugLayer() else ColorDrawable(keyBg)
-            (sug as? TextView)?.setTextColor(text)
+            val sug = root.findViewById<View>(id) ?: continue
+            sug.background = if (id == R.id.sug_1) s.sugLayer() else ColorDrawable(s.keyBg)
+            (sug as? TextView)?.setTextColor(s.text)
         }
-        BackgroundImage.apply(v, context, v.background ?: ColorDrawable(bg))
+    }
+
+    /** Aufgeloeste Theme-Farben + Drawable-Fabriken (ein Kontext fuer den Apply-Durchlauf). */
+    private class ThemeState {
+        var bg = 0
+        var keyBg = 0
+        var hl = 0
+        var text = 0
+        var defKeyBg = 0
+        var defKbdBg = 0
+        var defPressed = 0
+        var defText = 0
+        var defPrimary = 0
+        var defTabState: android.graphics.drawable.Drawable.ConstantState? = null
+        var defSugState: android.graphics.drawable.Drawable.ConstantState? = null
+        var dip = 0f
+
+        fun rounded(color: Int): GradientDrawable = GradientDrawable().apply {
+            cornerRadius = KEY_RADIUS_DP * dip
+            setColor(color)
+        }
+
+        fun keyBackground(): StateListDrawable = StateListDrawable().apply {
+            addState(intArrayOf(android.R.attr.state_pressed), rounded(hl))
+            addState(intArrayOf(), rounded(keyBg))
+        }
+
+        fun flatKeyState(): StateListDrawable = StateListDrawable().apply {
+            addState(intArrayOf(android.R.attr.state_pressed), ColorDrawable(hl))
+            addState(intArrayOf(), ColorDrawable(keyBg))
+        }
+
+        fun sugLayer(): LayerDrawable = LayerDrawable(
+            arrayOf(ColorDrawable(keyBg), GradientDrawable().apply { setColor(defPrimary) })
+        ).apply {
+            setLayerGravity(1, Gravity.TOP)
+            setLayerHeight(1, (3 * dip).toInt())
+        }
     }
 }

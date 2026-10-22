@@ -5,16 +5,10 @@ import android.view.inputmethod.EditorInfo
 
 /**
  * Reine Swipe-Logik (Android-frei bis auf die [EditorInfo]-Ableitung, JUnit-testbar):
- * Pfad-Sampling (Dedup + Buchstaben-Zuordnung über eine Zentren-Matrix) und die
- * Prognose-Knoten für die Schaltplan-Preview.
+ * Pfad-Sampling (Dedup + Buchstaben-Zuordnung über eine Zentren-Matrix).
  *
- * **Zwei Betriebsarten**:
- *  - **Schaltplan-Preview (passiv):** die wahrscheinlichen Folge-Tasten des
- *    aktuell getippten Worts werden als verbundener Pfad sichtbar – Knoten =
- *    skalierte, einfarbige Tasten in der Pfad-Farbe (`KIND_SWIPE`).
- *  - **Swipe-Eingabe (aktiv):** der Finger gleitet über die Tastatur; die
- *    gefahrene Route wird gesampelt und vom [SwipeScorer] gegen die Engine
- *    bewertet.
+ * **Swipe-Eingabe:** der Finger gleitet über die Tastatur; die gefahrene Route
+ * wird gesampelt und vom [SwipeScorer] gegen die Engine bewertet.
  *
  * **Sicherheit:** In Passwort-Feldern ist Swipe komplett deaktiviert – gleiche
  * harte Regel wie [TrailLogic.isTrailAllowed] (Feld-Flag +
@@ -32,9 +26,6 @@ object SwipePathLogic {
     /** Toleranz-Faktor für [charAt]: eine Taste gilt getroffen, wenn die Koordinate
      *  innerhalb von [CHAR_TOLERANCE] × Tasten-Halbmesser um das Zentrum liegt. */
     const val CHAR_TOLERANCE = 1.3f
-
-    /** Maximal-Prognosetiefe der Preview (Empfehlung aus dem Plan: 1). */
-    const val DEFAULT_PREVIEW_DEPTH = 1
 
     /** Ein Sample der gefahrenen Route (Geräte-Koordinaten). */
     data class Sample(val x: Float, val y: Float)
@@ -115,39 +106,6 @@ object SwipePathLogic {
         }
         return sb.toString()
     }
-
-    /**
-     * Prognose-Knoten für die Schaltplan-Preview: die nächsten wahrscheinlichen
-     * Buchstaben des aktuell getippten Worts, abgeleitet aus den Top-Vorschlägen
-     * an Position `typed.length`. Tiefe [depth] = 1 → nur der jeweils nächste
-     * Buchstabe jedes Top-Vorschlags (dedupliziert, Reihenfolge erhalten).
-     */
-    fun previewNodes(
-        suggestions: List<SuggestionEngine.Suggestion>,
-        typedLength: Int,
-        depth: Int = DEFAULT_PREVIEW_DEPTH
-    ): List<Char> {
-        val out = LinkedHashMap<Char, Boolean>()
-        for (s in suggestions) {
-            for (k in 1..depth) {
-                val ch = s.word.getOrNull(typedLength + k - 1)?.lowercaseChar() ?: break
-                out[ch] = true
-            }
-        }
-        return out.keys.toList()
-    }
-
-    /**
-     * Wahr, wenn [hit] (der im Swipe gerade erreichte Buchstabe) einer der zuvor
-     * als most-likely angezeigten Folge-Tasten ([likelyNodes]) war. Das ist der
-     * Trigger für die grüne Trail-Einfärbung während des Swipens: wer dem
-     * Schaltplan folgt, sieht die gefahrene Route grün aufleuchten.
-     *
-     * Case-insensitiv (beide Seiten lowercase), da [previewNodes] Kleinbuchstaben
-     * liefert und der Swipe-[hit] ebenfalls kleingeschrieben gemeldet wird.
-     */
-    fun isLikelyHit(likelyNodes: List<Char>, hit: Char): Boolean =
-        likelyNodes.contains(hit.lowercaseChar())
 
     /**
      * Darf Swipe in diesem Feld überhaupt aktiv sein? – gleiche harte Regel wie

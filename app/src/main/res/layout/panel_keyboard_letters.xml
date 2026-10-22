@@ -65,7 +65,10 @@
                 <Button style="@style/KeyDark" android:tag="letter" android:text="b" />
                 <Button style="@style/KeyDark" android:tag="letter" android:text="n" />
                 <Button style="@style/KeyDark" android:tag="letter" android:text="m" />
-                <Button style="@style/KeyDark" android:tag="letter" android:text="ß" />
-                <Button style="@style/KeyDark" android:id="@+id/key_del" android:text="@string/key_del_label" />
+                <!-- v0.20: eigene ß-Taste entfallen (das Zeichen bleibt über den
+                     Long-Press auf „s“ erreichbar), der frei gewordene Platz geht
+                     an Backspace: weight 2 statt 1 → doppelt breit. -->
+                <Button style="@style/KeyDark" android:id="@+id/key_del" android:layout_weight="2"
+                    android:text="@string/key_del_label" />
             </LinearLayout>
 </LinearLayout>

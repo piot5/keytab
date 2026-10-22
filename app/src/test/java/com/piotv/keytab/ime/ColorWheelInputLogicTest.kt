@@ -113,7 +113,7 @@ class ColorWheelInputLogicTest {
     @Test
     fun `Mitte ist Hue 0 und Saettigung 0`() {
         val out = FloatArray(2)
-        assertTrue(ColorWheelInputLogic().hsvAt(100f, 100f, 80f, 100f, 100f, out))
+        assertTrue(ColorWheelInputLogic().hsvAt(WheelGeometry(100f, 100f, 80f), 100f, 100f, out))
         assertEquals(0f, out[0], 0.001f)
         assertEquals(0f, out[1], 0.001f)
     }
@@ -121,7 +121,7 @@ class ColorWheelInputLogicTest {
     @Test
     fun `rechts ist Hue 0 und max Saettigung`() {
         val out = FloatArray(2)
-        assertTrue(ColorWheelInputLogic().hsvAt(100f, 100f, 80f, 180f, 100f, out))
+        assertTrue(ColorWheelInputLogic().hsvAt(WheelGeometry(100f, 100f, 80f), 180f, 100f, out))
         assertEquals(0f, out[0], 0.001f)
         assertEquals(1f, out[1], 0.001f)
     }
@@ -129,7 +129,7 @@ class ColorWheelInputLogicTest {
     @Test
     fun `unten ist Hue 90 weil der Bildschirm-y nach unten waechst`() {
         val out = FloatArray(2)
-        assertTrue(ColorWheelInputLogic().hsvAt(100f, 100f, 80f, 100f, 180f, out))
+        assertTrue(ColorWheelInputLogic().hsvAt(WheelGeometry(100f, 100f, 80f), 100f, 180f, out))
         assertEquals(90f, out[0], 0.001f)
     }
 
@@ -138,27 +138,27 @@ class ColorWheelInputLogicTest {
         // SweepGradient startet bei 3 Uhr und laeuft im Uhrzeigersinn (Marker:
         // cos/sin mit Bildschirm-y nach unten) — oben liegt also 270, nicht 180.
         val out = FloatArray(2)
-        assertTrue(ColorWheelInputLogic().hsvAt(100f, 100f, 80f, 100f, 20f, out))
+        assertTrue(ColorWheelInputLogic().hsvAt(WheelGeometry(100f, 100f, 80f), 100f, 20f, out))
         assertEquals(270f, out[0], 0.001f)
     }
 
     @Test
     fun `ausserhalb des Radius wird nichts geschrieben`() {
         val out = floatArrayOf(7f, 7f)
-        assertFalse(ColorWheelInputLogic().hsvAt(100f, 100f, 80f, 200f, 100f, out))
+        assertFalse(ColorWheelInputLogic().hsvAt(WheelGeometry(100f, 100f, 80f), 200f, 100f, out))
         assertEquals("Farbe darf sich beim Ziehen ueber den Rand nicht aendern", 7f, out[0], 0.001f)
         assertEquals(7f, out[1], 0.001f)
     }
 
     @Test
     fun `Radius null liefert keine Position`() {
-        assertFalse(ColorWheelInputLogic().hsvAt(100f, 100f, 0f, 100f, 100f, FloatArray(2)))
+        assertFalse(ColorWheelInputLogic().hsvAt(WheelGeometry(100f, 100f, 0f), 100f, 100f, FloatArray(2)))
     }
 
     @Test
     fun `Saettigung halbiert sich auf halbem Radius`() {
         val out = FloatArray(2)
-        assertTrue(ColorWheelInputLogic().hsvAt(0f, 0f, 100f, 50f, 0f, out))
+        assertTrue(ColorWheelInputLogic().hsvAt(WheelGeometry(0f, 0f, 100f), 50f, 0f, out))
         assertEquals(0.5f, out[1], 0.001f)
     }
 }

@@ -27,12 +27,14 @@ class TextCommitController(private val host: Host) {
         // Wortvorhersage-Buchführung: Buchstaben sammeln, Abschluss lernen
         val pm = host.predictionManager
         if (pm != null) {
-            if (text.length == 1 && text[0].isLetter()) {
-                pm.onCharacter(text)
-            } else if (text == " " || text == "." || text == "\n") {
-                pm.onWordCompleted()
-            } else if (pm.currentTypedWord.isNotEmpty() && !text[0].isLetter()) {
-                pm.onWordCompleted()
+            when {
+                // G5: leerer Commit (defensiv, z. B. Taste ohne Hauptbuchstaben)
+                // ändert die Buchführung nicht — der alte letzte Zweig griff sonst
+                // mit text[0] auf einen leeren String zu (StringIndexOutOfBounds).
+                text.isEmpty() -> Unit
+                text.length == 1 && text[0].isLetter() -> pm.onCharacter(text)
+                text == " " || text == "." || text == "\n" -> pm.onWordCompleted()
+                pm.currentTypedWord.isNotEmpty() && !text[0].isLetter() -> pm.onWordCompleted()
             }
         }
         host.consumeSingleShift()

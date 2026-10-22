@@ -64,7 +64,8 @@ class KeyboardBinderTest {
         var shiftVisual = 0
         override fun applyLetterCase(root: View?) { letterCase++ }
         override fun updateShiftVisual(root: View?) { shiftVisual++ }
-        override val letterExtras: Map<Char, List<String>> = mapOf('a' to listOf("\u00E4"))
+        override val letterExtras: Map<Char, List<String>> =
+            mapOf('a' to listOf("\u00E4", "\u00E0"), 'A' to listOf("\u00C4", "\u00C0"))
     }
 
     private class FakeRouterTarget : InputTarget {
@@ -93,6 +94,8 @@ class KeyboardBinderTest {
         override val fileManagerPanel: FileManagerPanel? = null
         override val clipboardPanel: ClipboardPanel? = null
         override val snippetPanel: SnippetPanel? = null
+        override val editorPanel: EditorPanel? = null
+        override fun refreshEditorBadge() = Unit
     }
 
     private class FakeThemeHost(val ctx: Context, popup: LetterPopup) : ThemeHost {
@@ -135,7 +138,7 @@ class KeyboardBinderTest {
             TabController(FakeTabHost(app, popup)),
             ThemeController(FakeThemeHost(app, popup)),
             SuggestionController(FakeSuggHost(app)),
-            null, null)
+            KeyboardBinder.Managers(null, null))
         binder.hook(root)
     }
 
@@ -180,13 +183,27 @@ class KeyboardBinderTest {
     }
 
     @Test
-    fun `Eszett mit Shift wird zu ẞ (Sonderfall ohne uppercaseChar)`() {
+    fun `Eszett hat keine eigene Taste mehr, bleibt aber ueber s erreichbar`() {
+        assertTrue("keine ß-Taste mehr im Layout",
+            host.baseLetters.values.none { it == '\u00DF' })
+        val sReihe = Languages.de.letterExtras(Languages.basePunctuation)['s'].orEmpty()
+        assertTrue("ß muss in der Long-Press-Reihe der s-Taste stehen (ist $sReihe)",
+            sReihe.contains("ß"))
+    }
+
+    @Test
+    fun `Shift aendert die Sonderzeichen-Hinweise nicht`() {
+        // Die Fake-Reihe führt bewusst einen Großbuchstaben-Eintrag ('A' → "Ä"),
+        // wie es die echten Sprachdaten vor v0.20 taten.
         host.shifted = true
-        val btn = try { letterButton('\u00DF'); throw AssertionError("unreachable") }
+        binder.applyLetterCase(root)
+        val btn = try { letterButton('a'); throw AssertionError("unreachable") }
         catch (f: Found) { f.b }
-        touch(btn, MotionEvent.ACTION_DOWN)
-        touch(btn, MotionEvent.ACTION_UP)
-        assertEquals(listOf("\u1E9E"), host.commits)
+        val text = btn.text.toString()
+        assertTrue("Hauptbuchstabe wird groß (ist '$text')", text.startsWith("A"))
+        assertTrue("Hinweis bleibt die Kleinbuchstaben-Reihe (ist '$text')",
+            text.contains("ä"))
+        assertTrue("kein Großbuchstaben-Hinweis (ist '$text')", !text.contains("Ä"))
     }
 
     @Test

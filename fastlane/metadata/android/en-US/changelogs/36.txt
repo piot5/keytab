@@ -1,0 +1,7 @@
+- Version 0.20: the long-press character row no longer depends on Shift/Caps — one consistent row per key (AltGr characters added: @ on q, µ on m)
+- The ß key is gone; Backspace is now twice as wide (ß stays reachable via long-press on s)
+- Space and Enter now show their symbols centered
+- Dictionary cleanup no longer deletes real German words (the old "contains 'und'" heuristic is gone)
+- Learned-word decay now counts learning steps instead of dictionary size
+- Emoji catalog: all 5 chips per page are tappable (sug_4/sug_5 previously had no click listener)
+- 573 unit tests in 59 suites, 0 failures

@@ -1,14 +1,10 @@
 package com.piotv.keytab.ime
 
 import android.content.SharedPreferences
-import android.graphics.drawable.GradientDrawable
-import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
-import com.piotv.keytab.R
 
 /**
- * Swipe-Manager (v0.11): Swipe-Eingabe (aktiv) + Likely-Markierung während des Wischens.
+ * Swipe-Manager (v0.11): Swipe-Eingabe.
  *
  * **Swipe-Eingabe** ([startSwipe]/[onSwipeMove]/[onSwipeRelease]): der Finger
  * gleitet über die Tastatur; die gefahrene Route wird gesampelt und vom
@@ -24,13 +20,6 @@ class SwipeManager(
     private val prefs: SharedPreferences,
     private val baseLetters: Map<Button, Char>
 ) {
-    /** Aktuelle Preview-Knoten (lowercase Buchstaben). Leer = kein Pfad. */
-    private var previewNodes: List<Char> = emptyList()
-    /** Original-Hintergründe der als Knoten gefärbten Tasten (Restore). */
-    private val nodeBackgrounds = mutableListOf<Pair<Button, android.graphics.drawable.Drawable>>()
-    /** Overlay-View für die Kanten (wird unter die Tasten gelegt). */
-    private var edgeOverlay: SwipeEdgeOverlay? = null
-
     // Swipe-Eingabe-Sampling (nur wenn Swipe aktiv)
     private val swipeSamples = mutableListOf<SwipePathLogic.Sample>()
     private var swipeStartLoc: SwipePathLogic.Sample? = null
@@ -45,13 +34,25 @@ class SwipeManager(
                 field?.imeOptions != info?.imeOptions
             ) {
                 field = info
-                clearPreview()
             }
         }
 
     /** Swipe aktiv? (Pref). */
     fun swipeEnabled(): Boolean =
         com.piotv.keytab.Prefs.KEY_SWIPE.let { prefs.getBoolean(it, false) }
+
+    /**
+     * Darf Swipe in diesem Feld überhaupt greifen? (N17)
+     *
+     * `swipeEnabled()` beantwortet nur die Pref-Frage. Die **Feldregel**
+     * (Passwort-Felder, `IME_FLAG_NO_PERSONALIZED_LEARNING`) ist davon getrennt
+     * — der Aufrufer braucht aber beides zusammen: sonst wuerde der Long-Press
+     * in einem Passwortfeld den Auto-Select-Zweig nehmen (erster Buchstabe des
+     * Sonderzeichen-Satzes wird sofort committet) statt das Auswahl-Popup zu
+     * oeffnen — und damit im Passwortfeld Text eintragen.
+     */
+    fun swipeAllowedInField(): Boolean =
+        swipeEnabled() && SwipePathLogic.isSwipeAllowed(editorInfo)
 
     /**
      * Swipe-Eingabe beginnen. [x]/[y] = Abgriff-Koordinaten (Fenster-Relativ).
@@ -68,9 +69,7 @@ class SwipeManager(
 
     /**
      * Ersten Tastenabgriff schon beim Drücken vorbelegen: die gedrückte Taste
-     * wird zum ersten Routen-Sample. Damit kann [applySwipeLikely] die
-     * most-likely-Ziele **sofort** anzeigen (noch bevor der Finger sich bewegt
-     * hat) — der Nutzer sieht, wohin er fahren soll.
+     * wird zum ersten Routen-Sample.
      *
      * Wichtig: Das Sample zählt NICHT als „gewischt“ — ein reiner Tap hat genau
      * dieses eine Sample und wird vom Aufrufer über [hasSwiped] als Tap erkannt
@@ -163,142 +162,9 @@ class SwipeManager(
     fun autoCommitCandidate(candidates: List<SwipeScorer.Candidate>): String? =
         SwipeScorer.autoCommit(candidates)?.lowercase()
 
-    /**
-     * Während des Wischens (aktiv): die wahrscheinlichen Folge-Tasten der
-     * bisher gefahrenen Route als Schaltplan anzeigen – Knoten in der
-     * Likely-Farbe (KIND_LIKELY) plus Kanten ([drawEdges]), damit der Finger
-     * dem Pfad folgen kann. Die Likely-Knoten landen in [previewNodes] und sind
-     * über [wasLikelyHit] abfragbar (gegen den Stand **vor** dem nächsten Treffer).
-     *
-     * Wird pro Tastenwechsel (neues Sample) vom KeyboardBinder aufgerufen.
-     * Leere Route / keine Engine / Passwort-Feld → nichts (alte Marks bleiben).
-     */
-    fun applySwipeLikely() {
-        clearPreview()
-        if (!SwipePathLogic.isSwipeAllowed(editorInfo)) return
-        val route = SwipePathLogic.pathLetters(swipeSamples, centers())
-        if (route.isEmpty()) return
-        val engine = engine ?: return
-        // Kandidaten aus der bisherigen Route → wahrscheinliche nächste Tasten.
-        val candidates = SwipeScorer.score(route, engine)
-        if (candidates.isEmpty()) return
-        val nodes = SwipePathLogic.previewNodes(
-            candidates.map { SuggestionEngine.Suggestion(it.word, it.score) },
-            route.length
-        )
-        if (nodes.isEmpty()) return
-        // Likely-Farbe (dieselbe wie beim Tippen: KIND_LIKELY). Dark-Mode und
-        // Default-Farbe aus dem Button-Kontext ableiten; falls kein Button
-        // verfügbar (sollte nicht passieren), harter Light-Default (#4CAF50 grün).
-        val ctx = baseLetters.keys.firstOrNull()?.context
-        val color = if (ctx != null) {
-            val dark = ThemePrefs.isDarkMode(ctx)
-            ThemePrefs.getColor(
-                prefs, dark, ThemePrefs.KIND_LIKELY,
-                ThemePrefs.defaultColor(ctx, dark, ThemePrefs.KIND_LIKELY)
-            )
-        } else 0xFF4CAF50.toInt()
-        paintNodes(nodes, color)
-    }
-
-    /**
-     * Gemeinsamer Kern von [applySwipeLikely]: die Knoten
-     * merken, ihre Tasten in [color] einfärben (Original-Background in
-     * [nodeBackgrounds] sichern) und die Kanten zeichnen.
-     *
-     * Die Guards (Passwort-Feld, leere Nodes) bleiben bewusst im
-     * Aufrufer. [color] wird vom Aufrufer aufgelöst (KIND_LIKELY,
-     * dark/light, Default aus colors.xml).
-     */
     private companion object {
         /** Kein Woerterbuch-Treffer: die Route selbst als Kandidat hinten melden. */
         private const val MIN_CANDIDATE_SCORE = 0.01
-
-        /** Radius der Swipe-Vorschau-Knoten (dp). */
-        private const val NODE_RADIUS_DP = 8f
-    }
-
-    /** Färbt die Knoten-Tasten (Test-Seam für [applySwipeLikely], internal). */
-    internal fun paintNodes(nodes: List<Char>, color: Int) {
-        previewNodes = nodes
-        val dip = baseDip()
-        for ((btn, letter) in baseLetters) {
-            if (nodes.contains(letter.lowercaseChar())) {
-                nodeBackgrounds.add(btn to btn.background)
-                btn.background = GradientDrawable().apply {
-                    cornerRadius = NODE_RADIUS_DP * dip
-                    setColor(color)
-                }
-            }
-        }
-        drawEdges()
-    }
-
-    /**
-     * Wahr, wenn [hit] (der im Swipe gerade erreichte Buchstabe) einer der zuvor
-     * durch [applySwipeLikely] als most-likely angezeigten Folge-Tasten war.
-     *
-     * Aufruf-Reihenfolge im KeyboardBinder (MOVE): [onSwipeMove] →
-     * [wasLikelyHit] → [TrailManager.snap] → [applySwipeLikely]. So greift
-     * [wasLikelyHit] auf die Likely-Knoten, die **vor** dem aktuellen Treffer
-     * galten (vom vorherigen applySwipeLikely-Lauf). Beim ersten Treffer ist
-     * [previewNodes] leer → false (kein grüner Trail, da noch kein Ziel stand).
-     */
-    fun wasLikelyHit(hit: Char): Boolean =
-        SwipePathLogic.isLikelyHit(previewNodes, hit)
-
-    /**
-     * Kanten zwischen aufeinanderfolgenden Preview-Knoten zeichnen.
-     *
-     * **Crash-Fix (Dropbox: NPE in `View.<init>`):** Der Container wird
-     * ausschließlich über den **Root-View** gesucht. `Button.findViewById`
-     * durchsucht nur den *Kind*-Baum einer Taste — ein Button hat keine Kinder,
-     * fand `kb_container` also nie und fiel auf `rootView` zurück. Zusätzlich
-     * wird das Overlay nur in einen **angehängten, gemessenen** Container
-     * gehängt, und der Context wird explizit geprüft: ein null-Context führte
-     * zu `NullPointerException: Context.getResources() on a null object
-     * reference` tief in `View.<init>` und riss die IME beim Tippen ab.
-     */
-    private fun drawEdges() {
-        // Kanten brauchen mindestens zwei Knoten (ein einzelner Knoten hat keine Kante).
-        if (previewNodes.size < 2) { removeEdgeOverlay(); return }
-        val btn0 = baseLetters.keys.firstOrNull() ?: run { removeEdgeOverlay(); return }
-        val root = btn0.rootView
-        val container = root.findViewById<View>(R.id.kb_container) as? ViewGroup
-            ?: (root as? ViewGroup)
-            ?: run { removeEdgeOverlay(); return }
-        // Nur in einen angehängten, gemessenen Container zeichnen: sonst steht
-        // die Geometrie nicht fest (Breite 0) und ein Rebuild reißt es weg.
-        if (!container.isAttachedToWindow || container.width == 0) {
-            removeEdgeOverlay(); return
-        }
-        val ctx = container.context ?: run { removeEdgeOverlay(); return }
-        val path = SwipeEdgeDrawing.buildEdgePath(previewNodes, container, baseLetters)
-        if (path == null) { removeEdgeOverlay(); return }
-        // Nicht doppelt einfügen: falls noch ein altes Overlay hängt (z. B. nach
-        // schnell aufeinanderfolgenden Updates), erst entfernen.
-        removeEdgeOverlay()
-        val ov = SwipeEdgeOverlay(ctx, path, ThemePrefs.swipeEdgeColor(prefs))
-        container.addView(ov, ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT))
-        edgeOverlay = ov
-    }
-
-    /** Hängt das Kanten-Overlay aus dem View-Baum (idempotent, null-sicher). */
-    private fun removeEdgeOverlay() {
-        edgeOverlay?.let { ov -> (ov.parent as? ViewGroup)?.removeView(ov) }
-        edgeOverlay = null
-    }
-
-    /** Entfernt die aktuelle Preview (Knoten + Kanten). */
-    fun clearPreview() {
-        for ((btn, bg) in nodeBackgrounds) {
-            if (btn.isAttachedToWindow) btn.background = bg
-        }
-        nodeBackgrounds.clear()
-        previewNodes = emptyList()
-        removeEdgeOverlay()
     }
 
     /** Setzt die Swipe-Samples zurück (z. B. bei LongPress-Auslösung). */
@@ -319,9 +185,6 @@ class SwipeManager(
      * deshalb als Tap, nicht als Swipe.
      */
     fun hasSwiped(): Boolean = swipeSamples.size >= 2
-
-    /** @see SwipeKeyGeometry.baseDip */
-    private fun baseDip(): Float = SwipeKeyGeometry.baseDip(baseLetters)
 
     /** @see SwipeKeyGeometry.minSwipeDistPx */
     private fun minSwipeDistPx(): Float =

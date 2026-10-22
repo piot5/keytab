@@ -195,6 +195,33 @@ class SuggestionControllerTest {
     }
 
     @Test
+    fun `Emoji-Chips sug_4 und sug_5 sind antippbar`() {
+        // v0.20-Fix: sug_4/sug_5 hatten keinen Klick-Listener — 2 von 5
+        // Katalog-Chips pro Seite ließen sich nicht antippen (nur das ▦-Raster
+        // bot diese Emojis an). Nach commitEmoji schließt sich der Katalog
+        // (browsePage = -1), daher wird je Chip neu geblättert.
+        val emojiBtn = root.findViewById<TextView>(R.id.sug_emoji)
+        val sug4 = root.findViewById<TextView>(R.id.sug_4)
+        val sug5 = root.findViewById<TextView>(R.id.sug_5)
+
+        emojiBtn.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals("Gegenprobe: sug_4 ist im Katalog sichtbar", View.VISIBLE, sug4.visibility)
+        val before4 = field.content
+        sug4.performClick()
+        assertTrue("Klick auf sug_4 fügt das Emoji ein (vorher='$before4', nachher='${field.content}')",
+            field.content.length > before4.length && field.content.startsWith(before4))
+
+        emojiBtn.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals("Gegenprobe: sug_5 ist im Katalog sichtbar", View.VISIBLE, sug5.visibility)
+        val before5 = field.content
+        sug5.performClick()
+        assertTrue("Klick auf sug_5 fügt das Emoji ein (vorher='$before5', nachher='${field.content}')",
+            field.content.length > before5.length && field.content.startsWith(before5))
+    }
+
+    @Test
     fun `showSwipeCandidates zeigt drei Woerter, Rest unsichtbar`() {
         // Swipe hat kein getipptes Teilwort (typed="") → matchCase groß per
         // Vertrag (typed.isEmpty→groß). Tag bleibt das Roh-Wort.

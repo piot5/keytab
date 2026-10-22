@@ -16,6 +16,8 @@ import androidx.core.content.ContextCompat
 import com.piotv.keytab.R
 import java.util.concurrent.Executor
 
+private const val THEME_BUTTON_TEXT_SP = 14f
+
 /**
  * Baut den kompletten Keyboard-View auf (Phase 6):
  * Themed-Context, Theme-Anwendung, Panel-Instanzen, Input-Router,
@@ -91,7 +93,7 @@ class KeyboardViewFactory(private val deps: Deps) {
         // sonst gilt die System-Night-Farbe (weiß) trotz Light-Override → weiß auf weiß
         themeBtn?.setTextColor(ContextCompat.getColor(cfgCtx, R.color.key_text))
         themeBtn?.typeface = Typeface.DEFAULT_BOLD
-        themeBtn?.textSize = 14f
+        themeBtn?.textSize = THEME_BUTTON_TEXT_SP
         // Theme-Verlauf + Farb-Overrides (aus den Theme-Einstellungen) anwenden
         ThemeApplier.apply(
             com.piotv.keytab.Prefs.of(ctx),

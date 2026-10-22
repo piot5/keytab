@@ -4,6 +4,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Handler
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,7 @@ import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
+import com.piotv.keytab.AtomicWrites
 import com.piotv.keytab.R
 import java.io.File
 
@@ -72,9 +74,14 @@ class ClipboardPanel(
         // gelesen hatte — die gespeicherte Historie war dann dauerhaft weg. Ein
         // Load wird außerdem nicht mehr verworfen, sondern mit dem, was inzwischen
         // dazukam, zusammengeführt.
+        // G4: Der Load läuft unter [persistMutex] — demselben Mutex wie der
+        // Write-Pfad. Damit kann kein Schreiben zwischen das Lesen und das
+        // Anwenden geraten; Load und Write sind vollständig serialisiert.
         coroutineScope.launch {
-            val loaded = withContext(ioDispatcher) {
-                runCatching { readHistoryFile() }.getOrDefault(emptyList())
+            val loaded = persistMutex.withLock {
+                withContext(ioDispatcher) {
+                    runCatching { readHistoryFile() }.getOrDefault(emptyList())
+                }
             }
             mainHandler.post { applyLoaded(loaded) }
         }
@@ -218,9 +225,13 @@ class ClipboardPanel(
             try {
                 persistMutex.withLock {
                     withContext(ioDispatcher) {
-                        f.writeText(TextEditLogic.encodeClipHistory(snapshot))
+                        AtomicWrites.writeText(f, TextEditLogic.encodeClipHistory(snapshot))
                     }
                 }
+            } catch (e: CancellationException) {
+                // serviceScope.cancel() in onDestroy() darf den letzten Write nicht
+                // als „Fehler“ melden oder verschlucken: Cancellation rethrow.
+                throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Clipboard history could not be persisted", e)
                 callbacks.onError(context.getString(R.string.clip_history_save_failed))

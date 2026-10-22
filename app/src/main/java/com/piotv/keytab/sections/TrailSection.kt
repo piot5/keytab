@@ -31,12 +31,17 @@ class TrailSection(
     private var traceToggle: Button? = null
 
     /** Durchschaltbare Stufen – bewusst kurz und ohne Freitext-Eingabe. */
-    private val stepChoices = listOf(3, 5, 7, 10)
+    private val stepChoices = listOf(STEPS_LOW, STEPS_MID, STEPS_HIGH, STEPS_MAX)
 
     companion object {
         private const val BUTTON_MARGIN_DP = 4
         private const val BUTTON_HEIGHT_DP = 32
         private const val HINT_TEXT_SP = 12f
+        /** Wählbare Verblass-Stufen (3/5/7/10). */
+        private const val STEPS_LOW = 3
+        private const val STEPS_MID = 5
+        private const val STEPS_HIGH = 7
+        private const val STEPS_MAX = 10
     }
 
     fun build(col: LinearLayout) {
@@ -82,30 +87,28 @@ class TrailSection(
         ).apply { topMargin = (2 * dip).toInt() })
 
         // Hinweis-Text
-        col.addView(android.widget.TextView(activity).apply {
-            text = activity.getString(R.string.theme_trail_hint)
-            textSize = HINT_TEXT_SP
-            setTextColor(android.graphics.Color.parseColor("#888888"))
-            setPadding(0, (BUTTON_MARGIN_DP * dip).toInt(), 0, (2 * dip).toInt())
-            maxLines = 3
-            ellipsize = android.text.TextUtils.TruncateAt.END
-        }, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
-        col.addView(android.widget.TextView(activity).apply {
-            text = activity.getString(R.string.theme_trail_trace_hint)
-            textSize = HINT_TEXT_SP
-            setTextColor(android.graphics.Color.parseColor("#888888"))
-            setPadding(0, 0, 0, (2 * dip).toInt())
-            maxLines = 3
-            ellipsize = android.text.TextUtils.TruncateAt.END
-        }, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
+        col.addView(hintTextView(R.string.theme_trail_hint, (BUTTON_MARGIN_DP * dip).toInt()),
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ))
+        col.addView(hintTextView(R.string.theme_trail_trace_hint, 0),
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ))
         updateButton()
     }
+
+    private fun hintTextView(textRes: Int, topPaddingPx: Int): android.widget.TextView =
+        android.widget.TextView(activity).apply {
+            text = activity.getString(textRes)
+            textSize = HINT_TEXT_SP
+            setTextColor(android.graphics.Color.parseColor("#888888"))
+            setPadding(0, topPaddingPx, 0, (2 * dip).toInt())
+            maxLines = 3
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
 
     private fun toggleButton(label: String, onClick: () -> Unit): Button =
         Button(activity).apply {

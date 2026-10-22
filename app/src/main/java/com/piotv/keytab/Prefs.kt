@@ -51,6 +51,12 @@ object Prefs {
     /** Snippet-Tab sichtbar an/aus (benannte Befehle/Snippets). */
     const val KEY_SNIPPET_TAB = "snippet_tab_enabled"
 
+    /** Cline companion mode (optional, modulare Funktionsgruppe). */
+    const val KEY_CLINE_COMPANION_MODE = "cline_companion_mode"
+    const val KEY_CLINE_FILE_BADGE = "cline_file_badge"
+    const val KEY_CLINE_AUTO_LOAD = "cline_auto_load"
+    const val KEY_CLINE_TAB_CONTEXT_MENU = "cline_tab_context_menu"
+
         /** Wortvorhersage-Leiste an/aus. */
     const val KEY_SUGGESTIONS = "suggestions_enabled"
 

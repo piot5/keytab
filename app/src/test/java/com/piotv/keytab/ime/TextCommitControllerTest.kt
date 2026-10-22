@@ -102,6 +102,16 @@ class TextCommitControllerTest {
     }
 
     @Test
+    fun `commit leerer Text crasht nicht und aendert die Buchfuehrung nicht`() {
+        val (c, host, appT) = rig()
+        c.commit("a")   // Wort anfangen, damit der kritische Zweig (text[0]) greift
+        c.commit("")    // G5: leerer Commit darf keine Exception werfen
+        assertEquals(listOf("ins:a", "ins:"), appT.ops)
+        assertEquals("Buchfuehrung bleibt beim angefangenen Wort", "a", host.pm!!.currentTypedWord)
+        assertEquals(2, host.haptics)
+    }
+
+    @Test
     fun `commit ohne Router und PM crasht nicht, Haptik laeuft`() {
         val (c, host, _) = rig(withPm = false)
         host.router = null

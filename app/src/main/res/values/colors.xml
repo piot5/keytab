@@ -20,9 +20,6 @@
     <!-- Trail-Effekt (Tippspur): Standardfarbe Blau -->
     <color name="trail_color">#2196F3</color>
     <!-- Treffer-Markierung: grün = Wort entspricht exakt dem Top-Vorschlag (kein Rot mehr) -->
-    <!-- Swipe (Gleit-Eingabe + Schaltplan-Preview): Pfad-Knoten + Kanten -->
-    <color name="swipe_color">#4CAF50</color>
-    <color name="swipe_edge_color">#8038B04A</color>
     <!-- Editor: Zeilennummern-Gutter + einfaches Highlighting (heurstisch,
          VS-Code-inspirierte Palette; in Hell/Dunkel lesbar) -->
     <color name="editor_gutter_text">#888888</color>
@@ -30,4 +27,6 @@
     <color name="editor_string">#B5651D</color>
     <color name="editor_number">#3B7DD8</color>
     <color name="editor_keyword">#316BC4</color>
+    <!-- Plakette am Editor-Tab: Nummern-Badge (z. B. offene Dateien). -->
+    <color name="badge_bg">#ff6d00</color>
 </resources>

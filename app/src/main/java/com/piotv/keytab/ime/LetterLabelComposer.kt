@@ -28,14 +28,14 @@ internal object LetterLabelComposer {
     /** Größenfaktor des Hauptbuchstabens. */
     const val MAIN_SIZE_SCALE = 0.85f
 
-    /** Baseline-Versatz des Hauptbuchstabens (positiv = angehoben). */
-    const val MAIN_LIFT = -0.2f
+    /** Baseline-Versatz des Hauptbuchstabens (negativ = höher gesetzt). */
+    const val MAIN_LIFT = -0.3f
 
     /** Größenfaktor des Sonderzeichen-Hinweises. */
     const val EXTRA_SIZE_SCALE = 0.5f
 
-    /** Baseline-Versatz des Hinweises (positiv = angehoben). */
-    const val EXTRA_LIFT = 0.55f
+    /** Baseline-Versatz des Hinweises (positiv = tiefer gesetzt). */
+    const val EXTRA_LIFT = 0.7f
 
     /** Geschütztes Leerzeichen als Trenner zwischen Buchstabe und Hinweis. */
     const val EXTRA_SEPARATOR = "\u00A0"

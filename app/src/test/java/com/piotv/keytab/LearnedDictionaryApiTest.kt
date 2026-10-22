@@ -127,6 +127,20 @@ class LearnedDictionaryApiTest {
     }
 
     @Test
+    fun looksLikeArtifact_schont_echte_deutsche_woerter_mit_und() {
+        // v0.20: die frühere Regel „enthält ‚und'“ wurde entfernt — sie hätte
+        // Stunde, gesund, Grund, wunderbar, … nach einer Bestätigung irreversibel
+        // als Artefakt gelöscht. Echte Wörter mit der Buchstabenfolge „und“
+        // müssen unangetastet bleiben.
+        for (w in listOf(
+            "und", "Stunde", "gesund", "Grund", "Grundschule", "Runde",
+            "wunderbar", "Kunde", "hundert", "Bundesland", "Fund", "Hund", "Mund"
+        )) {
+            assertFalse("echtes Wort '$w' ist kein Artefakt", LearnedDictionaryApi.looksLikeArtifact(w))
+        }
+    }
+
+    @Test
     fun artifact_arbeit_als_vollständiger_durchlauf() {
         val e = engine()
         e.learn(null, "clebwerte")

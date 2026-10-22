@@ -611,13 +611,16 @@
             android:textSize="16sp" />
         <Button style="@style/KeyDark" android:id="@+id/key_tab" android:text="⇥"
             android:layout_width="34dp" android:layout_weight="0" />
-        <Button style="@style/KeyDark" android:id="@+id/key_space" android:text="@string/key_space_label"
-            android:layout_weight="3" />
+        <!-- Zentriert (v0.20): das ␣ sitzt mittig im Button statt oben links -->
+        <Button style="@style/KeyDarkCentered" android:id="@+id/key_space"
+            android:text="@string/key_space_label" android:layout_weight="3" />
         <Button style="@style/KeyDark" android:id="@+id/key_dot" android:text="."
             android:layout_width="34dp" android:layout_weight="0" />
-        <!-- Enter-Taste breiter: bekommt eigene Gewichtung statt Fix-Breite (besser drückbar) -->
-        <Button style="@style/KeyDark" android:id="@+id/key_enter" android:text="@string/key_enter_label"
-            android:layout_width="0dp" android:layout_weight="2" />
+        <!-- Enter-Taste breiter: bekommt eigene Gewichtung statt Fix-Breite (besser
+             drückbar) — und seit v0.20 zentriert wie die Leertaste (↵ mittig). -->
+        <Button style="@style/KeyDarkCentered" android:id="@+id/key_enter"
+            android:text="@string/key_enter_label" android:layout_width="0dp"
+            android:layout_weight="2" />
     </LinearLayout>
 
     <!-- Maximieren-Zeile: steht in den Inhalts-Tabs (Files/Clip/Snippets) ganz

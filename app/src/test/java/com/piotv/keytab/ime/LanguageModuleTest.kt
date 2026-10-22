@@ -48,7 +48,25 @@ class LanguageModuleTest {
         assertTrue(Languages.de.extras['o']?.contains("ö") == true)
         assertTrue(Languages.de.extras['u']?.contains("ü") == true)
         assertTrue(Languages.de.extras['s']?.contains("ß") == true)
-        assertTrue(Languages.de.extras['A']?.contains("Ä") == true)
+    }
+
+    @Test
+    fun `extras fuehren nur Basis-Tasten - keine Grossbuchstaben-Eintraege`() {
+        // v0.20: die Long-Press-Reihe ist in beiden Schreibweisen dieselbe
+        // (LetterCaseRenderer.extrasFor) — Großbuchstaben-Einträge wären tote Daten.
+        for (lang in Languages.all) {
+            val upper = lang.extras.keys.filter { it.isUpperCase() }
+            assertTrue("${lang.code}: Großbuchstaben-Einträge sind tote Daten ($upper)",
+                upper.isEmpty())
+        }
+    }
+
+    @Test
+    fun `q und m haben eine Long-Press-Reihe`() {
+        val merged = Languages.de.letterExtras(Languages.basePunctuation)
+        assertEquals("q: @ (AltGr+Q), # und die Ziffernreihe", listOf("@", "#", "1"), merged['q'])
+        assertEquals("m: µ (AltGr+M) vor der bisherigen Interpunktion",
+            listOf("µ", "&", "%", "*"), merged['m'])
     }
 
     @Test

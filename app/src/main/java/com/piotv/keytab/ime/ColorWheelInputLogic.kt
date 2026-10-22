@@ -3,6 +3,9 @@ package com.piotv.keytab.ime
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
+/** Geometrie des Rades (Zentrum + Radius) für [ColorWheelInputLogic.hsvAt]. */
+data class WheelGeometry(val cx: Float, val cy: Float, val radius: Float)
+
 /**
  * Kernlogik des Farbrads ([com.piotv.keytab.ColorWheelView]) — bewusst
  * Android-frei und ohne `MotionEvent`, damit jeder Zeiger-Übergang per
@@ -90,21 +93,14 @@ class ColorWheelInputLogic {
      * nichts geschrieben, damit ein Ziehen über den Rand hinaus die zuletzt
      * gewählte Farbe nicht verändert.
      */
-    fun hsvAt(
-        cx: Float,
-        cy: Float,
-        radius: Float,
-        x: Float,
-        y: Float,
-        out: FloatArray
-    ): Boolean {
-        if (radius <= 0f) return false
-        val dx = x - cx
-        val dy = y - cy
+    fun hsvAt(geo: WheelGeometry, x: Float, y: Float, out: FloatArray): Boolean {
+        if (geo.radius <= 0f) return false
+        val dx = x - geo.cx
+        val dy = y - geo.cy
         val distSq = dx * dx + dy * dy
-        if (distSq > radius * radius) return false
+        if (distSq > geo.radius * geo.radius) return false
         out[0] = (Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + FULL_CIRCLE_DEG) % FULL_CIRCLE_DEG
-        out[1] = (sqrt(distSq) / radius).coerceIn(0f, 1f)
+        out[1] = (sqrt(distSq) / geo.radius).coerceIn(0f, 1f)
         return true
     }
 }

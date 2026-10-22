@@ -207,7 +207,10 @@ internal class SuggestionEmojiBrowser(
             (GRID_COLUMNS * CELL_DP * dip).toInt() + (POPUP_HEIGHT_MARGIN_DP * dip).toInt(), true).apply {
             isOutsideTouchable = true
             setBackgroundDrawable(android.graphics.drawable.ColorDrawable(keyBg))
-            showAsDropDown(anchor, 0, (POPUP_Y_OFFSET_DP * dip).toInt())
+            // Im IME (unten am Bildschirm) muss das Popup OBERHALB des Ankers
+            // stehen — showAsDropDown mit negativem Offset (N11).
+            isClippingEnabled = false
+            showAsDropDown(anchor, 0, -(scroll.measuredHeight + (POPUP_Y_OFFSET_DP * dip).toInt()))
         }
     }
 

@@ -16,6 +16,8 @@ import com.piotv.keytab.Prefs
 import com.piotv.keytab.R
 import com.piotv.keytab.ime.ThemePrefs
 
+private const val TITLE_TEXT_SP = 18f
+
 class BackgroundSection(
     private val activity: AppCompatActivity,
     private val prefs: SharedPreferences,
@@ -45,7 +47,7 @@ class BackgroundSection(
     }
 
     fun build(col: LinearLayout) {
-        col.addView(TextView(activity).apply { setText(R.string.background_title); textSize = 18f })
+        col.addView(TextView(activity).apply { setText(R.string.background_title); textSize = TITLE_TEXT_SP })
         col.addView(Button(activity).apply {
             setText(R.string.background_choose)
             setOnClickListener {

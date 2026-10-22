@@ -25,7 +25,8 @@ internal object LearnedDictionaryApi {
 
     private const val MAX_WORD_LEN = 32
     private const val MAX_ADD_PER_COMMIT = 200
-    private const val MAX_DELETE_PER_COMMIT = 500
+    /** Gesamtgröße eines Batches (Deletes + Adds) — bewusst getrennt vom Delete-Limit. */
+    private const val MAX_BATCH_PER_COMMIT = 500
 
     // ---------- Model ----------
 
@@ -128,11 +129,19 @@ internal object LearnedDictionaryApi {
         return false
     }
 
-    /** Artefakt-Heuristik für externes Aufräumen. Keine Grundlage für automatisches Sweeping. */
+    /**
+     * Artefakt-Heuristik für externes Aufräumen. Keine Grundlage für automatisches
+     * Sweeping.
+     *
+     * Bewusst **konservativ**: nur explizit bekannte Rückstände (Fragmentliste)
+     * werden erkannt. Die frühere Regel „enthält ‚und'“ wurde entfernt (v0.20) —
+     * sie traf fast jedes echte deutsche Wort (Stunde, gesund, Grund, wunderbar,
+     * Kunde, hundert, Bundesland …) und hätte den Bestand nach einer Bestätigung
+     * irreversibel gelöscht.
+     */
     fun looksLikeArtifact(word: String): Boolean {
         if (word.length < 3) return false
         val lower = word.lowercase()
-        if (word.contains("und") && !word.contains(" ")) return true
         val fragments = listOf(
             "clebwerte", "clearbewerte", "shinstallire", "actionok", "klickba",
             "shweiterpero", "eingesuten", "shon übertroffenund", "clbewerte",
@@ -140,6 +149,40 @@ internal object LearnedDictionaryApi {
             "precupearsepero", "drchscjeinender"
         )
         return fragments.any { lower.startsWith(it) || lower == it }
+    }
+
+    private fun deleteRejection(
+        op: CleanupOperation.Delete,
+        current: Long,
+        store: SuggestionEngine
+    ): String? {
+        if (op.expectedRevision != current) return "DELETE revision conflict: ${op.word}"
+        if (!store.userFreq.containsKey(op.word) && !store.bigrams.containsKey(op.word)) {
+            return "DELETE unknown: ${op.word}"
+        }
+        return null
+    }
+
+    private fun addRejection(
+        op: CleanupOperation.Add,
+        current: Long,
+        store: SuggestionEngine,
+        wouldDelete: List<String>,
+        wouldAdd: List<Pair<String, Double>>
+    ): String? {
+        if (op.expectedRevision != current) return "ADD revision conflict: ${op.word}"
+        if (op.word.length > MAX_WORD_LEN) return "ADD too long: ${op.word}"
+        if (op.word.isNotLearnable()) return "ADD invalid token: ${op.word}"
+        if (looksLikeArtifact(op.word)) return "ADD invalid token (artifact): ${op.word}"
+        if (op.weight <= 0.0 || op.weight.isNaN() || op.weight.isInfinite()) {
+            return "ADD invalid weight: ${op.word}"
+        }
+        if (!op.allowMerge && (store.userFreq.containsKey(op.word) || store.bigrams.containsKey(op.word))) {
+            return "ADD already exists: ${op.word}"
+        }
+        if (wouldAdd.size >= MAX_ADD_PER_COMMIT) return "ADD limit exceeded: ${op.word}"
+        if (wouldDelete.size + wouldAdd.size > MAX_BATCH_PER_COMMIT) return "BATCH too large: ${op.word}"
+        return null
     }
 
     fun batchPreview(
@@ -153,50 +196,14 @@ internal object LearnedDictionaryApi {
         val wouldAdd = mutableListOf<Pair<String, Double>>()
 
         for (op in deletes) {
-            if (op.expectedRevision != current) {
-                rejected.add("DELETE revision conflict: ${op.word}")
-                continue
-            }
-            if (!store.userFreq.containsKey(op.word) && !store.bigrams.containsKey(op.word)) {
-                rejected.add("DELETE unknown: ${op.word}")
-                continue
-            }
+            val reason = deleteRejection(op, current, store)
+            if (reason != null) { rejected.add(reason); continue }
             wouldDelete.add(op.word)
         }
 
         for (op in adds) {
-            if (op.expectedRevision != current) {
-                rejected.add("ADD revision conflict: ${op.word}")
-                continue
-            }
-            if (op.word.length > MAX_WORD_LEN) {
-                rejected.add("ADD too long: ${op.word}")
-                continue
-            }
-            if (op.word.isNotLearnable()) {
-                rejected.add("ADD invalid token: ${op.word}")
-                continue
-            }
-            if (looksLikeArtifact(op.word)) {
-                rejected.add("ADD invalid token (artifact): ${op.word}")
-                continue
-            }
-            if (op.weight <= 0.0 || op.weight.isNaN() || op.weight.isInfinite()) {
-                rejected.add("ADD invalid weight: ${op.word}")
-                continue
-            }
-            if (!op.allowMerge && (store.userFreq.containsKey(op.word) || store.bigrams.containsKey(op.word))) {
-                rejected.add("ADD already exists: ${op.word}")
-                continue
-            }
-            if (wouldAdd.size >= MAX_ADD_PER_COMMIT) {
-                rejected.add("ADD limit exceeded: ${op.word}")
-                continue
-            }
-            if (wouldDelete.size + wouldAdd.size > MAX_DELETE_PER_COMMIT) {
-                rejected.add("BATCH too large: ${op.word}")
-                continue
-            }
+            val reason = addRejection(op, current, store, wouldDelete, wouldAdd)
+            if (reason != null) { rejected.add(reason); continue }
             wouldAdd.add(op.word to op.weight)
         }
 

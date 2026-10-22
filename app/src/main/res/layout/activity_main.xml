@@ -105,6 +105,36 @@
             android:layout_marginTop="8dp"
             android:text="@string/settings_swipe" />
 
+        <!-- Cline companion mode (optional, modulare Funktionsgruppe) -->
+        <TextView
+            style="@style/SettingsSection"
+            android:text="@string/settings_section_cline_companion"
+            android:layout_marginTop="24dp" />
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_cline_companion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_cline_companion" />
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_cline_file_badge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_cline_file_badge" />
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_cline_auto_load"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_cline_auto_load" />
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/sw_cline_tab_context_menu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_cline_tab_context_menu" />
+
         <!-- ── Speicher & Konfiguration ─────────────────────────────── -->
         <TextView
             style="@style/SettingsSection"

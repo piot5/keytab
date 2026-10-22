@@ -180,49 +180,56 @@ class ColorWheelView @JvmOverloads constructor(
             android.view.MotionEvent.ACTION_POINTER_DOWN ->
                 // Zweiter Finger: Geste läuft weiter, nur dieser eine wird nicht verfolgt.
                 return input.onSecondaryDown(event.getPointerId(event.actionIndex))
-            android.view.MotionEvent.ACTION_MOVE -> {
-                if (!input.isTracking()) return false
-                val id = input.activePointer
-                val index = event.findPointerIndex(id)
-                if (index < 0) {
-                    // Der verfolgte Zeiger ist aus dem Event verschwunden: Geste sauber beenden.
-                    input.onRelease()
-                    parent?.requestDisallowInterceptTouchEvent(false)
-                    return false
-                }
-                applyPosition(xAt(event, index), yAt(event, index))
-                return true
-            }
-            android.view.MotionEvent.ACTION_POINTER_UP -> {
-                val lifted = event.getPointerId(event.actionIndex)
-                // Nur der aktive Finger beendet die Geste; das Event wird in jedem
-                // Fall konsumiert, solange eine Geste lief.
-                val wasTracking = input.isTracking()
-                if (input.onPointerUp(lifted)) {
-                    parent?.requestDisallowInterceptTouchEvent(false)
-                }
-                return wasTracking
-            }
-            android.view.MotionEvent.ACTION_UP -> {
-                if (!input.isTracking()) return false
-                val index = event.findPointerIndex(input.activePointer)
-                val endedInside = insideAt(event, if (index < 0) 0 else index)
-                applyPosition(xAt(event, if (index < 0) 0 else index),
-                    yAt(event, if (index < 0) 0 else index))
-                input.onRelease()
-                parent?.requestDisallowInterceptTouchEvent(false)
-                if (endedInside) performClick()
-                return true
-            }
-            android.view.MotionEvent.ACTION_CANCEL -> {
-                if (!input.isTracking()) return false
-                input.onRelease()
-                parent?.requestDisallowInterceptTouchEvent(false)
-                return true
-            }
+            android.view.MotionEvent.ACTION_MOVE -> return handleMove(event)
+            android.view.MotionEvent.ACTION_POINTER_UP -> return handlePointerUp(event)
+            android.view.MotionEvent.ACTION_UP -> return handleUp(event)
+            android.view.MotionEvent.ACTION_CANCEL -> return handleCancel()
             else -> return input.isTracking()
         }
         applyPosition(xAt(event, 0), yAt(event, 0))
+        return true
+    }
+
+    private fun handleMove(event: android.view.MotionEvent): Boolean {
+        if (!input.isTracking()) return false
+        val index = event.findPointerIndex(input.activePointer)
+        if (index < 0) {
+            // Der verfolgte Zeiger ist aus dem Event verschwunden: Geste sauber beenden.
+            input.onRelease()
+            parent?.requestDisallowInterceptTouchEvent(false)
+            return false
+        }
+        applyPosition(xAt(event, index), yAt(event, index))
+        return true
+    }
+
+    private fun handlePointerUp(event: android.view.MotionEvent): Boolean {
+        val lifted = event.getPointerId(event.actionIndex)
+        // Nur der aktive Finger beendet die Geste; das Event wird in jedem
+        // Fall konsumiert, solange eine Geste lief.
+        val wasTracking = input.isTracking()
+        if (input.onPointerUp(lifted)) {
+            parent?.requestDisallowInterceptTouchEvent(false)
+        }
+        return wasTracking
+    }
+
+    private fun handleUp(event: android.view.MotionEvent): Boolean {
+        if (!input.isTracking()) return false
+        val index = event.findPointerIndex(input.activePointer)
+        val endedInside = insideAt(event, if (index < 0) 0 else index)
+        applyPosition(xAt(event, if (index < 0) 0 else index),
+            yAt(event, if (index < 0) 0 else index))
+        input.onRelease()
+        parent?.requestDisallowInterceptTouchEvent(false)
+        if (endedInside) performClick()
+        return true
+    }
+
+    private fun handleCancel(): Boolean {
+        if (!input.isTracking()) return false
+        input.onRelease()
+        parent?.requestDisallowInterceptTouchEvent(false)
         return true
     }
 
@@ -232,7 +239,7 @@ class ColorWheelView @JvmOverloads constructor(
      */
     private fun applyPosition(x: Float, y: Float) {
         val hsvOut = FloatArray(2)
-        if (!input.hsvAt(cx, cy, radius, x, y, hsvOut)) return
+        if (!input.hsvAt(com.piotv.keytab.ime.WheelGeometry(cx, cy, radius), x, y, hsvOut)) return
         hsv[0] = hsvOut[0]
         hsv[1] = hsvOut[1]
         invalidate()

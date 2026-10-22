@@ -22,7 +22,6 @@ internal object SwipeKeyGeometry {
      * (`kb_container`) bezogen (Subtraktion der Container-Position), während der
      * Touch fenster-relativ blieb — dadurch lag die Buchstaben-Erkennung um die
      * Position der Tab-Leiste daneben (falsche Buchstaben beim Wischen).
-     * Zeichnen ([SwipeManager.drawEdges]) rechnet die Container-Relation separat um.
      */
     fun centersFor(baseLetters: Map<Button, Char>): List<KeyCenter> =
         baseLetters.mapNotNull { (btn, letter) ->

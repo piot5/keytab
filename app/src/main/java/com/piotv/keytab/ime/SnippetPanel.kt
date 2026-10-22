@@ -82,15 +82,16 @@ class SnippetPanel(
         ).apply()
     }
 
-    /** Parst "name = text"-Zeilen; '#' Kommentare und Leerzeilen werden ignoriert. */
+    /** Parst "name = text"-Zeilen; '#' Kommentare und Leerzeilen werden ignoriert.
+     *  Ein escapetes `\#` ist Text, kein Kommentar (siehe [SnippetFormat]). */
     private fun parse(text: String): List<Snippet> = buildList {
         for (raw in text.lines()) {
-            val line = raw.substringBefore('#').trim()
-            if (line.isEmpty()) continue
+            val comment = SnippetFormat.commentStart(raw)
+            val line = (if (comment >= 0) raw.substring(0, comment) else raw).trim()
             val idx = line.indexOf('=')
-            if (idx <= 0) continue
+            if (line.isEmpty() || idx <= 0) continue
             val name = line.substring(0, idx).trim()
-            val value = line.substring(idx + 1).trim().replace("\\n", "\n")
+            val value = SnippetFormat.unescapeValue(line.substring(idx + 1).trim())
             if (name.isNotEmpty() && value.isNotEmpty()) add(Snippet(name, value))
         }
     }
@@ -142,7 +143,7 @@ class SnippetPanel(
             .replace('#', '-')
             .trim()
         val name = firstPart.ifEmpty { "clip_${System.currentTimeMillis()}" }
-        val escaped = clean.replace("\\", "\\\\").replace("\n", "\\n")
+        val escaped = SnippetFormat.escapeValue(clean)
         appendAsync("$name = $escaped")
         Toast.makeText(context, R.string.snip_added_from_clip, Toast.LENGTH_SHORT).show()
     }

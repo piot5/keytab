@@ -61,7 +61,10 @@ internal class LetterButtonTouchHandler(
         val loc = IntArray(2); btn.getLocationInWindow(loc)
         val x = loc[0] + event.x
         val y = loc[1] + event.y
-        val swipeOn = swipeManager != null && swipeManager.swipeEnabled()
+        // N17: Pref **und** Feldregel gemeinsam — sonst waere im Passwortfeld
+        // der Long-Press der Auto-Select-Zweig (committet sofort ein
+        // Sonderzeichen) statt des Auswahl-Popups.
+        val swipeOn = swipeManager != null && swipeManager.swipeAllowedInField()
         return when (event.action) {
             MotionEvent.ACTION_DOWN -> onActionDown(btn, x, y, swipeOn, state)
             MotionEvent.ACTION_MOVE -> onActionMove(event, x, y, swipeOn, state)
@@ -84,15 +87,12 @@ internal class LetterButtonTouchHandler(
         btn.isPressed = true
         // Swipe starten (Manager prüft selbst Pref + Passwort-Feld).
         swipeManager?.startSwipe(x, y)
-        // Most-likely-Ziel schon ab der ersten Taste anzeigen: die
-        // gedrückte Taste als erstes Routen-Sample vorbelegen, damit
-        // sofort sichtbar ist, wohin der Finger fahren sollte.
-        // Wichtig: Das ist noch KEIN Swipe — ein reiner Tap hat genau
-        // dieses eine Sample und wird über hasSwiped() als Tap erkannt.
+        // Die gedrückte Taste als erstes Routen-Sample vorbelegen — ein reiner
+        // Tap hat genau dieses eine Sample und wird über hasSwiped() als Tap
+        // erkannt.
         if (swipeOn) {
             host.baseLetters[btn]?.let { letter ->
                 swipeManager?.seedFirstKey(letter, x, y)
-                swipeManager?.applySwipeLikely()
             }
         }
         state.pendingLongPress = Runnable { runLongPress(btn, swipeOn, state) }
@@ -146,26 +146,10 @@ internal class LetterButtonTouchHandler(
         // 400ms ein Sonderzeichen committet, obwohl der Nutzer wischt.
         if (state.swipeActive) {
             state.pendingLongPress?.let { host.longPressHandler.removeCallbacks(it) }
-                            // Trail-Snap pro Tastenwechsel: die gefahrene Route wird
-            // live als farbige Spur sichtbar — so sieht man, welche
-            // Tasten bereits aktiviert wurden (wie beim normalen Tippen).
+            // Trail-Snap pro Tastenwechsel: die gefahrene Route wird live als
+            // farbige Spur sichtbar (wie beim normalen Tippen).
             if (hit != null) {
-                // Konsistenz Trail ↔ Swipe: war die erreichte Taste
-                // ein zuvor als most-likely angezeigtes Ziel, wird
-                // der Trail grün (ACCEPTED) statt blau (TYPED) – die
-                // gefahrene Route leuchtet grün, solange man dem
-                // Schaltplan folgt. wasLikelyHit muss VOR
-                // applySwipeLikely stehen, weil jenes die Likely-
-                // Knoten für die verlängerte Route neu berechnet.
-                val wasLikely = swipeManager?.wasLikelyHit(hit) == true
-                trailManager?.snap(
-                    hit,
-                    if (wasLikely) TrailLogic.TrailKind.ACCEPTED
-                    else TrailLogic.TrailKind.TYPED
-                )
-                // Likely-Grün: die wahrscheinlichen Folge-Tasten der
-                // bisherigen Route einfärben (wie beim Tippen).
-                swipeManager?.applySwipeLikely()
+                trailManager?.snap(hit, TrailLogic.TrailKind.TYPED)
             }
         }
     }
@@ -212,8 +196,6 @@ internal class LetterButtonTouchHandler(
 
     /** Swipe-Release: Route bewerten, Auto-Commit oder Kandidaten-Leiste. */
     private fun onSwipeRelease(btn: Button) {
-        // Likely-Marks (während des Wischens gesetzt) entfernen.
-        swipeManager?.clearPreview()
         val candidates = swipeManager?.onSwipeRelease().orEmpty()
         val auto = swipeManager?.autoCommitCandidate(candidates)
         if (auto != null) {
@@ -234,6 +216,10 @@ internal class LetterButtonTouchHandler(
     /** Normaler Tap: Buchstabe committen + Trail/Trace-Markierung. */
     private fun commitTap(btn: Button) {
         val letter = handlers.onTapLetter(btn)
+        // G5: Taste ohne Hauptbuchstaben (defensiv) committet nichts — ein leerer
+        // Buchstabe würde sonst unten bei letter.first() eine NoSuchElementException
+        // werfen und leer ins Feld schreiben.
+        if (letter.isEmpty()) return
         host.commitText(letter)
         trailManager?.snap(letter.first().lowercaseChar())
         handlers.onTraceTrail()
@@ -245,7 +231,6 @@ internal class LetterButtonTouchHandler(
         host.letterPopup.dismiss()
         host.letterPopup.clearPicked()
         swipeManager?.clearSwipeSamples()
-        swipeManager?.clearPreview()
         state.swipeActive = false
         btn.clearFocus()
         return true

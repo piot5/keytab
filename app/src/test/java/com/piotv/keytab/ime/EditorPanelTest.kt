@@ -184,4 +184,41 @@ class EditorPanelTest {
             small.delete()
         }
     }
+
+    @Test
+    fun `clearEditor leert das Eingabefeld synchron` () {
+        val root = inflateKeyboardRoot(app)
+        val panel = EditorPanel(app, root, directExecutor, Handler(Looper.getMainLooper()))
+        val et = root.findViewById<EditText>(R.id.editor_input)
+        et.setText("hallo welt")
+        panel.clearEditor()
+        assertEquals("", et.text.toString())
+    }
+
+    @Test
+    fun `openFile erhöht den Zähler offener Dateien` () {
+        val root = inflateKeyboardRoot(app)
+        val panel = object : EditorPanel(app, root, directExecutor, Handler(Looper.getMainLooper())) {
+            @Volatile
+            var openFilesCounter = 0
+                get() = field
+            override var openFiles: Int = 0
+                set(value) {
+                    field = value
+                    openFilesCounter = value
+                }
+        }
+        val et = root.findViewById<EditText>(R.id.editor_input)
+        et.setText("eins")
+        val small = java.io.File(app.cacheDir, "klein.txt")
+        small.writeText("zwei")
+        try {
+            panel.openFile(small)
+            shadowOf(Looper.getMainLooper()).idle()
+            assertEquals("zwei", et.text.toString())
+            assertEquals(1, panel.openFilesCounter)
+        } finally {
+            small.delete()
+        }
+    }
 }

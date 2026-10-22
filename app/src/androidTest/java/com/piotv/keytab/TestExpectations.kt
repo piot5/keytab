@@ -13,7 +13,15 @@ object TestExpectations {
             "Ein Durchlauf über alle Tippfunktionen: langer Standardtext, Shift " +
                 "(Großbuchstabe), Zahlenreihe, Sonderzeichen-Ebene (?123), " +
                 "Long-Press-Auswahl am Buchstaben, Backspace, Leertaste, Enter, " +
-                "TAB und das Passwortfeld (tippt normal, keine Vorschläge)."
+                "TAB und das Passwortfeld (tippt normal, keine Vorschläge).",
+        "tabWechselUndVollbildRendertUndTipptWeiter" to
+            "Inhalts-Tabs (Files/Editor) rendern, Vollbild im Editor wird per " +
+                "Tab-Wechsel verlassen (Normalhöhe wiederhergestellt), Tastatur tippt weiter.",
+        "swipeGesteCrashtNichtUndTipptWeiter" to
+            "Wisch-Geste über die Buchstaben-Reihe (Swipe aktiviert) crasht nicht, " +
+                "die Tastatur tippt danach weiter.",
+        "trailRendertOhneCrash" to
+            "Mit aktivem Trail mehrere Buchstaben tippen — kein Crash im Trail-Pfad."
     )
 
     /** Erwartungstext zum Testnamen (sichtbarer Hinweis, wenn keiner hinterlegt ist). */

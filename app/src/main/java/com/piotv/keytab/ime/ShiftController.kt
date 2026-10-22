@@ -15,6 +15,11 @@ package com.piotv.keytab.ime
 class ShiftController(
     private val doubleTapMs: Long
 ) {
+    companion object {
+        /** „Noch nie getippt“ — weit in der Vergangenheit, aber ohne Long-Overflow. */
+        private const val NEVER_TAPPED_MS = -1_000_000_000L
+    }
+
     class ShiftState(
         val shifted: Boolean,
         val capsLock: Boolean
@@ -25,7 +30,7 @@ class ShiftController(
     // Sehr weit in der Vergangenheit (aber ohne Long-Overflow bei `now - lastTap`;
     // Long.MIN_VALUE würde überlaufen und fälschlich als Doppel-Tap gelten) →
     // der ERSTE Tap ist nie ein Doppel-Tap.
-    private var lastTap = -1_000_000_000L
+    private var lastTap = NEVER_TAPPED_MS
 
     /** Zustand für den View (Alpha/Bold-Ableitungen). */
     fun state(): ShiftState = ShiftState(shifted, capsLock)
@@ -42,7 +47,7 @@ class ShiftController(
             // Doppel-Tipp = Caps Lock
             capsLock = true
             shifted = true
-            lastTap = -1_000_000_000L
+            lastTap = NEVER_TAPPED_MS
         } else if (capsLock) {
             // einzelner Tipp verlässt Caps Lock
             capsLock = false
@@ -64,6 +69,6 @@ class ShiftController(
     fun resetForInput(autoCapitalize: Boolean) {
         capsLock = false
         shifted = autoCapitalize
-        lastTap = -1_000_000_000L
+        lastTap = NEVER_TAPPED_MS
     }
 }

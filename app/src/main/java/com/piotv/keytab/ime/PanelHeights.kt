@@ -150,7 +150,7 @@ object PanelHeights {
                 0
             }
         }
-        if (raw <= 0) return 0
+        if (raw <= 0 && overridePx <= 0) return 0
         // Editor + Tastatur passt nicht immer in das IME-Fenster: das System gibt
         // nur ~70 % der Bildschirmhoehe (dumpsys window: 1915 px bei 2712 px).
         // Ohne Begrenzung schob das Panel die unterste Tastenzeile und die
@@ -267,12 +267,26 @@ object PanelHeights {
             ?: v.layoutParams?.height?.takeIf { it > 0 }
             ?: measureHeight(v, widthPx)
 
-    /** Summe der sichtbaren Chrome-Zeilen, 0 wenn nichts davon da ist. */
-    fun chromeHeight(root: View, widthPx: Int): Int {
+    /**
+     * Summe der sichtbaren Chrome-Zeilen, 0 wenn nichts davon da ist.
+     *
+     * @param maximizeRowVisible geplanter Zustand der Maximieren-Zeile, `null`
+     *   = aktueller Zustand. Wird gebraucht, wenn die Zielhoehe **vor** der
+     *   Sichtbarkeitsumstellung berechnet wird (N2): die Zeile ist dann noch
+     *   sichtbar, soll im Vollbild aber verschwinden — sonst waere die
+     *   berechnete Panel-Hoehe um genau diese Zeile zu klein und das Panel
+     *   endete sichtbar ueber dem Fensterrand hinaus.
+     */
+    fun chromeHeight(root: View, widthPx: Int, maximizeRowVisible: Boolean? = null): Int {
         var total = 0
         for (id in CHROME_IDS) {
             val v = root.findViewById<View>(id) ?: continue
-            if (v.visibility == View.VISIBLE) {
+            val visible = if (id == R.id.maximize_row && maximizeRowVisible != null) {
+                maximizeRowVisible
+            } else {
+                v.visibility == View.VISIBLE
+            }
+            if (visible) {
                 total += rowHeight(v, widthPx)
             }
         }
@@ -329,18 +343,24 @@ object PanelHeights {
      * @param keyboardVisible true im Editor-Tab (Tastatur bleibt sichtbar)
      * @param overridePx Höhe aus der Config-Datei in px, 0 = Fenster füllen
      *   (siehe [TabHeights])
+     * @param maximizeRowVisible geplanter Zustand der Maximieren-Zeile (N2).
+     *   Wird die Zeile im Vollbild ausgeblendet, muss ihre Hoehe trotzdem
+     *   abgezogen werden — sie belegt im aktuellen Zustand noch Platz. `null` =
+     *   aktueller Zustand (dann zaehlt sie nur, wenn sie sichtbar ist).
      */
     fun maximizedPanelHeight(
         root: View,
         widthPx: Int,
         keyboardVisible: Boolean,
-        overridePx: Int = 0
+        overridePx: Int = 0,
+        maximizeRowVisible: Boolean? = null
     ): Int {
-        val available = maximizeAvailableHeight(root) - chromeHeight(root, widthPx)
+        val available =
+            maximizeAvailableHeight(root) - chromeHeight(root, widthPx, maximizeRowVisible)
         if (available <= 0) return 0
         val reserved = if (keyboardVisible) keyboardBlockHeight(root, widthPx) else 0
         val free = available - reserved
         val wanted = if (overridePx > 0) overridePx else free
-        return minOf(wanted, free).coerceAtLeast(1)
+        return minOf(wanted, free).coerceAtLeast(0)
     }
 }

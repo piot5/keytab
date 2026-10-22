@@ -55,7 +55,7 @@ class SettingsConfigTest {
             theme_dark_key = #00112233
             bg_image_uri = content://media/image/1#fragment # comment
             bg_image_fill = stretch
-            gaming_mode = false
+            likely = false
             gaming_effect = false
         """.trimIndent(), prefs)
         assertEquals(0x80123456.toInt(), prefs.getInt(ThemePrefs.KEY_GRADIENT_COLOR1, 0))
@@ -131,8 +131,9 @@ class SettingsConfigTest {
         // 45 war es vor der Entfernung von `emoji_suggestions` (2026-09-27),
         // 44 die Höhe davor (Panel-Höhen kamen am 28.09.2026 dazu),
         // 52 mit `autocorrect`/`swipe_preview` (entfernt am 29.09.2026),
-        // 49 seit dem Ausbau des Puls-Effekts (`gaming_effect`, v0.18).
-        assertEquals(49, KeyTabConfig.entries(completed).size)
+        // 49 seit dem Ausbau des Puls-Effekts (`gaming_effect`, v0.18),
+        // 53 mit den 4 Cline-Companion-Schaltern (22.10.2026).
+        assertEquals(53, KeyTabConfig.entries(completed).size)
         assertTrue(SettingsConfig.importTextIfChanged(completed, prefs))
         // Die Defaults sind die aus keytab_config.txt des Nutzers (2026-09-28):
         // Nummernreihe an, Dark-Mode fest an, Verlauf

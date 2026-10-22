@@ -100,6 +100,25 @@ class SuggestionEngineTest {
     }
 
     @Test
+    fun `Decay zaehlt Lernschnitte, nicht die Woerterbuchgroesse`() {
+        val e = engine()
+        // 25 verschiedene Wörter → userFreq.size == 25. Beim 25. Lernschnitt
+        // greift der Decay einmal (korrekt). Danach darf das erneute Abschließen
+        // eines bereits bekannten Worts KEINEN weiteren Decay auslösen.
+        val words = (0 until 25).map { i -> "w" + ('a' + i) }
+        words.forEach { e.learn(null, it) }
+        val before = e.userFreq["wa"]!!
+        e.learn(null, "wa")
+        val after = e.userFreq["wa"]!!
+        // Bug (vor v0.20): userFreq.size % 25 == 0 → decay lieferte (before+0.25)*0.98
+        // ≈ before+0.236. Korrekt ist die volle Lernerhöhung +0.25 ohne Dämpfung.
+        assertTrue(
+            "bekanntes Wort abschließen darf keinen Decay auslösen (before=$before after=$after)",
+            after > before + 0.24
+        )
+    }
+
+    @Test
     fun `user-dictionary persistiert roundtrip`() {
         val e = engine()
         repeat(2) { e.learn("das", "haus") }

@@ -14,7 +14,13 @@ data class KeyboardLanguage(
     val displayName: String,
     /** Asset-Datei im assets/-Ordner (Format "wort zahl" pro Zeile). */
     val assetName: String,
-    /** Sprachspezifische Long-Press-Akzente + Umlaute pro Basistaste. */
+    /**
+     * Sprachspezifische Long-Press-Akzente + Umlaute pro Basistaste.
+     *
+     * Nur Basis-Tasten (Kleinbuchstaben): die Reihe gilt in beiden Schreibweisen
+     * unverändert (siehe [LetterCaseRenderer.extrasFor]) — Großbuchstaben-Einträge
+     * wären tote Daten.
+     */
     val extras: Map<Char, List<String>>
 ) {
     /** Kombiniert die Akzente mit dem commonen Interpunktions-Set. */
@@ -43,106 +49,104 @@ object Languages {
         code = "de", displayName = "Deutsch", assetName = "de_freq_top6000.txt",
         extras = mapOf(
             acc('a', "ä", "à", "á", "â", "ã", "å", "æ"),
-            acc('A', "Ä", "À", "Á", "Â", "Ã", "Å", "Æ"),
-            acc('c', "ç"), acc('C', "Ç"),
+            acc('c', "ç"),
             acc('e', "é", "è", "ê", "ë", "ē"),
-            acc('E', "É", "È", "Ê", "Ë", "Ē"),
             acc('i', "í", "ì", "ï", "î", "ī"),
-            acc('I', "Í", "Ì", "Ï", "Î", "Ī"),
-            acc('n', "ñ", "ń"), acc('N', "Ñ", "Ń"),
+            acc('n', "ñ", "ń"),
             acc('o', "ö", "ó", "ò", "ô", "õ", "ø", "œ", "ō"),
-            acc('O', "Ö", "Ó", "Ò", "Ô", "Õ", "Ø", "Œ", "Ō"),
-            acc('s', "ß", "š", "ś"), acc('S', "ẞ", "Š", "Ś"),
-            acc('u', "ü", "ú", "ù", "û", "ū"),
-            acc('U', "Ü", "Ú", "Ù", "Û", "Ū")
+            acc('s', "ß", "š", "ś"),
+            acc('u', "ü", "ú", "ù", "û", "ū")
         )
     )
 val en = KeyboardLanguage(
         code = "en", displayName = "English", assetName = "en_freq_top6000.txt",
         extras = mapOf(
             acc('a', "à", "á", "â", "ä", "æ", "ã", "å"),
-            acc('A', "À", "Á", "Â", "Ä", "Æ", "Ã", "Å"),
-            acc('c', "ç"), acc('C', "Ç"),
+            acc('c', "ç"),
             acc('e', "é", "è", "ê", "ë", "ē"),
-            acc('E', "É", "È", "Ê", "Ë", "Ē"),
             acc('i', "í", "ì", "ï", "î", "ī"),
-            acc('I', "Í", "Ì", "Ï", "Î", "Ī"),
-            acc('n', "ñ", "ń"), acc('N', "Ñ", "Ń"),
+            acc('n', "ñ", "ń"),
             acc('o', "ó", "ò", "ô", "õ", "ö", "ø", "œ", "ō"),
-            acc('O', "Ó", "Ò", "Ô", "Õ", "Ö", "Ø", "Œ", "Ō"),
-            acc('s', "š", "ś"), acc('S', "Š", "Ś"),
-            acc('u', "ú", "ù", "û", "ü", "ū"),
-            acc('U', "Ú", "Ù", "Û", "Ü", "Ū")
+            acc('s', "š", "ś"),
+            acc('u', "ú", "ù", "û", "ü", "ū")
         )
     )
 val es = KeyboardLanguage(
         code = "es", displayName = "Español", assetName = "es_freq_top6000.txt",
         extras = mapOf(
-            acc('a', "á", "à", "ä", "â"), acc('A', "Á", "À", "Ä", "Â"),
-            acc('c', "ç"), acc('C', "Ç"),
-            acc('e', "é", "è", "ë", "ê"), acc('E', "É", "È", "Ë", "Ê"),
-            acc('i', "í", "ì", "ï", "î"), acc('I', "Í", "Ì", "Ï", "Î"),
-            acc('n', "ñ", "ń"), acc('N', "Ñ", "Ń"),
-            acc('o', "ó", "ò", "ô", "ö"), acc('O', "Ó", "Ò", "Ô", "Ö"),
-            acc('u', "ú", "ù", "ü", "û"), acc('U', "Ú", "Ù", "Ü", "Û")
+            acc('a', "á", "à", "ä", "â"),
+            acc('c', "ç"),
+            acc('e', "é", "è", "ë", "ê"),
+            acc('i', "í", "ì", "ï", "î"),
+            acc('n', "ñ", "ń"),
+            acc('o', "ó", "ò", "ô", "ö"),
+            acc('u', "ú", "ù", "ü", "û")
         )
     )
 
     val fr = KeyboardLanguage(
         code = "fr", displayName = "Français", assetName = "fr_freq_top6000.txt",
         extras = mapOf(
-            acc('a', "à", "â", "ä", "æ"), acc('A', "À", "Â", "Ä", "Æ"),
-            acc('c', "ç"), acc('C', "Ç"),
-            acc('e', "é", "è", "ê", "ë", "ē"), acc('E', "É", "È", "Ê", "Ë", "Ē"),
-            acc('i', "î", "ï", "í", "ì"), acc('I', "Î", "Ï", "Í", "Ì"),
-            acc('o', "ô", "ö", "œ", "ó", "ò"), acc('O', "Ô", "Ö", "Œ", "Ó", "Ò"),
-            acc('u', "ù", "û", "ü", "ú"), acc('U', "Ù", "Û", "Ü", "Ú")
+            acc('a', "à", "â", "ä", "æ"),
+            acc('c', "ç"),
+            acc('e', "é", "è", "ê", "ë", "ē"),
+            acc('i', "î", "ï", "í", "ì"),
+            acc('o', "ô", "ö", "œ", "ó", "ò"),
+            acc('u', "ù", "û", "ü", "ú")
         )
     )
 val it = KeyboardLanguage(
         code = "it", displayName = "Italiano", assetName = "it_freq_top6000.txt",
         extras = mapOf(
-            acc('a', "à", "á", "ä", "â"), acc('A', "À", "Á", "Ä", "Â"),
-            acc('e', "é", "è", "ê", "ë"), acc('E', "É", "È", "Ê", "Ë"),
-            acc('i', "ì", "í", "î", "ï"), acc('I', "Ì", "Í", "Î", "Ï"),
-            acc('o', "ó", "ò", "ô", "ö"), acc('O', "Ó", "Ò", "Ô", "Ö"),
-            acc('u', "ù", "ú", "û", "ü"), acc('U', "Ù", "Ú", "Û", "Ü")
+            acc('a', "à", "á", "ä", "â"),
+            acc('e', "é", "è", "ê", "ë"),
+            acc('i', "ì", "í", "î", "ï"),
+            acc('o', "ó", "ò", "ô", "ö"),
+            acc('u', "ù", "ú", "û", "ü")
         )
     )
 
     val pt = KeyboardLanguage(
         code = "pt", displayName = "Português", assetName = "pt_freq_top6000.txt",
         extras = mapOf(
-            acc('a', "á", "à", "ã", "â", "ä"), acc('A', "Á", "À", "Ã", "Â", "Ä"),
-            acc('c', "ç"), acc('C', "Ç"),
-            acc('e', "é", "ê", "è", "ë", "ē"), acc('E', "É", "Ê", "È", "Ë", "Ē"),
-            acc('i', "í", "ì", "î", "ï"), acc('I', "Í", "Ì", "Î", "Ï"),
-            acc('o', "ó", "õ", "ô", "ò", "ö", "ø"), acc('O', "Ó", "Õ", "Ô", "Ò", "Ö", "Ø"),
-            acc('u', "ú", "ù", "û", "ü"), acc('U', "Ú", "Ù", "Û", "Ü")
+            acc('a', "á", "à", "ã", "â", "ä"),
+            acc('c', "ç"),
+            acc('e', "é", "ê", "è", "ë", "ē"),
+            acc('i', "í", "ì", "î", "ï"),
+            acc('o', "ó", "õ", "ô", "ò", "ö", "ø"),
+            acc('u', "ú", "ù", "û", "ü")
         )
     )
 
     val nl = KeyboardLanguage(
         code = "nl", displayName = "Nederlands", assetName = "nl_freq_top6000.txt",
         extras = mapOf(
-            acc('a', "à", "á", "â", "ä", "ã"), acc('A', "À", "Á", "Â", "Ä", "Ã"),
-            acc('c', "ç"), acc('C', "Ç"),
-            acc('e', "é", "è", "ê", "ë", "ē"), acc('E', "É", "È", "Ê", "Ë", "Ē"),
-            acc('i', "í", "ì", "ï", "î"), acc('I', "Í", "Ì", "Ï", "Î"),
-            acc('o', "ó", "ò", "ô", "ö", "õ"), acc('O', "Ó", "Ò", "Ô", "Ö", "Õ"),
-            acc('u', "ú", "ù", "û", "ü"), acc('U', "Ú", "Ù", "Û", "Ü")
+            acc('a', "à", "á", "â", "ä", "ã"),
+            acc('c', "ç"),
+            acc('e', "é", "è", "ê", "ë", "ē"),
+            acc('i', "í", "ì", "ï", "î"),
+            acc('o', "ó", "ò", "ô", "ö", "õ"),
+            acc('u', "ú", "ù", "û", "ü")
         )
     )
 fun byCode(code: String?): KeyboardLanguage = all.firstOrNull { it.code == code } ?: de
 
-    /** Reines Interpunktions-Set (sprachunabhängig), Basis für alle Sprachen. */
+    /**
+     * Sprachunabhängiges Zeichen-Set, Basis für alle Sprachen.
+     *
+     * Enthält Interpunktion für Tasten ohne sprachspezifische Akzente — und die
+     * beiden Zeichen, die auf der deutschen Standardtastatur per AltGr erreichbar
+     * sind (`@` auf `q`, `µ` auf `m`). Damit hat jede Buchstabentaste außer den
+     * Umlaut-Tasten (`ä`/`ö`/`ü` tragen ihren Akzent selbst) eine Long-Press-Reihe.
+     */
     val basePunctuation: Map<Char, List<String>> = mapOf(
         ',' to listOf("&", "%", "+", "\"", "-", ":", "'", "@", ";", "/", "(", ")", "#", "!", "?"),
         'r' to listOf(".", ","), 't' to listOf("?", "!"), 'z' to listOf("!"),
         'p' to listOf("/", "\\", "|"), 'f' to listOf("@", "#", "&"),
         'g' to listOf("(", "[", "{"), 'h' to listOf(")", "]", "}"),
         'j' to listOf(":", ";"), 'k' to listOf(";", ":"),
-        'l' to listOf(",", "\"", "'"), 'm' to listOf("&", "%", "*"),
+        'l' to listOf(",", "\"", "'"), 'm' to listOf("µ", "&", "%", "*"),
+        'q' to listOf("@", "#", "1"),
         'v' to listOf("\""), 'b' to listOf("'"), 'x' to listOf("+", "-", "="),
         'w' to listOf("-", "_"), 'y' to listOf("#", "$", "€"), 'd' to listOf("_")
     )

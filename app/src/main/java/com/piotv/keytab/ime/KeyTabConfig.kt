@@ -1,5 +1,6 @@
 package com.piotv.keytab.ime
 
+import com.piotv.keytab.AtomicWrites
 import java.io.File
 import java.util.Locale
 
@@ -17,15 +18,21 @@ data class KeyTabConfig(
     private fun with(key: String, value: String): KeyTabConfig {
         val v = value.trim()
         return when (key) {
-            "max_scale" -> copy(maxScale = v.toFloatOrNull()?.takeIf { it.isFinite() && it > 0f } ?: maxScale)
-            "mid_scale" -> copy(midScale = v.toFloatOrNull()?.takeIf { it.isFinite() && it > 0f } ?: midScale)
-            "hot_threshold" -> copy(hotThreshold = v.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..1.0 } ?: hotThreshold)
-            "mid_threshold" -> copy(midThreshold = v.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..1.0 } ?: midThreshold)
-            "min_neighbor_scale" -> copy(minNeighborScale = v.toFloatOrNull()?.takeIf { it.isFinite() && it > 0f } ?: minNeighborScale)
-            "mid_neighbor_scale" -> copy(midNeighborScale = v.toFloatOrNull()?.takeIf { it.isFinite() && it > 0f } ?: midNeighborScale)
+            "max_scale" -> copy(maxScale = scaleOf(v) ?: maxScale)
+            "mid_scale" -> copy(midScale = scaleOf(v) ?: midScale)
+            "hot_threshold" -> copy(hotThreshold = thresholdOf(v) ?: hotThreshold)
+            "mid_threshold" -> copy(midThreshold = thresholdOf(v) ?: midThreshold)
+            "min_neighbor_scale" -> copy(minNeighborScale = scaleOf(v) ?: minNeighborScale)
+            "mid_neighbor_scale" -> copy(midNeighborScale = scaleOf(v) ?: midNeighborScale)
             else -> this
         }
     }
+
+    private fun scaleOf(v: String): Float? =
+        v.toFloatOrNull()?.takeIf { it.isFinite() && it > 0f }
+
+    private fun thresholdOf(v: String): Double? =
+        v.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..1.0 }
 
     /** Serialisiert die sechs Scale-Keys; vollständiger UI-Export über SettingsConfig. */
     fun serialize(): String = buildString {
@@ -59,9 +66,8 @@ data class KeyTabConfig(
         fun entries(text: String): Map<String, String> = buildMap {
             for (raw in text.lineSequence()) {
                 val line = raw.trim()
-                if (line.startsWith("#")) continue
                 val index = line.indexOf('=')
-                if (index <= 0) continue
+                if (line.startsWith("#") || index <= 0) continue
                 val key = line.substring(0, index).trim().lowercase(Locale.ROOT)
                 val value = line.substring(index + 1).trim()
                 val comment = value.indices.firstOrNull { i ->
@@ -72,17 +78,54 @@ data class KeyTabConfig(
             }
         }
 
-        /** Lädt die Config aus [file]; fehlt sie, werden die Defaults genutzt. */
+        /**
+         * Lädt die Config aus [file]; fehlt sie, werden die Defaults genutzt.
+         *
+         * N4: Das Lesen passiert nicht bei jedem Aufruf. Gecacht wird anhand
+         * von `mtime` + Dateilänge — dieselbe Technik wie in
+         * [SettingsConfig.importIfChanged]. Der Cache wird nur neu aufgebaut,
+         * wenn sich die Datei wirklich geändert hat; dadurch entfällt das
+         * Datei-I/O im Hot-Path (Tastatur-Rebuild bei jedem Theme-Wechsel).
+         *
+         * Der Cache ist prozessweit; [invalidateCache] leert ihn (z. B. wenn die
+         * Datei von aussen geschrieben wurde und die Aenderung nicht über
+         * `mtime`/Länge auffaellt — etwa bei gleicher Groesse innerhalb
+         * derselben Sekunde).
+         */
         fun load(file: File?): KeyTabConfig {
-            if (file == null || !file.isFile) return KeyTabConfig()
-            return try { parse(file.readText()) } catch (_: Exception) { KeyTabConfig() }
+            if (file == null) return KeyTabConfig()
+            val stat = runCatching { "${file.lastModified()}:${file.length()}" }.getOrNull()
+            val cached = cache
+            if (cached != null && cached.file == file.absolutePath && cached.stat == stat) {
+                return cached.config
+            }
+            if (!file.isFile) {
+                cache = Cache(file.absolutePath, stat, KeyTabConfig())
+                return KeyTabConfig()
+            }
+            val config = try { parse(file.readText()) } catch (_: Exception) { KeyTabConfig() }
+            cache = Cache(file.absolutePath, stat, config)
+            return config
         }
+
+        /** Verwirft den Lese-Cache (siehe [load]). */
+        fun invalidateCache() {
+            cache = null
+        }
+
+        private data class Cache(
+            val file: String,
+            val stat: String?,
+            val config: KeyTabConfig
+        )
+
+        @Volatile
+        private var cache: Cache? = null
 
         /** Schreibt die Config nach [file] (nur wenn fehlend, außer [overwrite]). */
         fun writeDefault(file: File, overwrite: Boolean = false): Boolean = try {
             if (overwrite || !file.isFile) {
-                file.parentFile?.mkdirs()
-                file.writeText(KeyTabConfig().serialize())
+                AtomicWrites.writeText(file, KeyTabConfig().serialize())
                 true
             } else false
         } catch (_: Exception) { false }

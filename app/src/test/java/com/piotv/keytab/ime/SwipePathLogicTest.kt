@@ -86,44 +86,6 @@ class SwipePathLogicTest {
         assertEquals("", SwipePathLogic.pathLetters(emptyList(), centers()))
     }
 
-    // ---------- previewNodes ----------
-
-    @Test
-    fun `previewNodes liefert die naechsten Buchstaben der Top-Vorschlaege`() {
-        val sugs = listOf(
-            SuggestionEngine.Suggestion("haus", 3.0),
-            SuggestionEngine.Suggestion("hallo", 2.0),
-            SuggestionEngine.Suggestion("hand", 1.0)
-        )
-        // typedLength 0 -> erste Buchstaben: h,h,h -> dedup -> [h]
-        assertEquals(listOf('h'), SwipePathLogic.previewNodes(sugs, 0, 1))
-        // typedLength 1 -> zweite Buchstaben: a,a,a -> [a]
-        assertEquals(listOf('a'), SwipePathLogic.previewNodes(sugs, 1, 1))
-    }
-
-    @Test
-    fun `previewNodes dedupliziert bei unterschiedlichen Folgebuchstaben`() {
-        val sugs = listOf(
-            SuggestionEngine.Suggestion("haus", 3.0),
-            SuggestionEngine.Suggestion("hund", 2.0)
-        )
-        // typedLength 1 -> a,u -> [a,u]
-        assertEquals(listOf('a', 'u'), SwipePathLogic.previewNodes(sugs, 1, 1))
-    }
-
-    @Test
-    fun `previewNodes bei leerer Tiefe liefert leer`() {
-        val sugs = listOf(SuggestionEngine.Suggestion("haus", 3.0))
-        assertTrue(SwipePathLogic.previewNodes(sugs, 0, 0).isEmpty())
-    }
-
-    @Test
-    fun `previewNodes bei zu kurzem Vorschlag bricht ab`() {
-        val sugs = listOf(SuggestionEngine.Suggestion("h", 3.0))
-        // typedLength 1 -> kein Buchstabe mehr
-        assertTrue(SwipePathLogic.previewNodes(sugs, 1, 1).isEmpty())
-    }
-
     // ---------- Passwort-Schutz (gespiegelt von TrailLogic.isTrailAllowed) ----------
 
     private fun editorInfo(inputType: Int, imeOptions: Int = 0) =
@@ -161,28 +123,5 @@ class SwipePathLogicTest {
     @Test
     fun `isSwipeAllowed erlaubt null-EditorInfo`() {
         assertTrue(SwipePathLogic.isSwipeAllowed(null))
-    }
-
-    // ---------- isLikelyHit (grüner Trail bei Likely-Treffer während Swipe) ----------
-
-    @Test
-    fun `isLikelyHit wahr wenn Treffer unter den Likely-Knoten`() {
-        assertTrue(SwipePathLogic.isLikelyHit(listOf('a', 'u'), 'a'))
-        assertTrue(SwipePathLogic.isLikelyHit(listOf('a', 'u'), 'u'))
-    }
-
-    @Test
-    fun `isLikelyHit falsch wenn Treffer nicht unter den Likely-Knoten`() {
-        assertFalse(SwipePathLogic.isLikelyHit(listOf('a', 'u'), 'b'))
-    }
-
-    @Test
-    fun `isLikelyHit case-insensitiv (Treffer als Grossbuchstabe)`() {
-        assertTrue(SwipePathLogic.isLikelyHit(listOf('a'), 'A'))
-    }
-
-    @Test
-    fun `isLikelyHit falsch bei leeren Likely-Knoten`() {
-        assertFalse(SwipePathLogic.isLikelyHit(emptyList(), 'a'))
     }
 }

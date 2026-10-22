@@ -16,12 +16,23 @@
         <item name="android:textAllCaps">false</item>
         <item name="android:textSize">22sp</item>
         <item name="android:stateListAnimator">@null</item>
-        <!-- Buchstaben leicht rechts + unten versetzt -->
-        <item name="android:paddingStart">8dp</item>
-        <item name="android:paddingTop">9dp</item>
+        <!-- Buchstaben sitzen oben links in der Ecke, damit der Sonderzeichen-
+             Hinweis unten rechts Platz hat (v0.20). -->
+        <item name="android:paddingStart">5dp</item>
+        <item name="android:paddingTop">5dp</item>
         <item name="android:gravity">top|start</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
+    </style>
+
+    <!-- Zentrierte KeyDark-Variante (v0.20): die Symbole ␣ (Leertaste) und ↵
+         (Enter) sitzen mittig im Button statt wie die Buchstaben oben links.
+         Die Buchstaben behalten KeyDark — dort ist der Versatz Absicht
+         (Buchstabe oben links, Sonderzeichen-Hinweis unten rechts). -->
+    <style name="KeyDarkCentered" parent="KeyDark">
+        <item name="android:gravity">center</item>
+        <item name="android:paddingStart">0dp</item>
+        <item name="android:paddingTop">0dp</item>
     </style>
 
     <!-- Flacher Button für die Load/Save-Zeile im Notes-Panel (deutlich weniger hoch) -->

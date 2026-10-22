@@ -27,9 +27,6 @@ internal class ThemeController(private val host: ThemeHost) {
         const val MOON_SYMBOL = "\u263E\uFE0E" // ☾ (Text-Präsentation)
     }
 
-    /** Zuletzt angewendete Theme-Version (0 = noch keine). */
-    private var appliedThemeVersion = 0
-
     /**
      * Mond/Sonne-Taste einrichten: Tippen = Dark/Light umschalten (wie zuvor),
      * Long-Press = Theme-Einstellungen öffnen.
@@ -95,25 +92,5 @@ internal class ThemeController(private val host: ThemeHost) {
         host.context.startActivity(
             Intent(host.context, com.piotv.keytab.ThemeSettingsActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    }
-
-    /**
-     * Tastatur neu aufbauen, wenn die Theme-Einstellungsseite Änderungen gemacht
-     * hat (Theme-Version erhöht). Ohne Änderung passiert nichts (0.9.4-Look
-     * bleibt unverändert erhalten).
-     */
-    fun maybeRebuildForThemeChange() {
-        // Nur wenn die Tastatur schon aufgebaut ist: Beim allerersten Öffnen ist
-        // keyboardRoot noch null und onCreateInputView läuft ohnehin gleich an.
-        if (host.keyboardRoot == null) return
-        val prefs = com.piotv.keytab.Prefs.of(host.context)
-        val version = ThemePrefs.themeVersion(prefs)
-        if (version == appliedThemeVersion) return
-        appliedThemeVersion = version
-        // Theme-Version hat sich geändert → Tastatur mit übersteuertem Theme neu
-        // aufbauen (Trailing-Text korrekt beim neuen wirkenden Modus).
-        val newRoot = host.rebuildInputView()
-        updateIcon(newRoot)
-        host.setInputView(newRoot)
     }
 }

@@ -32,9 +32,14 @@ internal class KeyboardBinder(
     private val tabController: TabController,
     private val themeController: ThemeController,
     private val suggestionController: SuggestionController,
-    private val trailManager: TrailManager?,
-    private val swipeManager: SwipeManager? = null
+    managers: Managers
 ) {
+
+    /** Gebündelte optionale Manager (Trail + Swipe) für den Konstruktor. */
+    data class Managers(val trail: TrailManager?, val swipe: SwipeManager? = null)
+
+    private val trailManager = managers.trail
+    private val swipeManager = managers.swipe
 
     private companion object {
         // Beschleunigendes Wort-Löschen: Startintervall, Faktor pro Repeat, Minimum
@@ -209,11 +214,8 @@ internal class KeyboardBinder(
         // Basis IMMER aus baseLetters (nicht btn.text — dort stehen inzwischen
         // auch die Sonderzeichen-Hinweise an den Rändern)
         val base = host.baseLetters[anchor] ?: return
-        val upper = host.isShifted() || host.isCapsLock()
-        val extras = host.letterExtras
-        val showExtras = extras[if (upper) base.uppercaseChar() else base]
-            ?: extras[base]
-            .orEmpty()
+        // Shift/Caps ändern die Reihe nicht (v0.20): eine Quelle für alle Pfade.
+        val showExtras = LetterCaseRenderer.extrasFor(base, host.letterExtras)
         if (showExtras.isEmpty()) return
         host.letterPopup.show(anchor, showExtras) { ch -> host.commitText(ch.toString()) }
     }
@@ -224,16 +226,12 @@ internal class KeyboardBinder(
      * Drag — Drücken-und-Halten (ohne Bewegung) gibt direkt das erste
      * Sonderzeichen (Akzent/Interpunktion), damit der Long-Press im
      * Swipe-Modus trotzdem nützlich bleibt, ohne die Wisch-Eingabe zu stören.
-     * Shift-/Caps-Bucheinstaben werden beachtet (gleiche Quelle wie
-     * [showLetterExtras]).
+     * Die Reihe hängt nicht am Shift-Zustand (v0.20) und kommt aus derselben
+     * Quelle wie [showLetterExtras].
      */
     private fun autoSelectExtra(anchor: Button) {
         val base = host.baseLetters[anchor] ?: return
-        val upper = host.isShifted() || host.isCapsLock()
-        val extras = host.letterExtras
-        val showExtras = extras[if (upper) base.uppercaseChar() else base]
-            ?: extras[base]
-            .orEmpty()
+        val showExtras = LetterCaseRenderer.extrasFor(base, host.letterExtras)
         if (showExtras.isEmpty()) return
         val picked = showExtras.first()
         host.commitText(picked.toString())
@@ -255,7 +253,7 @@ internal class KeyboardBinder(
                 ?: return@forEachView
             btn.text = LetterLabelComposer.compose(
                 letter = LetterCaseRenderer.letterFor(base, upper),
-                letterExtras = LetterCaseRenderer.extrasFor(base, upper, extras),
+                letterExtras = LetterCaseRenderer.extrasFor(base, extras),
                 secondary = secondary
             )
         }

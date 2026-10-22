@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import com.piotv.keytab.ime.KeyTabExecutors
 import com.piotv.keytab.ime.KeyboardLanguage
 import com.piotv.keytab.ime.Languages
 import com.piotv.keytab.ime.SettingsConfig
@@ -56,6 +57,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val ANDROID_14 = 34
+        private const val ANDROID_13 = 33
 
         /** „Alle Dateien“ (MANAGE_EXTERNAL_STORAGE) gibt es ab API 30 (Android 11). */
         private const val ANDROID_11 = 30
@@ -88,11 +90,40 @@ class MainActivity : AppCompatActivity() {
                 getString(R.string.settings_version_label, vName)
         } catch (_: Exception) { /* Fallback-Text bleibt */ }
 
-        // Zahlenreihe-Umschalter (wirkt beim nächsten Öffnen der Tastatur)
-        val swNumRow = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_num_row)
         val prefs = Prefs.of(this)
 
-        // Sprachauswahl (Spinner) – wirkt beim nächsten Öffnen der Tastatur
+        setupLanguageSpinner()
+        setupBooleanSwitch(R.id.sw_num_row, Prefs.KEY_NUM_ROW, true,
+            R.string.settings_num_row_on, R.string.settings_num_row_off)
+        setupBooleanSwitch(R.id.sw_clip_tab, Prefs.KEY_CLIP_TAB, true,
+            R.string.settings_clip_tab_on, R.string.settings_clip_tab_off)
+        setupBooleanSwitch(R.id.sw_snippet_tab, Prefs.KEY_SNIPPET_TAB, true,
+            R.string.settings_snippet_tab_on, R.string.settings_snippet_tab_off)
+        setupBooleanSwitch(R.id.sw_suggestions, Prefs.KEY_SUGGESTIONS, true,
+            R.string.settings_suggestions_on, R.string.settings_suggestions_off)
+        setupBooleanSwitch(R.id.sw_dynamic_keys, Prefs.KEY_DYNAMIC_KEYS, true,
+            R.string.settings_dynamic_keys_on, R.string.settings_dynamic_keys_off)
+        setupBooleanSwitch(R.id.sw_swipe, Prefs.KEY_SWIPE, false,
+            R.string.settings_swipe_on, R.string.settings_swipe_off)
+
+        // ── Cline companion mode (optionale, modulare Funktionsgruppe) ──
+        setupBooleanSwitch(R.id.sw_cline_companion, Prefs.KEY_CLINE_COMPANION_MODE, false,
+            R.string.settings_cline_companion, R.string.settings_cline_companion_off)
+        setupBooleanSwitch(R.id.sw_cline_file_badge, Prefs.KEY_CLINE_FILE_BADGE, false,
+            R.string.settings_cline_file_badge, R.string.settings_cline_companion_off)
+        setupBooleanSwitch(R.id.sw_cline_auto_load, Prefs.KEY_CLINE_AUTO_LOAD, false,
+            R.string.settings_cline_auto_load, R.string.settings_cline_companion_off)
+        setupBooleanSwitch(R.id.sw_cline_tab_context_menu, Prefs.KEY_CLINE_TAB_CONTEXT_MENU, false,
+            R.string.settings_cline_tab_context_menu, R.string.settings_cline_companion_off)
+        setupClineCompanionBindings()
+        setupConfigButton()
+        setupKeyboardButtons()
+        setupFileAccessButtons()
+        displayedSettings = SettingsConfig.snapshot(prefs)
+    }
+
+    private fun setupLanguageSpinner() {
+        val prefs = Prefs.of(this)
         val langSpinner = findViewById<Spinner>(R.id.spinner_language)
         val names = Languages.all.map { it.displayName }
         langSpinner.adapter = ArrayAdapter(
@@ -113,74 +144,31 @@ class MainActivity : AppCompatActivity() {
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) { /* kein Bedarf: keine Neutralposition */ return }
         }
-        swNumRow.isChecked = prefs.getBoolean(Prefs.KEY_NUM_ROW, true)
-        swNumRow.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(Prefs.KEY_NUM_ROW, checked).apply()
-            Toast.makeText(this, if (checked) R.string.settings_num_row_on
-            else R.string.settings_num_row_off, Toast.LENGTH_SHORT).show()
-        }
+    }
 
-        // Clipboard-Tab in der Tastatur ein-/ausblenden (wirkt beim nächsten Öffnen)
-        val swClipTab = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_clip_tab)
-        swClipTab.isChecked = prefs.getBoolean(Prefs.KEY_CLIP_TAB, true)
-        swClipTab.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(Prefs.KEY_CLIP_TAB, checked).apply()
-            Toast.makeText(this, if (checked) R.string.settings_clip_tab_on
-            else R.string.settings_clip_tab_off, Toast.LENGTH_SHORT).show()
-        }
-
-        // Snippet-Tab in der Tastatur ein-/ausblenden (wirkt beim nächsten Öffnen)
-        val swSnippetTab = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_snippet_tab)
-        swSnippetTab.isChecked = prefs.getBoolean(Prefs.KEY_SNIPPET_TAB, true)
-        swSnippetTab.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(Prefs.KEY_SNIPPET_TAB, checked).apply()
-            Toast.makeText(this, if (checked) R.string.settings_snippet_tab_on
-            else R.string.settings_snippet_tab_off, Toast.LENGTH_SHORT).show()
-        }
-
-        // Wortvorhersage ein-/ausblenden (wirkt beim nächsten Öffnen der Tastatur)
-        val swSuggestions = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_suggestions)
-        swSuggestions.isChecked = prefs.getBoolean(Prefs.KEY_SUGGESTIONS, true)
-        swSuggestions.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(Prefs.KEY_SUGGESTIONS, checked).apply()
-            Toast.makeText(this, if (checked) R.string.settings_suggestions_on
-            else R.string.settings_suggestions_off, Toast.LENGTH_SHORT).show()
-        }
-
-        // Dynamische Tastengröße ein-/ausblenden (wirkt beim nächsten Öffnen)
-        val swDynamic = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_dynamic_keys)
-        swDynamic.isChecked = prefs.getBoolean(Prefs.KEY_DYNAMIC_KEYS, true)
-        swDynamic.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(Prefs.KEY_DYNAMIC_KEYS, checked).apply()
-            Toast.makeText(this, if (checked) R.string.settings_dynamic_keys_on
-            else R.string.settings_dynamic_keys_off, Toast.LENGTH_SHORT).show()
-        }
-
-        // Swipe-Eingabe (Gleit-Eingabe, v0.11) ein-/ausblenden
-        val swSwipe = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.sw_swipe)
-        swSwipe.isChecked = prefs.getBoolean(Prefs.KEY_SWIPE, false)
-        swSwipe.setOnCheckedChangeListener { _, checked ->
-            prefs.edit().putBoolean(Prefs.KEY_SWIPE, checked).apply()
-            Toast.makeText(this, if (checked) R.string.settings_swipe_on
-            else R.string.settings_swipe_off, Toast.LENGTH_SHORT).show()
-        }
-
-        findViewById<Button>(R.id.btn_cleanup_learned_dictionary).setOnClickListener {
-            cleanupLearnedDictionary()
-        }
-
-        // Konfigurationsdatei schreiben/aktualisieren (Werte direkt editierbar)
+    private fun setupConfigButton() {
+        // Konfigurationsdatei schreiben/aktualisieren (Werte direkt editierbar).
+        // Datei-I/O läuft nicht auf dem Main-Thread (N21).
         findViewById<Button>(R.id.btn_update_config).setOnClickListener {
-            try {
-                val file = SettingsConfig.fillMissing(this)
-                Toast.makeText(this, getString(R.string.config_ready, file.absolutePath),
-                    Toast.LENGTH_LONG).show()
-                recreate()
-            } catch (e: Exception) {
-                Toast.makeText(this, e.localizedMessage ?: e.toString(), Toast.LENGTH_LONG).show()
+            KeyTabExecutors.io.execute {
+                try {
+                    val file = SettingsConfig.fillMissing(this)
+                    KeyTabExecutors.main.post {
+                        Toast.makeText(this, getString(R.string.config_ready, file.absolutePath),
+                            Toast.LENGTH_LONG).show()
+                        recreate()
+                    }
+                } catch (e: Exception) {
+                    val message = e.localizedMessage ?: e.toString()
+                    KeyTabExecutors.main.post {
+                        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         }
+    }
 
+    private fun setupKeyboardButtons() {
         findViewById<Button>(R.id.btn_enable_keyboard).setOnClickListener {
             try {
                 startActivity(Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS))
@@ -188,17 +176,17 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, e.message, Toast.LENGTH_SHORT).show()
             }
         }
-
         findViewById<Button>(R.id.btn_switch_keyboard).setOnClickListener {
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showInputMethodPicker()
         }
-
         // Zweite Einstellungsseite: Theme (Verlauf, Farben, Alpha)
         findViewById<Button>(R.id.btn_theme_settings).setOnClickListener {
             startActivity(Intent(this, ThemeSettingsActivity::class.java))
         }
+    }
 
+    private fun setupFileAccessButtons() {
         // Dateizugriff nur auf ausdrücklichen Wunsch (F-Droid-Review 2026-10-06):
         // kein Dialog beim Start, sondern Status-Zeile + Button. Nur
         // READ_MEDIA_IMAGES/READ_EXTERNAL_STORAGE — Audio/Video liest kein
@@ -213,10 +201,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
         // All-files access (API 30+) — bewusst optional und nur hier, auf
-        // ausdrücklichen Wunsch (Details in [setupAllFilesButton]).
         setupAllFilesButton()
         refreshFileAccess()
-        displayedSettings = SettingsConfig.snapshot(prefs)
     }
 
     override fun onResume() {
@@ -285,7 +271,7 @@ class MainActivity : AppCompatActivity() {
                 isGranted(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) -> 1
                 else -> 0
             }
-            Build.VERSION.SDK_INT >= 33 -> if (images) 2 else 0
+            Build.VERSION.SDK_INT >= ANDROID_13 -> if (images) 2 else 0
             else -> if (isGranted(Manifest.permission.READ_EXTERNAL_STORAGE)) 2 else 0
         }
     }
@@ -351,7 +337,7 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.READ_MEDIA_IMAGES,
             Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
         )
-        Build.VERSION.SDK_INT >= 33 -> neededPermissions(Manifest.permission.READ_MEDIA_IMAGES)
+        Build.VERSION.SDK_INT >= ANDROID_13 -> neededPermissions(Manifest.permission.READ_MEDIA_IMAGES)
         else -> neededPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
@@ -383,7 +369,7 @@ class MainActivity : AppCompatActivity() {
      * TLS-Download).
      */
     internal fun grantedStatusText(sdkInt: Int = Build.VERSION.SDK_INT): Int =
-        if (sdkInt >= 33) R.string.settings_storage_granted_media
+        if (sdkInt >= ANDROID_13) R.string.settings_storage_granted_media
         else R.string.settings_storage_granted
 
     /**
@@ -416,4 +402,38 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }.toTypedArray()
     }
+}
+
+/** Booleschen Einstellungs-Schalter mit Pref-Key, Default und an/aus-Toast verdrahten. */
+private fun MainActivity.setupBooleanSwitch(id: Int, key: String, default: Boolean, onRes: Int, offRes: Int) {
+    val sw = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(id)
+    sw.isChecked = Prefs.of(this).getBoolean(key, default)
+    sw.setOnCheckedChangeListener { _, checked ->
+        Prefs.of(this).edit().putBoolean(key, checked).apply()
+        Toast.makeText(this, if (checked) onRes else offRes, Toast.LENGTH_SHORT).show()
+    }
+}
+
+/** Cline companion mode: Haupt-Switch aktiviert/deaktiviert die Unter-Funktionen. */
+private fun MainActivity.setupClineCompanionBindings() {
+    val companion = R.id.sw_cline_companion
+    val badge = R.id.sw_cline_file_badge
+    val autoLoad = R.id.sw_cline_auto_load
+    val menu = R.id.sw_cline_tab_context_menu
+
+    val updateSubSwitches = { enabled: Boolean ->
+        this.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(badge).isEnabled = enabled
+        this.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(autoLoad).isEnabled = enabled
+        this.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(menu).isEnabled = enabled
+    }
+
+    // Initialer Zustand: Unter-Schalter nur bedienbar, wenn Companion-Mode an
+    updateSubSwitches(Prefs.of(this).getBoolean(Prefs.KEY_CLINE_COMPANION_MODE, false))
+
+    // Haupt-Switch regelt Sichtbarkeit und die Unter-Funktionen
+    this.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(companion)
+        .setOnCheckedChangeListener { _, checked ->
+            Prefs.of(this).edit().putBoolean(Prefs.KEY_CLINE_COMPANION_MODE, checked).apply()
+            updateSubSwitches(checked)
+        }
 }

@@ -85,8 +85,9 @@ class DynamicKeyScaler(
             val key = letter.lowercaseChar()
             val set = neighborButtons.getOrPut(key) { mutableSetOf() }
             for ((other, otherLetter) in baseLetters) {
-                if (other === btn) continue
-                val (r2, c2) = cellOf[other] ?: continue
+                val cell = cellOf[other]
+                if (other === btn || cell == null) continue
+                val (r2, c2) = cell
                 val sameRow = r2 == r && kotlin.math.abs(c2 - c) == 1
                 val adjacentRow = kotlin.math.abs(r2 - r) == 1 && kotlin.math.abs(c2 - c) <= 1
                 if (sameRow || adjacentRow) set.add(otherLetter.lowercaseChar())

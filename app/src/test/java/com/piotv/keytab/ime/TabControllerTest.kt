@@ -1,15 +1,18 @@
 package com.piotv.keytab.ime
 
 import android.content.Context
+import android.os.Handler
 import android.os.Looper
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
+import android.widget.TextView
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.Prefs
 import com.piotv.keytab.R
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -24,7 +27,16 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class TabControllerTest {
     private val app: Context get() = RuntimeEnvironment.getApplication()
-    private class Host(val ctx: Context) : TabHost {
+    private open class TestEditorPanel(ctx: Context, root: View) : EditorPanel(
+        ctx, root, directExecutor, Handler(Looper.getMainLooper())
+    ) {
+        override var openFiles: Int = 0
+    }
+
+    private open class TestHost(
+        val ctx: Context,
+        val panel: TestEditorPanel
+    ) : TabHost {
         override val context get() = ctx
         override fun hideKeyboard() = Unit
         override val inputRouter = InputRouter(Target(), Target())
@@ -32,7 +44,10 @@ class TabControllerTest {
         override val fileManagerPanel: FileManagerPanel? = null
         override val clipboardPanel: ClipboardPanel? = null
         override val snippetPanel: SnippetPanel? = null
+        override val editorPanel: EditorPanel? = panel
+        override fun refreshEditorBadge() = Unit
     }
+
     private class Target : InputTarget {
         override fun insert(text: String) = Unit
         override fun deleteBackspace() = Unit
@@ -43,9 +58,13 @@ class TabControllerTest {
         override fun onEnter() = Unit
         override fun onTab() = Unit
     }
-    private lateinit var host: Host
+    private lateinit var host: TestHost
     private lateinit var controller: TabController
-    @Before fun setUp() { Prefs.of(app).edit().clear().commit(); host = Host(app); controller = TabController(host) }
+    @Before fun setUp() {
+        Prefs.of(app).edit().clear().commit()
+        host = TestHost(app, TestEditorPanel(app, root()))
+        controller = TabController(host)
+    }
     private fun root(): View = LayoutInflater.from(ContextThemeWrapper(app, R.style.Theme_KeyTab)).inflate(R.layout.keyboard_view, null)
     private fun setup(clip: Boolean, snip: Boolean): View {
         Prefs.of(app).edit().putBoolean(Prefs.KEY_CLIP_TAB, clip).putBoolean(Prefs.KEY_SNIPPET_TAB, snip).commit()
@@ -65,6 +84,107 @@ class TabControllerTest {
         tabs.getTabAt(2)!!.select()
         assertEquals(TabController.TabKind.FILES, controller.currentTabKind())
         assertEquals(InputKind.APP, host.inputRouter.kind)
+    }
+
+    @Test
+    fun `Editor-Tab-Plakette zählt offene Dateien und ist bei deaktiviertem Mode ausgeblendet` () {
+        val root = root()
+        val panel = TestEditorPanel(app, root)
+        panel.openFiles = 2
+        val testHost = TestHost(app, panel)
+        controller = TabController(testHost)
+        controller.setup(root)
+
+        // Die Plakette haengt an der Custom-View des Editor-Tabs, nicht am Root.
+        val tabs = root.findViewById<TabLayout>(R.id.ime_tabs)
+        val badge = tabs.getTabAt(1)!!.customView!!.findViewById<TextView>(R.id.editor_tab_badge)
+
+        // Standard: Plakette ausgeblendet (Companion-Mode deaktiviert)
+        controller.refreshEditorBadge()
+        assertTrue(badge.visibility == View.GONE || badge.text.toString().isEmpty())
+
+        // Companion-Mode + Datei-Plakette aktivieren
+        Prefs.of(app).edit()
+            .putBoolean(Prefs.KEY_CLINE_COMPANION_MODE, true)
+            .putBoolean(Prefs.KEY_CLINE_FILE_BADGE, true)
+            .commit()
+        controller.refreshEditorBadge()
+        assertEquals(View.VISIBLE, badge.visibility)
+        assertEquals("2", badge.text.toString())
+
+        // Weitere geoeffnete Datei → Plakette steigt
+        panel.openFiles = 5
+        controller.refreshEditorBadge()
+        assertEquals("5", badge.text.toString())
+
+        // Companion-Mode aus → Plakette wieder aus, Zaehler bleibt erhalten
+        Prefs.of(app).edit()
+            .putBoolean(Prefs.KEY_CLINE_COMPANION_MODE, false)
+            .commit()
+        controller.refreshEditorBadge()
+        assertEquals(View.GONE, badge.visibility)
+        assertEquals(5, panel.openFiles)
+    }
+
+    @Test
+    fun `Editor-Tab-Kontextmenue erscheint nur im Companion-Mode` () {
+        val root = root()
+        val panel = TestEditorPanel(app, root)
+        val testHost = TestHost(app, panel)
+        controller = TabController(testHost)
+        controller.setup(root)
+
+        val tabs = root.findViewById<TabLayout>(R.id.ime_tabs)
+        val custom = tabs.getTabAt(1)!!.customView!!
+
+        // Ohne Companion-Mode: Long-Press wird abgefangen, aber es kommt
+        // KEIN Menue (kein Dialog, kein Absturz).
+        assertFalse(
+            "Ohne Companion-Mode darf kein Menue erscheinen",
+            controller.showEditorTabMenu(custom)
+        )
+
+        // Companion-Mode an, aber Tab-Kontextmenue noch aus -> weiterhin kein Menue
+        Prefs.of(app).edit()
+            .putBoolean(Prefs.KEY_CLINE_COMPANION_MODE, true)
+            .putBoolean(Prefs.KEY_CLINE_TAB_CONTEXT_MENU, false)
+            .commit()
+        assertFalse(
+            "Ohne Tab-Kontextmenue darf kein Menue erscheinen",
+            controller.showEditorTabMenu(custom)
+        )
+
+        // Beide aktiv -> Menue (Dialog) wird gezeigt
+        Prefs.of(app).edit()
+            .putBoolean(Prefs.KEY_CLINE_TAB_CONTEXT_MENU, true)
+            .commit()
+        assertTrue(
+            "Im Companion-Mode mit Tab-Kontextmenue erscheint das Menue",
+            controller.showEditorTabMenu(custom)
+        )
+    }
+
+    @Config(sdk = [34], qualifiers = "w411dp-h891dp-xhdpi")
+    @Test fun `Tab-Wechsel aus dem Vollbild stellt die Editor-Normalhoehe wieder her`() {
+        val r = setup(true, true)
+        val tabs = r.findViewById<TabLayout>(R.id.ime_tabs)
+        tabs.getTabAt(1)!!.select() // Editor
+        val editor = r.findViewById<View>(R.id.editor_panel)
+        val normal = editor.layoutParams.height
+        assertTrue("Editor-Normalhoehe vor dem Vollbild positiv", normal > 0)
+
+        // Vollbild wie hideKeyboard(): Tag setzen + collapse. Der Editor behaelt
+        // die Tastatur, sein Panel waechst auf die Fensterhoehe.
+        r.setTag(R.id.maximized_state, true)
+        KeyboardCollapse.collapse(r, keyboardVisible = true, maximizeRowVisible = false)
+        val maximized = editor.layoutParams.height
+        assertTrue("Vollbild muss hoeher als normal sein ($normal -> $maximized)", maximized > normal)
+
+        // G3: Tab-Wechsel raus aus dem Vollbild — expand() stellt die Normalhoehe
+        // wieder her, statt das Editor-Panel maximiert zu lassen.
+        tabs.getTabAt(2)!!.select()
+        assertEquals("Vollbild-Tag zurueckgesetzt", false, r.getTag(R.id.maximized_state))
+        assertEquals("Editor-Normalhoehe wiederhergestellt", normal, editor.layoutParams.height)
     }
     @Test fun `Snippet ist optional und Maximieren sitzt je nach Tab`() {
         val r = setup(true, true); val tabs = r.findViewById<TabLayout>(R.id.ime_tabs)

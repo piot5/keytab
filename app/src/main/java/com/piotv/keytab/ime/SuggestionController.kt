@@ -57,22 +57,12 @@ internal class SuggestionController(private val host: SuggestionHost) {
         suggestionViews[1] = root.findViewById(R.id.sug_2)
         suggestionViews[2] = root.findViewById(R.id.sug_3)
         slots = suggestionViews
-        for (i in 0..2) {
-            suggestionViews[i]?.setOnClickListener { v ->
-                // Emoji-Katalog-Chip (Katalog-Browser aktiv)
-                (v.getTag(SuggestionEngine.EMOJI_TAG) as? String)?.let { emoji ->
-                    emojiBrowser.commitEmoji(emoji)
-                    return@setOnClickListener
-                }
-                // Snippet-Chip (Satzanfang, ersetzt Wortvorschläge)
-                (v.getTag(SuggestionEngine.SNIPPET_TAG) as? String)?.let { snip ->
-                    commitSnippet(snip)
-                    return@setOnClickListener
-                }
-                val word = v.tag as? String ?: return@setOnClickListener
-                applySuggestion(word)
-            }
-        }
+        for (i in 0..2) bindChip(suggestionViews[i])
+        // Emoji-Chips sug_4/sug_5 hatten bis v0.20 keinen Listener: 2 von 5
+        // Katalog-Chips pro Seite waren nicht antippbar (nur das ▦-Raster bot
+        // diese Emojis an). Gleiche Route wie sug_1..sug_3.
+        bindChip(root.findViewById(R.id.sug_4))
+        bindChip(root.findViewById(R.id.sug_5))
         // ☺-Katalog-Button (öffnet/blättert den Emoji-Katalog), ◀ (zurück zu den
         // Wortvorschlägen) und ▦ (ganzer Katalog als Tabelle) links in der Leiste.
         emojiBrowser.bind(root, suggestionViews)
@@ -105,6 +95,26 @@ internal class SuggestionController(private val host: SuggestionHost) {
             .getBoolean(com.piotv.keytab.Prefs.KEY_SUGGESTIONS, true)
         root.findViewById<View>(R.id.suggestion_bar)?.visibility =
             if (enabled) View.VISIBLE else View.GONE
+    }
+
+    /** Leisten-Chip binden (Wort-, Snippet- oder Emoji-Chip — gleiche Route). */
+    private fun bindChip(tv: TextView?) {
+        tv?.setOnClickListener { v -> onChipClick(v) }
+    }
+
+    private fun onChipClick(v: View) {
+        // Emoji-Katalog-Chip (Katalog-Browser aktiv)
+        (v.getTag(SuggestionEngine.EMOJI_TAG) as? String)?.let { emoji ->
+            emojiBrowser.commitEmoji(emoji)
+            return
+        }
+        // Snippet-Chip (Satzanfang, ersetzt Wortvorschläge)
+        (v.getTag(SuggestionEngine.SNIPPET_TAG) as? String)?.let { snip ->
+            commitSnippet(snip)
+            return
+        }
+        val word = v.tag as? String ?: return
+        applySuggestion(word)
     }
 
     /** Vorschläge berechnen (Manager) + Tasten skalieren + Likely-Highlights. */

@@ -41,40 +41,6 @@ abstract class SectionsTestBase {
     protected fun idleMain() { ShadowLooper.idleMainLooper() }
 }
 
-class LikelyHighlightSectionTest : SectionsTestBase() {
-
-    private fun section(): LikelyHighlightSection =
-        LikelyHighlightSection(activity, prefs) { changedCount++ }
-
-    private fun row(s: LikelyHighlightSection): LinearLayout {
-        s.build(col)
-        return col.getChildAt(0) as LinearLayout
-    }
-
-    @Test
-    fun `build zeigt den Schalter in einer Reihe und Defaults`() {
-        val s = section()
-        val r = row(s)
-        assertEquals(1, col.childCount)
-        assertEquals(1, r.childCount)
-        // Standard ist an (Nutzer-Standard, 2026-09-28).
-        assertTrue(ThemePrefs.likelyHighlighting(prefs))
-    }
-
-    @Test
-    fun `Klick auf Likely-Toggle schaltet Pref um und ruft onChange`() {
-        val s = section()
-        val r = row(s)
-        // Start ist „an“ (Nutzer-Standard) → der erste Klick schaltet aus.
-        r.getChildAt(0).performClick()
-        assertFalse(ThemePrefs.likelyHighlighting(prefs))
-        assertEquals(1, changedCount)
-        r.getChildAt(0).performClick()
-        assertTrue(ThemePrefs.likelyHighlighting(prefs))
-        assertEquals(2, changedCount)
-    }
-}
-
 class TrailSectionTest : SectionsTestBase() {
 
     private fun buttons(s: TrailSection): LinearLayout {

@@ -13,6 +13,8 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import com.piotv.keytab.AtomicWrites
+import com.piotv.keytab.ime.KeyTabExecutors
 import com.piotv.keytab.ime.ThemePrefs
 import com.piotv.keytab.sections.ColorSection
 import com.piotv.keytab.sections.GradientSection
@@ -227,28 +229,37 @@ class ThemeSettingsActivity : AppCompatActivity() {
             text = getString(R.string.theme_export)
             isAllCaps = false
             setOnClickListener {
-                val json = ThemePrefs.exportColors(prefs)
-                val file = java.io.File(getExternalFilesDir(null), "theme-export.json")
-                try { file.writeText(json) } catch (e: Exception) { e.printStackTrace() }
-                val ctx = this@ThemeSettingsActivity
-                android.widget.Toast.makeText(ctx,
-                    String.format(getString(R.string.theme_export_toast), file.absolutePath),
-                    android.widget.Toast.LENGTH_LONG).show()
+                // Datei-I/O nicht auf dem Main-Thread (N21); Schreiben atomar (N20).
+                KeyTabExecutors.io.execute {
+                    val json = ThemePrefs.exportColors(prefs)
+                    val file = java.io.File(getExternalFilesDir(null), "theme-export.json")
+                    try { AtomicWrites.writeText(file, json) } catch (e: Exception) { e.printStackTrace() }
+                    val path = file.absolutePath
+                    KeyTabExecutors.main.post {
+                        android.widget.Toast.makeText(this@ThemeSettingsActivity,
+                            String.format(getString(R.string.theme_export_toast), path),
+                            android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         }
         val import = Button(this).apply {
             text = getString(R.string.theme_import)
             isAllCaps = false
             setOnClickListener {
-                val file = java.io.File(getExternalFilesDir(null), "theme-export.json")
-                val ctx = this@ThemeSettingsActivity
-                val ok = file.isFile && ThemePrefs.importColors(prefs, runCatching {
-                    file.readText()
-                }.getOrDefault(""))
-                android.widget.Toast.makeText(ctx, getString(
-                    if (ok) R.string.theme_import_ok else R.string.theme_import_fail),
-                    android.widget.Toast.LENGTH_LONG).show()
-                if (ok) refreshAllUi()
+                // Datei-I/O nicht auf dem Main-Thread (N21); Import selbst atomar (G11).
+                KeyTabExecutors.io.execute {
+                    val file = java.io.File(getExternalFilesDir(null), "theme-export.json")
+                    val ok = file.isFile && ThemePrefs.importColors(prefs, runCatching {
+                        file.readText()
+                    }.getOrDefault(""))
+                    KeyTabExecutors.main.post {
+                        android.widget.Toast.makeText(this@ThemeSettingsActivity, getString(
+                            if (ok) R.string.theme_import_ok else R.string.theme_import_fail),
+                            android.widget.Toast.LENGTH_LONG).show()
+                        if (ok) refreshAllUi()
+                    }
+                }
             }
         }
         listOf(reset, export, import).forEach { row.addView(it, LinearLayout.LayoutParams(0,

@@ -17,6 +17,9 @@ import java.util.WeakHashMap
 
 /** Bounded image decoding off the UI thread; stale requests cannot replace a newer theme. */
 object BackgroundImage {
+    /** Längste Seite nach dem Downsampling (oberhalb wird weiter halbiert). */
+    private const val MAX_SAMPLE_DIMENSION = 2048
+
     private val requests = WeakHashMap<View, Any>()
 
     fun apply(view: View, context: Context, base: Drawable) {
@@ -52,15 +55,16 @@ object BackgroundImage {
         open()?.use { BitmapFactory.decodeStream(it, null, options) }
         if (options.outWidth <= 0 || options.outHeight <= 0) null else {
             options.inSampleSize = 1
-            while (options.outWidth / options.inSampleSize > 2048 ||
-                options.outHeight / options.inSampleSize > 2048) options.inSampleSize *= 2
+            while (options.outWidth / options.inSampleSize > MAX_SAMPLE_DIMENSION ||
+                options.outHeight / options.inSampleSize > MAX_SAMPLE_DIMENSION) options.inSampleSize *= 2
             options.inJustDecodeBounds = false
             open()?.use { BitmapFactory.decodeStream(it, null, options) }
         }
     } catch (_: Exception) { null } catch (_: OutOfMemoryError) { null }
 
     internal fun destination(iw: Int, ih: Int, width: Int, height: Int, mode: String): RectF {
-        if (iw <= 0 || ih <= 0 || width <= 0 || height <= 0) return RectF()
+        if (iw <= 0 || ih <= 0) return RectF()
+        if (width <= 0 || height <= 0) return RectF()
         if (mode == Prefs.FILL_STRETCH) return RectF(0f, 0f, width.toFloat(), height.toFloat())
         val sx = width.toFloat() / iw
         val sy = height.toFloat() / ih

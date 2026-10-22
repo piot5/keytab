@@ -12,6 +12,7 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import com.piotv.keytab.ime.Languages
+import com.piotv.keytab.ime.ThemePrefs
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -168,7 +169,92 @@ class KeyTabTypingTest {
         assertNoSuggestions("Feld ohne personalisiertes Lernen darf keine Vorschlaege zeigen")
     }
 
+    /**
+     * Panel-/Theme-Rendering: alle Inhalts-Tabs werden sichtbar (Theme-Anwenden +
+     * Panel-Aufbau), der Editor-Vollbild-Modus wird per Tab-Wechsel verlassen
+     * (G3: Normalhoehe wiederherstellen), und die Tastatur tippt danach weiter.
+     */
+    @Test
+    fun tabWechselUndVollbildRendertUndTipptWeiter() {
+        val activity = activityRule.activity
+        val normal = activity.normalField
+        focus(normal)
+        waitForKeyboard()
+        ensureLetters()
+
+        // Inhalts-Tabs durchlaufen: Files-Panel und Editor-Panel rendern.
+        clickTab("Files")
+        clickTab("Editor")
+        // Vollbild im Editor (⇲ in der Prediction-Zeile) ...
+        clickKeyById("sug_hide")
+        // ... und zurueck per Tab-Wechsel — genau der G3-Pfad.
+        clickTab("abc")
+
+        // Tastatur muss nach dem Roundtrip weiter tippen.
+        ensureLetters()
+        typeUntilTextAny(normal, setOf("ok", "Ok")) { typeText("ok") }
+    }
+
+    /**
+     * Swipe-Pfad (Route sammeln, scoren, Auto-Commit/Fallback): eine Wisch-Geste
+     * über die Buchstaben-Reihe darf nicht crashen, die Tastatur tippt danach.
+     */
+    @Test
+    fun swipeGesteCrashtNichtUndTipptWeiter() {
+        val activity = activityRule.activity
+        val normal = activity.normalField
+        // Swipe aktivieren; SwipeManager.swipeEnabled() liest das Pref live.
+        Prefs.of(instrumentation.targetContext).edit()
+            .putBoolean(Prefs.KEY_SWIPE, true).apply()
+        focus(normal)
+        waitForKeyboard()
+        ensureLetters()
+
+        swipeAcross("key_q", "key_t")
+
+        ensureLetters()
+        typeUntilTextAny(normal, setOf("x", "X")) { clickKey("x") }
+    }
+
+    /**
+     * Trail-Pfad (Key-Foreground-Overlay): mit aktivem Trail mehrere Buchstaben
+     * tippen — ein Crash im Paint-/Snap-Pfad schlaegt hier fehl.
+     */
+    @Test
+    fun trailRendertOhneCrash() {
+        val activity = activityRule.activity
+        val normal = activity.normalField
+        Prefs.of(instrumentation.targetContext).edit()
+            .putBoolean(ThemePrefs.KEY_TRAIL, true).apply()
+        focus(normal)
+        waitForKeyboard()
+        ensureLetters()
+
+        typeUntilTextAny(normal, setOf("trail", "Trail")) { typeText("trail") }
+    }
+
     // ---------------- Hilfen ----------------
+
+    /** Inhalts-Tab über sein Label antippen (TabLayout-TextView). */
+    private fun clickTab(label: String) {
+        val tab = device.wait(Until.findObject(
+            By.clazz("android.widget.TextView").textStartsWith(label)), 2_000)
+        assertTrue("Tab '$label' nicht gefunden", tab != null)
+        tab.click()
+        device.waitForIdle()
+    }
+
+    /** Wisch-Geste von der Mitte der Taste [fromId] zur Mitte der Taste [toId]. */
+    private fun swipeAcross(fromId: String, toId: String) {
+        val from = device.wait(Until.findObject(By.res(pkg, fromId)), 2_000)
+        val to = device.wait(Until.findObject(By.res(pkg, toId)), 2_000)
+        assertTrue("Swipe-Start '$fromId' nicht gefunden", from != null)
+        assertTrue("Swipe-Ziel '$toId' nicht gefunden", to != null)
+        val a = from.visibleBounds
+        val b = to.visibleBounds
+        device.swipe(a.centerX(), a.centerY(), b.centerX(), b.centerY(), 12)
+        device.waitForIdle()
+    }
 
     /**
      * [block] ausfuehren, bis das Feld [expected] enthaelt (max. 3 Anlaeufe).

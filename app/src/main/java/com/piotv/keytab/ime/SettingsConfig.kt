@@ -2,6 +2,7 @@ package com.piotv.keytab.ime
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.piotv.keytab.AtomicWrites
 import com.piotv.keytab.Prefs
 import java.io.File
 import java.security.MessageDigest
@@ -42,6 +43,12 @@ object SettingsConfig {
         put("dynamic_keys", Setting(Prefs.KEY_DYNAMIC_KEYS, "true", "boolean"))
         // Swipe (Gleit-Eingabe), v0.11 — Default aus.
         put("swipe", Setting(Prefs.KEY_SWIPE, "false", "boolean"))
+        // Cline companion mode (optionale Funktionsgruppe, v0.20) — alle
+        // Unter-Schalter sind nur wirksam, wenn der Haupt-Schalter an ist.
+        put("cline_companion_mode", Setting(Prefs.KEY_CLINE_COMPANION_MODE, "false", "boolean"))
+        put("cline_file_badge", Setting(Prefs.KEY_CLINE_FILE_BADGE, "false", "boolean"))
+        put("cline_auto_load", Setting(Prefs.KEY_CLINE_AUTO_LOAD, "false", "boolean"))
+        put("cline_tab_context_menu", Setting(Prefs.KEY_CLINE_TAB_CONTEXT_MENU, "false", "boolean"))
         // Trail (Tippspur + Treffer-Markierung). Vorher nur über Theme-Export
         // steuerbar – hier zusätzlich über keytab_config.txt (docs/CONFIG.md).
         put("trail", Setting(ThemePrefs.KEY_TRAIL, "false", "boolean"))
@@ -117,6 +124,11 @@ object SettingsConfig {
             else {
                 val changed = importTextIfChanged(file.readText(), prefs)
                 prefs.edit().putString(KEY_FILE_STAT, stat).apply()
+                // N4: Es ist dieselbe Datei, aus der auch [KeyTabConfig] liest
+                // (Skalierung). Deren Lese-Cache muss bei einer Aenderung weg,
+                // sonst bliebe die Skalierung des alten Standes aktiv.
+                if (changed) KeyTabConfig.invalidateCache()
+
                 changed
             }
         }
@@ -130,22 +142,26 @@ object SettingsConfig {
         if (prefs.getString(KEY_FINGERPRINT, null) == fingerprint) return false
         val editor = prefs.edit()
         for ((key, value) in KeyTabConfig.entries(text)) {
-            val spec = settings[key] ?: continue
-            when (spec.type) {
-                "boolean" -> strictBoolean(value)?.let { editor.putBoolean(spec.pref, it) }
-                "dark" -> if (value == "system") editor.remove(spec.pref)
-                    else strictBoolean(value)?.let { editor.putBoolean(spec.pref, it) }
-                "enum" -> if (value in spec.choices) editor.putString(spec.pref, value)
-                "string" -> editor.putString(spec.pref, value)
-                "int" -> value.toIntOrNull()?.let { editor.putInt(spec.pref, it) }
-                "color" -> if (value == "default") editor.remove(spec.pref)
-                    else parseColor(value)?.let { editor.putInt(spec.pref, it) }
-            }
+            settings[key]?.let { applySetting(editor, it, value) }
         }
         // Scale-only changes must also invalidate a cached IME view.
         editor.putInt(ThemePrefs.KEY_THEME_VERSION, ThemePrefs.themeVersion(prefs) + 1)
             .putString(KEY_FINGERPRINT, fingerprint).apply()
         return true
+    }
+
+    /** Schreibt eine gültige Einstellung in den (noch nicht angewendeten) Editor. */
+    private fun applySetting(editor: SharedPreferences.Editor, spec: Setting, value: String) {
+        when (spec.type) {
+            "boolean" -> strictBoolean(value)?.let { editor.putBoolean(spec.pref, it) }
+            "dark" -> if (value == "system") editor.remove(spec.pref)
+                else strictBoolean(value)?.let { editor.putBoolean(spec.pref, it) }
+            "enum" -> if (value in spec.choices) editor.putString(spec.pref, value)
+            "string" -> editor.putString(spec.pref, value)
+            "int" -> value.toIntOrNull()?.let { editor.putInt(spec.pref, it) }
+            "color" -> if (value == "default") editor.remove(spec.pref)
+                else parseColor(value)?.let { editor.putInt(spec.pref, it) }
+        }
     }
 
     private fun strictBoolean(value: String): Boolean? = when (value) {
@@ -179,8 +195,7 @@ object SettingsConfig {
         if (file.isFile) importTextIfChanged(existing, prefs)
         val merged = completeText(existing, prefs)
         if (merged != existing) {
-            file.parentFile?.mkdirs()
-            file.writeText(merged)
+            AtomicWrites.writeText(file, merged)
         }
         // Completion reflects current preferences, not a new external config edit.
         prefs.edit().putString(KEY_FINGERPRINT, fingerprint(merged)).apply()

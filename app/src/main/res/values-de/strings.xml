@@ -19,6 +19,17 @@
     <string name="settings_cleanup_dictionary_done">Wörterbuch bereinigt: %1$d Einträge entfernt.</string>
     <string name="settings_cleanup_dictionary_empty">Keine verdächtigen gelernten Einträge gefunden.</string>
     <string name="settings_cleanup_dictionary_failed">Das gelernte Wörterbuch konnte nicht bereinigt werden.</string>
+    <string name="settings_section_cline_companion">Cline-Kompanion-Mode</string>
+    <string name="settings_cline_companion">Cline-Kompanion-Mode</string>
+    <string name="settings_cline_companion_off">Cline-Kompanion-Mode deaktiviert</string>
+    <string name="settings_cline_file_badge">Datei-Plakette (Anzahl geöffneter Dateien)</string>
+    <string name="settings_cline_auto_load">Auto-Load (Dateien, die Cline schreibt)</string>
+    <string name="settings_cline_tab_context_menu">Tab-Kontextmenü (Long-Press)</string>
+    <string name="editor_tab_menu_title">Editor</string>
+    <string name="editor_tab_close_all">Alle schließen</string>
+    <string name="editor_tab_new_file">Neue Datei</string>
+    <string name="editor_tab_save_current">Aktuelle speichern</string>
+    <string name="editor_tab_reload">Neu laden</string>
     <string name="settings_cleanup_dictionary_found">%1$d verdächtige gelernte Einträge gefunden. Löschen?</string>
     <string name="settings_cleanup_dictionary_title">Gelerntes Wörterbuch</string>
     <string name="settings_cleanup_learned_dictionary">🧹 Gelerntes Wörterbuch prüfen</string>
@@ -28,7 +39,6 @@
     <string name="theme_gradient_hint">Farbe 1 / Farbe 2 und deren Alpha stellst du im Farbwahlrad unten ein (Ziel „Farbe 1/2").</string>
     <string name="theme_import_fail">Import fehlgeschlagen – theme-export.json nicht gefunden/ungültig</string>
     <string name="key_toggle_symbols">\?123</string>
-    <string name="theme_likely_toggle">Likely-Highlighting</string>
     <string name="theme_preview_suggestion">Vorschlag</string>
     <string name="theme_trail_hint">Der zuletzt geklickte Buchstabe wird farblich markiert und mit jeder neuen Eingabe stufenweise weniger sichtbar, bis er ganz verschwindet. Standardfarbe: Blau. In Passwort-Feldern bleibt die Spur aus.</string>
     <string name="theme_trail_trace_hint">Passt das getippte Wort genau zum obersten Vorschlag, werden seine Buchstaben kurz grün markiert. Es wird nichts geändert — nur eine Bestätigung. Nur in normalen Textfeldern.</string>

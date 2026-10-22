@@ -73,6 +73,12 @@ interface TabHost : KeyboardHost {
 
     /** Snippet-Panel (für onSelected() beim Snip-Tab). */
     val snippetPanel: SnippetPanel?
+
+    /** Editor-Panel (Plakette der offenen Dateien + Aktionen). */
+    val editorPanel: EditorPanel?
+
+    /** Plakette am Editor-Tab aktualisieren (z. B. nach dem Öffnen einer Datei). */
+    fun refreshEditorBadge()
 }
 
 /**

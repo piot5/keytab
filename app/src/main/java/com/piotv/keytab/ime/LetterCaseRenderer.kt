@@ -24,13 +24,15 @@ internal object LetterCaseRenderer {
     }
 
     /**
-     * Sonderzeichen-Hinweise für [base] unter [upper] aus [extras].
-     * Interpunktion-Extras gibt es nur am lowercase-Key → Shift fällt darauf zurück;
-     * bei ß gibt es keine Hinweise.
+     * Sonderzeichen-Hinweise für [base] aus [extras] – **unabhängig von Shift/Caps**.
+     *
+     * v0.20: Vorher lieferte der Shift-Zustand die Großbuchstaben-Reihe
+     * (`extras['A']`), während Tasten ohne Großbuchstaben-Eintrag auf die
+     * Kleinbuchstaben-Reihe zurückfielen. Dieselbe Taste zeigte damit je nach
+     * Shift etwas anderes („Ä …“ statt „ä …“, bei `m`/`r` aber weiter „&“/„.“).
+     * Jetzt gilt überall dieselbe Reihe an der Basistaste; [extras] führt deshalb
+     * nur noch Basis-Tasten (Kleinbuchstaben + Interpunktion).
      */
-    internal fun extrasFor(base: Char, upper: Boolean, extras: Map<Char, List<String>>): List<String> = when {
-        upper && base == 'ß' -> emptyList()
-        upper -> (extras[base.uppercaseChar()] ?: extras[base]).orEmpty()
-        else -> extras[base].orEmpty()
-    }
+    internal fun extrasFor(base: Char, extras: Map<Char, List<String>>): List<String> =
+        extras[base].orEmpty()
 }

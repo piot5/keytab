@@ -64,6 +64,18 @@ class TrailManager(
     }
 
     /**
+     * Listener abmelden und Timer stoppen — muss beim Service-Ende aufgerufen
+     * werden. `SharedPreferences` hält den Listener stark; ohne [release]
+     * bleibt der Manager (und damit die Tastatur-Buttons) im Speicher
+     * (N5: Prefs-Listener-Leak).
+     */
+    fun release() {
+        prefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
+        fadeHandler.removeCallbacksAndMessages(null)
+        fadePending = false
+    }
+
+    /**
      * Aktuelles Eingabefeld melden (aus `onStartInput`/`onStartInputView`).
      * Wechselt das Feld, wird die Spur geleert – damit ein Trace aus einem
      * harmlosen Feld nicht in ein Passwortfeld überläuft.

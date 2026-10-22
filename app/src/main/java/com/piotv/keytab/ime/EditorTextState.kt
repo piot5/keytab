@@ -1,5 +1,6 @@
 package com.piotv.keytab.ime
 
+import com.piotv.keytab.AtomicWrites
 import com.piotv.keytab.R
 import java.io.File
 
@@ -118,11 +119,8 @@ internal object EditorTextState {
     fun isTooLargeForEditor(f: File, maxBytes: Long = MAX_EDITOR_BYTES): Boolean =
         f.length() > maxBytes
 
-    /** Schreibt [text] nach [f] und legt bei Bedarf das Elternverzeichnis an. */
-    fun writeFile(f: File, text: String) {
-        f.parentFile?.mkdirs()
-        f.writeText(text)
-    }
+    /** Schreibt [text] atomar nach [f] und legt bei Bedarf das Elternverzeichnis an. */
+    fun writeFile(f: File, text: String) = AtomicWrites.writeText(f, text)
 
     /**
      * Zeilen des Ordner-Browsers: „▲ …" oben, falls es ein übergeordnetes

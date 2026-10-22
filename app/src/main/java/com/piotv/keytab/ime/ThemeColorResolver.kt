@@ -29,10 +29,6 @@ internal object ThemeColorResolver {
     const val KIND_LIKELY = "gaming"
     /** Farbe des Tippspur-Effekts (Trail der zuletzt geklickten Taste). */
     const val KIND_TRAIL = "trail"
-    /** Farbe der Swipe-Pfad-Knoten (Schaltplan-Preview + Swipe-Eingabe). */
-    const val KIND_SWIPE = "swipe"
-    /** Farbe der Swipe-Pfad-Kanten (Verbindungslinien zwischen Prognose-Tasten). */
-    const val KIND_SWIPE_EDGE = "swipe_edge"
     /** Gradient-Farbe 1 (über dem Farbkreis auswählbar). */
     const val KIND_GRADIENT1 = "gradient1"
     /** Gradient-Farb 2 (über dem Farbkreis auswählbar). */
@@ -50,8 +46,6 @@ internal object ThemeColorResolver {
             KIND_TEXT -> R.color.key_text
             KIND_LIKELY -> R.color.primary
             KIND_TRAIL -> R.color.trail_color
-            KIND_SWIPE -> R.color.swipe_color
-            KIND_SWIPE_EDGE -> R.color.swipe_edge_color
             else -> R.color.kbd_bg
         }
         return ContextCompat.getColor(ctx, res)

@@ -110,8 +110,10 @@ internal object FileCopyRules {
 
     /** true, wenn [dst] identisch mit [src] ist oder innerhalb von [src] liegt. */
     fun isSameOrInside(src: File, dst: File): Boolean {
-        val srcPath = src.absolutePath.trimEnd(File.separatorChar)
-        val dstPath = dst.absolutePath
+        // Symlinks (/sdcard → /storage/emulated/0) und `..`-Segmente können den
+        // Schutz bei reinem absolutePath umgehen → canonicalPath (mit Fallback).
+        val srcPath = runCatching { src.canonicalPath }.getOrDefault(src.absolutePath).trimEnd(File.separatorChar)
+        val dstPath = runCatching { dst.canonicalPath }.getOrDefault(dst.absolutePath)
         return dstPath == srcPath || dstPath.startsWith(srcPath + File.separator)
     }
 

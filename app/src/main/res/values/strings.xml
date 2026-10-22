@@ -104,6 +104,17 @@
     <string name="settings_swipe">Swipe typing (glide over keys, offline)</string>
     <string name="settings_swipe_on">Swipe typing enabled</string>
     <string name="settings_swipe_off">Swipe typing disabled</string>
+    <string name="settings_section_cline_companion">Cline companion mode</string>
+    <string name="settings_cline_companion">Cline companion mode</string>
+    <string name="settings_cline_companion_off">Cline companion mode disabled</string>
+    <string name="settings_cline_file_badge">File badge (number of open files)</string>
+    <string name="settings_cline_auto_load">Auto-load (files written by cline)</string>
+    <string name="settings_cline_tab_context_menu">Tab context menu (long-press)</string>
+    <string name="editor_tab_menu_title">Editor</string>
+    <string name="editor_tab_close_all">Close all</string>
+    <string name="editor_tab_new_file">New file</string>
+    <string name="editor_tab_save_current">Save current</string>
+    <string name="editor_tab_reload">Reload</string>
     <string name="settings_update_config">⚙️ Write config (keytab_config.txt)</string>
     <string name="settings_cleanup_learned_dictionary">🧹 Check learned dictionary</string>
     <string name="settings_cleanup_dictionary_title">Learned dictionary</string>
@@ -163,7 +174,6 @@
     <string name="editor_pick_empty">Empty folder</string>
     <string name="settings_language_label">Keyboard language</string>
     <string name="language_changed_to">Language: %1$s</string>
-    <string name="theme_likely_toggle">Likely Highlighting</string>
     <string name="theme_preview_suggestion">Suggestion</string>
     <string name="fm_overwrite_title">Overwrite?</string>
     <string name="fm_overwrite_message">%1$s already exists. Overwrite it?</string>

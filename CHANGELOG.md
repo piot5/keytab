@@ -11,6 +11,63 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 > und die Gradle-Version zusammenpassen.
 
 
+## 0.20
+
+- **Cline-Companion-Mode (optional).** KeyTab erkennt jetzt selbst, wenn eine
+  externe Agenten-Sitzung (Cline CLI) Dateien schreibt, und lädt sie
+  automatisch in den Editor-Tab. Drei unabhängige Unter-Schalter, alle
+  standardmäßig **aus** und über den Hauptschalter „Cline companion mode"
+  gebündelt: **Auto-Load** (Datei-Polling, 1 s), **Datei-Plakette** (Anzahl der
+  geöffneten Dateien am Editor-Tab) und **Tab-Kontextmenü** (Long-Press auf den
+  Editor-Tab → Alle schließen / Neue Datei / Speichern / Neu laden).
+  KeyTab bleibt dabei werkzeugneutral: der Modus beobachtet nur das
+  Dateisystem und kennt keine Cline-Sessions, keine APIs und keine Tokens.
+- **Long-Press-Reihe unabhängig von Shift/Caps.** Vorher lieferte der Shift-Zustand
+  die Großbuchstaben-Reihe (`extras['A']`), während Tasten ohne Großbuchstaben-Eintrag
+  auf die Kleinbuchstaben-Reihe zurückfielen: dieselbe Taste zeigte je nach Shift etwas
+  anderes („Ä …“ statt „ä …“, bei `m`/`r` aber weiter „&“/„.“). Jetzt gilt überall
+  dieselbe Reihe an der Basistaste; `LetterCaseRenderer.extrasFor` ist die einzige
+  Quelle, die Sprachdaten führen keine Großbuchstaben-Einträge mehr (tote Daten).
+  Auf der deutschen Tastatur kommen die AltGr-Zeichen dazu: `@` auf `q`, `µ` auf `m`.
+- **ß-Taste entfällt, Backspace wird doppelt breit.** Das `ß` bleibt über den
+  Long-Press auf `s` erreichbar; der frei gewordene Platz geht an Backspace
+  (weight 2 statt 1).
+- **Leertaste und Enter zeigen ihr Symbol mittig** (␣/↵ zentriert statt oben links).
+- **Buchstaben sitzen weiter oben links** (Padding 5dp/5dp statt 8dp/9dp), damit der
+  Sonderzeichen-Hinweis unten rechts mehr Platz hat und sichtbar bleibt.
+- **Aufräumen löscht keine echten deutschen Wörter mehr.** Die frühere
+  Artefakt-Heuristik „enthält ‚und'“ traf fast jedes echte Wort (Stunde, gesund,
+  Grund, wunderbar, Kunde, hundert, Bundesland …) und hätte den gelernten Bestand
+  nach Bestätigung irreversibel gelöscht; sie ist entfernt (nur noch die explizite
+  Fragmentliste erkennt Rückstände).
+- **Decay zählt Lernschnitte statt Wörterbuchgröße.** Vorher griff die sanfte
+  Gewichtsdämpfung immer dann, wenn die Wörterbuchgröße genau 25 betrug — also bei
+  jedem weiteren Abschluss eines bereits bekannten Worts, was gelernte Gewichte
+  dauerhaft zurücktreiben ließ. Jetzt zählt ein Lernschnitt-Zähler (`learnCount`).
+- **Emoji-Katalog: alle 5 Chips pro Seite sind antippbar.** `sug_4`/`sug_5` hatten
+  keinen Klick-Listener — 2 von 5 Katalog-Chips pro Seite gingen ins Leere (nur das
+  ▦-Raster bot diese Emojis an).
+- **Tab-Zustand nach Rebuild korrekt.** Beim Neuaufbau der Tastatur (Theme-Wechsel)
+  zeigte die Leiste wieder „abc“, sichtbar blieb aber das alte Panel — `currentKind`
+  wird jetzt beim `setup()` zurückgesetzt (tofix G2).
+- **Schaltplan-Preview der Folge-Tasten entfernt.** Das Feature („schematic button
+  connection“: Likely-Knoten-Färbung + Kanten-Overlay während des Wischens) war
+  toter Code, der nach dem Reaktivieren abstürzte — komplett ausgebaut
+  (`SwipeEdgeOverlay`/`SwipeEdgeDrawing` gelöscht, `applySwipeLikely`/`paintNodes`/
+  `wasLikelyHit`/`drawEdges`/`previewNodes`/`isLikelyHit` entfernt, tofix G7).
+- **Toter Code entfernt:** `ThemeController.maybeRebuildForThemeChange()` samt Feld
+  `appliedThemeVersion` (ohne Aufrufer; der echte Theme-Rebuild läuft über
+  `refreshSettings()`, tofix N22).
+- **Batch-Limit klar benannt:** eigene Konstante `MAX_BATCH_PER_COMMIT` statt des
+  Delete-Limits (tofix N13).
+- **Weitere tote Feature-Reste entfernt.** `LikelyHighlightSection` (der
+  „Likely-Highlighting“-Schalter, war nie in die Theme-Einstellungen verdrahtet)
+  gelöscht; die verwaisten Swipe-Farben (`swipe_color`/`swipe_edge_color`,
+  `KIND_SWIPE`/`KIND_SWIPE_EDGE` samt Gettern) ausgebaut; `KEY_LIKELY` heißt jetzt
+  `likely` (Legacy-Key `gaming_mode` wird beim Lesen migriert).
+- **Tests:** 557 Unit-Tests in 59 Suites (0 Failures).
+
+
 ## 0.19
 
 - **Files-Tab: „Alle Dateien“ als optionale Freigabe (F-Droid-konform).** Ab

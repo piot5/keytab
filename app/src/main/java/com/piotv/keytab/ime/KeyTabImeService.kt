@@ -64,6 +64,13 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
     /** Swipe-Manager (v0.11): Swipe-Eingabe. null vor erstem Aufbau. */
     private var swipeManager: SwipeManager? = null
 
+    /**
+     * Trail-Manager (Prefs-Listener). Wird bei jedem Rebuild neu erzeugt — der
+     * alte muss vorher abgemeldet werden, sonst sammeln sich die Listener
+     * (N5).
+     */
+    private var trailManager: TrailManager? = null
+
     // Phase 6: Text-Commit-Orchestrierung + View-Aufbau ausgelagert
     private val textCommit = TextCommitController(object : TextCommitController.Host {
         override fun haptic() = this@KeyTabImeService.haptic()
@@ -126,11 +133,19 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
 
     override var fileManagerPanel: FileManagerPanel? = null
         private set
-    private var editorPanel: EditorPanel? = null
+    private var editorPanelInstance: EditorPanel? = null
     override var clipboardPanel: ClipboardPanel? = null
         private set
     override var snippetPanel: SnippetPanel? = null
         private set
+
+    /** Editor-Panel-Instanz (TabHost-Interface). */
+    override val editorPanel: EditorPanel?
+        get() = editorPanelInstance
+
+    override fun refreshEditorBadge() {
+        tabController.refreshEditorBadge()
+    }
 
     /** Aktive Sprache (aus Einstellungen, default Deutsch). */
     private var activeLanguage: KeyboardLanguage = Languages.de
@@ -146,13 +161,11 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
      * akkumuliert einen kompletten View-Baum (Memory-Leak).
      */
     private fun releasePanels() {
-        // Swipe-Preview (Overlay + Knoten-Färbung) VOR dem Vergessen der alten
-        // Instanz entfernen — sonst bleibt das EdgeOverlay im alten View-Baum
-        // hängen und ist nicht mehr removebar („Verbindung geht nicht weg"-Bug).
-        swipeManager?.clearPreview()
+        trailManager?.release()
+        trailManager = null
         swipeManager = null
         fileManagerPanel = null
-        editorPanel = null
+        editorPanelInstance = null
         clipboardPanel = null
         snippetPanel = null
         keyboardRoot = null
@@ -175,13 +188,15 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         val result = viewFactory.create()
         keyboardRoot = result.root
         fileManagerPanel = result.fileManagerPanel
-        editorPanel = result.editorPanel
+        editorPanelInstance = result.editorPanel
+        editorPanelInstance?.tabHost = this
         clipboardPanel = result.clipboardPanel
         snippetPanel = result.snippetPanel
         inputRouter = result.router
         activeLanguage = result.language
         predictionManager = result.predictionManager
         keyScaler = result.keyScaler
+
         val root = result.root
         // Edge-to-Edge-Erzwingung (targetSdk ≥ 35): Das IME-Fenster läuft bis
         // zum Bildschirmrand, die always-on-Navigationsleiste überlagert die
@@ -205,10 +220,14 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
             com.piotv.keytab.Prefs.of(this),
             baseLetters
         )
+        this.trailManager = trailManager
         // Swipe-Manager (v0.11): erstellt mit baseLetters (noch leer, wird nach hook gefüllt).
         val sm = SwipeManager(com.piotv.keytab.Prefs.of(this), baseLetters)
         swipeManager = sm
-        keyboardBinder = KeyboardBinder(this, LONG_PRESS_TIMEOUT, tabController, themeController, suggestionController, trailManager, sm)
+        keyboardBinder = KeyboardBinder(
+            this, LONG_PRESS_TIMEOUT, tabController, themeController, suggestionController,
+            KeyboardBinder.Managers(trailManager, sm)
+        )
         keyboardBinder.hook(root)
         // baseLetters sind jetzt gefüllt; TrailManager und SwipeManager halten die
         // Map per Referenz (kein Nachtrag nötig — der frühere No-op-Aufruf
@@ -287,12 +306,11 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
     /**
      * Feld beendet (Fokus weg / App geschlossen): den gemerkten [EditorInfo]
      * verwerfen, damit der Passwort-/Sensibel-Zustand nicht in den nächsten
-     * Kontext nachwirkt, und die Swipe-Vorschau abräumen.
+     * Kontext nachwirkt.
      */
     override fun onFinishInput() {
         super.onFinishInput()
         lastEditorInfo = null
-        swipeManager?.clearPreview()
     }
 
     /**
@@ -361,9 +379,12 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
         } else {
             KeyboardCollapse.expand(root)
             // Der Tab-Wechsler entscheidet, welches Panel sichtbar ist und
-            // setzt die Normalhoehe — nach dem Vollbild-Modus wieder nötig.
+            // setzt die Normalhoehe — nach dem Vollbild-Modus wieder noetig.
             tabController.select(tabController.currentTabKind())
         }
+        // N1: Das ⇱/⇲-Symbol muss dem neuen Zustand folgen — ohne Tab-Wechsel
+        // aendert es sich nur hier.
+        tabController.updateMaximizeSymbol(root)
     }
 
     /** Einzelne Shift-Aktivierung zurücksetzen (CapsLock bleibt) + View aktualisieren. */
@@ -408,7 +429,6 @@ class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHos
                 putString(com.piotv.keytab.Prefs.KEY_USER_DICT, raw)
             }
         }
-        swipeManager?.clearPreview()
         swipeManager = null
         letterPopup.dismiss()
         longPressHandler.removeCallbacksAndMessages(null)

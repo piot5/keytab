@@ -1,8 +1,13 @@
 package com.piotv.keytab.ime
 
+import android.app.AlertDialog
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
+import android.widget.TextView
+import android.widget.Toast
 import com.google.android.material.tabs.TabLayout
+import com.piotv.keytab.Prefs
 import com.piotv.keytab.R
 
 /**
@@ -36,6 +41,9 @@ internal class TabController(private val host: TabHost) {
     private var currentTabs: TabLayout? = null
     private var currentRoot: View? = null
 
+    /** Editor-Tab (Plakette + Long-Press-Kontextmenü). */
+    private var editorTab: TabLayout.Tab? = null
+
     fun currentTabKind(): TabKind = currentKind
     fun select(kind: TabKind) {
         val index = kinds.indexOf(kind)
@@ -45,6 +53,19 @@ internal class TabController(private val host: TabHost) {
 
     /** Aktuell sichtbare Tastatur-Ebene (Buchstaben oder eine Symbol-Ebene). */
     fun currentPlane(): SymbolPlane = plane
+
+    /**
+     * Setzt das ⇱/⇲-Symbol an den aktuellen Vollbild-Zustand (N1).
+     *
+     * Das Symbol wird auch vom `hideKeyboard()`-Toggle gebraucht — dort
+     * wechselt der Zustand, ohne dass ein Tab-Wechsel stattfindet.
+     */
+    fun updateMaximizeSymbol(root: View) {
+        val maximized = root.getTag(R.id.maximized_state) as? Boolean ?: false
+        val symbol = if (maximized) "⇱" else "⇲"
+        (root.findViewById<android.widget.TextView>(R.id.key_maximize))?.text = symbol
+        (root.findViewById<android.widget.TextView>(R.id.sug_hide))?.text = symbol
+    }
 
     private fun applyUniformTabTextSize(tabs: TabLayout) {
         val group = tabs.getChildAt(0) as? android.view.ViewGroup ?: return
@@ -74,6 +95,8 @@ internal class TabController(private val host: TabHost) {
         tabs.removeAllTabs()
         tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_letters)))
         tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_editor)))
+        editorTab = tabs.getTabAt(1)
+        setupEditorTabView(editorTab)
         tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_files)))
         if (clipEnabled) tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_clip_short)))
         if (snipEnabled) tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_snip_short)))
@@ -100,10 +123,11 @@ internal class TabController(private val host: TabHost) {
             }
         })
         // Startzustand: `addTab()` hat den ersten Tab (abc) bereits ausgewählt,
-        // *bevor* der Listener hing — sein `onTabSelected` läuft also nie. Bis
-        // hierher blieb deshalb die Maximieren-Zeile stehen, obwohl sie im
-        // abc-Tab nichts zu suchen hat. Der Startzustand läuft jetzt durch
-        // dieselbe Funktion wie jeder Tab-Wechsel.
+        // *bevor* der Listener hing — sein `onTabSelected` läuft also nie. Nach
+        // einem Rebuild zeigt die Leiste deshalb wieder abc; `currentKind` muss
+        // das widerspiegeln, sonst zeigen Leiste und Panel verschiedene Tabs
+        // (G2: Files-Tab öffnen → Theme toggeln → inkonsistenter Zustand).
+        currentKind = TabKind.ABC
         applyTabVisibility(root, currentKind)
     }
 
@@ -115,21 +139,23 @@ internal class TabController(private val host: TabHost) {
         val root = currentRoot
         if (root == null) return
         host.letterPopup.dismiss()
+        // G3: Beim Verlassen des Vollbild-Modus per Tab-Wechsel die Normalhöhe
+        // des aktuell maximierten Panels wiederherstellen, BEVOR die Sichtbarkeit
+        // umschaltet — expand() greift das noch sichtbare (maximierte) Panel ab.
+        // applyNormalHeights unten deckt nur die Inhalts-Panels ab, nicht das
+        // Editor-Panel; ohne diesen Schritt behielte es seine Maximalhöhe.
+        if (root.getTag(R.id.maximized_state) == true) {
+            KeyboardCollapse.expand(root)
+        }
         val kind = kinds.getOrNull(tab.position) ?: TabKind.ABC
         currentKind = kind
         root.setTag(R.id.maximized_state, false)
         applyTabVisibility(root, kind)
-        host.inputRouter?.kind = if (kind == TabKind.EDITOR) InputKind.EDITOR else InputKind.APP
-        if (kind == TabKind.FILES) host.fileManagerPanel?.show()
-        if (kind == TabKind.CLIP) { host.clipboardPanel?.onSelected(); host.clipboardPanel?.refreshList(root) }
-        if (kind == TabKind.SNIPPET) host.snippetPanel?.onSelected(root)
-        if (kind == TabKind.EDITOR) host.clipboardPanel?.onSelected()
+        activatePanel(root, kind)
+        updateEditorBadge()
         // Symbol an den aktuellen Vollbild-Zustand anpassen (die
         // Sichtbarkeit von Zeile und Symbol setzt [applyTabVisibility]).
-        val maximized = root.getTag(R.id.maximized_state) as? Boolean ?: false
-        val symbol = if (maximized) "⇱" else "⇲"
-        (root.findViewById<android.widget.TextView>(R.id.key_maximize))?.text = symbol
-        (root.findViewById<android.widget.TextView>(R.id.sug_hide))?.text = symbol
+        updateMaximizeSymbol(root)
         // Normalzustand aller Inhalts-Tabs:
         //  * Editor: sein Panel behaelt seine feste Hoehe, darunter
         //    steht die Tastatur (er ist die Hoehenreferenz),
@@ -155,6 +181,103 @@ internal class TabController(private val host: TabHost) {
                 val panel = contentPanelOf(root, kind) ?: return@let
                 panel.layoutParams = panel.layoutParams.apply { height = h }
             }
+        }
+    }
+
+    /** Aktiviert das zum Tab gehörige Panel und setzt den Eingabe-Router. */
+    private fun activatePanel(root: View, kind: TabKind) {
+        host.inputRouter?.kind = if (kind == TabKind.EDITOR) InputKind.EDITOR else InputKind.APP
+        if (kind == TabKind.FILES) host.fileManagerPanel?.show()
+        if (kind == TabKind.CLIP) { host.clipboardPanel?.onSelected(); host.clipboardPanel?.refreshList(root) }
+        if (kind == TabKind.SNIPPET) host.snippetPanel?.onSelected(root)
+        if (kind == TabKind.EDITOR) host.clipboardPanel?.onSelected()
+    }
+
+    /** Plakette am Editor-Tab neu zeichnen (wird vom Service nach Datei-Öffnen gerufen). */
+    internal fun refreshEditorBadge() = updateEditorBadge()
+
+    /**
+     * Plakette anzeigen/verbergen je nach Companion-Mode + offene Dateien zählen.
+     *
+     * Die Plakette ist nur sichtbar, wenn der **Cline companion mode** UND die
+     * Datei-Plakette aktiv sind. Der Zähler steht im [EditorPanel] — er wird
+     * bei jedem geöffneten Datei erhöht (siehe `EditorPanel.onFileOpened`).
+     */
+    private fun updateEditorBadge() {
+        val enabled = Prefs.of(host.context).getBoolean(Prefs.KEY_CLINE_COMPANION_MODE, false) &&
+            Prefs.of(host.context).getBoolean(Prefs.KEY_CLINE_FILE_BADGE, false)
+        editorTab?.let { tab ->
+            val badge = tab.customView?.findViewById<TextView>(R.id.editor_tab_badge)
+            badge?.apply {
+                visibility = if (enabled) View.VISIBLE else View.GONE
+                text = if (enabled) {
+                    host.editorPanel?.openFiles?.toString() ?: "0"
+                } else {
+                    ""
+                }
+            }
+        }
+    }
+
+    /**
+     * Baut die eigene Ansicht des Editor-Tabs: Label + Plakette.
+     *
+     * Eigene Ansicht statt `setText()`, weil die Plakette daneben stehen
+     * soll. Der Long-Press-Handler hängt an der **Custom-View** — ein
+     * `TabLayout.Tab` kennt keinen eigenen Long-Press-Listener.
+     */
+    private fun setupEditorTabView(tab: TabLayout.Tab?) {
+        val custom = LayoutInflater.from(host.context)
+            .inflate(R.layout.tab_editor_badge, null, false)
+        custom.findViewById<TextView>(R.id.editor_tab_label)?.text =
+            host.context.getString(R.string.ime_tab_editor)
+        tab?.customView = custom
+        custom.setOnLongClickListener { view -> showEditorTabMenu(view) }
+        updateEditorBadge()
+    }
+
+    /**
+     * Long-Press-Kontextmenü am Editor-Tab-Button.
+     *
+     * Zeigt die Aktionen "Alle schließen", "Neue Datei", "Aktuelle speichern"
+     * und "Neu laden". Das Menü erscheint nur, wenn der Cline companion mode
+     * und das Tab-Kontextmenü aktiviert sind — sonst hat ein Long-Press auf
+     * dem Tab **keine** Wirkung (der normale Tab-Wechsel bleibt unberührt).
+     *
+     * @return `true`, wenn das Menü gezeigt wurde; `false`, wenn die
+     *         Funktion deaktiviert ist oder kein Editor-Panel existiert.
+     */
+    internal fun showEditorTabMenu(view: View): Boolean {
+        val prefs = Prefs.of(host.context)
+        if (!prefs.getBoolean(Prefs.KEY_CLINE_COMPANION_MODE, false) ||
+            !prefs.getBoolean(Prefs.KEY_CLINE_TAB_CONTEXT_MENU, false)) {
+            return false
+        }
+        val editor = host.editorPanel ?: return false
+        // Beschriftung und Aktion werden **paarweise** aufgebaut und über den
+        // Listenindex aufgelöst — ein Label-Vergleich wäre fehleranfällig.
+        val items = mutableListOf<String>()
+        val actions = mutableListOf<() -> Unit>()
+        items += host.context.getString(R.string.editor_tab_close_all)
+        actions += { editor.closeAllFiles() }
+        items += host.context.getString(R.string.editor_tab_new_file)
+        actions += { editor.clearEditor() }
+        items += host.context.getString(R.string.editor_tab_save_current)
+        actions += { editor.saveCurrent() }
+        items += host.context.getString(R.string.editor_tab_reload)
+        actions += { editor.reloadCurrent() }
+        val dialog = AlertDialog.Builder(host.context)
+            .setTitle(host.context.getString(R.string.editor_tab_menu_title))
+            .setItems(items.toTypedArray()) { _, which -> actions.getOrNull(which)?.invoke() }
+            .create()
+        showEditorTabDialog(dialog)
+        return true
+    }
+
+    /** Dialog im IME-Fenster anzeigen (BadTokenException-Schutz). */
+    private fun showEditorTabDialog(dialog: AlertDialog) {
+        if (!ImeDialog.show(dialog, currentRoot?.windowToken)) {
+            Toast.makeText(host.context, R.string.dialog_unavailable, Toast.LENGTH_SHORT).show()
         }
     }
 

@@ -32,34 +32,8 @@ class TopSection(
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        themeIconDark = TextView(activity).apply {
-            text = "☾︎"
-            textSize = ICON_TEXT_SP
-            gravity = Gravity.CENTER
-            setPadding(
-                (ICON_PADDING_H_DP * dip).toInt(), (ICON_PADDING_V_DP * dip).toInt(),
-                (ICON_PADDING_H_DP * dip).toInt(), (ICON_PADDING_V_DP * dip).toInt()
-            )
-            setOnClickListener {
-                com.piotv.keytab.Prefs.of(activity)
-                    .edit().putBoolean(ThemePrefs.KEY_DARK, true).apply()
-                onThemeChanged()
-            }
-        }
-        themeIconLight = TextView(activity).apply {
-            text = "☀︎"
-            textSize = ICON_TEXT_SP
-            gravity = Gravity.CENTER
-            setPadding(
-                (ICON_PADDING_H_DP * dip).toInt(), (ICON_PADDING_V_DP * dip).toInt(),
-                (ICON_PADDING_H_DP * dip).toInt(), (ICON_PADDING_V_DP * dip).toInt()
-            )
-            setOnClickListener {
-                com.piotv.keytab.Prefs.of(activity)
-                    .edit().putBoolean(ThemePrefs.KEY_DARK, false).apply()
-                onThemeChanged()
-            }
-        }
+        themeIconDark = makeThemeIcon("☾︎", dark = true)
+        themeIconLight = makeThemeIcon("☀︎", dark = false)
         row.addView(themeIconDark)
         row.addView(themeIconLight)
         col.addView(row, LinearLayout.LayoutParams(
@@ -72,27 +46,7 @@ class TopSection(
             gravity = Gravity.CENTER
         }
         ThemePrefs.GRADIENTS.forEach { preset ->
-            val btn = Button(activity).apply {
-                text = preset.name
-                isAllCaps = false
-                minWidth = 0
-                minimumWidth = 0
-                setPadding(0, 0, 0, 0)
-                setOnClickListener {
-                    val dark = ThemePrefs.isDarkMode(activity)
-                    com.piotv.keytab.Prefs.of(activity)
-                        .edit()
-                        .putInt(ThemePrefs.colorKey(dark, ThemePrefs.KIND_GRADIENT1), preset.c1)
-                        .putInt(ThemePrefs.colorKey(dark, ThemePrefs.KIND_GRADIENT2), preset.c2)
-                        .putString(ThemePrefs.gradientModeKey(dark), preset.mode)
-                        .remove(ThemePrefs.colorKey(dark, ThemePrefs.KIND_BG))
-                        .putBoolean(ThemePrefs.gradientOffKey(dark), false)
-                        .apply()
-                    ThemePrefs.bumpVersion(prefs)
-                    onThemeChanged()
-                }
-            }
-            presetRow.addView(btn, LinearLayout.LayoutParams(
+            presetRow.addView(makePresetButton(preset), LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
@@ -106,6 +60,44 @@ class TopSection(
             LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply { topMargin = (ICON_PADDING_V_DP * dip).toInt() })
     }
+
+    private fun makeThemeIcon(symbol: String, dark: Boolean): TextView =
+        TextView(activity).apply {
+            text = symbol
+            textSize = ICON_TEXT_SP
+            gravity = Gravity.CENTER
+            setPadding(
+                (ICON_PADDING_H_DP * dip).toInt(), (ICON_PADDING_V_DP * dip).toInt(),
+                (ICON_PADDING_H_DP * dip).toInt(), (ICON_PADDING_V_DP * dip).toInt()
+            )
+            setOnClickListener {
+                com.piotv.keytab.Prefs.of(activity)
+                    .edit().putBoolean(ThemePrefs.KEY_DARK, dark).apply()
+                onThemeChanged()
+            }
+        }
+
+    private fun makePresetButton(preset: ThemePrefs.GradientPreset): Button =
+        Button(activity).apply {
+            text = preset.name
+            isAllCaps = false
+            minWidth = 0
+            minimumWidth = 0
+            setPadding(0, 0, 0, 0)
+            setOnClickListener {
+                val dark = ThemePrefs.isDarkMode(activity)
+                com.piotv.keytab.Prefs.of(activity)
+                    .edit()
+                    .putInt(ThemePrefs.colorKey(dark, ThemePrefs.KIND_GRADIENT1), preset.c1)
+                    .putInt(ThemePrefs.colorKey(dark, ThemePrefs.KIND_GRADIENT2), preset.c2)
+                    .putString(ThemePrefs.gradientModeKey(dark), preset.mode)
+                    .remove(ThemePrefs.colorKey(dark, ThemePrefs.KIND_BG))
+                    .putBoolean(ThemePrefs.gradientOffKey(dark), false)
+                    .apply()
+                ThemePrefs.bumpVersion(prefs)
+                onThemeChanged()
+            }
+        }
 
     fun updateThemeIcons(editingDark: Boolean) {
         themeIconDark?.setBackgroundColor(if (editingDark) Color.parseColor("#33000000") else Color.TRANSPARENT)

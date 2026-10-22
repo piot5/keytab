@@ -49,8 +49,6 @@ object ThemePrefs {
     const val KIND_TEXT = ThemeColorResolver.KIND_TEXT
     const val KIND_LIKELY = ThemeColorResolver.KIND_LIKELY
     const val KIND_TRAIL = ThemeColorResolver.KIND_TRAIL
-    const val KIND_SWIPE = ThemeColorResolver.KIND_SWIPE
-    const val KIND_SWIPE_EDGE = ThemeColorResolver.KIND_SWIPE_EDGE
     const val KIND_GRADIENT1 = ThemeColorResolver.KIND_GRADIENT1
     const val KIND_GRADIENT2 = ThemeColorResolver.KIND_GRADIENT2
 
@@ -75,11 +73,19 @@ object ThemePrefs {
      * Ein evtl. noch gespeicherter Wert wird ignoriert und beim Theme-Reset
      * entfernt.
      */
-    const val KEY_LIKELY = "gaming_mode"
+    const val KEY_LIKELY = "likely"
+    /** Legacy-Key `gaming_mode` (früherer Name des Likely-Highlightings) — Migration. */
+    const val KEY_LIKELY_LEGACY = "gaming_mode"
 
-    /** Likely-Highlighting (Schalter `gaming_mode`). Standard **an** (Nutzer-Standard). */
-    fun likelyHighlighting(prefs: SharedPreferences): Boolean =
-        prefs.getBoolean(KEY_LIKELY, true)
+    /** Likely-Highlighting. Standard **an** (Nutzer-Standard). */
+    fun likelyHighlighting(prefs: SharedPreferences): Boolean {
+        if (prefs.contains(KEY_LIKELY_LEGACY)) {
+            val v = prefs.getBoolean(KEY_LIKELY_LEGACY, true)
+            prefs.edit().remove(KEY_LIKELY_LEGACY).putBoolean(KEY_LIKELY, v).apply()
+            return v
+        }
+        return prefs.getBoolean(KEY_LIKELY, true)
+    }
 
     // ---------- Trail-Effekt (Tippspur) ----------
     /** Trail-Effekt an/aus. Default: false (aus). */
@@ -102,20 +108,7 @@ object ThemePrefs {
     fun trailColorWithAlpha(prefs: SharedPreferences, step: Int, maxSteps: Int): Int =
         withAlpha(trailColor(prefs), TrailLogic.alphaForStep(step, maxSteps))
 
-    // ---------- Swipe (Gleit-Eingabe + Schaltplan-Preview) ----------
-    /** Pref-Keys für die Swipe-Farben je Modus (Knoten + Kanten). */
-    const val KEY_SWIPE_COLOR = "swipe_color"
-    const val KEY_SWIPE_EDGE_COLOR = "swipe_edge_color"
-    /** Swipe-Farbe der Pfad-Knoten (ARGB). Default: grünlich #4CAF50 (deutlich
-     *  unterschieden vom Likely-Default grün, eigene Pfad-Farbe laut Plan §8). */
-    fun swipeColor(prefs: SharedPreferences): Int =
-        if (prefs.contains(KEY_SWIPE_COLOR)) prefs.getInt(KEY_SWIPE_COLOR, 0)
-        else 0xFF4CAF50.toInt()
-    /** Swipe-Farbe der Pfad-Kanten (ARGB). Default: gedämpftes Grün #8038B04A. */
-    fun swipeEdgeColor(prefs: SharedPreferences): Int =
-        if (prefs.contains(KEY_SWIPE_EDGE_COLOR)) prefs.getInt(KEY_SWIPE_EDGE_COLOR, 0)
-        else 0x8038B04A.toInt()
-
+    // ---------- Swipe (Gleit-Eingabe) ----------
     /** Zähler: ändert sich bei jeder Theme-Änderung → IME baut die Tastatur neu. */
     const val KEY_THEME_VERSION = "theme_version"
     fun themeVersion(prefs: SharedPreferences): Int = prefs.getInt(KEY_THEME_VERSION, 0)
@@ -169,8 +162,7 @@ object ThemePrefs {
         for (dark in listOf(true, false)) {
             val prefix = if (dark) "dark" else "light"
             val m = org.json.JSONObject()
-            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY, KIND_TRAIL,
-                KIND_SWIPE, KIND_SWIPE_EDGE)) {
+            for (kind in listOf(KIND_BG, KIND_KEY, KIND_HL, KIND_TEXT, KIND_LIKELY, KIND_TRAIL)) {
                 val key = colorKey(dark, kind)
                 if (prefs.contains(key)) m.put(kind, prefs.getInt(key, 0))
             }
@@ -223,61 +215,76 @@ object ThemePrefs {
      */
     fun importColors(prefs: SharedPreferences, json: String): Boolean = try {
         val root = org.json.JSONObject(json)
+        // Atomar (G11): alle Werte in EINEN Editor sammeln und erst nach
+        // vollständig erfolgreichem Parsen anwenden. Wirft ein Wert einen
+        // Typfehler (z. B. String statt Zahl), wird der Editor verworfen —
+        // kein Halb-Import.
+        val editor = prefs.edit()
 
         ThemeColorImport.readColors(root) { dark, kind, argb ->
-            setColor(prefs, dark, kind, argb)
+            putColor(editor, dark, kind, argb)
         }
         ThemeColorImport.readLegacyGradient(
             root,
-            onColor1 = { prefs.edit().putInt(KEY_GRADIENT_COLOR1, it).apply() },
-            onColor2 = { prefs.edit().putInt(KEY_GRADIENT_COLOR2, it).apply() },
-            onMode = { prefs.edit().putString(KEY_GRADIENT_MODE, it).apply() },
-            onOff = { dark, off -> setGradientOff(prefs, dark, off) }
+            onColor1 = { editor.putInt(KEY_GRADIENT_COLOR1, it) },
+            onColor2 = { editor.putInt(KEY_GRADIENT_COLOR2, it) },
+            onMode = { editor.putString(KEY_GRADIENT_MODE, it) },
+            onOff = { dark, off -> putGradientOff(editor, dark, off) }
         )
         // Neuer per-Modus-Verlauf (dark/light getrennt) – gewinnt gegen Legacy
         for (dark in ThemeColorImport.MODES) {
             ThemeColorImport.readModeGradient(
                 root, dark,
                 ThemeColorImport.GradientSink(
-                    onColor1 = { setColor(prefs, dark, KIND_GRADIENT1, it) },
-                    onColor2 = { setColor(prefs, dark, KIND_GRADIENT2, it) },
-                    onMode = { prefs.edit().putString(gradientModeKey(dark), it).apply() },
-                    onOff = { off -> setGradientOff(prefs, dark, off) }
+                    onColor1 = { putColor(editor, dark, KIND_GRADIENT1, it) },
+                    onColor2 = { putColor(editor, dark, KIND_GRADIENT2, it) },
+                    onMode = { editor.putString(gradientModeKey(dark), it) },
+                    onOff = { off -> putGradientOff(editor, dark, off) }
                 )
             )
         }
         ThemeColorImport.readLikely(
             root,
-            onEnabled = { prefs.edit().putBoolean(KEY_LIKELY, it).apply() }
+            onEnabled = { editor.putBoolean(KEY_LIKELY, it) }
         )
         ThemeColorImport.readTrail(
             root,
             ThemeColorImport.TrailSink(
-                onEnabled = { prefs.edit().putBoolean(KEY_TRAIL, it).apply() },
-                onColor = { prefs.edit().putInt(KEY_TRAIL_COLOR, it).apply() },
-                onSteps = { prefs.edit().putInt(KEY_TRAIL_STEPS, it).apply() },
-                onTrace = { prefs.edit().putBoolean(KEY_TRAIL_TRACE, it).apply() },
-                onAcceptedColor = { prefs.edit().putInt(KEY_TRAIL_ACCEPTED_COLOR, it).apply() }
+                onEnabled = { editor.putBoolean(KEY_TRAIL, it) },
+                onColor = { editor.putInt(KEY_TRAIL_COLOR, it) },
+                onSteps = { editor.putInt(KEY_TRAIL_STEPS, it) },
+                onTrace = { editor.putBoolean(KEY_TRAIL_TRACE, it) },
+                onAcceptedColor = { editor.putInt(KEY_TRAIL_ACCEPTED_COLOR, it) }
             )
         )
-        bumpVersion(prefs)
+        editor.putInt(KEY_THEME_VERSION, themeVersion(prefs) + 1).apply()
         true
     } catch (_: Exception) { false }
+
+    /** [setColor] auf einen übergebenen Editor (für den atomaren Import). */
+    private fun putColor(editor: SharedPreferences.Editor, dark: Boolean, kind: String, value: Int) {
+        editor.putInt(colorKey(dark, kind), value)
+        if (kind == KIND_GRADIENT1 || kind == KIND_GRADIENT2) {
+            editor.remove(colorKey(dark, KIND_BG)).putBoolean(gradientOffKey(dark), false)
+        }
+    }
+
+    /** [setGradientOff] auf einen übergebenen Editor (für den atomaren Import). */
+    private fun putGradientOff(editor: SharedPreferences.Editor, dark: Boolean, off: Boolean) {
+        editor.putBoolean(gradientOffKey(dark), off)
+    }
 
     /** Alle Farb-Overrides + Verlauf zurücksetzen (Standard-Theme). */
     fun resetAll(prefs: SharedPreferences) {
         prefs.edit().remove(colorKey(true, KIND_BG)).remove(colorKey(true, KIND_KEY))
             .remove(colorKey(true, KIND_HL)).remove(colorKey(true, KIND_TEXT))
             .remove(colorKey(true, KIND_LIKELY)).remove(colorKey(true, KIND_TRAIL))
-            .remove(colorKey(true, KIND_SWIPE)).remove(colorKey(true, KIND_SWIPE_EDGE))
             .remove(KEY_TRAIL_TRACE)
             .remove(KEY_TRAIL_ACCEPTED_COLOR)
-            .remove(KEY_SWIPE_COLOR).remove(KEY_SWIPE_EDGE_COLOR)
             .remove(colorKey(false, KIND_BG)).remove(colorKey(false, KIND_KEY))
             .remove(colorKey(false, KIND_HL)).remove(colorKey(false, KIND_TEXT))
             .remove(colorKey(false, KIND_LIKELY)).remove(colorKey(false, KIND_TRAIL))
-            .remove(colorKey(false, KIND_SWIPE)).remove(colorKey(false, KIND_SWIPE_EDGE))
-            .remove(KEY_LIKELY).remove("gaming_effect")
+            .remove(KEY_LIKELY).remove(KEY_LIKELY_LEGACY).remove("gaming_effect")
             .remove(KEY_TRAIL).remove(KEY_TRAIL_COLOR).remove(KEY_TRAIL_STEPS)
             .remove(KEY_GRADIENT_COLOR1).remove(KEY_GRADIENT_COLOR2)
             .remove(KEY_GRADIENT_MODE).remove(KEY_GRADIENT_OFF)

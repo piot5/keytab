@@ -10,6 +10,9 @@ import com.piotv.keytab.ime.KeyboardLanguage
 import com.piotv.keytab.ime.Languages
 import java.util.concurrent.Executor
 
+/** Anzahl gelesener Zeichen vor dem Cursor für den Wort-/Satz-Kontext. */
+private const val CONTEXT_CHARS = 16
+
 /**
  * Modul für Wortvorhersage.
  *
@@ -44,6 +47,15 @@ class WordPredictionManager(
         fun commitToApp(text: String)
     }
 
+    /**
+     * Die geladene Engine.
+     *
+     * `@Volatile` (N6): sie wird im I/O-Thread geschrieben (`loadEngine`) und
+     * auf dem Main-Thread gelesen (`onStartInputView`, `setEngine`-Pfade).
+     * Ohne Volatile war die Sichtbarkeit nur ueber den `mainHandler.post`-Pfad
+     * garantiert — ein direkter Lesezugriff konnte eine veraltete Engine sehen.
+     */
+    @Volatile
     var engine: SuggestionEngine? = null
         private set
     private var engineLanguage: String? = null
@@ -85,13 +97,23 @@ class WordPredictionManager(
         ioExecutor.execute {
             val loaded = WordCorpusLoader.load(context, context.assets, language)
             // Veraltete Antwort verwerfen (siehe [engineRequestId]).
-            if (requestId != engineRequestId) return@execute
-            engine = loaded
+            //
+            // N6: Pruefen **und** Setzen unter demselben Lock — sonst konnte
+            // `releaseEngine()` (Main) zwischen der Pruefung und dem Setzen
+            // laufen und die gerade freigegebene Engine doch noch gesetzt
+            // werden (TOCTOU).
+            synchronized(engineLock) {
+                if (requestId != engineRequestId) return@execute
+                engine = loaded
+            }
             mainHandler.post {
                 if (requestId == engineRequestId) onEngineReady?.invoke()
             }
         }
     }
+
+    /** Lock fuer [engine]: schuetzt das Paar „Request pruefen / Engine setzen\". */
+    private val engineLock = Any()
 
     private var onEngineReady: (() -> Unit)? = null
     fun setOnEngineReady(callback: (() -> Unit)?) { onEngineReady = callback }
@@ -102,9 +124,13 @@ class WordPredictionManager(
      * den Prefs und geht nicht verloren. Laufende Ladevorgänge werden verworfen.
      */
     fun releaseEngine() {
-        engine = null
-        engineLanguage = null
-        engineRequestId++
+        // N6: Unter demselben Lock wie das Setzen — so kann eine
+        // freigegebene Engine nicht doch noch gesetzt werden.
+        synchronized(engineLock) {
+            engine = null
+            engineLanguage = null
+            engineRequestId++
+        }
     }
 
             /** Berechnet Vorschläge und aktualisiert die Leiste. */
@@ -120,7 +146,7 @@ class WordPredictionManager(
             bar.visibility = View.GONE
             return
         }
-        val contextBefore = inputOps.textBefore(16)
+        val contextBefore = inputOps.textBefore(CONTEXT_CHARS)
         // Snippet-Leiste: nur ausblasen, wenn **kein** Wort getippt wird
         // (sentenceStart ist strenger: typedWord != null → false).
         if (SuggestionEngine.sentenceStart(contextBefore, currentTypedWord)) {
@@ -218,7 +244,7 @@ class WordPredictionManager(
             fun applySuggestion(word: String) {
         val typed = currentTypedWord
         val atSentenceStart = SuggestionEngine.isSentenceStartContext(
-            inputOps.textBefore(16), typed)
+            inputOps.textBefore(CONTEXT_CHARS), typed)
         val fullWord = engine?.matchCase(word, typed, sentenceStart = atSentenceStart) ?: word
         // Etwas weiter lesen als das Wort lang ist (NFC/NFD-Längen, siehe
         // SuggestionReplaceLogic.CONTEXT_PAD).
@@ -324,7 +350,14 @@ class WordPredictionManager(
 
     private fun persistUserDict() {
         val eng = engine ?: return
-        val raw = eng.serializeUserDict()
-        ioExecutor.execute { WordCorpusLoader.saveUserDict(context, raw) }
+        // N3: Das Serialisieren (bis 500 Woerter + 2000 Bigramme, String-Aufbau)
+        // lief auf dem Aufruf-Thread = Main — bei **jedem** abgeschlossenen
+        // Wort. Das kostete beim Tippen spuerbar Frames. Jetzt passiert die
+        // komplette Aufbereitung im I/O-Executor; auf dem Main-Thread bleibt
+        // nur das (billige) Weitergreifen des Auftrags.
+        ioExecutor.execute {
+            val raw = eng.serializeUserDict()
+            WordCorpusLoader.saveUserDict(context, raw)
+        }
     }
 }

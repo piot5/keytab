@@ -124,6 +124,13 @@ class LetterPopup(
         }
     }
 
+    /** true, wenn [event] in Screen-Koordinaten über [cell] liegt ([loc] = dessen Screen-Position). */
+    private fun contains(event: MotionEvent, cell: TextView, loc: IntArray): Boolean {
+        val insideX = event.rawX >= loc[0] && event.rawX < loc[0] + cell.width
+        val insideY = event.rawY >= loc[1] && event.rawY < loc[1] + cell.height
+        return insideX && insideY
+    }
+
     /** Hebt die Zelle unter dem Finger hervor (Drag-Auswahl, Gboard-Stil). */
     fun highlightCellUnder(event: MotionEvent, onHaptic: () -> Unit) {
         if (activePopup == null) return
@@ -133,8 +140,7 @@ class LetterPopup(
             // (getLocationInWindow wäre popup-relativ und würde nie matchen)
             val loc = IntArray(2)
             cell.getLocationOnScreen(loc)
-            if (event.rawX >= loc[0] && event.rawX < loc[0] + cell.width &&
-                event.rawY >= loc[1] && event.rawY < loc[1] + cell.height) {
+            if (contains(event, cell, loc)) {
                 found = cell
                 break
             }

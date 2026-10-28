@@ -249,26 +249,35 @@ class KeyTabTypingTest {
         device.waitForIdle()
     }
 
-    /** Wisch-Geste: [fromId] -> [toId], sucht Elemente per UI-Automator mit
-     *  Konsistenz-Prüfung (available, visible, enabled), durchläuft mehrere
-     *  Polling-Iterationen bis das Ziel sichtbar ist. */
+    /** Wisch-Geste: [fromId] -> [toId]; beide Elemente müssen sichtbar/bedienbar sein. */
     private fun swipeAcross(fromId: String, toId: String) {
-        val from = findUiObjectOrNull(fromId) ?: fail("Swipe-Start '$fromId' nicht gefunden")
-        val to = findUiObjectOrNull(toId) ?: fail("Swipe-Ziel '$toId' nicht gefunden")
+        val from = findUiObject(fromId)
+        val to = findUiObject(toId)
         val a = from.visibleBounds
         val b = to.visibleBounds
         device.swipe(a.centerX(), a.centerY(), b.centerX(), b.centerY(), 12)
         device.waitForIdle()
     }
 
-    private fun findUiObjectOrNull(resId: String): androidx.test.uiautomator.UiObject2? {
-        var last: androidx.test.uiautomator.UiObject2? = null
-        repeat(3) { attempt ->
-            last = device.wait(Until.findObject(By.res(pkg, resId)), 1_500)
-            if (last != null && last.isVisible && last.isEnabled) return last
+    /**
+     * Element per Resource-Id holen: bis zu 3 Polling-Runden, verlangt bedienbar
+     * und mit sichtbarer Fläche.
+     *
+     * `UiObject2` kennt **kein** `isVisible()` (nur `getVisibleBounds()`) — die
+     * vorherige Fassung benutzte es trotzdem und ließ `compileDebugAndroidTestKotlin`
+     * scheitern (CI `instrumented`, 2026-10-28). Sichtbarkeit heißt hier: das
+     * Element hat eine nicht-leere sichtbare Fläche; außerhalb des Bildschirms
+     * liefert sie ein leeres Rect, dann wird erneut gepollt.
+     */
+    private fun findUiObject(resId: String): UiObject2 {
+        repeat(3) {
+            val candidate = device.wait(Until.findObject(By.res(pkg, resId)), 1_500)
+            if (candidate != null && candidate.isEnabled && !candidate.visibleBounds.isEmpty) {
+                return candidate
+            }
             device.waitForIdle()
         }
-        return last ?: throw AssertionError("Element '$resId' nicht gefunden")
+        throw AssertionError("Element '$resId' nicht gefunden")
     }
 
     /**

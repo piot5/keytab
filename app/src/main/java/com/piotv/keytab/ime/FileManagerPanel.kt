@@ -32,8 +32,12 @@ class FileManagerPanel(
     private val root: View,
     private val ioExecutor: Executor,
     private val mainHandler: Handler,
-    private val onCommit: (String) -> Unit
+    private val callbacks: FileManagerCallbacks
 ) {
+    data class FileManagerCallbacks(
+        val onOpenInEditor: (String) -> Unit = {},
+        val onCommit: (String) -> Unit
+    )
 
     private data class FileEntry(val file: File, val label: String, val info: String)
 
@@ -85,7 +89,7 @@ class FileManagerPanel(
             if (e.file.isDirectory) {
                 navigate(e.file)
             } else {
-                onCommit(e.file.absolutePath)
+                callbacks.onCommit(e.file.absolutePath)
                 root.findViewById<TabLayout>(R.id.ime_tabs)?.getTabAt(0)?.select()
             }
         }
@@ -120,6 +124,8 @@ class FileManagerPanel(
         if (f.isFile) {
             items += context.getString(R.string.fm_copy_content)
             actions += { copyFileContent(f) }
+            items += context.getString(R.string.fm_open_in_editor)
+            actions += { callbacks.onOpenInEditor(f.absolutePath) }
         }
         AlertDialog.Builder(context)
             .setTitle(e.label)

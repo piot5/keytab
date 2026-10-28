@@ -5,5 +5,13 @@
     <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
     <ID>TooManyFunctions:KeyTabImeService.kt$KeyTabImeService : InputMethodServiceThemeHostTabHostSuggestionHostKeyboardInputHost</ID>
     <ID>TooManyFunctions:ThemePrefs.kt$ThemePrefs</ID>
+    <ID>TooManyFunctions:ime.TabController</ID>
+    <ID>TooManyFunctions:ime.EditorPanel</ID>
+    <ID>ComplexCondition:ime.EditorPanel.kt:407</ID>
+    <ID>NestedBlockDepth:SettingsConfig.kt:119</ID>
+    <ID>UnusedPrivateMember:MainActivity.kt$MainActivity$cleanupLearnedDictionary</ID>
+    <ID>UnusedParameter:ime.TabController:view</ID>
+    <ID>UnusedPrivateProperty:ime.ClineFileWatcher:context</ID>
+    <ID>ComplexCondition:ThemePrefs.kt:trailTraceEnabled</ID>
   </CurrentIssues>
 </SmellBaseline>

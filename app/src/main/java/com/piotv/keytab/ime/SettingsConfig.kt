@@ -41,6 +41,8 @@ object SettingsConfig {
         put("snippet_tab", Setting(Prefs.KEY_SNIPPET_TAB, "true", "boolean"))
         put("suggestions", Setting(Prefs.KEY_SUGGESTIONS, "true", "boolean"))
         put("dynamic_keys", Setting(Prefs.KEY_DYNAMIC_KEYS, "true", "boolean"))
+        // Tab-Highlight-Modus: `active_tab` = Balken am aktiven Tab, `suggestion_top` = Vorschlag oben.
+        put("tab_highlight_mode", Setting(Prefs.KEY_TAB_HIGHLIGHT_MODE, "true", "enum", ThemePrefs.TAB_HIGHLIGHT_MODES))
         // Swipe (Gleit-Eingabe), v0.11 — Default aus.
         put("swipe", Setting(Prefs.KEY_SWIPE, "false", "boolean"))
         // Cline companion mode (optionale Funktionsgruppe, v0.20) — alle

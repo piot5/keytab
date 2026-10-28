@@ -1,0 +1,17 @@
+num_row = true
+clip_tab = true
+snippet_tab = true
+suggestions = true
+dynamic_keys = true
+tab_highlight_mode = active_tab
+cline_companion_mode = false
+cline_file_badge = false
+cline_auto_load = false
+cline_tab_context_menu = false
+trail = false
+trail_trace = false
+trail_steps = 5
+language = de
+bg_image_uri =
+bg_image_fill = fit
+dark_mode = true

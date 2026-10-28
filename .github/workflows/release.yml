@@ -13,20 +13,20 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
 
-      - name: Doku-Drift pruefen
+      - name: Check docs drift
         run: sh scripts/check_docs_drift.sh
 
-      - name: JDK 17 einrichten
+      - name: Set up JDK 17
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Keystore aus Secrets wiederherstellen
+      - name: Restore keystore from secrets
         run: |
           echo "${{ secrets.KEYTAB_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/keytab-release.jks"
 
-      - name: Signierte Release-APK bauen
+      - name: Build signed release APK
         env:
           KEYTAB_KEYSTORE: ${{ runner.temp }}/keytab-release.jks
           KEYTAB_KEYSTORE_PASSWORD: ${{ secrets.KEYTAB_KEYSTORE_PASSWORD }}
@@ -36,25 +36,25 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleRelease --no-daemon --stacktrace
           test -s app/build/outputs/apk/release/app-release.apk
-          # apksigner liegt auf dem Runner NICHT im PATH, sondern unter
-          # $ANDROID_HOME/build-tools/<version>/apksigner — der blanke Aufruf
-          # brach mit "command not found" (Exit 127) ab, *nach* erfolgreichem
-          # Build. Deshalb hier explizit auflösen und den Fund prüfen.
+          # apksigner is NOT on the runner PATH; it lives under
+          # $ANDROID_HOME/build-tools/<version>/apksigner — the plain call
+          # failed with "command not found" (Exit 127), *after* a successful
+          # build. Resolve it explicitly here and check the result.
           APKSIGNER="$(command -v apksigner || true)"
           if [ -z "$APKSIGNER" ]; then
             APKSIGNER="$(ls -1 "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
           fi
-          test -x "$APKSIGNER" || { echo "apksigner nicht gefunden (ANDROID_HOME=${ANDROID_HOME:-unset})" >&2; exit 1; }
+          test -x "$APKSIGNER" || { echo "apksigner not found (ANDROID_HOME=${ANDROID_HOME:-unset})" >&2; exit 1; }
           echo "apksigner: $APKSIGNER"
           "$APKSIGNER" verify --verbose app/build/outputs/apk/release/app-release.apk
           sha256sum app/build/outputs/apk/release/app-release.apk > app/build/outputs/apk/release/app-release.apk.sha256
 
-      - name: Release-Artefakte anzeigen
+      - name: Show release artifacts
         run: |
           cat app/build/outputs/apk/release/output-metadata.json
           cat app/build/outputs/apk/release/app-release.apk.sha256
 
-      - name: Release Notes aus Fastlane-Changelog lesen
+      - name: Read release notes from fastlane changelog
         id: notes
         run: |
           VC=$(sed -n 's/.*"versionCode": \([0-9]*\).*/\1/p' app/build/outputs/apk/release/output-metadata.json | head -1)
@@ -65,13 +65,13 @@ jobs:
           else
             echo "Release ${GITHUB_REF_NAME}" > "$NOTES"
           fi
-          # Notes als DATEI, nicht als Inline-String: Anfuehrungszeichen im
-          # Changelog beendeten den `--notes "..."`-String, die Restwoerter
-          # landeten als Asset-Patterns bei gh ("no matches found for `file`",
-          # Release v0.17 am 2026-10-07). --notes-file ist davon unabhaengig.
+          # Notes as FILE, not inline string: quotes in changelog ended the
+          # `--notes "..."` string, the rest landed as asset patterns at gh
+          # ("no matches found for `file`", release v0.17 on 2026-10-07).
+          # --notes-file is independent of that.
           echo "file=$NOTES" >> "$GITHUB_OUTPUT"
 
-      - name: GitHub Release mit APK erstellen
+      - name: Create GitHub release with APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -79,7 +79,7 @@ jobs:
           SUM="KeyTab-${GITHUB_REF_NAME#v}.apk.sha256"
           cp app/build/outputs/apk/release/app-release.apk "$APK"
           cp app/build/outputs/apk/release/app-release.apk.sha256 "$SUM"
-          # Idempotent: existiert das Release schon (Tag neu gepusht), Assets nur ersetzen
+          # Idempotent: if the release already exists (tag re-pushed), only replace assets
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber "$APK" "$SUM"
           else

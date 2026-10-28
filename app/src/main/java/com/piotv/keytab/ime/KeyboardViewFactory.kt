@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.piotv.keytab.R
+import java.io.File
 import java.util.concurrent.Executor
 
 private const val THEME_BUTTON_TEXT_SP = 14f
@@ -104,8 +105,11 @@ class KeyboardViewFactory(private val deps: Deps) {
         root.findViewById<View>(R.id.num_row)?.visibility =
             if (com.piotv.keytab.Prefs.of(ctx)
                     .getBoolean(com.piotv.keytab.Prefs.KEY_NUM_ROW, true)) View.VISIBLE else View.GONE
-        val fileManager = FileManagerPanel(ctx, root, deps.ioExecutor, deps.mainHandler) { deps.commitText(it) }
         val editor = EditorPanel(ctx, root, deps.ioExecutor, deps.mainHandler) { deps.commitToApp(it) }
+val fileManager = FileManagerPanel(ctx, root, deps.ioExecutor, deps.mainHandler, FileManagerPanel.FileManagerCallbacks(
+    onOpenInEditor = { path -> deps.selectEditor(); editor.openFile(File(path)) },
+    onCommit = { deps.commitText(it) }
+))
         val snippets = SnippetPanel(
             ctx,
             deps.ioExecutor,

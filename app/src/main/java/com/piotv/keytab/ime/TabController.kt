@@ -197,24 +197,19 @@ internal class TabController(private val host: TabHost) {
     internal fun refreshEditorBadge() = updateEditorBadge()
 
     /**
-     * Plakette anzeigen/verbergen je nach Companion-Mode + offene Dateien zählen.
+     * Plakette am Editor-Tab anzeigen: sichtbar, wenn Dateien geöffnet sind.
      *
-     * Die Plakette ist nur sichtbar, wenn der **Cline companion mode** UND die
-     * Datei-Plakette aktiv sind. Der Zähler steht im [EditorPanel] — er wird
-     * bei jedem geöffneten Datei erhöht (siehe `EditorPanel.onFileOpened`).
+     * Der Zähler steht im [EditorPanel] — er wird bei jedem geöffneten Datei
+     * erhöht (siehe `EditorPanel.onFileOpened`). Bei 0 offenen Dateien bleibt
+     * die Plakette ausgeblendet.
      */
     private fun updateEditorBadge() {
-        val enabled = Prefs.of(host.context).getBoolean(Prefs.KEY_CLINE_COMPANION_MODE, false) &&
-            Prefs.of(host.context).getBoolean(Prefs.KEY_CLINE_FILE_BADGE, false)
         editorTab?.let { tab ->
             val badge = tab.customView?.findViewById<TextView>(R.id.editor_tab_badge)
+            val count = host.editorPanel?.openFiles ?: 0
             badge?.apply {
-                visibility = if (enabled) View.VISIBLE else View.GONE
-                text = if (enabled) {
-                    host.editorPanel?.openFiles?.toString() ?: "0"
-                } else {
-                    ""
-                }
+                visibility = if (count > 0) View.VISIBLE else View.GONE
+                text = count.toString()
             }
         }
     }
@@ -248,11 +243,6 @@ internal class TabController(private val host: TabHost) {
      *         Funktion deaktiviert ist oder kein Editor-Panel existiert.
      */
     internal fun showEditorTabMenu(view: View): Boolean {
-        val prefs = Prefs.of(host.context)
-        if (!prefs.getBoolean(Prefs.KEY_CLINE_COMPANION_MODE, false) ||
-            !prefs.getBoolean(Prefs.KEY_CLINE_TAB_CONTEXT_MENU, false)) {
-            return false
-        }
         val editor = host.editorPanel ?: return false
         // Beschriftung und Aktion werden **paarweise** aufgebaut und über den
         // Listenindex aufgelöst — ein Label-Vergleich wäre fehleranfällig.

@@ -19,12 +19,6 @@
     <string name="settings_cleanup_dictionary_done">Wörterbuch bereinigt: %1$d Einträge entfernt.</string>
     <string name="settings_cleanup_dictionary_empty">Keine verdächtigen gelernten Einträge gefunden.</string>
     <string name="settings_cleanup_dictionary_failed">Das gelernte Wörterbuch konnte nicht bereinigt werden.</string>
-    <string name="settings_section_cline_companion">Cline-Kompanion-Mode</string>
-    <string name="settings_cline_companion">Cline-Kompanion-Mode</string>
-    <string name="settings_cline_companion_off">Cline-Kompanion-Mode deaktiviert</string>
-    <string name="settings_cline_file_badge">Datei-Plakette (Anzahl geöffneter Dateien)</string>
-    <string name="settings_cline_auto_load">Auto-Load (Dateien, die Cline schreibt)</string>
-    <string name="settings_cline_tab_context_menu">Tab-Kontextmenü (Long-Press)</string>
     <string name="editor_tab_menu_title">Editor</string>
     <string name="editor_tab_close_all">Alle schließen</string>
     <string name="editor_tab_new_file">Neue Datei</string>
@@ -46,6 +40,7 @@
     <string name="dialog_unavailable">Dialog derzeit nicht möglich — bitte erneut tippen.</string>
     <string name="editor_file_too_large">Datei zu groß für den Editor (max. 1 MB): %1$s</string>
     <string name="fm_open_outside">Datei außerhalb der App-Ordner kann nicht geteilt werden: %1$s</string>
+    <string name="fm_open_in_editor">Im Editor öffnen</string>
     <string name="clip_entry_too_large">Zwischenablage-Eintrag zu groß — nicht übernommen (max. 100 KB).</string>
     <string name="snip_from_clip_too_large">Text aus der Zwischenablage zu groß für ein Snippet (max. 100 KB).</string>
 </resources>

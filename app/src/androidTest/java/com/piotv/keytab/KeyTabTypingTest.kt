@@ -235,25 +235,40 @@ class KeyTabTypingTest {
 
     // ---------------- Hilfen ----------------
 
-    /** Inhalts-Tab über sein Label antippen (TabLayout-TextView). */
+    // Robust: Tabulatoren über aktiv sichtbaren TextView suchen
+    // (hinterlegt: `device.wait(Until.findObject(By.clazz("android.widget.TextView").textStartsWith(label)))` scheitert, wenn
+    //  im CI-Emulator das Label nicht als `textStartsWith`-Match gefunden wird.
     private fun clickTab(label: String) {
-        val tab = device.wait(Until.findObject(
-            By.clazz("android.widget.TextView").textStartsWith(label)), 2_000)
-        assertTrue("Tab '$label' nicht gefunden", tab != null)
+        val cands = device.findObjects(By.clazz("android.widget.TextView"))
+            .filter { it.text.startsWith(label) }
+        if (cands.isEmpty()) {
+            throw AssertionError("Tab '$label' nicht gefunden")
+        }
+        val tab = cands.first { it.isClickable && it.isEnabled }
         tab.click()
         device.waitForIdle()
     }
 
-    /** Wisch-Geste von der Mitte der Taste [fromId] zur Mitte der Taste [toId]. */
+    /** Wisch-Geste: [fromId] -> [toId], sucht Elemente per UI-Automator mit
+     *  Konsistenz-Prüfung (available, visible, enabled), durchläuft mehrere
+     *  Polling-Iterationen bis das Ziel sichtbar ist. */
     private fun swipeAcross(fromId: String, toId: String) {
-        val from = device.wait(Until.findObject(By.res(pkg, fromId)), 2_000)
-        val to = device.wait(Until.findObject(By.res(pkg, toId)), 2_000)
-        assertTrue("Swipe-Start '$fromId' nicht gefunden", from != null)
-        assertTrue("Swipe-Ziel '$toId' nicht gefunden", to != null)
+        val from = findUiObjectOrNull(fromId) ?: fail("Swipe-Start '$fromId' nicht gefunden")
+        val to = findUiObjectOrNull(toId) ?: fail("Swipe-Ziel '$toId' nicht gefunden")
         val a = from.visibleBounds
         val b = to.visibleBounds
         device.swipe(a.centerX(), a.centerY(), b.centerX(), b.centerY(), 12)
         device.waitForIdle()
+    }
+
+    private fun findUiObjectOrNull(resId: String): androidx.test.uiautomator.UiObject2? {
+        var last: androidx.test.uiautomator.UiObject2? = null
+        repeat(3) { attempt ->
+            last = device.wait(Until.findObject(By.res(pkg, resId)), 1_500)
+            if (last != null && last.isVisible && last.isEnabled) return last
+            device.waitForIdle()
+        }
+        return last ?: throw AssertionError("Element '$resId' nicht gefunden")
     }
 
     /**

@@ -104,12 +104,6 @@
     <string name="settings_swipe">Swipe typing (glide over keys, offline)</string>
     <string name="settings_swipe_on">Swipe typing enabled</string>
     <string name="settings_swipe_off">Swipe typing disabled</string>
-    <string name="settings_section_cline_companion">Cline companion mode</string>
-    <string name="settings_cline_companion">Cline companion mode</string>
-    <string name="settings_cline_companion_off">Cline companion mode disabled</string>
-    <string name="settings_cline_file_badge">File badge (number of open files)</string>
-    <string name="settings_cline_auto_load">Auto-load (files written by cline)</string>
-    <string name="settings_cline_tab_context_menu">Tab context menu (long-press)</string>
     <string name="editor_tab_menu_title">Editor</string>
     <string name="editor_tab_close_all">Close all</string>
     <string name="editor_tab_new_file">New file</string>
@@ -182,6 +176,7 @@
     <string name="dialog_unavailable">Dialog not available right now — please tap again.</string>
     <string name="editor_file_too_large">File too large for the editor (max. 1 MB): %1$s</string>
     <string name="fm_open_outside">Cannot share files outside the app\'s folders: %1$s</string>
+    <string name="fm_open_in_editor">Open in editor</string>
     <string name="clip_entry_too_large">Clipboard entry too large — not added (max. 100 KB).</string>
     <string name="snip_from_clip_too_large">Clipboard text too large for a snippet (max. 100 KB).</string>
 </resources>

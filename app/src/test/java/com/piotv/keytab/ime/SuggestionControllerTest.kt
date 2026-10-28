@@ -11,6 +11,7 @@ import com.piotv.keytab.Prefs
 import com.piotv.keytab.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -341,5 +342,18 @@ class SuggestionControllerTest {
     @Test
     fun `clearLikelyHighlights crasht nicht`() {
         controller.clearLikelyHighlights()
+    }
+
+    @Test
+    fun emojiChipsSug4Sug5HabenClickListenerG9() {
+        // G9: sug_4/sug_5 sind nach setup im Layout vorhanden und über ein
+        // onClickListener (bindChip in SuggestionController) verbunden.
+        val sug4 = root?.findViewById<TextView>(R.id.sug_4)
+        val sug5 = root?.findViewById<TextView>(R.id.sug_5)
+        assertNotNull("sug_4 fehlt im Layout", sug4)
+        assertNotNull("sug_5 fehlt im Layout", sug5)
+        // Ein einfacher Klick wird verarbeitet → Listener ist aktiv.
+        assertTrue("sug_4 ClickListener nicht aktiv (tap)", sug4?.performClick() ?: false)
+        assertTrue("sug_5 ClickListener nicht aktiv (tap)", sug5?.performClick() ?: false)
     }
 }

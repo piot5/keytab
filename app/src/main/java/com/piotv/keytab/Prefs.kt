@@ -44,21 +44,28 @@ object Prefs {
     /** Optionale Zahlenreihe an/aus. */
     const val KEY_NUM_ROW = "num_row"
 
+    /**
+     * Wortvorhersage-Leiste an/aus.
+     * `suggestions_enabled` = Vorschlag oben, kein Balken (`tab_highlight_mode` = suggestion_top)
+     * `suggestions_enabled` = Vorschlag oben, kein Balken (`tab_highlight_mode` = suggestion_top)
+     */
+    const val KEY_SUGGESTIONS = "suggestions_enabled"
 
-    /** Clipboard-Tab sichtbar an/aus. */
+    // ---------- Tab-Konstanten ----------
+    /**
+     * Clipboard-Tab sichtbar an/aus.
+     */
     const val KEY_CLIP_TAB = "clip_tab_enabled"
 
-    /** Snippet-Tab sichtbar an/aus (benannte Befehle/Snippets). */
+    /**
+     * Snippet-Tab sichtbar an/aus (benannte Befehle/Snippets).
+     */
     const val KEY_SNIPPET_TAB = "snippet_tab_enabled"
 
-    /** Cline companion mode (optional, modulare Funktionsgruppe). */
-    const val KEY_CLINE_COMPANION_MODE = "cline_companion_mode"
-    const val KEY_CLINE_FILE_BADGE = "cline_file_badge"
-    const val KEY_CLINE_AUTO_LOAD = "cline_auto_load"
-    const val KEY_CLINE_TAB_CONTEXT_MENU = "cline_tab_context_menu"
-
-        /** Wortvorhersage-Leiste an/aus. */
-    const val KEY_SUGGESTIONS = "suggestions_enabled"
+    /**
+     * Tab-Highlight-Modus: `active_tab` = Balken am aktiven Tab, `suggestion_top` = Vorschlag oben.
+     */
+    const val KEY_TAB_HIGHLIGHT_MODE = "tab_highlight_mode"
 
     /**
      * Snippet-History für die Vorschlags-Leiste: bis zu 3 zuletzt eingefügte
@@ -93,4 +100,10 @@ object Prefs {
     const val FILL_FIT = "fit"
     const val FILL_COVER = "cover"
     const val FILL_STRETCH = "stretch"
+
+    // ---------- Cline companion mode (optional feature group, v0.20) ----------
+    const val KEY_CLINE_COMPANION_MODE = "cline_companion_mode"
+    const val KEY_CLINE_FILE_BADGE = "cline_file_badge"
+    const val KEY_CLINE_AUTO_LOAD = "cline_auto_load"
+    const val KEY_CLINE_TAB_CONTEXT_MENU = "cline_tab_context_menu"
 }

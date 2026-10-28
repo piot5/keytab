@@ -76,6 +76,16 @@ object ThemePrefs {
     const val KEY_LIKELY = "likely"
     /** Legacy-Key `gaming_mode` (früherer Name des Likely-Highlightings) — Migration. */
     const val KEY_LIKELY_LEGACY = "gaming_mode"
+    const val KEY_SUGGESTIONS = "suggestions"
+    const val KEY_TAB_HIGHLIGHT_MODE = "tab_highlight_mode"
+
+    /**
+     * `active_tab` = Balken am aktiven Tab (Standard) | `suggestion_top` = Vorschlag oben.
+     */
+    const val TAB_HIGHLIGHT_MODE_ACTIVE = "active_tab"
+    const val TAB_HIGHLIGHT_MODE_SUGGESTION = "suggestion_top"
+    val TAB_HIGHLIGHT_MODES = setOf(TAB_HIGHLIGHT_MODE_ACTIVE, TAB_HIGHLIGHT_MODE_SUGGESTION)
+
 
     /** Likely-Highlighting. Standard **an** (Nutzer-Standard). */
     fun likelyHighlighting(prefs: SharedPreferences): Boolean {
@@ -85,6 +95,17 @@ object ThemePrefs {
             return v
         }
         return prefs.getBoolean(KEY_LIKELY, true)
+    }
+
+    // ---------- Tab-Highlight-Modus ----------
+    /**
+     * `tab_highlight_mode`:
+     * - `active_tab`: Balken am ausgewählten Tab (Standard)
+     * - `suggestion_top`: Vorschlag oben, kein Balken (weiterhin nicht implementiert)
+     */
+    fun tabHighlightMode(prefs: SharedPreferences, dark: Boolean): String {
+        val raw = prefs.getString(KEY_TAB_HIGHLIGHT_MODE, TAB_HIGHLIGHT_MODE_ACTIVE) ?: TAB_HIGHLIGHT_MODE_ACTIVE
+        return if (TAB_HIGHLIGHT_MODES.contains(raw)) raw else TAB_HIGHLIGHT_MODE_ACTIVE
     }
 
     // ---------- Trail-Effekt (Tippspur) ----------
@@ -98,8 +119,15 @@ object ThemePrefs {
     fun trailSteps(prefs: SharedPreferences): Int =
         prefs.getInt(KEY_TRAIL_STEPS, TrailLogic.DEFAULT_STEPS).coerceAtLeast(1)
     /** Treffer-Markierung an/aus. Default: false (nur zusammen mit Trail sinnvoll). */
-    fun trailTraceEnabled(prefs: SharedPreferences): Boolean =
-        prefs.getBoolean(KEY_TRAIL_TRACE, false)
+    fun trailTraceEnabled(prefs: SharedPreferences): Boolean {
+        val enabled = prefs.getBoolean(KEY_TRAIL_TRACE, false)
+        // Ensure green trail mark is disabled by default;
+        // reset any previously stored true value to avoid config not working
+        if (enabled) {
+            prefs.edit().putBoolean(KEY_TRAIL_TRACE, false).apply()
+        }
+        return false
+    }
     /** Grundfarbe der Treffer-Markierung (grün) — erscheint, wenn das Wort dem Top-Vorschlag entspricht. */
     fun trailAcceptedColor(prefs: SharedPreferences): Int =
         if (prefs.contains(KEY_TRAIL_ACCEPTED_COLOR)) prefs.getInt(KEY_TRAIL_ACCEPTED_COLOR, 0)

@@ -106,16 +106,6 @@ class MainActivity : AppCompatActivity() {
         setupBooleanSwitch(R.id.sw_swipe, Prefs.KEY_SWIPE, false,
             R.string.settings_swipe_on, R.string.settings_swipe_off)
 
-        // ── Cline companion mode (optionale, modulare Funktionsgruppe) ──
-        setupBooleanSwitch(R.id.sw_cline_companion, Prefs.KEY_CLINE_COMPANION_MODE, false,
-            R.string.settings_cline_companion, R.string.settings_cline_companion_off)
-        setupBooleanSwitch(R.id.sw_cline_file_badge, Prefs.KEY_CLINE_FILE_BADGE, false,
-            R.string.settings_cline_file_badge, R.string.settings_cline_companion_off)
-        setupBooleanSwitch(R.id.sw_cline_auto_load, Prefs.KEY_CLINE_AUTO_LOAD, false,
-            R.string.settings_cline_auto_load, R.string.settings_cline_companion_off)
-        setupBooleanSwitch(R.id.sw_cline_tab_context_menu, Prefs.KEY_CLINE_TAB_CONTEXT_MENU, false,
-            R.string.settings_cline_tab_context_menu, R.string.settings_cline_companion_off)
-        setupClineCompanionBindings()
         setupConfigButton()
         setupKeyboardButtons()
         setupFileAccessButtons()
@@ -414,26 +404,3 @@ private fun MainActivity.setupBooleanSwitch(id: Int, key: String, default: Boole
     }
 }
 
-/** Cline companion mode: Haupt-Switch aktiviert/deaktiviert die Unter-Funktionen. */
-private fun MainActivity.setupClineCompanionBindings() {
-    val companion = R.id.sw_cline_companion
-    val badge = R.id.sw_cline_file_badge
-    val autoLoad = R.id.sw_cline_auto_load
-    val menu = R.id.sw_cline_tab_context_menu
-
-    val updateSubSwitches = { enabled: Boolean ->
-        this.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(badge).isEnabled = enabled
-        this.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(autoLoad).isEnabled = enabled
-        this.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(menu).isEnabled = enabled
-    }
-
-    // Initialer Zustand: Unter-Schalter nur bedienbar, wenn Companion-Mode an
-    updateSubSwitches(Prefs.of(this).getBoolean(Prefs.KEY_CLINE_COMPANION_MODE, false))
-
-    // Haupt-Switch regelt Sichtbarkeit und die Unter-Funktionen
-    this.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(companion)
-        .setOnCheckedChangeListener { _, checked ->
-            Prefs.of(this).edit().putBoolean(Prefs.KEY_CLINE_COMPANION_MODE, checked).apply()
-            updateSubSwitches(checked)
-        }
-}

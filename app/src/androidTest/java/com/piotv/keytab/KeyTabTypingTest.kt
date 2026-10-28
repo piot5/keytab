@@ -210,7 +210,7 @@ class KeyTabTypingTest {
         waitForKeyboard()
         ensureLetters()
 
-        swipeAcross("key_q", "key_t")
+        swipeAcross("q", "t")
 
         ensureLetters()
         typeUntilTextAny(normal, setOf("x", "X")) { clickKey("x") }
@@ -235,50 +235,63 @@ class KeyTabTypingTest {
 
     // ---------------- Hilfen ----------------
 
-    // Robust: Tabulatoren über aktiv sichtbaren TextView suchen
-    // (hinterlegt: `device.wait(Until.findObject(By.clazz("android.widget.TextView").textStartsWith(label)))` scheitert, wenn
-    //  im CI-Emulator das Label nicht als `textStartsWith`-Match gefunden wird.
+    /**
+     * Inhalts-Tab über sein Label antippen.
+     *
+     * **Klassen-agnostisch** (`By.textStartsWith`): Material rendert die Tab-Labels
+     * je nach Theme/Inflater als `android.widget.TextView` **oder** als
+     * `androidx.appcompat.widget.AppCompatTextView`. Die frühere Fassung suchte nur
+     * `android.widget.TextView` und fand im CI-Emulator nichts („Tab 'Files' nicht
+     * gefunden", seit v0.20). Der Treffer wird bewusst **nicht** auf `isClickable`
+     * geprüft: beim Editor-Tab hängt der Long-Press am Container, das Label selbst
+     * ist nicht klickbar — `click()` tippt ohnehin die Bildschirmmitte des Knotens an.
+     */
     private fun clickTab(label: String) {
-        val cands = device.findObjects(By.clazz("android.widget.TextView"))
-            .filter { it.text.startsWith(label) }
-        if (cands.isEmpty()) {
-            throw AssertionError("Tab '$label' nicht gefunden")
+        val candidates = device.findObjects(By.textStartsWith(label))
+            .filter { it.isEnabled && !it.visibleBounds.isEmpty }
+        if (candidates.isEmpty()) {
+            throw AssertionError("Tab '$label' nicht gefunden (Texte: ${visibleTexts()})")
         }
-        val tab = cands.first { it.isClickable && it.isEnabled }
-        tab.click()
+        candidates.first().click()
         device.waitForIdle()
     }
 
-    /** Wisch-Geste: [fromId] -> [toId]; beide Elemente müssen sichtbar/bedienbar sein. */
-    private fun swipeAcross(fromId: String, toId: String) {
-        val from = findUiObject(fromId)
-        val to = findUiObject(toId)
+    /**
+     * Wisch-Geste von Taste [fromLabel] zu Taste [toLabel].
+     *
+     * Per **Label**, nicht per Ressourcen-Id: die Buchstaben-Tasten werden
+     * programmatisch gebaut und haben keine Id (nur Funktionstasten wie `key_toggle`
+     * oder `sug_hide` stehen im Layout). Die frühere Fassung suchte `key_q`/`key_t`
+     * per `By.res` — deshalb war der Test seit v0.20 rot
+     * („Element 'key_q' nicht gefunden").
+     */
+    private fun swipeAcross(fromLabel: String, toLabel: String) {
+        val from = findKeyOrFail(fromLabel)
+        val to = findKeyOrFail(toLabel)
         val a = from.visibleBounds
         val b = to.visibleBounds
         device.swipe(a.centerX(), a.centerY(), b.centerX(), b.centerY(), 12)
         device.waitForIdle()
     }
 
-    /**
-     * Element per Resource-Id holen: bis zu 3 Polling-Runden, verlangt bedienbar
-     * und mit sichtbarer Fläche.
-     *
-     * `UiObject2` kennt **kein** `isVisible()` (nur `getVisibleBounds()`) — die
-     * vorherige Fassung benutzte es trotzdem und ließ `compileDebugAndroidTestKotlin`
-     * scheitern (CI `instrumented`, 2026-10-28). Sichtbarkeit heißt hier: das
-     * Element hat eine nicht-leere sichtbare Fläche; außerhalb des Bildschirms
-     * liefert sie ein leeres Rect, dann wird erneut gepollt.
-     */
-    private fun findUiObject(resId: String): UiObject2 {
+    /** Buchstaben-Taste per Label holen (case-tolerant, 3 Versuche) oder AssertionError. */
+    private fun findKeyOrFail(label: String): UiObject2 {
         repeat(3) {
-            val candidate = device.wait(Until.findObject(By.res(pkg, resId)), 1_500)
-            if (candidate != null && candidate.isEnabled && !candidate.visibleBounds.isEmpty) {
-                return candidate
-            }
+            val found = findKey(label) ?: findKey(label.swapCase())
+            if (found != null && !found.visibleBounds.isEmpty) return found
             device.waitForIdle()
         }
-        throw AssertionError("Element '$resId' nicht gefunden")
+        throw AssertionError("Taste '$label' nicht gefunden (Tasten: ${visibleButtonLabels()})")
     }
+
+    /** Alle sichtbaren Texte der aktuellen Ansicht — Diagnose in Fehlermeldungen. */
+    private fun visibleTexts(): String =
+        device.findObjects(By.textStartsWith(""))
+            .mapNotNull { it.text?.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .take(30)
+            .joinToString(", ")
 
     /**
      * [block] ausfuehren, bis das Feld [expected] enthaelt (max. 3 Anlaeufe).

@@ -54,7 +54,7 @@ copy_hooks "$FALLBACK"
 if [ ! -x "$FALLBACK/pre-push" ]; then
     echo "FEHLER: Auch in $FALLBACK ist der Hook nicht ausfuehrbar." >&2
     echo "  Lokaler Schutz nicht moeglich — es greifen nur die serverseitigen" >&2
-    echo "  GitHub-Rulesets (docs/RELEASE.md, Abschnitt 7)." >&2
+    echo "  GitHub-Rulesets (docs/RELEASE.md, Abschnitt \"F-Droid-Kanal\")." >&2
     exit 1
 fi
 

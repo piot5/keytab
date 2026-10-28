@@ -64,5 +64,5 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     fi
 done
 
-[ "$rc" -eq 0 ] || printf '\nHinweis: Schutzregeln siehe docs/RELEASE.md, Abschnitt 7 (F-Droid-Schutz).\n' >&2
+[ "$rc" -eq 0 ] || printf '\nHinweis: Schutzregeln siehe docs/RELEASE.md, Abschnitt „F-Droid-Kanal".\n' >&2
 exit "$rc"

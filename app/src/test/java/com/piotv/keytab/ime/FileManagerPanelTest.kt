@@ -54,7 +54,10 @@ class FileManagerPanelTest {
             .putString("fm_backstack", null)
             .commit()
         val root = inflateKeyboardRoot(app)
-        val panel = FileManagerPanel(app, root, directExecutor, mainHandler) { committed?.add(it) }
+        val panel = FileManagerPanel(
+            app, root, directExecutor, mainHandler,
+            FileManagerPanel.FileManagerCallbacks(onCommit = { committed?.add(it) })
+        )
         shadowOf(Looper.getMainLooper()).idle()
         return Triple(root, panel, base)
     }
@@ -112,7 +115,10 @@ class FileManagerPanelTest {
         File(only, "note.md").writeText("x")
         Prefs.of(app).edit().putString("fm_dir", only.absolutePath).commit()
         val root2 = inflateKeyboardRoot(app)
-        FileManagerPanel(app, root2, directExecutor, mainHandler) { committed.add(it) }
+        FileManagerPanel(
+            app, root2, directExecutor, mainHandler,
+            FileManagerPanel.FileManagerCallbacks(onCommit = { committed.add(it) })
+        )
         shadowOf(Looper.getMainLooper()).idle()
         click(root2.findViewById(R.id.file_list), 0)
         assertEquals(listOf(File(only, "note.md").absolutePath), committed)
@@ -162,6 +168,24 @@ class FileManagerPanelTest {
         val (root, _, _) = panelWithTree("allfiles")
         val hint = root.findViewById<TextView>(R.id.file_hint).text.toString()
         assertEquals(app.getString(R.string.fm_dir_summary, 1, 1), hint)
+    }
+
+    /**
+     * Regression zum Geräteabsturz vom 2026-10-12 (`WindowManager$BadTokenException`,
+     * „token null is not valid“) und Abdeckung des in v0.20 ergänzten Menüpunkts
+     * „Im Editor öffnen“ (`FileManagerCallbacks.onOpenInEditor`): der Long-Press muss
+     * das Kontextmenü aufbauen und `true` melden. Im Test gibt es kein Fenster-Token,
+     * `ImeDialog.show` zeigt dann nur einen Hinweis — vorher stürzte es hier ab.
+     */
+    @Test
+    fun `Long-Press auf eine Datei baut das Kontextmenue ohne Absturz auf`() {
+        val (root, _, _) = panelWithTree("menu")
+        val list = root.findViewById<ListView>(R.id.file_list)
+        val position = labels(root).indexOfFirst { it.contains("a.txt") }
+        assertTrue("a.txt muss in der Liste stehen", position >= 0)
+        val handled = list.onItemLongClickListener
+            ?.onItemLongClick(list, null, position, list.getItemIdAtPosition(position))
+        assertTrue("Long-Press muss als behandelt gemeldet werden", handled == true)
     }
 
 }

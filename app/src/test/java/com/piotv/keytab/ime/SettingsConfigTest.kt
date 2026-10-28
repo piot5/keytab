@@ -132,8 +132,9 @@ class SettingsConfigTest {
         // 44 die Höhe davor (Panel-Höhen kamen am 28.09.2026 dazu),
         // 52 mit `autocorrect`/`swipe_preview` (entfernt am 29.09.2026),
         // 49 seit dem Ausbau des Puls-Effekts (`gaming_effect`, v0.18),
-        // 53 mit den 4 Cline-Companion-Schaltern (22.10.2026).
-        assertEquals(53, KeyTabConfig.entries(completed).size)
+        // 53 mit den 4 Cline-Companion-Schaltern (22.10.2026),
+        // 54 mit `tab_highlight_mode` (v0.20, 28.10.2026 — als Enum exportiert).
+        assertEquals(54, KeyTabConfig.entries(completed).size)
         assertTrue(SettingsConfig.importTextIfChanged(completed, prefs))
         // Die Defaults sind die aus keytab_config.txt des Nutzers (2026-09-28):
         // Nummernreihe an, Dark-Mode fest an, Verlauf

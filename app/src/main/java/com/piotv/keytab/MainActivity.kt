@@ -106,7 +106,7 @@ class MainActivity : AppCompatActivity() {
         setupBooleanSwitch(R.id.sw_swipe, Prefs.KEY_SWIPE, false,
             R.string.settings_swipe_on, R.string.settings_swipe_off)
 
-        setupConfigButton()
+        setupConfigButtons()
         setupKeyboardButtons()
         setupFileAccessButtons()
         displayedSettings = SettingsConfig.snapshot(prefs)
@@ -136,7 +136,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupConfigButton() {
+    /**
+     * Buttons im Abschnitt „Speicher & Konfiguration": Konfigurationsdatei
+     * schreiben/aktualisieren und das gelernte Wörterbuch aufräumen.
+     *
+     * Die Verdrahtung des Aufräum-Buttons ging beim Aufteilen der
+     * Settings-Initialisierung (v0.20) verloren — der Button war wirkungslos,
+     * [cleanupLearnedDictionary] dadurch ungenutzt (detekt `UnusedPrivateMember`).
+     * Beide Buttons stehen bewusst in **einer** Funktion: eine zweite würde die
+     * detekt-Schwelle für `MainActivity` (20 Funktionen) reißen.
+     */
+    private fun setupConfigButtons() {
         // Konfigurationsdatei schreiben/aktualisieren (Werte direkt editierbar).
         // Datei-I/O läuft nicht auf dem Main-Thread (N21).
         findViewById<Button>(R.id.btn_update_config).setOnClickListener {
@@ -155,6 +165,9 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+        findViewById<Button>(R.id.btn_cleanup_learned_dictionary).setOnClickListener {
+            cleanupLearnedDictionary()
         }
     }
 

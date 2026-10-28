@@ -119,22 +119,26 @@ object SettingsConfig {
      * Aufruf nicht erneut liest.
      */
     fun importIfChanged(file: File, prefs: SharedPreferences): Boolean = try {
-        if (!file.isFile) false
-        else {
-            val stat = "${file.lastModified()}:${file.length()}"
-            if (prefs.getString(KEY_FILE_STAT, null) == stat) false
-            else {
-                val changed = importTextIfChanged(file.readText(), prefs)
-                prefs.edit().putString(KEY_FILE_STAT, stat).apply()
-                // N4: Es ist dieselbe Datei, aus der auch [KeyTabConfig] liest
-                // (Skalierung). Deren Lese-Cache muss bei einer Aenderung weg,
-                // sonst bliebe die Skalierung des alten Standes aktiv.
-                if (changed) KeyTabConfig.invalidateCache()
-
-                changed
-            }
-        }
+        file.isFile && importStatChanged(file, prefs)
     } catch (_: Exception) { false }
+
+    /**
+     * Schneller Pfad von [importIfChanged]: nur lesen, wenn `mtime:Länge`
+     * abweicht. Der neue `stat` wird auch bei unverändertem Inhalt gemerkt,
+     * damit der nächste Aufruf nicht erneut liest (detekt: `NestedBlockDepth` —
+     * deshalb eigener Schritt statt verschachtelter Blöcke).
+     */
+    private fun importStatChanged(file: File, prefs: SharedPreferences): Boolean {
+        val stat = "${file.lastModified()}:${file.length()}"
+        if (prefs.getString(KEY_FILE_STAT, null) == stat) return false
+        val changed = importTextIfChanged(file.readText(), prefs)
+        prefs.edit().putString(KEY_FILE_STAT, stat).apply()
+        // N4: Es ist dieselbe Datei, aus der auch [KeyTabConfig] liest
+        // (Skalierung). Deren Lese-Cache muss bei einer Aenderung weg,
+        // sonst bliebe die Skalierung des alten Standes aktiv.
+        if (changed) KeyTabConfig.invalidateCache()
+        return changed
+    }
 
     internal fun fingerprint(text: String): String = MessageDigest.getInstance("SHA-256")
         .digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }

@@ -25,7 +25,13 @@ import java.util.concurrent.Executor
  * in die zuletzt geladene/gewählte Datei (Default: keytab_editor.txt).
  * Datei-I/O läuft auf [ioExecutor], UI-Updates kehren über [mainHandler] zurück.
  * Toolbar und Editor-Chrome siehe [setupToolbar] und [setupEditorChrome].
+ *
+ * `@Suppress("TooManyFunctions")` ist bewusst und begründet: das Panel bündelt
+ * I/O, Gutter/Highlighting, Speichern/Laden und den optionalen Cline-Watcher.
+ * detekts Schwelle liegt bei 20 Funktionen, hier sind es 23 (28.10.2026).
+ * Die Baseline bleibt leer — die Ausnahme steht sichtbar im Code.
  */
+@Suppress("TooManyFunctions")
 open class EditorPanel(
     private val context: Context,
     private val rootView: View,
@@ -95,7 +101,7 @@ open class EditorPanel(
         stopClineWatch()
         watchedDirectory = directory
         clineWatcher = ClineFileWatcher(
-            context, directory, CLINE_POLL_MS,
+            directory, CLINE_POLL_MS,
             { openFile(it) }
         )
         // Vorhandene Dateien als "bekannt" markieren — sonst würde der erste
@@ -404,13 +410,19 @@ open class EditorPanel(
         // endlos neu gepostet (nie gemessenes Feld → CPU-Last). Jetzt
         // begrenzt: hoechstens [GUTTER_REPOST_LIMIT] Versuche, und nur wenn
         // das Panel wirklich noch am Fenster haengt.
-        if (et.width == 0 && text.isNotEmpty() && et.isAttachedToWindow &&
-            gutterRepostCount < GUTTER_REPOST_LIMIT
-        ) {
+        if (needsGutterRepost(et, text) && gutterRepostCount < GUTTER_REPOST_LIMIT) {
             gutterRepostCount++
             et.post { refreshGutter() }
         }
     }
+
+    /**
+     * N7: Nachposten lohnt nur, wenn das Feld noch ungemessen ist und wirklich am
+     * Fenster hängt. Ausgelagert, weil detekt vier Bedingungen in einem `if` schon
+     * als `ComplexCondition` wertet (Schwelle 4).
+     */
+    private fun needsGutterRepost(et: EditText, text: CharSequence): Boolean =
+        et.width == 0 && text.isNotEmpty() && et.isAttachedToWindow
 
     /** Highlight-Spans neu anwenden; vorherige werden entfernt (kein Stau). */
     private fun applyHighlight() {

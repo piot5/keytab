@@ -35,7 +35,7 @@ class TabControllerTest {
 
     private open class TestHost(
         val ctx: Context,
-        val panel: TestEditorPanel
+        val panel: TestEditorPanel?
     ) : TabHost {
         override val context get() = ctx
         override fun hideKeyboard() = Unit
@@ -87,7 +87,7 @@ class TabControllerTest {
     }
 
     @Test
-    fun `Editor-Tab-Plakette zählt offene Dateien und ist bei deaktiviertem Mode ausgeblendet` () {
+    fun `Editor-Tab-Plakette zaehlt offene Dateien und verschwindet bei null` () {
         val root = root()
         val panel = TestEditorPanel(app, root)
         panel.openFiles = 2
@@ -99,15 +99,9 @@ class TabControllerTest {
         val tabs = root.findViewById<TabLayout>(R.id.ime_tabs)
         val badge = tabs.getTabAt(1)!!.customView!!.findViewById<TextView>(R.id.editor_tab_badge)
 
-        // Standard: Plakette ausgeblendet (Companion-Mode deaktiviert)
-        controller.refreshEditorBadge()
-        assertTrue(badge.visibility == View.GONE || badge.text.toString().isEmpty())
-
-        // Companion-Mode + Datei-Plakette aktivieren
-        Prefs.of(app).edit()
-            .putBoolean(Prefs.KEY_CLINE_COMPANION_MODE, true)
-            .putBoolean(Prefs.KEY_CLINE_FILE_BADGE, true)
-            .commit()
+        // Seit v0.20 ist die Plakette nicht mehr an den Companion-Mode gebunden
+        // (die Schalter sind aus den Einstellungen entfernt): sie zeigt schlicht
+        // die Zahl der offenen Dateien.
         controller.refreshEditorBadge()
         assertEquals(View.VISIBLE, badge.visibility)
         assertEquals("2", badge.text.toString())
@@ -117,50 +111,36 @@ class TabControllerTest {
         controller.refreshEditorBadge()
         assertEquals("5", badge.text.toString())
 
-        // Companion-Mode aus → Plakette wieder aus, Zaehler bleibt erhalten
-        Prefs.of(app).edit()
-            .putBoolean(Prefs.KEY_CLINE_COMPANION_MODE, false)
-            .commit()
+        // Keine offene Datei → Plakette aus (Zaehler bleibt 0)
+        panel.openFiles = 0
         controller.refreshEditorBadge()
         assertEquals(View.GONE, badge.visibility)
-        assertEquals(5, panel.openFiles)
+        assertEquals("0", badge.text.toString())
     }
 
     @Test
-    fun `Editor-Tab-Kontextmenue erscheint nur im Companion-Mode` () {
+    fun `Editor-Tab-Kontextmenue haengt am Editor-Panel, nicht am Companion-Mode` () {
         val root = root()
         val panel = TestEditorPanel(app, root)
         val testHost = TestHost(app, panel)
         controller = TabController(testHost)
         controller.setup(root)
 
-        val tabs = root.findViewById<TabLayout>(R.id.ime_tabs)
-        val custom = tabs.getTabAt(1)!!.customView!!
-
-        // Ohne Companion-Mode: Long-Press wird abgefangen, aber es kommt
-        // KEIN Menue (kein Dialog, kein Absturz).
-        assertFalse(
-            "Ohne Companion-Mode darf kein Menue erscheinen",
-            controller.showEditorTabMenu(custom)
-        )
-
-        // Companion-Mode an, aber Tab-Kontextmenue noch aus -> weiterhin kein Menue
-        Prefs.of(app).edit()
-            .putBoolean(Prefs.KEY_CLINE_COMPANION_MODE, true)
-            .putBoolean(Prefs.KEY_CLINE_TAB_CONTEXT_MENU, false)
-            .commit()
-        assertFalse(
-            "Ohne Tab-Kontextmenue darf kein Menue erscheinen",
-            controller.showEditorTabMenu(custom)
-        )
-
-        // Beide aktiv -> Menue (Dialog) wird gezeigt
-        Prefs.of(app).edit()
-            .putBoolean(Prefs.KEY_CLINE_TAB_CONTEXT_MENU, true)
-            .commit()
+        // Seit v0.20 ohne Companion-Mode-Gate: das Menue erscheint, sobald ein
+        // Editor-Panel existiert (die vier Companion-Schalter sind aus den
+        // Einstellungen entfernt).
         assertTrue(
-            "Im Companion-Mode mit Tab-Kontextmenue erscheint das Menue",
-            controller.showEditorTabMenu(custom)
+            "Mit Editor-Panel erscheint das Menue",
+            controller.showEditorTabMenu()
+        )
+
+        // Ohne Editor-Panel: kein Menue (und kein Absturz).
+        val rootWithoutPanel = root()
+        val controllerWithoutPanel = TabController(TestHost(app, null))
+        controllerWithoutPanel.setup(rootWithoutPanel)
+        assertFalse(
+            "Ohne Editor-Panel darf kein Menue erscheinen",
+            controllerWithoutPanel.showEditorTabMenu()
         )
     }
 

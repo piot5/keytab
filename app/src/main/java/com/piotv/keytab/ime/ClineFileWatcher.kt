@@ -1,6 +1,5 @@
 package com.piotv.keytab.ime
 
-import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import com.piotv.keytab.Prefs
@@ -18,7 +17,6 @@ import java.io.File
  * Editor-Tab vorliegen, damit der Watch-Verzeichnis-Pfad bekannt ist.
  */
 class ClineFileWatcher(
-    private val context: Context,
     private val directory: File,
     private val pollMs: Long,
     private val onNewFile: (File) -> Unit

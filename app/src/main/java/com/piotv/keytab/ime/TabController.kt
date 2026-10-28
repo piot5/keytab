@@ -30,7 +30,16 @@ internal enum class SymbolPlane(val labelRes: Int, val panelId: Int) {
     fun next(): SymbolPlane = values()[(ordinal + 1) % values().size]
 }
 
-/** Tab-Controller für ABC, Editor, Files, Clipboard und Snippets. */
+/**
+ * Tab-Controller für ABC, Editor, Files, Clipboard und Snippets.
+ *
+ * `@Suppress("TooManyFunctions")` ist bewusst und begründet: der Controller
+ * bündelt Tab-Aufbau, Symbol-Ebenen, Panel-Routing und die zwei Editor-Tab-Menüs.
+ * detekts Schwelle liegt bei 20 Funktionen, hier sind es 25 (28.10.2026).
+ * Ein Aufteilen in zwei Klassen wäre ein eigener Umbau (mit Testanpassungen) —
+ * die Baseline bleibt leer, deshalb steht die Ausnahme sichtbar im Code.
+ */
+@Suppress("TooManyFunctions")
 internal class TabController(private val host: TabHost) {
     private companion object { const val TAB_TEXT_SIZE_SP = 8f }
 
@@ -227,7 +236,7 @@ internal class TabController(private val host: TabHost) {
         custom.findViewById<TextView>(R.id.editor_tab_label)?.text =
             host.context.getString(R.string.ime_tab_editor)
         tab?.customView = custom
-        custom.setOnLongClickListener { view -> showEditorTabMenu(view) }
+        custom.setOnLongClickListener { showEditorTabMenu() }
         updateEditorBadge()
     }
 
@@ -235,14 +244,15 @@ internal class TabController(private val host: TabHost) {
      * Long-Press-Kontextmenü am Editor-Tab-Button.
      *
      * Zeigt die Aktionen "Alle schließen", "Neue Datei", "Aktuelle speichern"
-     * und "Neu laden". Das Menü erscheint nur, wenn der Cline companion mode
-     * und das Tab-Kontextmenü aktiviert sind — sonst hat ein Long-Press auf
-     * dem Tab **keine** Wirkung (der normale Tab-Wechsel bleibt unberührt).
+     * und "Neu laden". Seit v0.20 hängt das Menü **nicht** mehr am Companion-Mode
+     * (die vier Companion-Schalter sind aus den Einstellungen entfernt): es
+     * erscheint, sobald ein Editor-Panel existiert. Ohne Panel hat der Long-Press
+     * keine Wirkung (der normale Tab-Wechsel bleibt unberührt).
      *
-     * @return `true`, wenn das Menü gezeigt wurde; `false`, wenn die
-     *         Funktion deaktiviert ist oder kein Editor-Panel existiert.
+     * @return `true`, wenn das Menü gezeigt wurde; `false`, wenn kein
+     *         Editor-Panel existiert.
      */
-    internal fun showEditorTabMenu(view: View): Boolean {
+    internal fun showEditorTabMenu(): Boolean {
         val editor = host.editorPanel ?: return false
         // Beschriftung und Aktion werden **paarweise** aufgebaut und über den
         // Listenindex aufgelöst — ein Label-Vergleich wäre fehleranfällig.

@@ -52,7 +52,50 @@ sh ~/bin/rsh 'pm uninstall com.piotv.keytab.debug'
 Tagging triggers the release workflow (`release.yml`), which builds, signs, verifies, and publishes the APK plus its SHA-256.
 
 ```bash
-git tag v0.20 && git push origin v0.20
+git tag v0.21 && git push origin v0.21
 ```
 
 Tags are immutable by GitHub ruleset — once pushed, a tag cannot be deleted or moved.
+
+### Rule 1: tag the release commit, never `main` HEAD
+
+The tag must point at the commit that carries the version bump, not at whatever `main` happens to be:
+
+```bash
+# 1. the release commit is the one that changed the version
+git log -1 --format='%h %s' -- app/build.gradle.kts
+# 2. proof before pushing: the tag's tree must name the same version
+git show v0.21:app/build.gradle.kts | grep -E 'versionCode|versionName'
+# 3. the version must also match the tag name
+git describe --tags --exact-match
+```
+
+**Why (incident 2026-10-28):** `v0.19` was tagged on `f511a74` — a docs commit *on top of* the 0.20 code. That tree already contained `versionCode 36` / `versionName 0.20`, so F-Droid's `checkupdates` reported "0.20 in the 0.19 tag" and the metadata update failed (`KeyTab-0.19.apk` really declares `0.20`). The tag could not be repaired (ruleset: `deletion` + `update` on tags), so `v0.20`/`v0.21` had to take over. Details: GitHub issue #1.
+
+## F-Droid-Kanal
+
+The store metadata is **not** in this repo: it lives in [`fdroid/fdroiddata`](https://gitlab.com/fdroid/fdroiddata) as `metadata/com.piotv.keytab.yml`.
+
+- `AutoUpdateMode: Version` + `UpdateCheckMode: Tags` — after each new tag the `checkupdates` bot opens an MR that pins `versionName` / `versionCode` / `commit` and bumps `CurrentVersion` / `CurrentVersionCode`.
+- `Binaries: https://github.com/piot5/keytab/releases/download/v%v/KeyTab-%v.apk` — the pattern depends on **the tag and the APK asset name matching the version in the tag**. A mis-tagged release breaks this check, not only `checkupdates`.
+- `AllowedAPKSigningKeys` pins the release certificate; changing the keystore means a new key has to be allowed upstream first.
+- The bot only verifies that the tag *exists* — the reviewer verifies that the tag *matches* the version inside. Both checks have to pass.
+
+**Checklist after a release:**
+
+```bash
+# tag ↔ version consistency (see Rule 1 above)
+git show v0.21:app/build.gradle.kts | grep -E 'versionCode|versionName'
+# the release + asset the Binaries URL will request
+gh release view v0.21 --repo piot5/keytab
+curl -sI https://github.com/piot5/keytab/releases/download/v0.21/KeyTab-0.21.apk | head -1
+# the metadata MR the bot opened (labels: fdroid-bot, waiting-for-upstream)
+glab api 'projects/fdroid%2Ffdroiddata/merge_requests?search=keytab&state=opened' \
+  | jq -r '.[] | "!\(.iid) \(.title) \(.web_url)"'
+```
+
+**Protective rules (installed automatically):**
+
+- `pre-push` hook (`scripts/git-hooks/pre-push`, installed via `sh scripts/install_git_hooks.sh`) blocks tag pushes and force-pushes by default — an intentional push needs `KEYTAB_ALLOW_TAG_PUSH=1` / `KEYTAB_ALLOW_FORCE_PUSH=1`.
+- GitHub rulesets: „F-Droid-Schutz: Tags unveraenderlich" (no tag deletion/update) and „main: kein Force-Push, keine Loeschung".
+- The hook exists so a tag is never pushed *while a metadata MR is open* (a newer version would make the reviewer redo the round). Once a metadata MR is merged, pushing the next tag is the regular path.

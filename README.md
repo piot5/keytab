@@ -14,7 +14,7 @@ Mobile IDE built as an Android keyboard (IME): file manager, editor, snippets an
 **GitHub Releases:** every tagged release (`v*`) is built and published automatically by CI as a signed APK with SHA-256 checksums.  
 → [Latest APK](https://github.com/piot5/keytab/releases/latest)
 
-**F-Droid:** available via [MR !50822](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50822).
+**F-Droid:** [com.piotv.keytab](https://f-droid.org/en/packages/com.piotv.keytab/) — live since 2026-10-25 (0.18.1). Newer tags are picked up automatically (`AutoUpdateMode: Version` + `UpdateCheckMode: Tags` in `fdroiddata`).
 
 **Install:**
 

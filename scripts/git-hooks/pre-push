@@ -1,20 +1,23 @@
 #!/bin/sh
-# KeyTab — Schutz-Hook: verhindert Pushs, die die laufende F-Droid-Aufnahme
+# KeyTab — Schutz-Hook: verhindert Pushs, die die F-Droid-Auslieferung
 # beschädigen könnten.
 #
-# Warum: F-Droids MR !50822 pinnt versionCode 32 und commit 135babd (= Tag v0.17)
-# und vergleicht seinen eigenen Build mit dem Release-APK von v0.17. Zwei Dinge
-# brechen das:
-#   1. Ein NEUER Tag → der Release-Workflow startet und F-Droids `checkupdates`
-#      sieht eine neuere Version als die im MR gepinnte (Review rollt neu auf).
-#   2. Ein FORCE-PUSH auf main → der gepinnte Commit kann unerreichbar werden,
-#      der Reproducible-Build-Vergleich schlägt fehl.
-# Ein verschobener Tag war am 2026-10-07 bereits die Ursache eines falschen
-# Repro-Vergleichs (Build A auf 3af3c3f, Build B auf 135babd).
+# Warum (Stand 2026-10-28: die App ist in F-Droid, 0.18.1 ist live; die
+# Metadaten pflegt F-Droids `checkupdates`-Bot über MRs in `fdroid/fdroiddata`,
+# gesteuert durch `AutoUpdateMode: Version` + `UpdateCheckMode: Tags`):
+#   1. Ein NEUER Tag, während ein Metadaten-MR offen ist → der Reviewer pinnt
+#      eine ältere Version als die neueste getaggte, die Runde fängt neu an
+#      (genau das passierte direkt nach dem Merge von !50822 am 2026-10-22).
+#   2. Ein FORCE-PUSH auf main → der im MR gepinnte Commit kann unerreichbar
+#      werden, F-Droids Repro-Vergleich (`Binaries:`) schlägt dann fehl.
+# Ein falsch gesetzter Tag war am 2026-10-28 die Ursache des gescheiterten
+# 0.19-Updates: `v0.19` zeigte auf einen Commit mit versionName 0.20
+# (GitHub Issue #1). Tags sind per Ruleset unveränderlich — deshalb lieber
+# einmal zu viel blocken als einen kaputten Tag zu erzeugen.
 #
 # Ergänzend (serverseitig, greift auch ohne diesen Hook): GitHub-Rulesets
 # „F-Droid-Schutz: Tags unveraenderlich" und „main: kein Force-Push, keine
-# Loeschung" — siehe docs/RELEASE.md, Abschnitt 7.
+# Loeschung" — siehe docs/RELEASE.md, Abschnitt „F-Droid-Kanal".
 #
 # Notausgänge (bewusst und einzeln):
 #   KEYTAB_ALLOW_TAG_PUSH=1   git push --tags
@@ -35,10 +38,11 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         refs/tags/*)
             if [ "$allow_tags" != "1" ]; then
                 printf 'ABGEBROCHEN: Push enthaelt Tag %s\n' "$remote_ref" >&2
-                printf '  F-Droid MR !50822 pinnt versionCode 32 / commit 135babd.\n' >&2
                 printf '  Ein neuer/verschobener Tag startet den Release-Workflow und\n' >&2
-                printf '  laesst F-Droids checkupdates eine neuere Version sehen.\n' >&2
-                printf '  Erst den MR mitziehen, dann: KEYTAB_ALLOW_TAG_PUSH=1 git push --tags\n' >&2
+                printf '  laesst F-Droids checkupdates eine neuere Version sehen als die\n' >&2
+                printf '  im offenen Metadaten-MR gepinnte (Review faengt neu an).\n' >&2
+                printf '  Vorher pruefen: laeuft in fdroiddata ein MR zu com.piotv.keytab?\n' >&2
+                printf '  Danach bewusst: KEYTAB_ALLOW_TAG_PUSH=1 git push origin vX.Y\n' >&2
                 rc=1
             fi
             ;;

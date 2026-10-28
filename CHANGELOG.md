@@ -6,7 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/1.1.0/); versioning
 
 The version is **not** maintained here, but in `app/build.gradle.kts` (`versionCode` / `versionName`). `scripts/check_docs_drift.sh` (CI job "docs") checks on every push that this changelog's head, the fastlane changelog, and the Gradle version match.
 
-## 0.20
+## 0.21
+
+- **Versioning corrected (F-Droid build failed).** `v0.19` was tagged on a commit that already carried `versionName 0.20` — F-Droid's `checkupdates` therefore reported "0.20 in the 0.19 tag" and the metadata update failed ([issue #1](https://github.com/piot5/keytab/issues/1)). Tags are immutable by ruleset, so `v0.19` stays as it is (its release notes are marked as a mis-tag); **0.21 (versionCode 37) is the first correctly tagged release after 0.18.1**.
+- **Fixes on top of 0.20** (0.20 brought Cline companion mode, the Shift-independent long-press row, the ß removal and the double-width Backspace — see below):
+  - **Trace marking usable again.** `trail_trace` was forced to `false` on every read and even rewrote the stored value, so the green match marking could not be switched on at all. The switch honours the stored value again; the default stays **off**.
+  - **"Learned dictionary" button works again.** Its wiring was lost in the 0.20 settings refactor — the button in the settings did nothing.
+  - **Editor tab, as it actually ships:** the four companion switches are gone from the settings, so the editor-tab badge now simply shows the number of open files and the editor-tab long-press menu (close all / new file / save / reload) is available whenever the editor panel exists. Only auto-load stays gated (`cline_companion_mode` + `cline_auto_load`, both off by default, settable via `keytab_config.txt`).
+- **CI repaired (was red since 2026-10-22):** unit-test compilation (the panel takes `FileManagerPanel.FileManagerCallbacks`), the four `TermuxKeyMatrix` tests (JUnit 4 cannot run top-level test functions), the settings key count, detekt findings and the editor/trace expectations are green again. New regression test for the file long-press menu (the `BadTokenException` crash from 2026-10-12).
+- 568 unit tests in 64 classes, 0 failures
 
 - **Cline Companion Mode (optional).** KeyTab now detects when an external agent session (Cline CLI) writes files and loads them automatically into the editor tab. Three independent sub-switches, all **off** by default and bundled under the main switch "Cline companion mode": **Auto-Load** (file polling, 1 s), **File badge** (number of open files on the editor tab), and **Tab context menu** (long-press on editor tab → Close all / New file / Save / Reload). KeyTab remains tool-neutral: the mode only watches the filesystem and knows nothing about Cline sessions, APIs, or tokens.
 - **Long-press row independent of Shift/Caps.** Previously the Shift state provided the uppercase row (`extras['A']`), while keys without an uppercase entry fell back to the lowercase row: the same key showed something different depending on Shift ("Ä …" instead of "ä …", but for `m`/`r` still "&"/"."). Now the same row applies at the base key everywhere; `LetterCaseRenderer.extrasFor` is the only source of language data — language files no longer contain uppercase entries (dead data).

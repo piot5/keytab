@@ -1,0 +1,4 @@
+- Version 0.22: the editor tab no longer loads files that other programs write into its directory — that automatic mode, its watcher and its four config keys are gone.
+- Editor tab keeps its file badge (number of open files) and the long-press menu (close all / new file / save / reload).
+- Existing `keytab_config.txt` files are untouched: lines of the dropped keys are preserved and ignored.
+- Fix: the Editor tab could not be opened by tapping. Its long-press menu made the tab's custom view swallow the tap, so the tab stayed closed (Files/Clip/Snippets were unaffected). Tapping the tab works again.

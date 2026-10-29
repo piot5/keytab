@@ -19,9 +19,15 @@ trap 'rm -f "$TMP"' EXIT
 if command -v curl >/dev/null 2>&1; then
   HTTP=$(curl -sS -o "$TMP" -w '%{http_code}' --max-time 20 "$URL" 2>/dev/null)
 elif command -v wget >/dev/null 2>&1; then
-  HTTP=$(wget -qO- --timeout=20 "$URL" 2>/dev/null | head -c 1)
-  HTTP=${HTTP:-0}
-  [ -z "$HTTP" ] && HTTP=0
+  # Gleiche Semantik wie der curl-Zweig: Body in die Datei, Statuscode in HTTP.
+  # Vorher stand hier `HTTP=$(wget -qO- "$URL" | head -c 1)` — das lieferte das
+  # erste Body-Zeichen statt "200" und liess $TMP leer; ohne curl war das Skript
+  # damit garantiert erfolglos (der HTTP-Vergleich unten schlug immer fehl).
+  if wget -q -O "$TMP" --timeout=20 "$URL" 2>/dev/null; then
+    HTTP=200
+  else
+    HTTP=0
+  fi
 else
   die "weder curl noch wget gefunden"
 fi

@@ -63,11 +63,16 @@ echo ""
 echo "── 3/4 Unit-Tests ────────────────────────────────────────"
 if [ "$TARGET" = "debug" ]; then
     sh build_bg.sh test
-    sh build_bg.sh wait && echo "✅ Unit-Tests grün" || {
+    # if/else statt `A && B || C`: die Kurzform fuehrt C auch dann aus, wenn A
+    # wahr war, aber B fehlschlug (shellcheck SC2015) — hier wuerde dann ein
+    # gruener Testlauf als Fehlschlag gemeldet.
+    if sh build_bg.sh wait; then
+        echo "✅ Unit-Tests grün"
+    else
         echo "❌ Unit-Tests fehlgeschlagen:"
         tail -40 /tmp/keytab_build.log 2>/dev/null
         exit 1
-    }
+    fi
 else
     echo "übersprungen (nur bei debug)"
 fi

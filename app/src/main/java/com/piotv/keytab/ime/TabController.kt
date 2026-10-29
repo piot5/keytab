@@ -58,8 +58,6 @@ internal class TabController(private val host: TabHost) {
         val index = kinds.indexOf(kind)
         if (index >= 0) currentTabs?.getTabAt(index)?.select()
     }
-    fun resetSymbols() { plane = SymbolPlane.LETTERS }
-
     /** Aktuell sichtbare Tastatur-Ebene (Buchstaben oder eine Symbol-Ebene). */
     fun currentPlane(): SymbolPlane = plane
 
@@ -236,6 +234,15 @@ internal class TabController(private val host: TabHost) {
         custom.findViewById<TextView>(R.id.editor_tab_label)?.text =
             host.context.getString(R.string.ime_tab_editor)
         tab?.customView = custom
+        // Der Tap muss den Tab wählen: `setOnLongClickListener` macht das
+        // Custom-View LONG_CLICKABLE, und ein long-clickbares View konsumiert den
+        // Touch (`View.onTouchEvent` behandelt LONG_CLICKABLE wie CLICKABLE) — die
+        // TabView bekommt den Klick dann nie, und der Editor-Tab lässt sich per Tap
+        // gar nicht mehr öffnen. Befund 2026-10-29 auf echtem Gerät (Android 16):
+        // `clickTab("Editor")` fand das Label, der Tab wechselte aber nicht
+        // (Files/Clip/Snip funktionieren, sie haben kein Custom-View). Deshalb den
+        // Klick explizit weiterleiten — der Long-Press bleibt daneben bestehen.
+        custom.setOnClickListener { tab?.select() }
         custom.setOnLongClickListener { showEditorTabMenu() }
         updateEditorBadge()
     }
@@ -244,10 +251,9 @@ internal class TabController(private val host: TabHost) {
      * Long-Press-Kontextmenü am Editor-Tab-Button.
      *
      * Zeigt die Aktionen "Alle schließen", "Neue Datei", "Aktuelle speichern"
-     * und "Neu laden". Seit v0.20 hängt das Menü **nicht** mehr am Companion-Mode
-     * (die vier Companion-Schalter sind aus den Einstellungen entfernt): es
-     * erscheint, sobald ein Editor-Panel existiert. Ohne Panel hat der Long-Press
-     * keine Wirkung (der normale Tab-Wechsel bleibt unberührt).
+     * und "Neu laden". Das Menü erscheint, sobald ein Editor-Panel existiert.
+     * Ohne Panel hat der Long-Press keine Wirkung (der normale Tab-Wechsel
+     * bleibt unberührt).
      *
      * @return `true`, wenn das Menü gezeigt wurde; `false`, wenn kein
      *         Editor-Panel existiert.

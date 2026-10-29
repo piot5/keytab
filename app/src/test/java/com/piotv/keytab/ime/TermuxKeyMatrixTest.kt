@@ -2,7 +2,8 @@ package com.piotv.keytab.ime
 
 import android.view.KeyEvent
 import android.view.inputmethod.InputConnection
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.lang.reflect.Proxy
 
@@ -35,7 +36,7 @@ class TermuxKeyMatrixTest {
     ) { _, method, args ->
         when (method.name) {
             "commitText" -> rec.committed.add((args?.get(0) as? CharSequence)?.toString().orEmpty())
-            "deleteSurroundingText" -> rec.deleted.add((args?.get(0) as Int) to (args?.get(1) as Int))
+            "deleteSurroundingText" -> rec.deleted.add((args?.get(0) as Int) to (args.get(1) as Int))
             "getTextBeforeCursor" -> rec.before.takeLast((args?.get(0) as Int).coerceAtLeast(0))
             else -> if (method.returnType == Boolean::class.javaPrimitiveType) true else null
         }

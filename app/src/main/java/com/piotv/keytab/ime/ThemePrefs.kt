@@ -10,7 +10,14 @@ import android.graphics.drawable.GradientDrawable
  *   als ARGB inkl. Alpha (Alpha-Slider im [ThemeSettingsPanel]).
  * Verlauf ist aktiv, sobald beide Farben gesetzt sind; Farben gelten als
  * Override über den Theme-Ressourcen (Default = Werte aus colors.xml).
+ *
+ * `@Suppress("TooManyFunctions")` ist bewusst und begründet: der Zugriff liegt
+ * absichtlich gebündelt an einer Stelle (Pref-Keys, Farb-Overrides, Verlauf,
+ * Trail, Export/Import). detekts Schwelle liegt bei 20 Funktionen, hier sind es
+ * 32 (29.10.2026). Ein Aufteilen wäre ein eigener Umbau (mit Testanpassungen) —
+ * die Baseline bleibt leer, deshalb steht die Ausnahme sichtbar im Code.
  */
+@Suppress("TooManyFunctions")
 object ThemePrefs {
 
     // ---------- Pref-Keys ----------
@@ -48,6 +55,8 @@ object ThemePrefs {
     const val KIND_HL = ThemeColorResolver.KIND_HL
     const val KIND_TEXT = ThemeColorResolver.KIND_TEXT
     const val KIND_LIKELY = ThemeColorResolver.KIND_LIKELY
+    /** Alter on-disk-Name der Likely-Farbe — nur Lesen/Migration ([ThemeColorResolver.KIND_LIKELY_LEGACY]). */
+    const val KIND_LIKELY_LEGACY = ThemeColorResolver.KIND_LIKELY_LEGACY
     const val KIND_TRAIL = ThemeColorResolver.KIND_TRAIL
     const val KIND_GRADIENT1 = ThemeColorResolver.KIND_GRADIENT1
     const val KIND_GRADIENT2 = ThemeColorResolver.KIND_GRADIENT2
@@ -74,38 +83,59 @@ object ThemePrefs {
      * entfernt.
      */
     const val KEY_LIKELY = "likely"
-    /** Legacy-Key `gaming_mode` (früherer Name des Likely-Highlightings) — Migration. */
+    /**
+     * Alter on-disk-Name des Likely-Schalters (Versionen ≤ v0.9.6, umbenannt am
+     * 15.09.2026). Fehlbenennung: hervorgehoben wird die wahrscheinlichste nächste
+     * Taste, „Gaming" war nie gemeint. Wird beim Lesen migriert.
+     */
     const val KEY_LIKELY_LEGACY = "gaming_mode"
+    /** Rest des in v0.18 entfernten Puls-Effekts — alter on-disk-Name, wird beim Lesen entfernt. */
+    const val KEY_LIKELY_EFFECT_LEGACY = "gaming_effect"
     const val KEY_SUGGESTIONS = "suggestions"
-    const val KEY_TAB_HIGHLIGHT_MODE = "tab_highlight_mode"
 
     /**
-     * `active_tab` = Balken am aktiven Tab (Standard) | `suggestion_top` = Vorschlag oben.
+     * Likely-Highlighting. Standard **an** (Nutzer-Standard).
+     *
+     * Migriert dabei die alten on-disk-Namen (siehe [migrateLegacyNames]). Das
+     * passiert hier, weil der IME diesen Schalter vor dem Lesen der Likely-Farbe
+     * abfragt ([SuggestionController]) — damit ist die Umbenennung erledigt,
+     * bevor die Farbe gelesen wird.
      */
-    const val TAB_HIGHLIGHT_MODE_ACTIVE = "active_tab"
-    const val TAB_HIGHLIGHT_MODE_SUGGESTION = "suggestion_top"
-    val TAB_HIGHLIGHT_MODES = setOf(TAB_HIGHLIGHT_MODE_ACTIVE, TAB_HIGHLIGHT_MODE_SUGGESTION)
-
-
-    /** Likely-Highlighting. Standard **an** (Nutzer-Standard). */
     fun likelyHighlighting(prefs: SharedPreferences): Boolean {
-        if (prefs.contains(KEY_LIKELY_LEGACY)) {
-            val v = prefs.getBoolean(KEY_LIKELY_LEGACY, true)
-            prefs.edit().remove(KEY_LIKELY_LEGACY).putBoolean(KEY_LIKELY, v).apply()
-            return v
-        }
+        migrateLegacyNames(prefs)
         return prefs.getBoolean(KEY_LIKELY, true)
     }
 
-    // ---------- Tab-Highlight-Modus ----------
     /**
-     * `tab_highlight_mode`:
-     * - `active_tab`: Balken am ausgewählten Tab (Standard)
-     * - `suggestion_top`: Vorschlag oben, kein Balken (weiterhin nicht implementiert)
+     * Einmalige Umbenennung der alten on-disk-Namen aus Versionen ≤ v0.9.6.
+     *
+     * Alle drei Namen waren Fehlbenennungen — gemeint war nie ein Spiel-Thema,
+     * sondern die Hervorhebung der wahrscheinlichsten nächsten Taste:
+     * - `gaming_mode` → [KEY_LIKELY]
+     * - `gaming_effect` → ersatzlos (der Schalter selbst entfiel in v0.18)
+     * - `theme_dark_gaming` / `theme_light_gaming` → `theme_*_likely`
+     *
+     * Idempotent und ohne Schreibzugriff, wenn nichts zu tun ist: jeder Zweig
+     * beginnt mit einem `contains`-Test, also kein Datei-I/O im Hot-Path.
      */
-    fun tabHighlightMode(prefs: SharedPreferences): String {
-        val raw = prefs.getString(KEY_TAB_HIGHLIGHT_MODE, TAB_HIGHLIGHT_MODE_ACTIVE) ?: TAB_HIGHLIGHT_MODE_ACTIVE
-        return if (TAB_HIGHLIGHT_MODES.contains(raw)) raw else TAB_HIGHLIGHT_MODE_ACTIVE
+    fun migrateLegacyNames(prefs: SharedPreferences) {
+        var edit: SharedPreferences.Editor? = null
+        if (prefs.contains(KEY_LIKELY_LEGACY)) {
+            val legacy = prefs.getBoolean(KEY_LIKELY_LEGACY, true)
+            edit = (edit ?: prefs.edit()).remove(KEY_LIKELY_LEGACY).putBoolean(KEY_LIKELY, legacy)
+        }
+        if (prefs.contains(KEY_LIKELY_EFFECT_LEGACY)) {
+            edit = (edit ?: prefs.edit()).remove(KEY_LIKELY_EFFECT_LEGACY)
+        }
+        for (dark in listOf(true, false)) {
+            val old = colorKey(dark, KIND_LIKELY_LEGACY)
+            if (!prefs.contains(old)) continue
+            val current = colorKey(dark, KIND_LIKELY)
+            val e = edit ?: prefs.edit()
+            if (!prefs.contains(current)) e.putInt(current, prefs.getInt(old, 0))
+            edit = e.remove(old)
+        }
+        edit?.apply()
     }
 
     // ---------- Trail-Effekt (Tippspur) ----------
@@ -299,13 +329,15 @@ object ThemePrefs {
     fun resetAll(prefs: SharedPreferences) {
         prefs.edit().remove(colorKey(true, KIND_BG)).remove(colorKey(true, KIND_KEY))
             .remove(colorKey(true, KIND_HL)).remove(colorKey(true, KIND_TEXT))
-            .remove(colorKey(true, KIND_LIKELY)).remove(colorKey(true, KIND_TRAIL))
+            .remove(colorKey(true, KIND_LIKELY)).remove(colorKey(true, KIND_LIKELY_LEGACY))
+            .remove(colorKey(true, KIND_TRAIL))
             .remove(KEY_TRAIL_TRACE)
             .remove(KEY_TRAIL_ACCEPTED_COLOR)
             .remove(colorKey(false, KIND_BG)).remove(colorKey(false, KIND_KEY))
             .remove(colorKey(false, KIND_HL)).remove(colorKey(false, KIND_TEXT))
-            .remove(colorKey(false, KIND_LIKELY)).remove(colorKey(false, KIND_TRAIL))
-            .remove(KEY_LIKELY).remove(KEY_LIKELY_LEGACY).remove("gaming_effect")
+            .remove(colorKey(false, KIND_LIKELY)).remove(colorKey(false, KIND_LIKELY_LEGACY))
+            .remove(colorKey(false, KIND_TRAIL))
+            .remove(KEY_LIKELY).remove(KEY_LIKELY_LEGACY).remove(KEY_LIKELY_EFFECT_LEGACY)
             .remove(KEY_TRAIL).remove(KEY_TRAIL_COLOR).remove(KEY_TRAIL_STEPS)
             .remove(KEY_GRADIENT_COLOR1).remove(KEY_GRADIENT_COLOR2)
             .remove(KEY_GRADIENT_MODE).remove(KEY_GRADIENT_OFF)

@@ -12,9 +12,7 @@ import android.widget.EditText
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
-import com.piotv.keytab.Prefs
 import com.piotv.keytab.R
-import com.piotv.keytab.ime.ClineFileWatcher
 import java.io.File
 import java.util.concurrent.Executor
 
@@ -27,8 +25,8 @@ import java.util.concurrent.Executor
  * Toolbar und Editor-Chrome siehe [setupToolbar] und [setupEditorChrome].
  *
  * `@Suppress("TooManyFunctions")` ist bewusst und begründet: das Panel bündelt
- * I/O, Gutter/Highlighting, Speichern/Laden und den optionalen Cline-Watcher.
- * detekts Schwelle liegt bei 20 Funktionen, hier sind es 23 (28.10.2026).
+ * I/O, Gutter/Highlighting und Speichern/Laden.
+ * detekts Schwelle liegt bei 20 Funktionen, hier sind es 21 (29.10.2026).
  * Die Baseline bleibt leer — die Ausnahme steht sichtbar im Code.
  */
 @Suppress("TooManyFunctions")
@@ -61,13 +59,7 @@ open class EditorPanel(
     internal var tabHost: TabHost? = null
         internal set
 
-    /** Optionaler Cline-Watcher (Auto-Load im Companion-Mode). */
-    private var clineWatcher: ClineFileWatcher? = null
-
-    /** Verzeichnis, das der laufende Watcher überwacht (für Restart-Vermeidung). */
-    private var watchedDirectory: File? = null
-
-    /** Inkrementiert den Zähler und informiert den Editor-Tab (nur im Companion-Mode sichtbar). */
+    /** Inkrementiert den Zähler und informiert den Editor-Tab. */
     private fun onFileOpened(file: File) {
         // Nur unterschiedliche Dateien zählen — ein Reload derselben Datei
         // (Toolbar-↻) soll die Plakette nicht hochzählen.
@@ -75,57 +67,18 @@ open class EditorPanel(
             openFiles = openedPaths.size
         }
         tabHost?.refreshEditorBadge()
-        startClineWatch(file.parentFile)
     }
 
     /** Pfade der in dieser Sitzung geöffneten Dateien (Plaketten-Zähler). */
     private val openedPaths = mutableSetOf<String>()
 
     /**
-     * Startet/abort den Cline-Watcher für das übergebene Verzeichnis.
-     *
-     * Der Watcher wird **nicht** bei jedem Datei-Öffnen neu erzeugt: sonst
-     * wäre sein interner Zustand (`knownPaths`) jedes Mal leer, jedes bereits
-     * bekannte File gälte als "neu" und würde erneut geladen — eine
-     * Endlos-Schleife aus "Datei öffnen → Watcher neu → Datei öffnen".
-     * Deshalb wird nur bei einem **Verzeichniswechsel** neu gestartet.
-     */
-    private fun startClineWatch(directory: File?) {
-        if (directory == null) return
-        if (!Prefs.of(context).getBoolean(Prefs.KEY_CLINE_COMPANION_MODE, false) ||
-            !Prefs.of(context).getBoolean(Prefs.KEY_CLINE_AUTO_LOAD, false)) {
-            stopClineWatch()
-            return
-        }
-        if (clineWatcher != null && watchedDirectory == directory) return
-        stopClineWatch()
-        watchedDirectory = directory
-        clineWatcher = ClineFileWatcher(
-            directory, CLINE_POLL_MS,
-            { openFile(it) }
-        )
-        // Vorhandene Dateien als "bekannt" markieren — sonst würde der erste
-        // Poll den ganzen Verzeichnisinhalt in den Editor laden.
-        clineWatcher?.seedExistingFiles()
-        clineWatcher?.start()
-    }
-
-    /** Stoppt den Watcher (z. B. beim Schließen aller Dateien oder Modus-Aus). */
-    private fun stopClineWatch() {
-        clineWatcher?.stop()
-        clineWatcher = null
-        watchedDirectory = null
-    }
-
-    /**
-     * "Alle schließen": Editor leeren, Zähler zurücksetzen, Watcher stoppen.
+     * "Alle schließen": Editor leeren, Zähler zurücksetzen.
      *
      * Das ist die Aktion aus dem Long-Press-Kontextmenü am Editor-Tab
-     * (siehe [TabController]); sie beendet auch die Auto-Load-Überwachung,
-     * damit keine Datei sofort wieder in den (leeren) Editor geladen wird.
+     * (siehe [TabController]).
      */
     fun closeAllFiles() {
-        stopClineWatch()
         openedPaths.clear()
         openFiles = 0
         clearEditor()
@@ -138,8 +91,6 @@ open class EditorPanel(
     private companion object {
         /** Max. Zahl der Nachpost-Versuche fuer das Gutter (N7). */
         const val GUTTER_REPOST_LIMIT = 5
-        /** Poll-Intervall für Cline-Datei-Hinweis-Watcher (ms). */
-        private const val CLINE_POLL_MS = 1000L
     }
 
     /**

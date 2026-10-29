@@ -20,10 +20,11 @@ import android.content.SharedPreferences
  * Methode, die den Dateinamen kennt.
  *
  * Theme-spezifische Keys bleiben in [com.piotv.keytab.ime.ThemePrefs]
- * (dark_mode, gradient_*, theme_dark_*, theme_light_*, gaming_*, theme_version).
- * Hinweis: Die Pref-Strings `gaming_*` bleiben aus Kompatibilität erhalten —
- * im Code/UI heißen die Felder inzwischen „Likely Highlighting"
- * ([com.piotv.keytab.ime.ThemePrefs.KEY_LIKELY]).
+ * (dark_mode, gradient_*, theme_dark_*, theme_light_*, likely, theme_version).
+ * Hinweis: Die alten on-disk-Namen aus Versionen ≤ v0.9.6 (`gaming_mode`,
+ * `gaming_effect`, `theme_*_gaming`) waren Fehlbenennungen — gemeint war immer
+ * die Hervorhebung der wahrscheinlichsten nächsten Taste. Sie werden beim Lesen
+ * umbenannt ([com.piotv.keytab.ime.ThemePrefs.migrateLegacyNames]).
  */
 object Prefs {
 
@@ -45,9 +46,7 @@ object Prefs {
     const val KEY_NUM_ROW = "num_row"
 
     /**
-     * Wortvorhersage-Leiste an/aus.
-     * `suggestions_enabled` = Vorschlag oben, kein Balken (`tab_highlight_mode` = suggestion_top)
-     * `suggestions_enabled` = Vorschlag oben, kein Balken (`tab_highlight_mode` = suggestion_top)
+     * Wortvorhersage-Leiste an/aus (Config-Key `suggestions`, Pref `suggestions_enabled`).
      */
     const val KEY_SUGGESTIONS = "suggestions_enabled"
 
@@ -61,11 +60,6 @@ object Prefs {
      * Snippet-Tab sichtbar an/aus (benannte Befehle/Snippets).
      */
     const val KEY_SNIPPET_TAB = "snippet_tab_enabled"
-
-    /**
-     * Tab-Highlight-Modus: `active_tab` = Balken am aktiven Tab, `suggestion_top` = Vorschlag oben.
-     */
-    const val KEY_TAB_HIGHLIGHT_MODE = "tab_highlight_mode"
 
     /**
      * Snippet-History für die Vorschlags-Leiste: bis zu 3 zuletzt eingefügte
@@ -100,10 +94,4 @@ object Prefs {
     const val FILL_FIT = "fit"
     const val FILL_COVER = "cover"
     const val FILL_STRETCH = "stretch"
-
-    // ---------- Cline companion mode (optional feature group, v0.20) ----------
-    const val KEY_CLINE_COMPANION_MODE = "cline_companion_mode"
-    const val KEY_CLINE_FILE_BADGE = "cline_file_badge"
-    const val KEY_CLINE_AUTO_LOAD = "cline_auto_load"
-    const val KEY_CLINE_TAB_CONTEXT_MENU = "cline_tab_context_menu"
 }

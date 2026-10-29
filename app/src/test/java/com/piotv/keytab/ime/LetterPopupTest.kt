@@ -49,7 +49,6 @@ class LetterPopupTest {
     @Test
     fun `highlightCellUnder ohne Popup ist no-op`() {
         val p = popup()
-        val anchor = View(RuntimeEnvironment.getApplication())
         val e = android.view.MotionEvent.obtain(0, 0,
             android.view.MotionEvent.ACTION_MOVE, 5f, 5f, 0)
         p.highlightCellUnder(e) { throw AssertionError("kein Haptic ohne Popup") }

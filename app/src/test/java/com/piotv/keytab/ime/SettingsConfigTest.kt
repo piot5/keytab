@@ -67,6 +67,17 @@ class SettingsConfigTest {
         assertFalse("der entfernte Effekt-Schalter wird ignoriert", prefs.contains("gaming_effect"))
     }
 
+    @Test fun legacyColorKeyWirdAufDenNeuenNamenAbgebildet() {
+        // Versionen ≤ v0.9.6 schrieben die Likely-Farbe als `theme_dark_gaming`
+        // (Fehlbenennung, umbenannt am 15.09.2026). Eine bestehende
+        // keytab_config.txt mit dem alten Schlüssel darf nicht still wirkungslos
+        // werden — sie wird auf den aktuellen Namen abgebildet.
+        SettingsConfig.importTextIfChanged("theme_dark_gaming = #FF00FF00", prefs)
+        assertEquals(0xFF00FF00.toInt(),
+            prefs.getInt(ThemePrefs.colorKey(true, ThemePrefs.KIND_LIKELY), 0))
+        assertFalse("nur der aktuelle Name wird geschrieben", prefs.contains("theme_dark_gaming"))
+    }
+
     @Test fun explicitDefaultsRemoveColorAndDarkOverrides() {
         prefs.edit().putBoolean(ThemePrefs.KEY_DARK, true)
             .putInt(ThemePrefs.KEY_GRADIENT_COLOR1, 123).apply()
@@ -86,7 +97,7 @@ class SettingsConfigTest {
             val completed = file.readText()
             assertTrue(completed.startsWith(edited))
             assertTrue(completed.contains("language = it"))
-            assertTrue(completed.contains("theme_light_gaming = default"))
+            assertTrue(completed.contains("theme_light_likely = default"))
             assertTrue(completed.contains("bg_image_fill = fit"))
             assertFalse(completed.contains("keyboard_height_ratio"))
             assertFalse(SettingsConfig.importIfChanged(file, prefs))
@@ -132,9 +143,11 @@ class SettingsConfigTest {
         // 44 die Höhe davor (Panel-Höhen kamen am 28.09.2026 dazu),
         // 52 mit `autocorrect`/`swipe_preview` (entfernt am 29.09.2026),
         // 49 seit dem Ausbau des Puls-Effekts (`gaming_effect`, v0.18),
-        // 53 mit den 4 Cline-Companion-Schaltern (22.10.2026),
-        // 54 mit `tab_highlight_mode` (v0.20, 28.10.2026 — als Enum exportiert).
-        assertEquals(54, KeyTabConfig.entries(completed).size)
+        // 53 mit den 4 Auto-Load-Schaltern (22.10.2026),
+        // 54 mit `tab_highlight_mode` (v0.20, 28.10.2026 — als Enum exportiert),
+        // 50 nach der Entfernung der 4 Auto-Load-Schalter (v0.22, 29.10.2026),
+        // 49 nach der Entfernung des ungenutzten `tab_highlight_mode` (v0.22).
+        assertEquals(49, KeyTabConfig.entries(completed).size)
         assertTrue(SettingsConfig.importTextIfChanged(completed, prefs))
         // Die Defaults sind die aus keytab_config.txt des Nutzers (2026-09-28):
         // Nummernreihe an, Dark-Mode fest an, Verlauf

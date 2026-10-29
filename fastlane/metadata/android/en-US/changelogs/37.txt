@@ -1,6 +1,6 @@
 - Version 0.21: versioning fix — `v0.19` was tagged on the 0.20 code, so F-Droid saw "0.20 in the 0.19 tag" and its build failed (issue #1). This is the first correctly tagged release after 0.18.1.
 - Trace marking (green highlight on a suggestion match) can be switched on again — it was forced off and even reset the stored setting.
 - Settings: the "Learned dictionary" button works again (its wiring was lost in the 0.20 refactor).
-- Editor tab: the badge shows the number of open files; long-press opens the menu (close all / new file / save / reload). Both no longer depend on the removed companion-mode switches — only auto-load stays opt-in.
-- Includes everything from 0.20: Cline companion mode (optional), Shift-independent long-press row, ß replaced by a double-width Backspace (ß on long-press `s`), centered space/Enter symbols, dictionary cleanup keeps real German words, emoji catalog: all five chips tappable.
+- Editor tab: the badge shows the number of open files; long-press opens the menu (close all / new file / save / reload). Both no longer depend on the removed switches — only auto-load stays opt-in.
+- Includes everything from 0.20: optional file auto-load, Shift-independent long-press row, ß replaced by a double-width Backspace (ß on long-press `s`), centered space/Enter symbols, dictionary cleanup keeps real German words, emoji catalog: all five chips tappable.
 - 568 unit tests in 64 classes, 0 failures

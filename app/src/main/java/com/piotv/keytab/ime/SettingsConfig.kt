@@ -33,6 +33,19 @@ object SettingsConfig {
         val choices: Set<String> = emptySet()
     )
 
+    /**
+     * Alte Config-Schlüssel → aktuelle (nur beim Import).
+     *
+     * Versionen ≤ v0.9.6 nannten die Likely-Farbe „gaming" (Fehlbenennung,
+     * umbenannt am 15.09.2026). Eine bestehende `keytab_config.txt` mit dem alten
+     * Schlüssel soll nicht still wirkungslos werden — er wird auf den aktuellen
+     * Schlüssel abgebildet. Geschrieben wird immer nur der aktuelle Name.
+     */
+    private val legacyConfigKeys = mapOf(
+        "theme_dark_gaming" to "theme_dark_likely",
+        "theme_light_gaming" to "theme_light_likely"
+    )
+
     private val settings = linkedMapOf<String, Setting>().apply {
         // Die Defaults sind die aus keytab_config.txt des Nutzers (2026-09-28) —
         // eine Neuinstallation sieht damit genau so aus wie sein Gerät.
@@ -41,16 +54,8 @@ object SettingsConfig {
         put("snippet_tab", Setting(Prefs.KEY_SNIPPET_TAB, "true", "boolean"))
         put("suggestions", Setting(Prefs.KEY_SUGGESTIONS, "true", "boolean"))
         put("dynamic_keys", Setting(Prefs.KEY_DYNAMIC_KEYS, "true", "boolean"))
-        // Tab-Highlight-Modus: `active_tab` = Balken am aktiven Tab, `suggestion_top` = Vorschlag oben.
-        put("tab_highlight_mode", Setting(Prefs.KEY_TAB_HIGHLIGHT_MODE, "true", "enum", ThemePrefs.TAB_HIGHLIGHT_MODES))
         // Swipe (Gleit-Eingabe), v0.11 — Default aus.
         put("swipe", Setting(Prefs.KEY_SWIPE, "false", "boolean"))
-        // Cline companion mode (optionale Funktionsgruppe, v0.20) — alle
-        // Unter-Schalter sind nur wirksam, wenn der Haupt-Schalter an ist.
-        put("cline_companion_mode", Setting(Prefs.KEY_CLINE_COMPANION_MODE, "false", "boolean"))
-        put("cline_file_badge", Setting(Prefs.KEY_CLINE_FILE_BADGE, "false", "boolean"))
-        put("cline_auto_load", Setting(Prefs.KEY_CLINE_AUTO_LOAD, "false", "boolean"))
-        put("cline_tab_context_menu", Setting(Prefs.KEY_CLINE_TAB_CONTEXT_MENU, "false", "boolean"))
         // Trail (Tippspur + Treffer-Markierung). Vorher nur über Theme-Export
         // steuerbar – hier zusätzlich über keytab_config.txt (docs/CONFIG.md).
         put("trail", Setting(ThemePrefs.KEY_TRAIL, "false", "boolean"))
@@ -148,7 +153,8 @@ object SettingsConfig {
         if (prefs.getString(KEY_FINGERPRINT, null) == fingerprint) return false
         val editor = prefs.edit()
         for ((key, value) in KeyTabConfig.entries(text)) {
-            settings[key]?.let { applySetting(editor, it, value) }
+            val spec = settings[key] ?: legacyConfigKeys[key]?.let(settings::get) ?: continue
+            applySetting(editor, spec, value)
         }
         // Scale-only changes must also invalidate a cached IME view.
         editor.putInt(ThemePrefs.KEY_THEME_VERSION, ThemePrefs.themeVersion(prefs) + 1)
@@ -208,6 +214,10 @@ object SettingsConfig {
     }
 
     internal fun completeText(existing: String, prefs: SharedPreferences): String = buildString {
+        // Erst die alten on-disk-Namen umbenennen („gaming" → „likely", Versionen
+        // ≤ v0.9.6): sonst stünde in der Datei `default`, obwohl der Nutzer eine
+        // eigene Farbe bzw. den Schalter gesetzt hat.
+        ThemePrefs.migrateLegacyNames(prefs)
         append(existing)
         if (isNotEmpty() && last() != '\n') appendLine()
         val present = KeyTabConfig.entries(existing).keys

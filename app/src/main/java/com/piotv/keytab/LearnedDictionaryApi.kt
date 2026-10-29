@@ -13,13 +13,11 @@ import java.util.UUID
  *   kein automatisches Hochzählen von Gewichten durch externes Programm.
  *
  * **Entscheidung 2026-09-25:** Die API bleibt `internal`, wird aber durch den
- * In-App-Wartungsweg in den Einstellungen verwendet. Ein externer Transportweg
+ * In-App-Wartungsweg in den Einstellungen verwendet
+ * (`MainActivity.cleanupLearnedDictionary`). Ein externer Transportweg
  * (`ContentProvider`/exportierter Service) bleibt bewusst abgelehnt: KeyTab ist
  * eine Offline-Tastatur ohne Netzwerk-Permission; ein exportiertes Tor wäre ein
- * neuer Angriffs-/Abflusspfad. Details und Begründung:
- * `docs/LEARNED_DICTIONARY_CLEANUP.md`.
- *
- * Stand: 2026-09-22. V1-Entwurf (nicht verdrahtet).
+ * neuer Angriffs-/Abflusspfad.
  */
 internal object LearnedDictionaryApi {
 
@@ -81,13 +79,6 @@ internal object LearnedDictionaryApi {
         store.userFreq.map { (w, weight) -> LearnedEntry(w, weight, isBigramPair = false) } +
             store.bigrams.map { (k, weight) -> LearnedEntry(k, weight, isBigramPair = true) }
 
-    /** Einzelnachschau: erst gelernte Einzelwörter, dann Bigramme; null wenn unbekannt. */
-    fun lookup(store: SuggestionEngine, word: String): LearnedEntry? {
-        store.userFreq[word]?.let { return LearnedEntry(word, it, isBigramPair = false) }
-        store.bigrams[word]?.let { return LearnedEntry(word, it, isBigramPair = true) }
-        return null
-    }
-
     // ---------- Schreibende Ausführung ----------
 
     fun applyPreview(store: SuggestionEngine, preview: BatchPreview, confirm: Boolean): CleanupResult {
@@ -108,16 +99,6 @@ internal object LearnedDictionaryApi {
         }
         store.incrementRevision()
         return CleanupResult.Ok(store.revision, deleted, added)
-    }
-
-    fun addWord(store: SuggestionEngine, op: CleanupOperation.Add): CleanupResult {
-        val preview = batchPreview(store, emptyList(), listOf(op))
-        return applyPreview(store, preview, confirm = true)
-    }
-
-    fun removeWord(store: SuggestionEngine, op: CleanupOperation.Delete): CleanupResult {
-        val preview = batchPreview(store, listOf(op), emptyList())
-        return applyPreview(store, preview, confirm = true)
     }
 
     // ---------- Validierungshilfen ----------

@@ -182,4 +182,49 @@ class ThemePrefsTest {
         assertFalse("Legacy-Key wird entfernt", prefs.contains("gaming_mode"))
         assertTrue("Wert landet unter dem neuen Key", prefs.contains(ThemePrefs.KEY_LIKELY))
     }
+
+    @Test
+    fun `alte gaming-on-disk-Namen werden vollstaendig migriert`() {
+        // Versionen ≤ v0.9.6 speicherten Schalter, Effekt-Rest und Likely-Farbe
+        // unter „gaming"-Namen (Fehlbenennung, umbenannt am 15.09.2026).
+        prefs.edit()
+            .putBoolean("gaming_mode", false)
+            .putBoolean("gaming_effect", true)
+            .putInt("theme_dark_gaming", 0xFF00FF00.toInt())
+            .putInt("theme_light_gaming", 0xFF0000FF.toInt())
+            .commit()
+
+        assertFalse("Schalter-Wert wandert mit", ThemePrefs.likelyHighlighting(prefs))
+
+        assertTrue(prefs.contains(ThemePrefs.KEY_LIKELY))
+        assertFalse("gaming_mode ist weg", prefs.contains("gaming_mode"))
+        assertFalse("gaming_effect ist weg", prefs.contains("gaming_effect"))
+        assertEquals("Farbe bleibt erhalten (dark)", 0xFF00FF00.toInt(),
+            ThemePrefs.getColor(prefs, true, ThemePrefs.KIND_LIKELY, 0))
+        assertEquals("Farbe bleibt erhalten (light)", 0xFF0000FF.toInt(),
+            ThemePrefs.getColor(prefs, false, ThemePrefs.KIND_LIKELY, 0))
+        assertTrue(prefs.contains(ThemePrefs.colorKey(true, ThemePrefs.KIND_LIKELY)))
+        assertTrue(prefs.contains(ThemePrefs.colorKey(false, ThemePrefs.KIND_LIKELY)))
+        assertFalse(prefs.contains("theme_dark_gaming"))
+        assertFalse(prefs.contains("theme_light_gaming"))
+    }
+
+    @Test
+    fun `alte Likely-Farbe wird auch ohne Migration gelesen`() {
+        // Reiner Lese-Fallback (Stufen-Fallback wie beim Verlauf): der Getter
+        // schreibt nicht, aber die Farbe darf nicht verloren gehen.
+        prefs.edit().putInt("theme_dark_gaming", 0xFF112233.toInt()).commit()
+        assertEquals(0xFF112233.toInt(),
+            ThemePrefs.getColor(prefs, true, ThemePrefs.KIND_LIKELY, 0))
+    }
+
+    @Test
+    fun `importColors liest den alten JSON-Schluessel gaming`() {
+        val json = """{"dark":{"gaming":123},"light":{"likely":456}}"""
+        assertTrue(ThemePrefs.importColors(prefs, json))
+        assertEquals("alter Export-Schluessel", 123,
+            ThemePrefs.getColor(prefs, true, ThemePrefs.KIND_LIKELY, 0))
+        assertEquals("neuer Export-Schluessel", 456,
+            ThemePrefs.getColor(prefs, false, ThemePrefs.KIND_LIKELY, 0))
+    }
 }

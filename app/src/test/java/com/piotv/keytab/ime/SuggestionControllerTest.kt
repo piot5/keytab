@@ -348,8 +348,8 @@ class SuggestionControllerTest {
     fun emojiChipsSug4Sug5HabenClickListenerG9() {
         // G9: sug_4/sug_5 sind nach setup im Layout vorhanden und über ein
         // onClickListener (bindChip in SuggestionController) verbunden.
-        val sug4 = root?.findViewById<TextView>(R.id.sug_4)
-        val sug5 = root?.findViewById<TextView>(R.id.sug_5)
+        val sug4 = root.findViewById<TextView>(R.id.sug_4)
+        val sug5 = root.findViewById<TextView>(R.id.sug_5)
         assertNotNull("sug_4 fehlt im Layout", sug4)
         assertNotNull("sug_5 fehlt im Layout", sug5)
         // Ein einfacher Klick wird verarbeitet → Listener ist aktiv.

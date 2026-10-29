@@ -5,7 +5,6 @@
     <string name="ime_tab_files">Files</string>
     <string name="ime_tab_editor">Editor</string>
     <string name="clip_hint_empty">No entries yet — copy something, then tap 📋.</string>
-    <string name="clip_pick_title">Clipboard history</string>
     <string name="editor_save">⤓ Save</string>
     <string name="editor_load">⤒ Load</string>
     <string name="editor_hint">Type here …</string>
@@ -136,7 +135,6 @@
     <string name="editor_copy">⎘</string>
     <string name="editor_reload">↻</string>
     <string name="editor_sent_to_app">Inserted into app</string>
-    <string name="editor_cleared">Editor cleared</string>
     <string name="editor_copied">Copied to clipboard</string>
     <string name="editor_empty_nothing">Editor is empty</string>
     <!-- Editor: Ordnerauswahl beim Laden -->

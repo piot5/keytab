@@ -113,7 +113,6 @@
     <string name="theme_color_trail">Trail</string>
     <string name="theme_section_trail">Trail (typing trace)</string>
     <!-- === v0.11 sync: previously missing strings (71), translated 2026-09-21 === -->
-    <string name="clip_pick_title">Clipboard history</string>
     <string name="settings_version_fallback">Version …</string>
     <string name="settings_version_label">Version %1$s</string>
     <string name="settings_section_keyboard">⌨️ Keyboard</string>
@@ -138,7 +137,6 @@
     <string name="editor_copy">⎘</string>
     <string name="editor_reload">↻</string>
     <string name="editor_sent_to_app">Inserted into app</string>
-    <string name="editor_cleared">Editor cleared</string>
     <string name="editor_copied">Copied to clipboard</string>
     <string name="editor_empty_nothing">Editor is empty</string>
     <string name="theme_section_colors">Colors</string>

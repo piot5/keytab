@@ -41,10 +41,25 @@ internal object ThemeColorImport {
         for (dark in MODES) {
             val section = root.optJSONObject(section(dark)) ?: continue
             for (kind in COLOR_KINDS) {
-                if (section.has(kind)) onColor(dark, kind, section.getInt(kind))
+                val argb = colorArg(section, kind) ?: continue
+                onColor(dark, kind, argb)
             }
         }
         return true
+    }
+
+    /**
+     * Farbwert einer Art aus einer Export-Sektion.
+     *
+     * Ältere Exporte (≤ v0.9.6) nennen die Likely-Farbe `gaming` (Fehlbenennung,
+     * umbenannt am 15.09.2026). Der alte Schlüssel wird weiterhin gelesen, damit
+     * ein alter Export die Farbe nicht verliert.
+     */
+    private fun colorArg(section: JSONObject, kind: String): Int? = when {
+        section.has(kind) -> section.getInt(kind)
+        kind == ThemePrefs.KIND_LIKELY && section.has(ThemePrefs.KIND_LIKELY_LEGACY) ->
+            section.getInt(ThemePrefs.KIND_LIKELY_LEGACY)
+        else -> null
     }
 
     /**

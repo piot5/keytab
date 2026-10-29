@@ -26,7 +26,15 @@ internal object ThemeColorResolver {
     const val KIND_HL = "hl"
     const val KIND_TEXT = "text"
     /** Farb-Art der Hervorhebung der wahrscheinlichsten nächsten Taste. */
-    const val KIND_LIKELY = "gaming"
+    const val KIND_LIKELY = "likely"
+    /**
+     * Alter on-disk-Name derselben Farb-Art (Versionen ≤ v0.9.6, umbenannt am
+     * 15.09.2026). Der Name war eine Fehlbenennung: hervorgehoben wird die
+     * wahrscheinlichste nächste Taste, ein Spiel-Thema war nie gemeint.
+     * Bleibt als reiner Lese-Fallback erhalten — geschrieben wird nur [KIND_LIKELY],
+     * alte Werte wandern beim Lesen um ([ThemePrefs.migrateLegacyNames]).
+     */
+    const val KIND_LIKELY_LEGACY = "gaming"
     /** Farbe des Tippspur-Effekts (Trail der zuletzt geklickten Taste). */
     const val KIND_TRAIL = "trail"
     /** Gradient-Farbe 1 (über dem Farbkreis auswählbar). */
@@ -63,12 +71,24 @@ internal object ThemeColorResolver {
     fun colorKey(dark: Boolean, kind: String): String =
         (if (dark) PREFIX_DARK else PREFIX_LIGHT) + kind
 
-    /** Farbe lesen; [default] = aufgelöste Theme-Ressource (mit Alpha 0xFF). */
+    /**
+     * Farbe lesen; [default] = aufgelöste Theme-Ressource (mit Alpha 0xFF).
+     *
+     * Für [KIND_LIKELY] gilt derselbe Stufen-Fallback wie beim Verlauf
+     * (aktueller Key → alter on-disk-Name → Default), damit ein Nutzer aus einer
+     * Version ≤ v0.9.6 seine Farbe auch dann sieht, wenn die Umbenennung noch
+     * nicht geschrieben wurde.
+     */
     fun getColor(prefs: SharedPreferences, dark: Boolean, kind: String, default: Int): Int =
         when (kind) {
             KIND_GRADIENT1 -> gradientColor1(prefs, dark)
             KIND_GRADIENT2 -> gradientColor2(prefs, dark)
-            else -> prefs.getInt(colorKey(dark, kind), default)
+            else -> when {
+                prefs.contains(colorKey(dark, kind)) -> prefs.getInt(colorKey(dark, kind), default)
+                kind == KIND_LIKELY && prefs.contains(colorKey(dark, KIND_LIKELY_LEGACY)) ->
+                    prefs.getInt(colorKey(dark, KIND_LIKELY_LEGACY), default)
+                else -> default
+            }
         }
 
     /**

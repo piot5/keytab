@@ -422,12 +422,30 @@ class KeyTabTypingTest {
         if (c.isUpperCase()) c.lowercaseChar() else c.uppercaseChar()
     }.joinToString("")
 
-    /** Funktionstaste ueber ihre Ressourcen-ID druecken. */
+    /**
+     * Funktionstaste ueber ihre Ressourcen-ID druecken.
+     *
+     * Bis zu drei Runden: nach einem Tab-Wechsel baut das Panel sein Layout neu
+     * auf, und ein einzelner Tap kann verloren gehen (dokumentierter Fall bei
+     * `key_toggle`). Die Fehlermeldung nennt **alle** sichtbaren Texte — die
+     * fruehere Fassung listete nur `android.widget.Button`; `sug_hide` ist aber
+     * ein `TextView` und tauchte deshalb nie in der Diagnose auf (Geraetebefund
+     * 2026-10-29: „Tasten: ☾︎ | ☰ | ▲ | ‹ | ↵ | ⇲" ohne jeden Hinweis auf den Tab).
+     */
     private fun clickKeyById(id: String) {
-        val found = device.wait(Until.findObject(By.res(pkg, id)), 2_000)
-        assertTrue("Taste '$id' nicht gefunden (Tasten: ${visibleButtonLabels()})", found != null)
-        found.click()
-        device.waitForIdle()
+        repeat(3) {
+            val found = device.wait(Until.findObject(By.res(pkg, id)), 2_000)
+            if (found != null) {
+                found.click()
+                device.waitForIdle()
+                return
+            }
+            device.waitForIdle()
+        }
+        assertTrue(
+            "Taste '$id' nicht gefunden (Tasten: ${visibleButtonLabels()}; Texte: ${visibleTexts()})",
+            false
+        )
     }
 
     /**

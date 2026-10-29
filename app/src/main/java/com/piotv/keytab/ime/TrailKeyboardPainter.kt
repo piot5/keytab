@@ -58,7 +58,7 @@ class TrailKeyboardPainter(
      * angezeigten Zustand gebildet ([TrailOverlayDiff]). Nur Tasten, deren
      * Overlay verschwindet oder seine Farbe ändert, werden berührt — das
      * reduziert die View-/Invalidate-Arbeit pro Tastendruck drastisch
-     * (die Jank beim heißen Tippen ist draw-seitig, siehe DEVICE_PERF.md).
+     * (die Jank beim heißen Tippen ist draw-seitig, siehe `scripts/device_perf.py`).
      */
     fun apply(
         steps: Map<Char, Int>,

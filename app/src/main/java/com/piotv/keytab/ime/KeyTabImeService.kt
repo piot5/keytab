@@ -28,7 +28,15 @@ import com.piotv.keytab.R
  * - [EditorPanel]       – interner Editor mit Speichern/Laden
  * - [ClipboardPanel]    – Ablage (Clipboard-Historie)
  * - [TextEditLogic]     – reine, testbare Textlogik
+ *
+ * `@Suppress("TooManyFunctions")` ist bewusst und begründet: der Service ist der
+ * Eingabe-Kern und bündelt Lebenszyklus, Tasten-Routing, Shift/Caps, Long-Press,
+ * Symbol-Ebenen und die Host-Interfaces der Panels. detekts Schwelle liegt bei
+ * 20 Funktionen, hier sind es 27 (29.10.2026). Ein Aufteilen wäre ein eigener
+ * Umbau (mit Testanpassungen) — die Baseline bleibt leer, deshalb steht die
+ * Ausnahme sichtbar im Code.
  */
+@Suppress("TooManyFunctions")
 class KeyTabImeService : InputMethodService(), ThemeHost, TabHost, SuggestionHost, KeyboardInputHost {
 
     private companion object {

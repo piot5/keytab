@@ -108,7 +108,7 @@ class FileManagerPanelTest {
     @Test
     fun `Tipp auf Datei commitet den absoluten Pfad`() {
         val committed = mutableListOf<String>()
-        val (root, _, _) = panelWithTree("commit", committed)
+        panelWithTree("commit", committed)
         // nur die Datei zählt: erst in sub navigieren (nur a.txt liegt in base;
         // darum navigieren wir in ein leeres Verzeichnis mit genau einer Datei)
         val only = File(base, "only").apply { mkdirs() }

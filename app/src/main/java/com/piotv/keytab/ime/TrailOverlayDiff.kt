@@ -7,7 +7,7 @@ package com.piotv.keytab.ime
  * [TrailManager.applyToKeyboard] das Foreground-Overlay ALLER Tasten und
  * setzte es neu — pro Tastendruck ~30 View-Schreibzugriffe, auch für
  * unveränderte Tasten. Die Deadline-Misses beim heißen Tippen entstehen
- * draw-seitig (vgl. docs/DEVICE_PERF.md), deshalb berührt der Painter jetzt
+ * draw-seitig (vgl. `scripts/device_perf.py`), deshalb berührt der Painter jetzt
  * nur noch Tasten, deren Overlay-Zustand sich tatsächlich ändert.
  *
  * Diese Klasse liefert die reine Entscheidung (entfernen / setzen) getrennt

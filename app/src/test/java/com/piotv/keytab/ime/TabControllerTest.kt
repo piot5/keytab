@@ -86,6 +86,34 @@ class TabControllerTest {
         assertEquals(InputKind.APP, host.inputRouter.kind)
     }
 
+    /**
+     * Regression (Geraetebefund 2026-10-29): Der Editor-Tab traegt ein
+     * Custom-View mit Long-Press-Menue. `setOnLongClickListener` macht das View
+     * LONG_CLICKABLE — und ein long-clickbares View konsumiert den Touch
+     * (`View.onTouchEvent`), die TabView bekommt den Klick also nie. Folge: der
+     * Editor-Tab liess sich per Tap gar nicht oeffnen (auf dem Geraet
+     * reproduziert: `clickTab("Editor")` fand das Label, der Tab wechselte
+     * nicht; Files/Clip/Snip funktionierten, sie haben kein Custom-View).
+     * Der Klick wird deshalb im Code explizit an den Tab weitergeleitet.
+     */
+    @Test fun `Editor-Tab oeffnet sich per Tap auf sein Custom-View`() {
+        val r = setup(true, true)
+        val tabs = r.findViewById<TabLayout>(R.id.ime_tabs)
+        assertEquals(TabController.TabKind.ABC, controller.currentTabKind())
+
+        val custom = tabs.getTabAt(1)!!.customView!!
+        assertTrue("Custom-View muss klickbar sein (Tap weiterleiten)", custom.isClickable)
+        assertTrue("performClick muss den Klick annehmen", custom.performClick())
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(TabController.TabKind.EDITOR, controller.currentTabKind())
+        assertEquals("Editor: Prediction-Symbol sichtbar", View.VISIBLE,
+            r.findViewById<View>(R.id.sug_hide).visibility)
+        assertEquals("Editor: keine Max-Zeile", View.GONE,
+            r.findViewById<View>(R.id.maximize_row).visibility)
+    }
+
+
     @Test
     fun `Editor-Tab-Plakette zaehlt offene Dateien und verschwindet bei null` () {
         val root = root()
@@ -99,9 +127,7 @@ class TabControllerTest {
         val tabs = root.findViewById<TabLayout>(R.id.ime_tabs)
         val badge = tabs.getTabAt(1)!!.customView!!.findViewById<TextView>(R.id.editor_tab_badge)
 
-        // Seit v0.20 ist die Plakette nicht mehr an den Companion-Mode gebunden
-        // (die Schalter sind aus den Einstellungen entfernt): sie zeigt schlicht
-        // die Zahl der offenen Dateien.
+        // Die Plakette zeigt schlicht die Zahl der offenen Dateien.
         controller.refreshEditorBadge()
         assertEquals(View.VISIBLE, badge.visibility)
         assertEquals("2", badge.text.toString())
@@ -119,16 +145,14 @@ class TabControllerTest {
     }
 
     @Test
-    fun `Editor-Tab-Kontextmenue haengt am Editor-Panel, nicht am Companion-Mode` () {
+    fun `Editor-Tab-Kontextmenue haengt am Editor-Panel` () {
         val root = root()
         val panel = TestEditorPanel(app, root)
         val testHost = TestHost(app, panel)
         controller = TabController(testHost)
         controller.setup(root)
 
-        // Seit v0.20 ohne Companion-Mode-Gate: das Menue erscheint, sobald ein
-        // Editor-Panel existiert (die vier Companion-Schalter sind aus den
-        // Einstellungen entfernt).
+        // Das Menue erscheint, sobald ein Editor-Panel existiert.
         assertTrue(
             "Mit Editor-Panel erscheint das Menue",
             controller.showEditorTabMenu()

@@ -54,6 +54,24 @@ Budget: 60 KB per PNG (~111 KB for the whole set). Reason: v0.20 shipped the
 the APK, which grew from 2.28 MB (v0.19) to 6.92 MB (v0.20). The `docs` CI job
 now runs the `--check` mode, so that cannot slip through unnoticed again.
 
+### Translations
+
+The default set (`res/values/strings.xml` plus `res/values/background_strings.xml`)
+is English and is the **source of truth**. `res/values-de/` mirrors it completely —
+same keys, same order, same comments. Add a string in the base first, then
+translate it:
+
+```bash
+python3 scripts/check_i18n.py     # key set + format placeholders per locale
+```
+
+`scripts/check_i18n.py` fails on a missing key, an orphaned key or a changed
+format placeholder (`%1$s`); the `docs` CI job runs it. `values-en/` was removed:
+English is the default, so that folder was a pure duplicate — and it hid six
+German leftovers in the base (`snip_edit` = „✎ Bearbeiten“, `theme_export_toast` =
+„Theme-Farben exportiert …“) which only looked correct because `values-en`
+overrode them.
+
 ## Installation without a PC (via Shizuku/rish)
 
 Requires a running Shizuku server and the `~/bin/rsh` wrapper.

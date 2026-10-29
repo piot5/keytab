@@ -1,13 +1,13 @@
 <resources>
     <string name="app_name">KeyTab</string>
     <string name="ime_label">KeyTab Keyboard</string>
-            <string name="ime_tab_letters">abc</string>
+    <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Files</string>
     <string name="ime_tab_editor">Editor</string>
-    <string name="clip_hint_empty">No entries yet — copy something, then tap 📋.</string>
-    <string name="editor_save">⤓ Save</string>
-    <string name="editor_load">⤒ Load</string>
-    <string name="editor_hint">Type here …</string>
+    <string name="clip_hint_empty">No entries yet – copy something and tap 📋.</string>
+    <string name="editor_save">💾 Save</string>
+    <string name="editor_load">📂 Load</string>
+    <string name="editor_hint">Type text here …</string>
     <string name="new_tab">＋</string>
     <string name="up_dir">▲</string>
     <string name="enable_keyboard">Enable keyboard</string>
@@ -33,40 +33,40 @@
     <string name="settings_test_hint">Type here to test the keyboard …</string>
     <!-- Dateizugriff: Status + gezielte Freigabe (F-Droid-Review 2026-10-06) -->
     <string name="settings_storage_grant">🔓 Grant file access</string>
-    <string name="settings_storage_granted">Granted — the Files tab can list files.</string>
+    <string name="settings_storage_granted">Granted – the Files tab can list files.</string>
     <!-- Android 13+ gibt über READ_MEDIA_IMAGES nur Bilder frei: der Status sagt das,
          statt „kann Dateien auflisten“ zu versprechen (F-Droid-Testerbericht
          2026-10-13, junkerderprovinz: nur .png sichtbar, PDF/ZIP/XLSX fehlten). -->
-    <string name="settings_storage_granted_media">Granted — the Files tab lists folders and pictures.</string>
+    <string name="settings_storage_granted_media">Granted – the Files tab lists folders and pictures.</string>
     <!-- All-files access (ab v0.19): bewusst optional, nur über den System-Screen. -->
-    <string name="settings_storage_all_files">All files — the Files tab can list any file type.</string>
+    <string name="settings_storage_all_files">All files – the Files tab can list any file type.</string>
     <string name="settings_storage_all_files_grant">🗂️ Grant all-files access</string>
     <string name="settings_all_files_title">All-files access</string>
-    <string name="settings_all_files_message">Without this access Android 13+ only exposes folders and pictures in the Files tab (PDF, ZIP, XLSX … stay hidden). All-files access lets the Files tab list, open and edit any file. KeyTab has no INTERNET permission, so no file can leave the device. The next screen is a system setting — you can revoke the access there at any time.</string>
+    <string name="settings_all_files_message">Without this access Android 13+ only exposes folders and pictures in the Files tab (PDF, ZIP, XLSX … stay hidden). All-files access lets the Files tab list, open and edit any file. KeyTab has no INTERNET permission, so no file can leave the device. The next screen is a system setting – you can revoke the access there at any time.</string>
     <string name="settings_all_files_open">Open system settings</string>
-    <string name="settings_storage_partial">Only selected photos — folders outside the selection stay hidden.</string>
-    <string name="settings_storage_missing">Not granted — the Files tab shows folders only.</string>
-    <string name="settings_storage_denied">Not granted — you can grant file access any time.</string>
+    <string name="settings_storage_partial">Only selected photos – folders outside the selection stay hidden.</string>
+    <string name="settings_storage_missing">Not granted – the Files tab shows folders only.</string>
+    <string name="settings_storage_denied">Not granted – you can grant file access any time.</string>
     <string name="settings_open_app_settings">App settings</string>
     <string name="btn_back_label">‹</string>
     <string name="btn_up_label">▲</string>
 
     <!-- File manager (IME) -->
     <string name="fm_loading">Loading…</string>
-    <string name="fm_no_storage_access">No storage access — open the KeyTab app and tap „Grant file access“.</string>
+    <string name="fm_no_storage_access">No storage access – open the KeyTab app and tap „Grant file access“.</string>
     <string name="fm_entry_dir">Folder</string>
     <string name="fm_dir_summary">%1$d folders · %2$d files</string>
     <!-- Wird auf Android 13+ statt fm_dir_summary gezeigt, sobald Dateizugriff
          erteilt ist: dann sind nur Ordner und Bilder sichtbar (READ_MEDIA_IMAGES). -->
-    <string name="fm_dir_summary_media">%1$d folders · %2$d files — Android 13+ exposes pictures only</string>
+    <string name="fm_dir_summary_media">%1$d folders · %2$d files – Android 13+ exposes pictures only</string>
     <string name="fm_open_no_app">No app to open: %1$s</string>
 
     <!-- Editor -->
     <string name="editor_saved">Saved: %1$s</string>
-    <string name="editor_save_failed">Save failed: %1$s</string>
+    <string name="editor_save_failed">Saving failed: %1$s</string>
     <string name="editor_loaded">Loaded: %1$s</string>
     <string name="editor_file_empty">File is empty</string>
-    <string name="editor_load_failed">Load failed: %1$s</string>
+    <string name="editor_load_failed">Loading failed: %1$s</string>
 
     <!-- Clipboard -->
     <string name="clip_entry_actions">Clipboard entry</string>
@@ -124,7 +124,7 @@
     <string name="settings_snippet_tab_on">Snippet tab enabled</string>
     <string name="settings_snippet_tab_off">Snippet tab disabled</string>
     <string name="snippet_hint_empty">No snippets — create keytab_snippets.txt in the Files tab (format: name = text)</string>
-    <string name="snip_edit">✎ Bearbeiten</string>
+    <string name="snip_edit">✎ Edit</string>
     <string name="snip_added_from_clip">Added to snippets from clipboard</string>
     <string name="settings_clip_tab_on">Clipboard tab enabled</string>
     <string name="settings_clip_tab_off">Clipboard tab disabled</string>
@@ -138,7 +138,7 @@
     <string name="editor_copied">Copied to clipboard</string>
     <string name="editor_empty_nothing">Editor is empty</string>
     <!-- Editor: Ordnerauswahl beim Laden -->
-    <string name="editor_load_title">⤒ Load file</string>
+    <string name="editor_load_title">📂 Load file</string>
     <string name="theme_section_colors">Colors</string>
     <string name="theme_section_preview">Preview</string>
     <string name="theme_color_trail">Trail</string>
@@ -148,16 +148,16 @@
     <string name="gradient_mode_invert">Inverted</string>
     <string name="gradient_mode_radial">Radial</string>
     <string name="theme_export">Export Theme</string>
-    <string name="theme_export_toast">Theme-Farben exportiert nach: %s</string>
+    <string name="theme_export_toast">Theme colors exported to: %s</string>
     <string name="theme_import">Import Theme</string>
-    <string name="theme_import_ok">Theme importiert (theme-export.json)</string>
+    <string name="theme_import_ok">Theme imported (theme-export.json)</string>
     <string name="theme_import_fail">Import failed — theme-export.json not found/invalid</string>
     <string name="theme_settings_title">🎨 Theme settings</string>
     <string name="settings_theme_button">🎨 Theme settings</string>
-    <string name="theme_section_trail">Trail (Tipp trace)</string>
-    <string name="theme_trail_toggle">🌊 Tippspur (Trail)</string>
+    <string name="theme_section_trail">Trail (typing trace)</string>
+    <string name="theme_trail_toggle">🌊 Typing Trail</string>
     <string name="theme_trail_hint">The last clicked letter is highlighted and fades step by step with each new input until it disappears completely. Default color: Blue. The trail stays off in password fields.</string>
-    <string name="theme_trail_steps">Stufen: %1$d</string>
+    <string name="theme_trail_steps">Steps: %1$d</string>
     <string name="theme_trail_trace_toggle">✅ Green-mark suggestion matches</string>
     <string name="theme_trail_trace_hint">When the typed word matches the top suggestion exactly, its letters are briefly marked green. Nothing is changed — it is only a confirmation. Normal text fields only.</string>
     <string name="theme_reset">Reset</string>

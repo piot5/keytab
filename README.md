@@ -41,11 +41,13 @@ KeyTab works especially well with Termux/Ubuntu-proot: it becomes your shell lau
 
 ## Supported languages
 
-de, en, es, fr, it, pt, nl — each with its own frequency corpus.
+**Interface:** English (default) and German — both complete; `scripts/check_i18n.py`
+keeps them in sync (CI job `docs`). **Word prediction corpora:** de, en, es, fr,
+it, pt, nl — each with its own frequency corpus.
 
 ## How it is verified
 
-Five CI jobs run on every push: `docs` (README / CHANGELOG / fastlane notes / version must agree — and a pushed tag must match the version inside its own tree; relative links in `*.md` must resolve; the launcher-icon set must match its density and size budget), `shell` (every shell script parses under its own interpreter, and shellcheck reports no errors/warnings), `build-test` (assemble + all unit tests), `static-analysis` (Android Lint + detekt) and `coverage` (Kover gate: ≥ 60 % lines, ≥ 45 % branches).
+Five CI jobs run on every push: `docs` (README / CHANGELOG / fastlane notes / version must agree — and a pushed tag must match the version inside its own tree; relative links in `*.md` must resolve; the launcher-icon set must match its density and size budget; every locale must carry the base strings completely), `shell` (every shell script parses under its own interpreter, and shellcheck reports no errors/warnings), `build-test` (assemble + all unit tests), `static-analysis` (Android Lint + detekt) and `coverage` (Kover gate: ≥ 60 % lines, ≥ 45 % branches).
 
 - **573 unit tests in 64 classes** (JUnit + Robolectric); measured coverage 71.7 % lines / 57.9 % branches (2026-10-29).
 - **Instrumented typing test on a real device**: `sh scripts/test_on_device.sh` builds, installs (SHA-256-verified), checks the installed `versionCode`, wakes/unlocks the device, drives the real IME and restores the previous keyboard. It is deliberately **not** a CI job — the API-34 emulator is too slow to bring the IME window up, which reported environment failures as product failures.

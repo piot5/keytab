@@ -20,6 +20,11 @@
 #      budget (scripts/make_launcher_icons.py --check). v0.20 shipped the
 #      2600-px master as ic_launcher.png in all five density folders: 5 x 982 KB
 #      in the APK, which grew from 2.28 MB to 6.92 MB — no gate noticed.
+#   6. Every locale carries the base strings completely, with matching format
+#      placeholders (scripts/check_i18n.py). German was 42/167 translated while
+#      Lint reported 125 MissingTranslation — and the English base carried six
+#      German leftovers that only went unnoticed because a redundant values-en
+#      overrode them.
 #
 # Exit 1 on drift, Exit 0 when consistent.
 
@@ -138,6 +143,22 @@ if command -v python3 >/dev/null 2>&1; then
     fi
 else
     printf '  !  python3 fehlt — Launcher-Icon-Pruefung uebersprungen\n'
+fi
+
+# 6. i18n: jede Locale muss die Basis vollstaendig tragen (Keys + Platzhalter).
+#    Deutsch war zu 25 % uebersetzt (42/167) bei 125 Lint-MissingTranslation;
+#    zusaetzlich enthielt die englische Basis sechs deutsche Reststrings, die
+#    nur durch das redundante values-en verdeckt waren.
+if command -v python3 >/dev/null 2>&1; then
+    I18N_RC=0
+    I18N_OUT=$(python3 scripts/check_i18n.py 2>&1) || I18N_RC=$?
+    if [ "$I18N_RC" -eq 0 ]; then
+        printf '%s\n' "$I18N_OUT" | sed 's/^/  /'
+    else
+        printf '%s\n' "$I18N_OUT" | sed 's/^/  /'
+        problem "i18n drift (missing/orphan strings, placeholders)" \
+                "Fehlende Keys in values-*/ ergaenzen (Basis: values/)"
+    fi
 fi
 
 printf '\n'

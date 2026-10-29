@@ -1,0 +1,12 @@
+<resources>
+    <string name="background_title">Hintergrundbild</string>
+    <string name="background_choose">Bild auswählen</string>
+    <string name="background_remove">Bild entfernen</string>
+    <string name="background_none">Kein Hintergrundbild</string>
+    <string name="background_fit">Einpassen – ganzes Bild, ggf. Ränder</string>
+    <string name="background_cover">Ausfüllen – proportional beschneiden</string>
+    <string name="background_stretch">Strecken – ohne Ränder, ggf. verzerrt</string>
+    <string name="background_error">Bildzugriff fehlgeschlagen.</string>
+    <string name="background_ratio">Empfehlung: Querformat etwa 2:1 (z. B. 1600 × 800 px). Das ideale Verhältnis hängt von Gerät, Ausrichtung, Zahlenreihe und Tab ab.</string>
+    <string name="gradient_enabled">Verlauf aktiv</string>
+</resources>

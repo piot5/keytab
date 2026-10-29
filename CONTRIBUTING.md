@@ -74,7 +74,7 @@ The release pipeline (`release.yml`) builds and signs every `v*` tag; details in
 
 | Job | What it proves |
 |---|---|
-| `docs` | README / CHANGELOG / fastlane / version are in sync, a pushed tag matches the version in its own tree, relative `*.md` links resolve, and the launcher-icon set matches its density/size budget |
+| `docs` | README / CHANGELOG / fastlane / version are in sync, a pushed tag matches the version in its own tree, relative `*.md` links resolve, the launcher-icon set matches its density/size budget, and every locale carries the base strings completely |
 | `shell` | every shell script parses under its own interpreter and shellcheck reports no errors/warnings (`scripts/check_shell.sh`) |
 | `build-test` | `assembleDebug` + all unit tests |
 | `static-analysis` | Android Lint + detekt (baseline must not grow) |
@@ -91,6 +91,7 @@ The instrumented typing test (`KeyTabTypingTest`) is **not** a CI job since 2026
 - Unit-test names are **specifications** (German is the convention under `app/src/test`) — read them to learn intended behaviour.
 - **No `INTERNET` permission.** "No network, no data collection" is a core promise and a privacy guarantee, not a preference.
 - Version is defined **only** in `app/build.gradle.kts`. Bump it, move the fastlane notes, add a matching `CHANGELOG.md` heading — the `docs` job fails if any of the three drifts apart.
+- **Translations**: the default strings (`res/values/strings.xml` + `res/values/background_strings.xml`, English) are the source of truth — add a new string there first, then mirror it in `res/values-de/`. `scripts/check_i18n.py` (CI job `docs`) fails on a missing key, an orphaned key or a changed format placeholder (`%1$s`).
 
 ---
 

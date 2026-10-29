@@ -1,46 +1,180 @@
 <resources>
-    <!-- Deutsche Fassung der Strings, die zuvor in values/ bzw. values-en/
-         faelschlich deutsch standen (v0.18 i18n-Fix). Englisch ist der Default. -->
-    <string name="background_choose">Bild auswählen</string>
-    <string name="background_cover">Ausfüllen – proportional beschneiden</string>
-    <string name="background_error">Bildzugriff fehlgeschlagen.</string>
-    <string name="background_fit">Einpassen – ganzes Bild, ggf. Ränder</string>
-    <string name="background_none">Kein Hintergrundbild</string>
-    <string name="background_ratio">Empfehlung: Querformat etwa 2:1 (z. B. 1600 × 800 px) für den abc-Tab. Das ideale Verhältnis ist Tastaturbreite : Tastaturhöhe und variiert mit Gerät, Ausrichtung, Zahlenreihe und Tab. Einpassen zeigt das gesamte Bild. Nicht lesbare Bilder fallen auf die Theme-Farbe oder den Verlauf zurück.</string>
-    <string name="background_remove">Bild entfernen</string>
-    <string name="background_stretch">Strecken – ohne Ränder, ggf. verzerrt</string>
-    <string name="background_title">Hintergrundbild</string>
-    <string name="config_ready">Konfiguration bereit: %1$s</string>
-    <string name="fm_copy_content_failed">Nicht kopiert (Datei zu groß): %1$s</string>
-    <string name="fm_overwrite_message">%1$s ist bereits vorhanden. Überschreiben?</string>
-    <string name="fm_overwrite_title">Überschreiben?</string>
-    <string name="fm_paste_into_self">Einfügen nicht möglich: das Ziel liegt im Quellordner (%1$s).</string>
-    <string name="gradient_enabled">Verlauf aktiv</string>
-    <string name="settings_cleanup_dictionary_done">Wörterbuch bereinigt: %1$d Einträge entfernt.</string>
-    <string name="settings_cleanup_dictionary_empty">Keine verdächtigen gelernten Einträge gefunden.</string>
-    <string name="settings_cleanup_dictionary_failed">Das gelernte Wörterbuch konnte nicht bereinigt werden.</string>
+    <string name="app_name">KeyTab</string>
+    <string name="ime_label">KeyTab Keyboard</string>
+    <string name="ime_tab_letters">abc</string>
+    <string name="ime_tab_files">Dateien</string>
+    <string name="ime_tab_editor">Editor</string>
+    <string name="clip_hint_empty">Noch keine Einträge – etwas kopieren und 📋 tippen.</string>
+    <string name="editor_save">💾 Speichern</string>
+    <string name="editor_load">📂 Laden</string>
+    <string name="editor_hint">Hier Text eingeben …</string>
+    <string name="new_tab">＋</string>
+    <string name="up_dir">▲</string>
+    <string name="enable_keyboard">Tastatur aktivieren</string>
+    <string name="switch_keyboard">Tastatur wechseln</string>
+    <string name="key_shift_label">⇧</string>
+    <string name="key_del_label">⌫</string>
+    <string name="key_space_label">␣</string>
+    <string name="key_toggle_letters">abc</string>
+    <!-- Beschriftungen des ?123-Schalters: er zeigt immer die *naechste* Ebene
+         (abc -> ?123 -> abc). Siehe SymbolPlane.
+         Das "?" ist escaped (\?), sonst liest aapt2 "?123" als Theme-Attribut-
+         Referenz und der Resource-Link scheitert ("resource attr/123 not found"). -->
+    <string name="key_toggle_symbols">\?123</string>
+    <string name="key_enter_label">↵</string>
+    <string name="close_tab">✕</string>
+    <string name="app_subtitle">Tastatur mit Dateimanager in Tabs</string>
+    <string name="settings_version_fallback">Version …</string>
+    <string name="settings_version_label">Version %1$s</string>
+    <string name="settings_section_keyboard">⌨️ Tastatur</string>
+    <string name="settings_section_options">⚙️ Optionen</string>
+    <string name="settings_section_storage">💾 Speicher &amp; Konfiguration</string>
+    <string name="settings_section_test">🧪 Testbereich</string>
+    <string name="settings_test_hint">Hier tippen, um die Tastatur zu testen …</string>
+    <!-- Dateizugriff: Status + gezielte Freigabe (F-Droid-Review 2026-10-06) -->
+    <string name="settings_storage_grant">🔓 Dateizugriff erlauben</string>
+    <string name="settings_storage_granted">Erteilt – der Dateien-Tab kann Dateien auflisten.</string>
+    <!-- Android 13+ gibt über READ_MEDIA_IMAGES nur Bilder frei: der Status sagt das,
+         statt „kann Dateien auflisten“ zu versprechen (F-Droid-Testerbericht
+         2026-10-13, junkerderprovinz: nur .png sichtbar, PDF/ZIP/XLSX fehlten). -->
+    <string name="settings_storage_granted_media">Erteilt – der Dateien-Tab zeigt Ordner und Bilder.</string>
+    <!-- All-files access (ab v0.19): bewusst optional, nur über den System-Screen. -->
+    <string name="settings_storage_all_files">Alle Dateien – der Dateien-Tab kann jeden Dateityp auflisten.</string>
+    <string name="settings_storage_all_files_grant">🗂️ Zugriff auf alle Dateien erlauben</string>
+    <string name="settings_all_files_title">Zugriff auf alle Dateien</string>
+    <string name="settings_all_files_message">Ohne diesen Zugriff zeigt Android 13+ im Dateien-Tab nur Ordner und Bilder (PDF, ZIP, XLSX … bleiben verborgen). Mit dem Zugriff auf alle Dateien kann der Dateien-Tab jede Datei auflisten, öffnen und bearbeiten. KeyTab hat keine INTERNET-Berechtigung, daher kann keine Datei das Gerät verlassen. Der nächste Bildschirm ist eine Systemeinstellung – dort lässt sich der Zugriff jederzeit entziehen.</string>
+    <string name="settings_all_files_open">Systemeinstellungen öffnen</string>
+    <string name="settings_storage_partial">Nur ausgewählte Fotos – Ordner außerhalb der Auswahl bleiben verborgen.</string>
+    <string name="settings_storage_missing">Nicht erteilt – der Dateien-Tab zeigt nur Ordner.</string>
+    <string name="settings_storage_denied">Nicht erteilt – Dateizugriff lässt sich jederzeit erteilen.</string>
+    <string name="settings_open_app_settings">App-Einstellungen</string>
+    <string name="btn_back_label">‹</string>
+    <string name="btn_up_label">▲</string>
+
+    <!-- File manager (IME) -->
+    <string name="fm_loading">Lädt…</string>
+    <string name="fm_no_storage_access">Kein Speicherzugriff – KeyTab-App öffnen und „Dateizugriff erlauben“ tippen.</string>
+    <string name="fm_entry_dir">Ordner</string>
+    <string name="fm_dir_summary">%1$d Ordner · %2$d Dateien</string>
+    <!-- Wird auf Android 13+ statt fm_dir_summary gezeigt, sobald Dateizugriff
+         erteilt ist: dann sind nur Ordner und Bilder sichtbar (READ_MEDIA_IMAGES). -->
+    <string name="fm_dir_summary_media">%1$d Ordner · %2$d Dateien – Android 13+ zeigt nur Bilder</string>
+    <string name="fm_open_no_app">Keine App zum Öffnen: %1$s</string>
+
+    <!-- Editor -->
+    <string name="editor_saved">Gespeichert: %1$s</string>
+    <string name="editor_save_failed">Speichern fehlgeschlagen: %1$s</string>
+    <string name="editor_loaded">Geladen: %1$s</string>
+    <string name="editor_file_empty">Datei ist leer</string>
+    <string name="editor_load_failed">Laden fehlgeschlagen: %1$s</string>
+
+    <!-- Clipboard -->
+    <string name="clip_entry_actions">Zwischenablage-Eintrag</string>
+    <string name="clip_history_save_failed">Zwischenablage konnte nicht gespeichert werden</string>
+    <string name="clip_add_to_snippet">Zu Snippets hinzufügen</string>
+
+    <!-- Files: long-press context menu -->
+    <string name="fm_properties">ℹ Eigenschaften</string>
+    <string name="fm_copy_path">📋 Pfad kopieren</string>
+    <string name="fm_copy_file">📁 Datei kopieren</string>
+    <string name="fm_copy_content">📄 Inhalt kopieren</string>
+    <string name="fm_paste">📥 Einfügen</string>
+    <string name="fm_copied">Kopiert: %s</string>
+    <string name="fm_pasted">Eingefügt: %s</string>
+    <string name="fm_paste_failed">Fehlgeschlagen: %s</string>
+    <string name="fm_props_fmt">Pfad: %1$s&#10;Typ: %2$s&#10;Größe: %3$s&#10;Geändert: %4$s</string>
+    <string name="fm_type_dir">Ordner</string>
+    <string name="fm_type_file">Datei</string>
+    <string name="settings_num_row">Zahlenreihe über den Buchstaben</string>
+    <string name="settings_num_row_on">Zahlenreihe aktiviert</string>
+    <string name="settings_num_row_off">Zahlenreihe deaktiviert</string>
+    <string name="settings_suggestions">Wortvorschläge (Klick = einfügen)</string>
+    <string name="settings_suggestions_on">Vorschläge aktiviert</string>
+    <string name="settings_suggestions_off">Vorschläge deaktiviert</string>
+    <string name="settings_emoji">Emoji-Katalog</string>
+    <string name="sug_back_desc">Zurück zu den Wortvorschlägen</string>
+    <string name="sug_grid_desc">Aus dem vollständigen Emoji-Katalog wählen</string>
+    <string name="key_maximize_label">⇲</string>
+    <string name="sug_hide_desc">Tastatur ausblenden</string>
+
+    <string name="settings_dynamic_keys">Dynamische Tastengröße (wahrscheinliche Tasten größer)</string>
+    <string name="settings_dynamic_keys_on">Dynamische Tastengröße aktiviert</string>
+    <string name="settings_dynamic_keys_off">Dynamische Tastengröße deaktiviert</string>
+    <string name="settings_swipe">Wisch-Eingabe (über Tasten gleiten, offline)</string>
+    <string name="settings_swipe_on">Wisch-Eingabe aktiviert</string>
+    <string name="settings_swipe_off">Wisch-Eingabe deaktiviert</string>
     <string name="editor_tab_menu_title">Editor</string>
     <string name="editor_tab_close_all">Alle schließen</string>
     <string name="editor_tab_new_file">Neue Datei</string>
     <string name="editor_tab_save_current">Aktuelle speichern</string>
     <string name="editor_tab_reload">Neu laden</string>
-    <string name="settings_cleanup_dictionary_found">%1$d verdächtige gelernte Einträge gefunden. Löschen?</string>
-    <string name="settings_cleanup_dictionary_title">Gelerntes Wörterbuch</string>
-    <string name="settings_cleanup_learned_dictionary">🧹 Gelerntes Wörterbuch prüfen</string>
     <string name="settings_update_config">⚙️ Konfiguration schreiben (keytab_config.txt)</string>
-    <string name="snip_added_from_clip">Aus Zwischenablage als Snippet hinzugefügt</string>
-    <string name="snippet_hint_empty">Keine Snippets – keytab_snippets.txt im Files-Tab anlegen (Format: name = text)</string>
-    <string name="theme_gradient_hint">Farbe 1 / Farbe 2 und deren Alpha stellst du im Farbwahlrad unten ein (Ziel „Farbe 1/2").</string>
-    <string name="theme_import_fail">Import fehlgeschlagen – theme-export.json nicht gefunden/ungültig</string>
-    <string name="key_toggle_symbols">\?123</string>
+    <string name="settings_cleanup_learned_dictionary">🧹 Gelerntes Wörterbuch prüfen</string>
+    <string name="settings_cleanup_dictionary_title">Gelerntes Wörterbuch</string>
+    <string name="settings_cleanup_dictionary_empty">Keine verdächtigen gelernten Einträge gefunden.</string>
+    <string name="settings_cleanup_dictionary_found">%1$d verdächtige gelernte Einträge gefunden. Löschen?</string>
+    <string name="settings_cleanup_dictionary_done">Gelerntes Wörterbuch bereinigt: %1$d Einträge entfernt.</string>
+    <string name="settings_cleanup_dictionary_failed">Das gelernte Wörterbuch konnte nicht bereinigt werden.</string>
+    <string name="config_ready">Konfiguration bereit: %1$s</string>
+    <string name="ime_tab_editor_short">Editor</string>
+    <string name="ime_tab_clip_short">Clip</string>
+    <string name="ime_tab_snip_short">Snip</string>
+    <string name="settings_clip_tab">📋 Zwischenablage-Tab</string>
+    <string name="settings_snippet_tab">⚡ Snippet-Tab</string>
+    <string name="settings_snippet_tab_on">Snippet-Tab aktiviert</string>
+    <string name="settings_snippet_tab_off">Snippet-Tab deaktiviert</string>
+    <string name="snippet_hint_empty">Keine Snippets – keytab_snippets.txt im Dateien-Tab anlegen (Format: name = text)</string>
+    <string name="snip_edit">✎ Bearbeiten</string>
+    <string name="snip_added_from_clip">Aus der Zwischenablage zu Snippets hinzugefügt</string>
+    <string name="settings_clip_tab_on">Zwischenablage-Tab aktiviert</string>
+    <string name="settings_clip_tab_off">Zwischenablage-Tab deaktiviert</string>
+    <string name="clip_clear">🗑 Leeren</string>
+    <string name="clip_tab_hint">Kopierter Text erscheint hier — zum Einfügen tippen</string>
+    <string name="editor_send_up">↑</string>
+    <string name="editor_clear">✕</string>
+    <string name="editor_copy">⎘</string>
+    <string name="editor_reload">↻</string>
+    <string name="editor_sent_to_app">In App eingefügt</string>
+    <string name="editor_copied">In die Zwischenablage kopiert</string>
+    <string name="editor_empty_nothing">Editor ist leer</string>
+    <!-- Editor: Ordnerauswahl beim Laden -->
+    <string name="editor_load_title">📂 Datei laden</string>
+    <string name="theme_section_colors">Farben</string>
+    <string name="theme_section_preview">Vorschau</string>
+    <string name="theme_color_trail">Tippspur</string>
+    <string name="settings_gradient_color1">Farbe 1 (oben)</string>
+    <string name="settings_gradient_color2">Farbe 2 (unten)</string>
+    <string name="gradient_mode_top_down">Oben→Unten</string>
+    <string name="gradient_mode_invert">Umgekehrt</string>
+    <string name="gradient_mode_radial">Radial</string>
+    <string name="theme_export">Theme exportieren</string>
+    <string name="theme_export_toast">Theme-Farben exportiert nach: %s</string>
+    <string name="theme_import">Theme importieren</string>
+    <string name="theme_import_ok">Theme importiert (theme-export.json)</string>
+    <string name="theme_import_fail">Import fehlgeschlagen — theme-export.json nicht gefunden/ungültig</string>
+    <string name="theme_settings_title">🎨 Theme-Einstellungen</string>
+    <string name="settings_theme_button">🎨 Theme-Einstellungen</string>
+    <string name="theme_section_trail">Tippspur (Trail)</string>
+    <string name="theme_trail_toggle">🌊 Tippspur</string>
+    <string name="theme_trail_hint">Der zuletzt getippte Buchstabe wird hervorgehoben und verblasst mit jeder neuen Eingabe schrittweise, bis er ganz verschwindet. Standardfarbe: Blau. In Passwortfeldern bleibt die Tippspur aus.</string>
+    <string name="theme_trail_steps">Stufen: %1$d</string>
+    <string name="theme_trail_trace_toggle">✅ Grün markierte Vorschlagstreffer</string>
+    <string name="theme_trail_trace_hint">Wenn das getippte Wort genau dem obersten Vorschlag entspricht, werden seine Buchstaben kurz grün markiert. Es wird nichts geändert – nur bestätigt. Nur in normalen Textfeldern.</string>
+    <string name="theme_reset">Zurücksetzen</string>
+    <string name="theme_gradient_hint">Farbe 1 / Farbe 2 und deren Alpha im Farbrad unten einstellen (Ziel „Farbe 1/2“).</string>
+    <string name="editor_pick_parent">▲ …</string>
+    <string name="editor_pick_empty">Leerer Ordner</string>
+    <string name="settings_language_label">Tastatursprache</string>
+    <string name="language_changed_to">Sprache: %1$s</string>
     <string name="theme_preview_suggestion">Vorschlag</string>
-    <string name="theme_trail_hint">Der zuletzt geklickte Buchstabe wird farblich markiert und mit jeder neuen Eingabe stufenweise weniger sichtbar, bis er ganz verschwindet. Standardfarbe: Blau. In Passwort-Feldern bleibt die Spur aus.</string>
-    <string name="theme_trail_trace_hint">Passt das getippte Wort genau zum obersten Vorschlag, werden seine Buchstaben kurz grün markiert. Es wird nichts geändert — nur eine Bestätigung. Nur in normalen Textfeldern.</string>
-    <string name="theme_trail_trace_toggle">✅ Vorschlag-Treffer grün markieren</string>
-    <string name="dialog_unavailable">Dialog derzeit nicht möglich — bitte erneut tippen.</string>
+    <string name="fm_overwrite_title">Überschreiben?</string>
+    <string name="fm_overwrite_message">%1$s existiert bereits. Überschreiben?</string>
+    <string name="fm_paste_into_self">Einfügen nicht möglich: das Ziel liegt im Quellordner (%1$s).</string>
+    <string name="fm_copy_content_failed">Nicht kopiert (Datei zu groß): %1$s</string>
+    <string name="dialog_unavailable">Dialog gerade nicht verfügbar — bitte erneut tippen.</string>
     <string name="editor_file_too_large">Datei zu groß für den Editor (max. 1 MB): %1$s</string>
-    <string name="fm_open_outside">Datei außerhalb der App-Ordner kann nicht geteilt werden: %1$s</string>
+    <string name="fm_open_outside">Dateien außerhalb der App-Ordner lassen sich nicht teilen: %1$s</string>
     <string name="fm_open_in_editor">Im Editor öffnen</string>
-    <string name="clip_entry_too_large">Zwischenablage-Eintrag zu groß — nicht übernommen (max. 100 KB).</string>
-    <string name="snip_from_clip_too_large">Text aus der Zwischenablage zu groß für ein Snippet (max. 100 KB).</string>
+    <string name="clip_entry_too_large">Zwischenablage-Eintrag zu groß — nicht hinzugefügt (max. 100 KB).</string>
+    <string name="snip_from_clip_too_large">Zwischenablage-Text zu groß für ein Snippet (max. 100 KB).</string>
 </resources>

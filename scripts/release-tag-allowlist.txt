@@ -1,0 +1,11 @@
+# KeyTab – Ausnahmen fuer scripts/check_release_tag.sh
+#
+# Format: <tag>  # Begruendung   (eine Zeile je Ausnahme, '#' = Kommentar)
+#
+# Die Liste darf NICHT wachsen. Ein neuer Eintrag heisst: ein Tag zeigt bewusst
+# auf einen Baum mit anderer Version. Genau dieser Fall ist 2026-10-28 passiert
+# und hat F-Droids Metadaten-Update zerlegt (GitHub-Issue #1) — ein weiterer
+# Eintrag ist eine Entscheidung gegen die eigene Regel, nicht ihre Reparatur.
+#
+v0.19  # Fehl-Tag: zeigt auf 0.20-Code (versionCode 36). Tag ist per Ruleset unveraenderlich;
+       # der Release ist als Fehl-Tag markiert, 0.21 ist der erste korrekte Tag danach.

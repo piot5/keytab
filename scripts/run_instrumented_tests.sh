@@ -1,7 +1,15 @@
 #!/bin/sh
-# Runs connected Android tests after the emulator is reachable and fully booted.
-# The emulator action executes this file as one command; keeping state here
-# prevents line-by-line shell state loss in the action's script input.
+# Manueller Emulator-Lauf der instrumentierten Suite — NICHT mehr Teil der CI
+# (Entscheidung 2026-10-29: der API-34-Emulator ist zu langsam fuer den IME-
+# Fensteraufbau, der Job war dauerhaft rot; siehe .github/workflows/ci.yml).
+#
+# Gedacht fuer: `reactivecircus/android-emulator-runner` lokal bzw. eine eigene
+# Pipeline, die einen laufenden Emulator bereitstellt — dieses Skript erwartet
+# `adb`, ein gebootetes Geraet und baut/installiert selbst.
+#
+# Auf echtem Geraet stattdessen: sh scripts/test_on_device.sh
+#
+# Laeuft als EIN Kommando, damit Shell-Zustand nicht zeilenweise verloren geht.
 set -eu
 
 chmod +x ./gradlew

@@ -5,7 +5,7 @@ Mobile IDE built as an Android keyboard (IME): file manager, editor, snippets an
 [![CI](https://github.com/piot5/keytab/actions/workflows/ci.yml/badge.svg)](https://github.com/piot5/keytab/actions/workflows/ci.yml)
 [![Latest release](https://badgen.net/github/release/piot5/keytab)](https://github.com/piot5/keytab/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/piot5/keytab/total?label=downloads)](https://github.com/piot5/keytab/releases)
-[![F-Droid](https://img.shields.io/badge/f-droid-com.piotv.keytab-633?logo=f-droid&logoColor=white)](https://f-droid.org/en/packages/com.piotv.keytab/)
+[![F-Droid](https://img.shields.io/badge/f--droid-com.piotv.keytab-633?logo=f-droid&logoColor=white)](https://f-droid.org/en/packages/com.piotv.keytab/)
 [![Platform](https://img.shields.io/badge/platform-Android%207%2B%20%28API%2024%2B%29-3ddc84?logo=android&logoColor=white)](https://developer.android.com)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -14,7 +14,7 @@ Mobile IDE built as an Android keyboard (IME): file manager, editor, snippets an
 **GitHub Releases:** every tagged release (`v*`) is built and published automatically by CI as a signed APK with SHA-256 checksums.  
 → [Latest APK](https://github.com/piot5/keytab/releases/latest)
 
-**F-Droid:** [com.piotv.keytab](https://f-droid.org/en/packages/com.piotv.keytab/) — live since 2026-10-25 (0.18.1). Newer tags are picked up automatically (`AutoUpdateMode: Version` + `UpdateCheckMode: Tags` in `fdroiddata`).
+**F-Droid:** [com.piotv.keytab](https://f-droid.org/en/packages/com.piotv.keytab/) — live since 2026-10-25. The store pin follows the newest tag (`AutoUpdateMode: Version` + `UpdateCheckMode: Tags` in `fdroiddata`), so the store page can lag a release by a review round. Release history: [CHANGELOG.md](CHANGELOG.md).
 
 **Install:**
 
@@ -42,6 +42,14 @@ KeyTab works especially well with Termux/Ubuntu-proot: it becomes your shell lau
 ## Supported languages
 
 de, en, es, fr, it, pt, nl — each with its own frequency corpus.
+
+## How it is verified
+
+Four CI jobs run on every push: `docs` (README / CHANGELOG / fastlane notes / version must agree — and a pushed tag must match the version inside its own tree), `build-test` (assemble + all unit tests), `static-analysis` (Android Lint + detekt) and `coverage` (Kover gate: ≥ 60 % lines, ≥ 45 % branches).
+
+- **573 unit tests in 64 classes** (JUnit + Robolectric); measured coverage 71.7 % lines / 57.9 % branches (2026-10-29).
+- **Instrumented typing test on a real device**: `sh scripts/test_on_device.sh` builds, installs (SHA-256-verified), checks the installed `versionCode`, wakes/unlocks the device, drives the real IME and restores the previous keyboard. It is deliberately **not** a CI job — the API-34 emulator is too slow to bring the IME window up, which reported environment failures as product failures.
+- **Supply chain**: Gradle dependency verification by checksum (`gradle/verification-metadata.xml`) and GitHub Actions pinned to commit SHAs — see [`docs/SUPPLY_CHAIN.md`](docs/SUPPLY_CHAIN.md).
 
 ## Privacy
 

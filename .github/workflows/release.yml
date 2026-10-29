@@ -16,6 +16,13 @@ jobs:
       - name: Check docs drift
         run: sh scripts/check_docs_drift.sh
 
+      # Harte Sperre vor dem Signieren: der Tag muss auf einen Baum zeigen, dessen
+      # versionName dem Tag-Namen entspricht. Ein Fehl-Tag ist nach dem Push nicht
+      # reparierbar (Ruleset) — der Release-Workflow darf ihn deshalb nicht in ein
+      # veroeffentlichtes APK verwandeln (Lehre aus v0.19, GitHub-Issue #1).
+      - name: Release-Tag ↔ Version
+        run: sh scripts/check_release_tag.sh "$GITHUB_REF_NAME"
+
       - name: Set up JDK 17
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:

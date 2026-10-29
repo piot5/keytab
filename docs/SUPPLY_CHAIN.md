@@ -27,9 +27,10 @@ All `uses:` references point to 40-hex-digit commit SHAs. Current state:
 | `actions/checkout` | `fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09` | ci.yml, release.yml |
 | `actions/setup-java` | `b6effb05e454b25005698d916606bdc6ffcbf961` | ci.yml, release.yml |
 | `actions/upload-artifact` | `b7c566a772e6b6bfb58ed0dc250532a479d7789f` | ci.yml |
-| `reactivecircus/android-emulator-runner` | `324029e2f414c084d8b15ba075288885e74aef9c` | ci.yml (emulator job) |
 
-Every occurrence of a multi-used action (`checkout` 6×, `setup-java` 4×, `upload-artifact` 4×) must carry the same SHA. A mixed pin state is an error, not a detail.
+Every occurrence of a multi-used action (`checkout` 5×, `setup-java` 4×, `upload-artifact` 4×) must carry the same SHA. A mixed pin state is an error, not a detail.
+
+`reactivecircus/android-emulator-runner` (SHA `324029e2…`) is **no longer used**: the `instrumented` CI job was removed on 2026-10-29 (the API-34 emulator never brought the IME window up in time — details in `.github/workflows/ci.yml`). The instrumented suite runs on a real device via `scripts/test_on_device.sh`.
 
 ## 3. Updating a pin
 

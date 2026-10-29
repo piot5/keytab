@@ -57,6 +57,8 @@ git tag v0.21 && git push origin v0.21
 
 Tags are immutable by GitHub ruleset — once pushed, a tag cannot be deleted or moved.
 
+**Guard:** `sh scripts/check_release_tag.sh <tag>` (also runs in the `docs` CI job and as a hard gate in `release.yml` before signing) checks exactly that: tag name == `v` + `versionName` in the tagged tree, a higher `versionCode` than the previous tag, and a fastlane changelog for that versionCode. `--audit` checks every local tag; known exceptions live in `scripts/release-tag-allowlist.txt` (which must not grow).
+
 ### Rule 1: tag the release commit, never `main` HEAD
 
 The tag must point at the commit that carries the version bump, not at whatever `main` happens to be:
@@ -80,6 +82,8 @@ The store metadata is **not** in this repo: it lives in [`fdroid/fdroiddata`](ht
 - `Binaries: https://github.com/piot5/keytab/releases/download/v%v/KeyTab-%v.apk` — the pattern depends on **the tag and the APK asset name matching the version in the tag**. A mis-tagged release breaks this check, not only `checkupdates`.
 - `AllowedAPKSigningKeys` pins the release certificate; changing the keystore means a new key has to be allowed upstream first.
 - The bot only verifies that the tag *exists* — the reviewer verifies that the tag *matches* the version inside. Both checks have to pass.
+- **YAML trap in `versionName`:** values that look like a float must be quoted. `versionName: '0.21'` (also `'0.17'`, `'0.22'`) — unquoted, YAML parses a number and `fdroid rewritemeta` rejects the file. Three-part versions are not floats and must stay **unquoted**: `versionName: 0.18.1`. Getting this wrong cost a metadata commit on 2026-10-15 (`227517ce` was red, `169dbf17` green).
+- **After each tag, update three fields together:** the new `Builds` entry (`versionName`, `versionCode`, `commit` = the tag's SHA), `CurrentVersion` and `CurrentVersionCode`. `versionCode` must be strictly increasing — `scripts/check_release_tag.sh --audit` verifies that across all tags.
 
 **Checklist after a release:**
 

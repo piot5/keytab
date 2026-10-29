@@ -75,6 +75,8 @@ sh ~/bin/rsh 'pm uninstall com.piotv.keytab.debug'   # remove the stale build
 
 See [`docs/RELEASE.md`](docs/RELEASE.md) for the full release process. Dependency checksums and pinned GitHub Actions are documented in [`docs/SUPPLY_CHAIN.md`](docs/SUPPLY_CHAIN.md). Local gate runs and detekt baseline maintenance go through `sh scripts/baseline.sh --list`.
 
+The detekt baseline (`config/detekt/baseline.xml`) is **empty**. Exceptions that are consciously kept are written into the code as `@Suppress("…")` with a justification comment (see `ThemePrefs`, `KeyTabImeService`, `EditorPanel`, `TabController`). `sh scripts/baseline.sh audit` measures the current state read-only and reports entries that went stale — a stale entry is not harmless: it would silently wave the same finding through again at that line.
+
 ## Project structure
 
 ```
@@ -131,7 +133,7 @@ app/src/main/java/com/piotv/keytab/            # Kotlin files
     └── …                     # InputTargets, LiftSpan, KeyTabConfig
 
 app/src/test/java/com/piotv/keytab/            # Unit tests (JUnit + Robolectric)
-app/src/androidTest/                           # Instrumented typing tests (CI: API-34 emulator)
+app/src/androidTest/                           # Instrumented typing tests (real device, not in CI)
 app/src/main/res/values/strings.xml            # Default strings (English)
 app/src/main/res/values-en/                    # English locale
 app/src/main/res/values-de/                    # German locale (partial)
@@ -164,6 +166,7 @@ Test names are written as specifications in German (e.g. `Doppel-Tap aktiviert C
 | Trail visuals not screenshot-verified | No screenshot or instrumented test asserts the rendered colours. Red/green contrast against each custom theme palette not measured. |
 | Swipe frame timing not measured on device | Only JVM-benchmarked in `SwipePerformanceTest`. Frame timing on a real display remains open. |
 | Instrumented coverage is one broad pass | `KeyTabTypingTest` checks the real IME contract. Visual rendering (themes, trail colours) still not screenshot-asserted. |
+| Instrumented suite is **not** in CI (since 2026-10-29) | The API-34 emulator was too slow to bring the IME window up (`keyboard did not become visible`), so the job was red for environmental reasons. The suite runs device-first: `sh scripts/test_on_device.sh` before a push — that means it only runs when a device is attached and a human leaves it alone. |
 
 ## Contributing
 
@@ -178,6 +181,7 @@ Issues and pull requests are welcome. KeyTab is currently a single-maintainer pr
 
 ```bash
 sh scripts/check_docs_drift.sh                     # docs must match the code
+sh scripts/check_release_tag.sh                    # tag ↔ version (only meaningful on a tag ref)
 sh ./gradlew :app:testDebugUnitTest --offline      # unit tests must stay green
 bash build_keytab.sh debug                         # must build
 sh scripts/test_on_device.sh                       # instrumented typing test on a real device (before a push)

@@ -71,11 +71,12 @@ The release pipeline (`release.yml`) builds and signs every `v*` tag; details in
 
 | Job | What it proves |
 |---|---|
-| `docs` | README / CHANGELOG / fastlane / version are in sync |
+| `docs` | README / CHANGELOG / fastlane / version are in sync **and** a pushed tag matches the version in its own tree |
 | `build-test` | `assembleDebug` + all unit tests |
 | `static-analysis` | Android Lint + detekt (baseline must not grow) |
 | `coverage` | Kover gate: ≥ 60 % line / ≥ 45 % branch |
-| `instrumented` | real IME contract on an API-34 KVM emulator |
+
+The instrumented typing test (`KeyTabTypingTest`) is **not** a CI job since 2026-10-29: the API-34 emulator is too slow to bring the IME window up, so the job was red for environmental reasons while looking like a product defect. It runs device-first instead — `sh scripts/test_on_device.sh` before a push, which builds, installs (sha256-verified), checks the installed `versionCode`, wakes/unlocks the device, runs the suite and restores the previous IME. `scripts/run_instrumented_tests.sh` remains for a manual emulator run.
 
 ---
 

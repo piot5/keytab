@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptives Icon: Leinwand 108x108 dp, Motiv innerhalb der 66x66-dp-Safe-Zone
+     (Artwork-Motiv = 60,2 % der Breite = 65 dp). Erzeugt von
+     scripts/make_launcher_icons.py — nicht von Hand bearbeiten. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <monochrome android:drawable="@mipmap/ic_launcher_monochrome" />
+</adaptive-icon>

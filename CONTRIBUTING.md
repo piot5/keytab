@@ -74,7 +74,7 @@ The release pipeline (`release.yml`) builds and signs every `v*` tag; details in
 
 | Job | What it proves |
 |---|---|
-| `docs` | README / CHANGELOG / fastlane / version are in sync **and** a pushed tag matches the version in its own tree |
+| `docs` | README / CHANGELOG / fastlane / version are in sync, a pushed tag matches the version in its own tree, relative `*.md` links resolve, and the launcher-icon set matches its density/size budget |
 | `shell` | every shell script parses under its own interpreter and shellcheck reports no errors/warnings (`scripts/check_shell.sh`) |
 | `build-test` | `assembleDebug` + all unit tests |
 | `static-analysis` | Android Lint + detekt (baseline must not grow) |

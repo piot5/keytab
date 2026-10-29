@@ -31,6 +31,29 @@ cp app/build/outputs/apk/debug/app-debug.apk /path/to/keytab/app-debug-new.apk
 
 Long-running builds should be started with `setsid … &` to avoid the terminal timeout killing the Gradle process. `--offline` saves time when no new dependencies are needed.
 
+### Launcher icons
+
+The icon set is generated from one master artwork — never copy the master into
+`res/` by hand:
+
+```bash
+python3 scripts/make_launcher_icons.py            # regenerate all densities
+python3 scripts/make_launcher_icons.py --check    # verify density/size (needs no Pillow)
+```
+
+| Layer | File | Geometry |
+|---|---|---|
+| Legacy (API 24/25) | `mipmap-<density>/ic_launcher.png` | 48 dp, artwork complete |
+| Adaptive foreground (API 26+) | `mipmap-<density>/ic_launcher_foreground.png` | 108 dp canvas, motif inside the 66 dp safe zone |
+| Themed icon (API 33+) | `mipmap-<density>/ic_launcher_monochrome.png` | 108 dp canvas, silhouette only |
+| Adaptive definition | `mipmap-anydpi-v26/ic_launcher.xml` | background = `@color/ic_launcher_background` |
+| Master artwork | `docs/images/keytab-icon-master-2600.png` | source, 2600 × 2600 |
+
+Budget: 60 KB per PNG (~111 KB for the whole set). Reason: v0.20 shipped the
+2600 × 2600 master as `ic_launcher.png` in every density folder — 5 × 982 KB in
+the APK, which grew from 2.28 MB (v0.19) to 6.92 MB (v0.20). The `docs` CI job
+now runs the `--check` mode, so that cannot slip through unnoticed again.
+
 ## Installation without a PC (via Shizuku/rish)
 
 Requires a running Shizuku server and the `~/bin/rsh` wrapper.

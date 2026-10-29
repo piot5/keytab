@@ -16,6 +16,10 @@
 #   4. Relative links in *.md must resolve — dead references are the silent doc
 #      bug: they look correct and lead nowhere (e.g. a pointer to a removed
 #      backlog file or to a baseline file that never existed in the repo)
+#   5. Launcher icons have the right density/pixel size and stay within the size
+#      budget (scripts/make_launcher_icons.py --check). v0.20 shipped the
+#      2600-px master as ic_launcher.png in all five density folders: 5 x 982 KB
+#      in the APK, which grew from 2.28 MB to 6.92 MB — no gate noticed.
 #
 # Exit 1 on drift, Exit 0 when consistent.
 
@@ -116,6 +120,24 @@ else
         problem "$N dead relative link(s) in *.md" \
                 "Ziel anlegen oder Verweis entfernen"
     fi
+fi
+
+# 5. Launcher-Icons: Dichte/Pixelmasse und Groessenbudget. Ein versehentlich
+#    hineinkopiertes 2600-px-Artwork hat die APK schon einmal von 2,28 MB auf
+#    6,92 MB gebracht (v0.20) — kein Gate hat es gesehen. Der Pruefmodus kommt
+#    ohne Pillow aus und laeuft daher auch hier ohne Toolchain.
+if command -v python3 >/dev/null 2>&1; then
+    ICON_RC=0
+    ICON_OUT=$(python3 scripts/make_launcher_icons.py --check 2>&1) || ICON_RC=$?
+    if [ "$ICON_RC" -eq 0 ]; then
+        ok "launcher icons: density/size correct, within budget"
+    else
+        printf '%s\n' "$ICON_OUT" | sed 's/^/    /'
+        problem "launcher icons drift (density/size/budget)" \
+                "Neu erzeugen: python3 scripts/make_launcher_icons.py"
+    fi
+else
+    printf '  !  python3 fehlt — Launcher-Icon-Pruefung uebersprungen\n'
 fi
 
 printf '\n'

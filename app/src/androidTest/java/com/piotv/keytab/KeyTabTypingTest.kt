@@ -22,6 +22,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.FileInputStream
 import java.io.InputStreamReader
+import java.util.regex.Pattern
 
 /**
  * **Ein** umfassender instrumentierter Tipp-Test (v0.16.1).
@@ -238,16 +239,19 @@ class KeyTabTypingTest {
     /**
      * Inhalts-Tab über sein Label antippen.
      *
-     * **Klassen-agnostisch** (`By.textStartsWith`): Material rendert die Tab-Labels
-     * je nach Theme/Inflater als `android.widget.TextView` **oder** als
-     * `androidx.appcompat.widget.AppCompatTextView`. Die frühere Fassung suchte nur
-     * `android.widget.TextView` und fand im CI-Emulator nichts („Tab 'Files' nicht
-     * gefunden", seit v0.20). Der Treffer wird bewusst **nicht** auf `isClickable`
-     * geprüft: beim Editor-Tab hängt der Long-Press am Container, das Label selbst
-     * ist nicht klickbar — `click()` tippt ohnehin die Bildschirmmitte des Knotens an.
+     * **Case-insensitiv** über einen Regex: Material rendert die Tab-Labels in
+     * Versalien (`textAllCaps`) — auf dem Emulator steht dort `FILES`, `CLIP`,
+     * `SNIP`, `ABC`, nicht `Files` (belegt durch die Diagnose-Zeile im CI-Lauf
+     * vom 2026-10-28). Zusätzlich klassen-agnostisch (`By.text(Pattern)`), weil
+     * Material die Labels je nach Theme/Inflater als `android.widget.TextView`
+     * **oder** als `androidx.appcompat.widget.AppCompatTextView` rendert, und
+     * ohne `isClickable`-Filter: beim Editor-Tab hängt der Long-Press am
+     * Container, das Label selbst ist nicht klickbar — `click()` tippt ohnehin
+     * die Bildschirmmitte des Knotens an.
      */
     private fun clickTab(label: String) {
-        val candidates = device.findObjects(By.textStartsWith(label))
+        val pattern = Pattern.compile("(?i)^" + Pattern.quote(label))
+        val candidates = device.findObjects(By.text(pattern))
             .filter { it.isEnabled && !it.visibleBounds.isEmpty }
         if (candidates.isEmpty()) {
             throw AssertionError("Tab '$label' nicht gefunden (Texte: ${visibleTexts()})")

@@ -29,6 +29,32 @@ jobs:
       - name: Release-Tag ↔ Version
         run: sh scripts/check_release_tag.sh
 
+  # Shell-Hygiene: Syntax + shellcheck (Errors/Warnings). Deckt die Fehlerklasse
+  # ab, die kein anderes Gate sieht — z. B. einen Fehlerzweig, der hinter einem
+  # Aufruf unter `set -e` steht und deshalb nie erreicht wird. Belegter Anlass
+  # (2026-10-29): `install_keytab.sh` brach bei fehlgeschlagenem rish-Aufruf
+  # kommentarlos ab, obwohl genau dafür ein Fehlerblock im Skript stand; ohne
+  # Shell-Gate faellt so etwas erst auf, wenn es auf dem Geraet passiert.
+  #
+  # shellcheck wird hier aus der Distribution installiert, nicht ueber eine
+  # fremde Action — damit kommt keine weitere Pin-Pflicht dazu (docs/SUPPLY_CHAIN.md).
+  # Der Check selbst ist scripts/check_shell.sh und laeuft identisch lokal.
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: shellcheck installieren
+        run: |
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq shellcheck
+          fi
+          shellcheck --version
+
+      - name: Shell-Hygiene
+        run: sh scripts/check_shell.sh
+
   build-test:
     runs-on: ubuntu-latest
     steps:

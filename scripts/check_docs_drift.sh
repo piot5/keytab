@@ -13,6 +13,9 @@
 #   1. Version sync: versionName in build.gradle.kts == first header in CHANGELOG.md
 #   2. Version singularity: versionCode/versionName only in app/build.gradle.kts
 #   3. README must not contain a hard-coded version (single source of truth)
+#   4. Relative links in *.md must resolve — dead references are the silent doc
+#      bug: they look correct and lead nowhere (e.g. a pointer to a removed
+#      backlog file or to a baseline file that never existed in the repo)
 #
 # Exit 1 on drift, Exit 0 when consistent.
 
@@ -84,6 +87,34 @@ else
             problem "No fastlane changelog for versionCode $VCODE in $FASTLANE_DIR" \
                     "Add $FASTLANE_DIR/$VCODE.txt"
         fi
+    fi
+    # 4. Relative Markdown-Links müssen auflösen. Geprüft werden nur relative
+    #    Ziele (keine http(s)/mailto/Anker) und nur die Existenz — ob der Text
+    #    zum Ziel passt, ist Prosa und bleibt Sache des Reviews.
+    DEAD=$(find . -name '*.md' \
+                -not -path './.git/*' -not -path './.gradle/*' \
+                -not -path './build/*' -not -path './app/build/*' \
+                -print | sort | while IFS= read -r md; do
+        dir=$(dirname "$md")
+        grep -oE '\]\([^)]+\)' "$md" 2>/dev/null | sed 's/^](//; s/)$//' \
+        | while IFS= read -r link; do
+            case "$link" in
+                http://*|https://*|mailto:*|'#'*) continue ;;
+            esac
+            target=${link%%#*}
+            [ -n "$target" ] || continue
+            [ -e "$dir/$target" ] || printf '%s -> %s\n' "$md" "$link"
+        done
+    done)
+    if [ -z "$DEAD" ]; then
+        ok "no dead relative links in *.md"
+    else
+        # Details ausgeben, den Zähler aber ausserhalb der Pipe hochziehen:
+        # `problem` in einer Pipe-Subshell würde den FAIL-Zähler verlieren.
+        N=$(printf '%s\n' "$DEAD" | grep -c .)
+        printf '%s\n' "$DEAD" | sed 's/^/    /'
+        problem "$N dead relative link(s) in *.md" \
+                "Ziel anlegen oder Verweis entfernen"
     fi
 fi
 

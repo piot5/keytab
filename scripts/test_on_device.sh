@@ -7,7 +7,8 @@
 # Geraet laeuft die Suite deutlich schneller und stabiler.
 #
 # Transport: `adb`, wenn ein Geraet ONLINE ist — sonst `rish` (Shizuku) als
-# adb-Ersatz (siehe projects/rish/README.md; Shizuku muss laufen).
+# adb-Ersatz. Der rish-Wrapper liegt unter ~/bin/rsh, die Skripte/DEX unter
+# ~/rish/ (Shizuku muss laufen).
 #
 # Aufruf:
 #   sh scripts/test_on_device.sh                     # ganze Suite
@@ -141,6 +142,7 @@ built_version() {
 # IME-Zustand sichern (der Testlauf setzt den Debug-IME und laesst ihn stehen).
 # ---------------------------------------------------------------------------
 prev_ime=$(dev 'settings get secure default_input_method' | grep -oE '[A-Za-z0-9_.]+/[A-Za-z0-9_.]+' | tail -1)
+# shellcheck disable=SC2329  # wird via trap aufgerufen, nicht direkt
 restore_ime() {
     [ -n "${prev_ime:-}" ] || return 0
     dev "ime enable $prev_ime" >/dev/null 2>&1 || true
@@ -151,8 +153,12 @@ restore_ime() {
 trap 'restore_ime' EXIT INT TERM
 
 echo "== 1/3 bauen =="
-export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-arm64}"
 export ANDROID_HOME="${ANDROID_HOME:-/opt/android-sdk}"
+# JDK-Auswahl/Pruefung: eine Regel fuer alle Gradle-Einstiegspunkte.
+KEYTAB_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+# shellcheck source=scripts/lib_jdk.sh
+. "$KEYTAB_ROOT/scripts/lib_jdk.sh"
+keytab_require_jdk17
 sh ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon
 
 echo "== 2/3 installieren =="

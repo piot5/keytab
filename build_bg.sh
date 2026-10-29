@@ -151,15 +151,20 @@ echo "   Log:    $LOG"
 
 # setsid → eigene Session, Prozess überlebt das Ende der aufrufenden Shell.
 # stdin von /dev/null (nicht-interaktiv), stdout+stderr ins Log.
-# JAVA_HOME: Gradle 8.7 läuft NICHT unter Java 25 (Default auf diesem Host) —
-# wir pinnen Java 17, falls vorhanden (fällt sonst auf Umgebungs-Default zurück).
-if [ -z "${JAVA_HOME:-}" ] && [ -d /usr/lib/jvm/java-17-openjdk-arm64 ]; then
-    export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64
-fi
+#
+# JDK: Gradle laeuft auf diesem Host NICHT unter Java 25 (Default) — die Auswahl
+# und Pruefung steckt in scripts/lib_jdk.sh, damit alle Gradle-Einstiegspunkte
+# dieselbe Regel benutzen. Vorher verliessen sich die Skripte auf den
+# Umgebungs-Default und brachen dann mit einem Fehler ab, der nicht nach
+# "falsches JDK" aussah.
+# shellcheck source=scripts/lib_jdk.sh
+. "$PROJECT_DIR/scripts/lib_jdk.sh"
+keytab_require_jdk17
 setsid sh ./gradlew "$TASK" --no-daemon --offline > "$LOG" 2>&1 < /dev/null &
 PID=$!
 echo "$PID" > "$PID_FILE"
-disown 2>/dev/null || true
+# Kein `disown`: das ist eine Bash-Builtin und in POSIX-sh undefiniert
+# (shellcheck SC3044) — setsid loest den Prozess ohnehin von dieser Shell.
 
 echo "   PID:    $PID  (in $PID_FILE)"
 echo "   Status: sh build_bg.sh status | wait"

@@ -9,7 +9,8 @@ export KEYTAB_BS_MS=400
 BANNER(){ echo; echo "########################################################"; echo "#  $1"; echo "########################################################"; echo; }
 
 verify() {
-  for i in 1 2 3 4 5; do
+  # `_` statt `i`: der Zaehler wird nicht gelesen (shellcheck SC2034).
+  for _ in 1 2 3 4 5; do
     $RSH 'dumpsys input_method' 2>/dev/null > /tmp/im_check.txt
     shown=$(grep -c 'mIsInputViewShown=true' /tmp/im_check.txt)
     itype=$(grep 'inputType=0x1 ' /tmp/im_check.txt | tail -1)
@@ -34,18 +35,18 @@ cd "$KEY" || exit 1
 J=build/device-perf
 
 BANNER ">>> NICHT EINGREIFEN — Fuellen (Tastatur wird automatisch bedient) <<<"
-python3 scripts/device_perf.py --scenarios typing --pkg com.piotv.keytab.debug --iterations 3 --json $J/q-$STAMP-fill.json >/dev/null
+python3 scripts/device_perf.py --scenarios typing --pkg com.piotv.keytab.debug --iterations 3 --json "$J/q-$STAMP-fill.json" >/dev/null
 
 BANNER ">>> NICHT EINGREIFEN — MESSUNG Tippen <<<"
 verify || { echo "ABBRUCH: Feld verloren"; exit 2; }
-python3 scripts/device_perf.py --scenarios typing --pkg com.piotv.keytab.debug --iterations 3 --json $J/q-$STAMP-typing.json
+python3 scripts/device_perf.py --scenarios typing --pkg com.piotv.keytab.debug --iterations 3 --json "$J/q-$STAMP-typing.json"
 
 BANNER ">>> NICHT EINGREIFEN — Nachfuellen <<<"
-python3 scripts/device_perf.py --scenarios typing --pkg com.piotv.keytab.debug --iterations 3 --json $J/q-$STAMP-fill2.json >/dev/null
+python3 scripts/device_perf.py --scenarios typing --pkg com.piotv.keytab.debug --iterations 3 --json "$J/q-$STAMP-fill2.json" >/dev/null
 
 BANNER ">>> NICHT EINGREIFEN — MESSUNG Backspace (400ms-Bursts) <<<"
 verify || { echo "ABBRUCH: Feld verloren"; exit 2; }
-python3 scripts/device_perf.py --scenarios backspace --layout --pkg com.piotv.keytab.debug --iterations 12 --json $J/q-$STAMP-backspace.json
+python3 scripts/device_perf.py --scenarios backspace --layout --pkg com.piotv.keytab.debug --iterations 12 --json "$J/q-$STAMP-backspace.json"
 
 BANNER "FERTIG — Geraet wieder FREI. ($(($(date +%s)-START)) s Laufzeit)"
 echo "JSON: $J/q-$STAMP-*.json"

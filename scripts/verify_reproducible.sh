@@ -20,8 +20,14 @@ SRC_A=$(mktemp -d /tmp/keytab-repro-a-src.XXXXXX)
 SRC_B=$(mktemp -d /tmp/keytab-repro-b-src.XXXXXX)
 OUT_A=$(mktemp -d /tmp/keytab-repro-a-out.XXXXXX)
 OUT_B=$(mktemp -d /tmp/keytab-repro-b-out.XXXXXX)
+# shellcheck disable=SC2329  # wird via trap aufgerufen, nicht direkt
 cleanup() { rm -rf "$SRC_A" "$SRC_B" "$OUT_A" "$OUT_B"; }
 trap cleanup EXIT INT TERM
+
+# JDK-Auswahl/Pruefung: eine Regel fuer alle Gradle-Einstiegspunkte.
+# shellcheck source=scripts/lib_jdk.sh
+. "$PROJECT/scripts/lib_jdk.sh"
+keytab_require_jdk17
 
 echo "== KeyTab Reproducible-Build-Check =="
 echo "   Referenz: $TAG"

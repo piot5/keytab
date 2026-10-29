@@ -42,6 +42,11 @@ KEEP_BASELINE=""
 ASSUME_YES=""
 PROFILE=""
 
+# JDK-Auswahl/Pruefung: eine Regel fuer alle Gradle-Einstiegspunkte.
+# shellcheck source=scripts/lib_jdk.sh
+. "$PROJECT_DIR/scripts/lib_jdk.sh"
+keytab_require_jdk17
+
 usage() {
     sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
 }
@@ -159,6 +164,9 @@ confirm() {
 # also immer von tee (0). Ein rotes Gate wuerde als gruen gemeldet. Deshalb
 # erst in die Logdatei schreiben, den Status merken, dann ausgeben.
 run_logged() {
+    # Bewusst unquoted: GRADLE_OPTS/RERUN/JOBS sind Flag-Listen, die in mehrere
+    # Argumente zerfallen sollen (shellcheck SC2086 ist hier gewollt).
+    # shellcheck disable=SC2086
     sh ./gradlew "$@" $GRADLE_OPTS $RERUN $JOBS > "$LOG" 2>&1
     _rc=$?
     cat "$LOG"
@@ -249,6 +257,7 @@ full)
     sh scripts/check_docs_drift.sh || _rc=1
     run_logged :app:testDebugUnitTest :app:koverVerify :app:detektDebug :app:lintDebug || _rc=1
     # Zweiter Lauf haengt sein Log an das erste an.
+    # shellcheck disable=SC2086
     sh ./gradlew :app:assembleRelease $GRADLE_OPTS $RERUN $JOBS >> "$LOG" 2>&1 || _rc=1
     tail -20 "$LOG"
     if [ "$_rc" -eq 0 ]; then

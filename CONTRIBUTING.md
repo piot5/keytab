@@ -59,6 +59,9 @@ sh build_install.sh debug
 # Docs must match the code (CI job "docs", no toolchain needed)
 sh scripts/check_docs_drift.sh
 
+# Shell scripts: syntax + shellcheck (CI job "shell"; shellcheck is optional local)
+sh scripts/check_shell.sh
+
 # Instrumented typing test on a real device (before a push)
 sh scripts/test_on_device.sh
 ```
@@ -72,6 +75,7 @@ The release pipeline (`release.yml`) builds and signs every `v*` tag; details in
 | Job | What it proves |
 |---|---|
 | `docs` | README / CHANGELOG / fastlane / version are in sync **and** a pushed tag matches the version in its own tree |
+| `shell` | every shell script parses under its own interpreter and shellcheck reports no errors/warnings (`scripts/check_shell.sh`) |
 | `build-test` | `assembleDebug` + all unit tests |
 | `static-analysis` | Android Lint + detekt (baseline must not grow) |
 | `coverage` | Kover gate: ≥ 60 % line / ≥ 45 % branch |
@@ -95,10 +99,10 @@ The instrumented typing test (`KeyTabTypingTest`) is **not** a CI job since 2026
 The single largest project risk is that one person holds all the context. To reduce it, the following is kept deliberately discoverable in the repo:
 
 - **Docs**: [`README.md`](README.md), [`CHANGELOG.md`](CHANGELOG.md), [`docs/`](docs/) (development, release, supply chain).
-- **Open work**: `tofix.md` and `tofix-review-2026-10-16.md` are the current bug / backlog lists (German).
+- **Open work**: GitHub issues (`label:bug`) plus the *Roadmap* and *Known gaps* sections of [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md). The German backlog files `tofix.md` / `tofix-review-2026-10-16.md` were removed from the repo — nothing here points at them any more.
 - **Process**: everything a reviewer would check by hand is already encoded in CI + `scripts/` — a second maintainer can judge a PR by "are the gates green" rather than by tribal knowledge.
 
-If you want to become a co-maintainer: run the four commands in section 3, pick an item from `tofix.md`, fix it, add a spec-named unit test, and open a PR. That path exercises every gate without requiring pre-existing context.
+If you want to become a co-maintainer: run the commands in section 3, pick an open issue, fix it, add a spec-named unit test, and open a PR. That path exercises every gate without requiring pre-existing context.
 
 ---
 

@@ -73,7 +73,7 @@ sh ~/bin/rsh 'settings put secure default_input_method com.piotv.keytab/com.piot
 sh ~/bin/rsh 'pm uninstall com.piotv.keytab.debug'   # remove the stale build
 ```
 
-See [`docs/RELEASE.md`](docs/RELEASE.md) for the full release process. Dependency checksums and pinned GitHub Actions are documented in [`docs/SUPPLY_CHAIN.md`](docs/SUPPLY_CHAIN.md). Local gate runs and detekt baseline maintenance go through `sh scripts/baseline.sh --list`.
+See [`RELEASE.md`](RELEASE.md) for the full release process. Dependency checksums and pinned GitHub Actions are documented in [`SUPPLY_CHAIN.md`](SUPPLY_CHAIN.md). Local gate runs and detekt baseline maintenance go through `sh scripts/baseline.sh --list`.
 
 The detekt baseline (`config/detekt/baseline.xml`) is **empty**. Exceptions that are consciously kept are written into the code as `@Suppress("…")` with a justification comment (see `ThemePrefs`, `KeyTabImeService`, `EditorPanel`, `TabController`). `sh scripts/baseline.sh audit` measures the current state read-only and reports entries that went stale — a stale entry is not harmless: it would silently wave the same finding through again at that line.
 
@@ -174,13 +174,15 @@ Issues and pull requests are welcome. KeyTab is currently a single-maintainer pr
 
 ### Prerequisites
 
-- JDK 17 (the Gradle build is pinned to it)
+- JDK 17 (the Gradle build is pinned to it). `scripts/lib_jdk.sh` sets and checks it for every Gradle entry point (`build_keytab.sh`, `build_bg.sh`, `scripts/baseline.sh`, `scripts/test_on_device.sh`, `scripts/verify_reproducible.sh`) and stops with a clear message if `JAVA_HOME` points at an unsupported JDK — a wrong JDK otherwise surfaces as a Gradle/AGP error that does not look like a JDK problem.
 - Android SDK — `compileSdk`/`targetSdk` 36, `minSdk` 24
+- `shellcheck` for the shell gate (optional locally: without it `scripts/check_shell.sh` still runs the syntax part and says so; the CI job `shell` installs it)
 
 ### Before opening a PR
 
 ```bash
 sh scripts/check_docs_drift.sh                     # docs must match the code
+sh scripts/check_shell.sh                          # shell syntax + shellcheck (no toolchain needed)
 sh scripts/check_release_tag.sh                    # tag ↔ version (only meaningful on a tag ref)
 sh ./gradlew :app:testDebugUnitTest --offline      # unit tests must stay green
 bash build_keytab.sh debug                         # must build
@@ -199,7 +201,7 @@ See `CONTRIBUTING.md` for the full onboarding guide, local build/test instructio
 
 ## Roadmap
 
-Release history lives in **[CHANGELOG.md](CHANGELOG.md)**; the version is defined in exactly one place (`app/build.gradle.kts`) and is checked against changelog + fastlane notes by the CI job 'docs'.
+Release history lives in **[CHANGELOG.md](../CHANGELOG.md)**; the version is defined in exactly one place (`app/build.gradle.kts`) and is checked against changelog + fastlane notes by the CI job 'docs'.
 
 1. **Finish the coroutine migration** — `ClipboardPanel` now uses a service-owned lifecycle-aware scope with `Dispatchers.IO`; `FileManagerPanel` and `SuggestionEngine` remain on the shared executor/manager path.
 2. **PTY/Shell in der App** — der Terminal-Tab wurde in v0.14 bewusst entfernt: eine Shell ohne PTY/Userland war keine echte Arbeitsumgebung. Für Termine/SSH bleibt KeyTab die Eingabemethode; die Shell macht Termux.

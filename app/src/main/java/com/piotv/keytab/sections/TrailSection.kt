@@ -9,14 +9,18 @@ import com.piotv.keytab.R
 import com.piotv.keytab.ime.ThemePrefs
 
 /**
- * UI-Sektion für den Tippspur-Effekt (Trail) in den Theme-Einstellungen.
- * Optional, mit Farbe (über Farbkreis auswählbar) und An/Aus-Schalter.
- * Standard-Farbe: Blau (#2196F3).
+ * UI-Sektion für den Tippspur-Effekt (Trail). Optional, mit Farbe (über
+ * Farbkreis auswählbar) und An/Aus-Schalter. Standard-Farbe: Blau (#2196F3).
  *
  * Zusätzlich (v0.9.8):
  *  - **Stufen**: Anzahl der Verblass-Schritte (3/5/7/10), Pref `trail_steps`.
  *  - **Treffer-Markierung**: färbt getippte Wörter grün, wenn sie exakt dem
  *    obersten Vorschlag entsprechen (reine Bestätigung; es wird nichts geändert).
+ *
+ * Zwei Einstiege, eine Implementierung:
+ *  - [build] → Theme-Einstellungen (Options-Zeile + Hinweistexte).
+ *  - [buildControls] → Einstellungsseite der App (`MainActivity.row_trail`),
+ *    damit die Optionen auch dort erreichbar sind (User-Wunsch 2026-11-06).
  *
  * Der Trail erscheint nie in Passwort-Feldern (siehe [TrailLogic.isTrailAllowed]).
  */
@@ -44,7 +48,18 @@ class TrailSection(
         private const val STEPS_MAX = 10
     }
 
-    fun build(col: LinearLayout) {
+    /**
+     * An/Aus-Schalter, Stufen und Treffer-Markierung als Button-Zeile.
+     *
+     * Öffentlich, weil **zwei** Seiten dieselben Optionen anbieten: die
+     * Theme-Einstellungen ([build], mit Hinweistexten) und die
+     * Einstellungsseite der App (`MainActivity`, `row_trail` im Layout). Beide
+     * schreiben dieselben Prefs, und weil der laufende IME per
+     * `OnSharedPreferenceChangeListener` auf dieselbe Datei hört
+     * ([com.piotv.keytab.ime.TrailManager]), wirkt eine Änderung hier sofort in
+     * der Tastatur — auch ohne Neustart.
+     */
+    fun buildControls(col: LinearLayout) {
         val row = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -86,7 +101,16 @@ class TrailSection(
             LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply { topMargin = (2 * dip).toInt() })
 
-        // Hinweis-Text
+        updateButton()
+    }
+
+    /**
+     * Theme-Einstellungen: Options-Zeile **plus** die beiden Hinweistexte.
+     * Die Einstellungsseite nimmt nur [buildControls] (dort steht der Hinweis
+     * als eigener, kürzerer Text im Layout).
+     */
+    fun build(col: LinearLayout) {
+        buildControls(col)
         col.addView(hintTextView(R.string.theme_trail_hint, (BUTTON_MARGIN_DP * dip).toInt()),
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -97,7 +121,6 @@ class TrailSection(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ))
-        updateButton()
     }
 
     private fun hintTextView(textRes: Int, topPaddingPx: Int): android.widget.TextView =

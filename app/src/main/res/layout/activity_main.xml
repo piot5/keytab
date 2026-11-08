@@ -106,6 +106,26 @@
             android:text="@string/settings_swipe" />
 
 
+        <!-- ── Tippspur (Trail) ─────────────────────────────────────── -->
+        <TextView
+            style="@style/SettingsSection"
+            android:text="@string/settings_section_trail" />
+        <!-- Options-Zeile (Schalter / Stufen / Treffer-Markierung) wird von
+             TrailSection.buildControls() gefüllt — dieselbe Zeile wie in den
+             Theme-Einstellungen, damit es nur eine Implementierung gibt. -->
+        <LinearLayout
+            android:id="@+id/row_trail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:text="@string/settings_trail_hint" />
+
+
         <!-- ── Speicher & Konfiguration ─────────────────────────────── -->
         <TextView
             style="@style/SettingsSection"

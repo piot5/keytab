@@ -1,34 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Custom-View des Editor-Tabs: Label + Datei-Plakette.
+
+     Aufbau bewusst wie bei den anderen Tabs: Material setzt deren Labels mittig
+     in die Zelle (TabView ist eine LinearLayout mit gravity=CENTER). Stand das
+     Editor-Label vorher am linken Rand, sah der Tab-Button optisch anders aus
+     als abc/Files/Clip/Snip (Geraetebefund 2026-11-06). Deshalb:
+       * Label mittig (layout_centerInParent) — exakt wie die anderen Labels,
+         unabhaengig davon, ob die Plakette sichtbar ist,
+       * Plakette haengt am Label-Ende (layout_toEndOf) und verschiebt es
+         nicht; bei 0 offenen Dateien ist sie GONE.
+     Groesse/Farbe zieht zur Laufzeit `TabController.applyUniformTabLabelStyle`
+     auf die Werte der anderen Tabs (8sp, Theme-Farbe je Auswahl) — hier stehen
+     nur die Startwerte, die dazu passen muessen. -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Label der Editor-Tab -->
     <TextView
         android:id="@+id/editor_tab_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:layout_alignParentStart="true"
-        android:layout_marginStart="4dp"
+        android:layout_centerInParent="true"
         android:maxLines="1"
         android:ellipsize="middle"
-        android:textSize="9sp"
+        android:textSize="8sp"
         android:textColor="@color/tab_text"
         android:includeFontPadding="false" />
 
-    <!-- Plakette: Zahl der im Editor geöffneten Dateien -->
+    <!-- Plakette: Zahl der im Editor geöffneten Dateien. Die Farbe bleibt
+         bewusst eigen (weisse Ziffer auf farbiger Pille) — nur die Groesse
+         wird mit den Tab-Beschriftungen gleichgezogen. -->
     <TextView
         android:id="@+id/editor_tab_badge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginEnd="4dp"
+        android:layout_toEndOf="@id/editor_tab_label"
+        android:layout_marginStart="2dp"
         android:background="@drawable/badge_pill"
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
         android:textColor="@android:color/white"
-        android:textSize="9sp"
+        android:textSize="8sp"
         android:includeFontPadding="false" />
 </RelativeLayout>

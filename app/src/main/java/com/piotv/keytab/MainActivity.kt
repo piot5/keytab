@@ -24,6 +24,7 @@ import com.piotv.keytab.ime.SettingsConfig
 import com.piotv.keytab.ime.StorageAccess
 import com.piotv.keytab.ime.SuggestionEngine
 import com.piotv.keytab.ime.ThemePrefs
+import com.piotv.keytab.sections.TrailSection
 
 /**
  * KeyTab – Einstellungsbildschirm: Tastatur aktivieren/wechseln, Theme.
@@ -37,6 +38,16 @@ import com.piotv.keytab.ime.ThemePrefs
 class MainActivity : AppCompatActivity() {
 
     private var displayedSettings: Map<String, Any?>? = null
+
+    /**
+     * Tippspur-Optionen (An/Aus, Stufen, Treffer-Markierung). Die Zeile baut
+     * dieselbe Klasse wie die Theme-Einstellungen ([TrailSection.buildControls])
+     * — die Optionen stehen auf beiden Seiten zur Verfügung, es gibt aber nur
+     * eine Implementierung. `onChange` bleibt leer: hier gibt es keine
+     * Theme-Vorschau; der laufende IME liest die Prefs selbst (TrailManager
+     * hört auf dieselbe Prefs-Datei).
+     */
+    private lateinit var trailSection: TrailSection
 
     /**
      * Wird ausschließlich vom „Grant file access“-Button ausgelöst (kein Prompt
@@ -105,6 +116,10 @@ class MainActivity : AppCompatActivity() {
             R.string.settings_dynamic_keys_on, R.string.settings_dynamic_keys_off)
         setupBooleanSwitch(R.id.sw_swipe, Prefs.KEY_SWIPE, false,
             R.string.settings_swipe_on, R.string.settings_swipe_off)
+
+        // Tippspur-Optionen: gleiche Zeile wie in den Theme-Einstellungen.
+        trailSection = TrailSection(this, prefs) { /* keine Vorschau nötig */ }
+        trailSection.buildControls(findViewById(R.id.row_trail))
 
         setupConfigButtons()
         setupKeyboardButtons()
@@ -214,6 +229,9 @@ class MainActivity : AppCompatActivity() {
         SettingsConfig.importIfChanged(this)
         // Zurück aus den System-Einstellungen (All-files access) → Status neu lesen.
         refreshFileAccess()
+        // Beschriftung/Farbe der Tippspur-Buttons aus den Prefs nachziehen
+        // (z. B. wenn die Werte per keytab_config.txt importiert wurden).
+        trailSection.updateButton()
         val current = SettingsConfig.snapshot(Prefs.of(this))
         if (displayedSettings != current) recreate()
     }

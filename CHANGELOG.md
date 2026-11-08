@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/1.1.0/); versioning
 
 The version is **not** maintained here, but in `app/build.gradle.kts` (`versionCode` / `versionName`). `scripts/check_docs_drift.sh` (CI job "docs") checks on every push that this changelog's head, the fastlane changelog, and the Gradle version match.
 
+## 0.23
+
+- **Active tab's accent bar is green again — and stays green.** The 3 dp bar above the selected tab belongs to the cell's **background** now: `state_selected` carries a `LayerDrawable` of the flat key colour plus the green (`primary`) `TabAccentBarDrawable` on the top edge. Reason for the move: Android only refreshes the drawable state of `View.background` on every tab switch (`refreshDrawableState` → `mBackground.setState`); a `View.foreground` is resolved once when it is set and never re-resolved on selection changes — a bar in the foreground therefore stayed invisible (device finding 2026-11-07). The Material sliding indicator stays disabled (it is drawn *under* the opaque tab cells, `SlidingTabIndicator.draw` before `super.draw`), and the cell's ripple foreground is removed.
+- **Suggestion bar loses its top-chip bar.** The 3 dp green bar that used to sit on the top suggestion chip (`sug_1`, `@drawable/sug_top_bg`) is gone — the whole suggestion row is flat in the key colour, all five chips equal. The dead drawable `sug_top_bg.xml` is removed together with its runtime rebuild (`ThemeApplier.sugLayer`).
+- Tests: `ThemeApplierTest` now checks the bar inside the background (`LayerDrawable` layer 1 = green bar, 3 dp; default state = flat key colour) and that no ripple foreground remains; `TabControllerTest` covers the uniform tab labels.
+
 ## 0.22
 
 - **Editor tab: automatic file loading removed.** The editor no longer polls its directory for files written by other programs — that mode is gone, together with its watcher class and the four config keys that only existed for it. The editor-tab badge (number of open files) and the long-press menu (close all / new file / save / reload) are unaffected.

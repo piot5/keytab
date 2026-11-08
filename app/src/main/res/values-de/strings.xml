@@ -3,7 +3,9 @@
     <string name="ime_label">KeyTab Keyboard</string>
     <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Dateien</string>
-    <string name="ime_tab_editor">Editor</string>
+    <!-- Gross geschrieben, damit sich die Beschriftung vom Menue-Eintrag
+         „Editor“ unterscheidet (User-Wunsch 2026-11-06). -->
+    <string name="ime_tab_editor">EDITOR</string>
     <string name="clip_hint_empty">Noch keine Einträge – etwas kopieren und 📋 tippen.</string>
     <string name="editor_save">💾 Speichern</string>
     <string name="editor_load">📂 Laden</string>
@@ -28,6 +30,8 @@
     <string name="settings_version_label">Version %1$s</string>
     <string name="settings_section_keyboard">⌨️ Tastatur</string>
     <string name="settings_section_options">⚙️ Optionen</string>
+    <string name="settings_section_trail">🌊 Tippspur (Trail)</string>
+    <string name="settings_trail_hint">An/Aus, Stufen und Treffer-Markierung – dieselben Optionen wie in den Theme-Einstellungen. Änderungen wirken sofort in der Tastatur.</string>
     <string name="settings_section_storage">💾 Speicher &amp; Konfiguration</string>
     <string name="settings_section_test">🧪 Testbereich</string>
     <string name="settings_test_hint">Hier tippen, um die Tastatur zu testen …</string>
@@ -116,7 +120,7 @@
     <string name="settings_cleanup_dictionary_done">Gelerntes Wörterbuch bereinigt: %1$d Einträge entfernt.</string>
     <string name="settings_cleanup_dictionary_failed">Das gelernte Wörterbuch konnte nicht bereinigt werden.</string>
     <string name="config_ready">Konfiguration bereit: %1$s</string>
-    <string name="ime_tab_editor_short">Editor</string>
+    <string name="ime_tab_editor_short">EDITOR</string>
     <string name="ime_tab_clip_short">Clip</string>
     <string name="ime_tab_snip_short">Snip</string>
     <string name="settings_clip_tab">📋 Zwischenablage-Tab</string>

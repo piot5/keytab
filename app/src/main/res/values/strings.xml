@@ -3,7 +3,9 @@
     <string name="ime_label">KeyTab Keyboard</string>
     <string name="ime_tab_letters">abc</string>
     <string name="ime_tab_files">Files</string>
-    <string name="ime_tab_editor">Editor</string>
+    <!-- Gross geschrieben, damit sich die Beschriftung vom Menue-Eintrag
+         „Editor“ unterscheidet (User-Wunsch 2026-11-06). -->
+    <string name="ime_tab_editor">EDITOR</string>
     <string name="clip_hint_empty">No entries yet – copy something and tap 📋.</string>
     <string name="editor_save">💾 Save</string>
     <string name="editor_load">📂 Load</string>
@@ -28,6 +30,8 @@
     <string name="settings_version_label">Version %1$s</string>
     <string name="settings_section_keyboard">⌨️ Keyboard</string>
     <string name="settings_section_options">⚙️ Options</string>
+    <string name="settings_section_trail">🌊 Trail (typing trace)</string>
+    <string name="settings_trail_hint">On/off, steps and match marking – the same options as in the theme settings. Changes take effect in the keyboard immediately.</string>
     <string name="settings_section_storage">💾 Storage &amp; config</string>
     <string name="settings_section_test">🧪 Test area</string>
     <string name="settings_test_hint">Type here to test the keyboard …</string>
@@ -116,7 +120,7 @@
     <string name="settings_cleanup_dictionary_done">Learned dictionary cleaned: %1$d entries removed.</string>
     <string name="settings_cleanup_dictionary_failed">The learned dictionary could not be cleaned.</string>
     <string name="config_ready">Config ready: %1$s</string>
-    <string name="ime_tab_editor_short">Editor</string>
+    <string name="ime_tab_editor_short">EDITOR</string>
     <string name="ime_tab_clip_short">Clip</string>
     <string name="ime_tab_snip_short">Snip</string>
     <string name="settings_clip_tab">📋 Clipboard tab</string>

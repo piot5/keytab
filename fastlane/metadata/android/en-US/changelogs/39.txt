@@ -1,0 +1,4 @@
+- Version 0.23: the green accent bar above the active tab is back — it now lives in the tab cell's background where Android keeps it green on every tab switch.
+- The suggestion row is flat now: the separate green bar on the top suggestion chip is gone, all five chips look equal.
+- Fix: the bar had been invisible before (wrong drawable layer), reported on Android 16.
+- No settings changed; existing keytab_config.txt files keep working unchanged.

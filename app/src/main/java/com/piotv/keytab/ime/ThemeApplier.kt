@@ -2,7 +2,12 @@ package com.piotv.keytab.ime
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Canvas
+import android.graphics.ColorFilter
+import android.graphics.Paint
+import android.graphics.PixelFormat
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.LayerDrawable
@@ -19,8 +24,8 @@ import com.piotv.keytab.R
 /**
  * Theme-Verlauf + Farb-Overrides (Background/Highlight/Text, mit Alpha) auf den
  * View-Baum anwenden. Erkennt die Original-Drawables über deren constantState
- * (key_bg-Selector, tab_bg_flat, sug_top_bg) und baut sie mit den neuen Farben
- * neu. Ohne Overrides ergibt sich der 0.9.4-Look 1:1.
+ * (key_bg-Selector, tab_bg_flat) und baut sie mit den neuen Farben neu. Ohne
+ * Overrides ergibt sich der 0.9.4-Look 1:1.
  *
  * Ausgelagert aus [KeyTabImeService] (God-Class-Reduktion): Die Funktion
  * [apply] und das rekursive [forEachView] sind reine View-Tree-/Drawable-
@@ -33,6 +38,9 @@ object ThemeApplier {
     private const val KEY_INSET_V_DP = 3
     private const val FULL_ALPHA = 255
     private const val TAB_TEXT_DIM_FACTOR = 0.6f
+
+    /** Höhe des Akzentbalkens am aktiven Tab (dp) — siehe [ThemeState.tabKeyState]. */
+    private const val TAB_INDICATOR_HEIGHT_DP = 3f
 
     /** Rekursive View-Hierarchie-Traversierung (Action auf jedem View).
      *  Besucht ALLE Views (auch ViewGroups): Tab-Views (LinearLayout) und andere
@@ -68,7 +76,6 @@ object ThemeApplier {
         val baseKeyBg = ContextCompat.getColor(ctx, R.color.key_bg)
         val basePressed = ContextCompat.getColor(ctx, R.color.key_pressed)
         val baseText = ContextCompat.getColor(ctx, R.color.key_text)
-        val basePrimary = ContextCompat.getColor(ctx, R.color.primary)
         return ThemeState().apply {
             bg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_BG, baseKbdBg)
             keyBg = ThemePrefs.getColor(prefs, dark, ThemePrefs.KIND_KEY, baseKeyBg)
@@ -78,9 +85,8 @@ object ThemeApplier {
             defKbdBg = baseKbdBg
             defPressed = basePressed
             defText = baseText
-            defPrimary = basePrimary
             defTabState = ContextCompat.getDrawable(ctx, R.drawable.tab_bg_flat)?.constantState
-            defSugState = ContextCompat.getDrawable(ctx, R.drawable.sug_top_bg)?.constantState
+            accent = ContextCompat.getColor(ctx, R.color.primary)
             dip = ctx.resources.displayMetrics.density
         }
     }
@@ -89,8 +95,6 @@ object ThemeApplier {
         val state = view.background?.constantState
         if (state == s.defTabState) {
             view.background = s.flatKeyState()
-        } else if (state == s.defSugState) {
-            view.background = s.sugLayer()
         } else {
             recolourByType(view, root, s)
         }
@@ -125,16 +129,76 @@ object ThemeApplier {
             s.text, (android.graphics.Color.alpha(s.text) * TAB_TEXT_DIM_FACTOR).toInt().coerceAtMost(FULL_ALPHA))
         tabs.setTabTextColors(dimText, s.text)
         tabs.background = ColorDrawable(android.graphics.Color.TRANSPARENT)
+        disableSlidingIndicator(tabs)
         for (i in 0 until tabs.childCount) {
             val indicator = tabs.getChildAt(i)
             if (indicator is ViewGroup) {
                 indicator.background = ColorDrawable(android.graphics.Color.TRANSPARENT)
                 for (j in 0 until indicator.childCount) {
-                    indicator.getChildAt(j).background = s.flatKeyState()
-                    indicator.getChildAt(j).foreground = null
+                    val cell = indicator.getChildAt(j)
+                    // Akzentbalken des aktiven Tabs (3 dp, grün) liegt im
+                    // BACKGROUND der Zelle, nicht im Foreground: Das Framework
+                    // führt den Zustand nur des Background-Drawables bei jedem
+                    // Selektionswechsel nach (refreshDrawableState →
+                    // mBackground.setState). View.foreground wird dagegen nur
+                    // einmal beim Setzen aufgelöst und beim Tab-Wechsel NICHT
+                    // nachgeführt — ein Balken im Foreground bliebe unsichtbar.
+                    cell.background = s.tabKeyState()
+                    // Das Ripple-Foreground von Material wird entfernt (der
+                    // Akzentbalken aus dem Background ersetzt es). Pro Zelle ein
+                    // eigenes Drawable, weil ein geteiltes Drawable sich die
+                    // Bounds mit dem nächsten Zeichenvorgang teilen würde.
+                    cell.foreground = null
                 }
             }
         }
+    }
+
+    /**
+     * Den Material-eigenen (gleitenden) Indikator des TabLayout abschalten:
+     * Farbe transparent, Höhe 0.
+     *
+     * Der Akzentbalken kommt aus dem **Background** der Tab-Zelle
+     * ([ThemeState.tabKeyState]) — siehe `keyboard_view.xml`. Der
+     * Indikator des TabLayout liegt zeichentechnisch *unter* den Tab-Zellen
+     * (TabLayout.onDraw → SlidingTabIndicator → TabView.background), wäre also
+     * hinter der flachen Zellenfarbe unsichtbar; ohne das Abschalten läge
+     * zusätzlich ein zweiter Balken darunter.
+     */
+    private fun disableSlidingIndicator(tabs: TabLayout) {
+        tabs.setSelectedTabIndicatorColor(android.graphics.Color.TRANSPARENT)
+        tabs.setSelectedTabIndicatorHeight(0)
+    }
+
+    /**
+     * Farbbalken am oberen Rand eines Views (Höhe in Pixeln) — der grüne Akzent
+     * über dem aktiven Tab.
+     *
+     * Als oberster Layer des Zellen-Backgrounds ([ThemeState.tabKeyState])
+     * eingesetzt. Eigene Drawable-Klasse statt `GradientDrawable`/`setLayerSize`
+     * als Balken: dort sind Layer-Reihenfolge und `setLayerSize(-1, h)`
+     * (Intrinsic vs. Match-Parent) versionsabhängig; hier ist das Zeichnen
+     * eindeutig (Rechteck am oberen Rand, Höhe [heightPx]). `internal` (statt
+     * private), damit Tests die Klasse direkt prüfen können.
+     */
+    internal class TabAccentBarDrawable(val color: Int, val heightPx: Int) : Drawable() {
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
+
+        override fun draw(canvas: Canvas) {
+            val h = heightPx.coerceAtMost(bounds.height())
+            if (h > 0 && bounds.width() > 0) {
+                canvas.drawRect(
+                    bounds.left.toFloat(), bounds.top.toFloat(),
+                    bounds.right.toFloat(), (bounds.top + h).toFloat(), paint)
+            }
+        }
+
+        override fun setAlpha(alpha: Int) { paint.alpha = alpha; invalidateSelf() }
+        override fun setColorFilter(colorFilter: ColorFilter?) {
+            paint.colorFilter = colorFilter; invalidateSelf()
+        }
+        @Deprecated("Deprecated in Android")
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
     }
 
     private fun applySuggestionBar(root: View, s: ThemeState) {
@@ -147,7 +211,11 @@ object ThemeApplier {
                 R.id.sug_1, R.id.sug_2, R.id.sug_3, R.id.sug_4, R.id.sug_5,
                 R.id.sug_hide)) {
             val sug = root.findViewById<View>(id) ?: continue
-            sug.background = if (id == R.id.sug_1) s.sugLayer() else ColorDrawable(s.keyBg)
+            // Alle Chips flach in der Tastenfarbe — auch sug_1: der frühere
+            // 3-dp-Akzentbalken in `primary` (grün) über dem Top-Vorschlag ist
+            // entfernt (samt `drawable/sug_top_bg.xml`), die Vorschlagszeile
+            // trägt keine Leiste mehr.
+            sug.background = ColorDrawable(s.keyBg)
             (sug as? TextView)?.setTextColor(s.text)
         }
     }
@@ -162,9 +230,9 @@ object ThemeApplier {
         var defKbdBg = 0
         var defPressed = 0
         var defText = 0
-        var defPrimary = 0
         var defTabState: android.graphics.drawable.Drawable.ConstantState? = null
-        var defSugState: android.graphics.drawable.Drawable.ConstantState? = null
+        /** Akzentfarbe für den Balken über dem aktiven Tab (`primary`, grün). */
+        var accent = 0
         var dip = 0f
 
         fun rounded(color: Int): GradientDrawable = GradientDrawable().apply {
@@ -182,11 +250,30 @@ object ThemeApplier {
             addState(intArrayOf(), ColorDrawable(keyBg))
         }
 
-        fun sugLayer(): LayerDrawable = LayerDrawable(
-            arrayOf(ColorDrawable(keyBg), GradientDrawable().apply { setColor(defPrimary) })
-        ).apply {
-            setLayerGravity(1, Gravity.TOP)
-            setLayerHeight(1, (3 * dip).toInt())
+        /**
+         * Zellen-Hintergrund einer Tab-Zelle: im ausgewählten Zustand die flache
+         * Tastenfarbe PLUS den grünen Akzentbalken (3 dp, `primary`) am oberen
+         * Rand (LayerDrawable); sonst nur die flache Tastenfarbe.
+         *
+         * Der Balken liegt im **Background** statt im Foreground, weil das
+         * Framework den Zustand nur des Background-Drawables bei jedem
+         * Selektionswechsel nachführt (`refreshDrawableState` → `mBackground.
+         * setState`). Ein `View.foreground` wird dagegen nur einmal beim Setzen
+         * aufgelöst und beim Tab-Wechsel nicht aktualisiert — ein Akzentbalken im
+         * Foreground bliebe dadurch unsichtbar (Gerätebefund 2026-11-07).
+         */
+        fun tabKeyState(): StateListDrawable = StateListDrawable().apply {
+            addState(
+                intArrayOf(android.R.attr.state_selected),
+                LayerDrawable(
+                    arrayOf(
+                        ColorDrawable(keyBg),
+                        TabAccentBarDrawable(accent, (TAB_INDICATOR_HEIGHT_DP * dip).toInt()),
+                    )
+                ).apply { setLayerGravity(1, Gravity.TOP) }
+            )
+            addState(intArrayOf(android.R.attr.state_pressed), ColorDrawable(hl))
+            addState(intArrayOf(), ColorDrawable(keyBg))
         }
     }
 }

@@ -8,6 +8,7 @@ Mobile IDE built as an Android keyboard (IME): file manager, editor, snippets an
 [![F-Droid](https://img.shields.io/badge/f--droid-com.piotv.keytab-633?logo=f-droid&logoColor=white)](https://f-droid.org/en/packages/com.piotv.keytab/)
 [![Platform](https://img.shields.io/badge/platform-Android%207%2B%20%28API%2024%2B%29-3ddc84?logo=android&logoColor=white)](https://developer.android.com)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-db2777?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/piot5)
 
 ## Download & Installation
 
@@ -23,6 +24,22 @@ Mobile IDE built as an Android keyboard (IME): file manager, editor, snippets an
 3. Switch to KeyTab in any text field.
 
 Release history lives in **[CHANGELOG.md](CHANGELOG.md)**.
+
+## Screenshots
+
+Real captures from the running app on a device (not mockups), taken 2026-09-29:
+
+| Light theme (QWERTZ, de) | Dark theme (default) | Snippets tab |
+|---|---|---|
+| ![Light theme](docs/images/device/abc-light.jpg) | ![Dark theme](docs/images/device/abc-dark.jpg) | ![Snippets tab](docs/images/device/snippets.jpg) |
+
+| Files tab | Editor tab | Clipboard |
+|---|---|---|
+| ![Files tab](docs/images/device/files.jpg) | ![Editor tab](docs/images/device/editor.jpg) | ![Clipboard](docs/images/device/clipboard.jpg) |
+
+A short GIF demo of typing with suggestions: ![Demo](docs/images/device/demo.gif)
+
+The top suggestion is rendered 2× wider than the others, the likely next key is scaled up (dynamic key sizing), and at a sentence start with no word typed the bar falls back to your last used snippets.
 
 ## What it does
 

@@ -1,13 +1,16 @@
 package com.piotv.keytab.ime
 
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Handler
 import android.os.Looper
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.google.android.material.tabs.TabLayout
 import com.piotv.keytab.Prefs
 import com.piotv.keytab.R
@@ -354,5 +357,179 @@ class TabControllerTest {
         }
         tabs.getTabAt(0)!!.select()
         assertEquals("zurueck im abc-Tab", View.VISIBLE, bar.visibility)
+    }
+
+    // --- Beschriftungen der Tab-Leiste (Geraetebefunde 2026-11-05/06) ---------
+
+    /**
+     * Label einer Tab-Zelle — bei Custom-Views auch das Label darin.
+     *
+     * `GONE`-Kinder werden uebersprungen: bei einem Tab mit Custom-View legt
+     * Material zusaetzlich einen eigenen TextView an und blendet ihn aus
+     * (`TabView.updateTab`: `textView.setVisibility(GONE)`). Der hat Breite 0 und
+     * wuerde die Messungen sonst verfaelschen (er traegt zwar denselben Text,
+     * sitzt aber unsichtbar am Zellenrand).
+     */
+    private fun labelOf(tabs: TabLayout, i: Int): TextView {
+        val cell = tabs.getTabAt(i)!!.view as ViewGroup
+        fun find(v: View): TextView? {
+            if (v.visibility != View.VISIBLE) return null
+            if (v is TextView) return v
+            if (v is ViewGroup) for (j in 0 until v.childCount) find(v.getChildAt(j))?.let { return it }
+            return null
+        }
+        return find(cell)!!
+    }
+
+    /** Kontext mit festgelegtem Hell/Dunkel-Zustand (System bzw. Theme). */
+    private fun cfgContext(night: Boolean): Context {
+        val conf = Configuration(app.resources.configuration)
+        conf.uiMode = (conf.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+            if (night) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
+        return app.createConfigurationContext(conf)
+    }
+
+    /**
+     * @param systemNight Zustand des Systems (= Service-Kontext),
+     * @param themeNight  gewaehltes App-Theme (= Kontext des Roots).
+     */
+    private fun tabsFor(systemNight: Boolean, themeNight: Boolean): TabLayout {
+        val root = LayoutInflater.from(ContextThemeWrapper(cfgContext(themeNight), R.style.Theme_KeyTab))
+            .inflate(R.layout.keyboard_view, null)
+        val ctx = cfgContext(systemNight)
+        TabController(TestHost(ctx, TestEditorPanel(ctx, root))).setup(root)
+        return root.findViewById(R.id.ime_tabs)
+    }
+
+    /**
+     * Alle Tab-Beschriftungen sind gleich gross — auch nach jedem Tab-Wechsel.
+     *
+     * Zwei Ursachen fuer die Abweichung: das Label des Editor-Tabs stand mit
+     * 9sp im Custom-View-Layout (die uebrigen 8sp aus `KeyTabSmallTabText`),
+     * und `TabLayout.setSelectedTabView` ruft bei jedem Wechsel
+     * `TabView.updateTab()` → `setTextAppearance(...)` und setzt die Groesse
+     * damit erneut auf den Theme-Wert. Der einmalige Aufbau reicht also nicht.
+     */
+    @Test fun `Alle Tab-Beschriftungen sind gleich gross, auch nach Tab-Wechseln`() {
+        val tabs = tabsFor(systemNight = false, themeNight = false)
+        fun sizes() = (0 until tabs.tabCount).map { labelOf(tabs, it).textSize }
+        assertEquals("nach dem Aufbau: ${sizes()}", 1, sizes().distinct().size)
+        for (i in 0 until tabs.tabCount) {
+            tabs.getTabAt(i)!!.select()
+            assertEquals("nach Tab-Wechsel $i: ${sizes()}", 1, sizes().distinct().size)
+        }
+        assertEquals(
+            "8sp wie in KeyTabSmallTabText",
+            8f * app.resources.displayMetrics.scaledDensity, labelOf(tabs, 0).textSize, 0.01f
+        )
+    }
+
+    /**
+     * Regression (Geraetebefund 2026-11-06): Das Editor-Label stand im
+     * Custom-View am **linken Rand** (`alignParentStart`), waehrend Material die
+     * Labels der uebrigen Tabs mittig in ihre Zelle setzt (TabView ist eine
+     * LinearLayout mit `gravity=CENTER`). Der Tab-Button sah damit optisch
+     * anders aus als abc/Files/Clip/Snip. Das Label sitzt jetzt mittig in der
+     * Zelle — und zwar unabhaengig davon, ob die Datei-Plakette sichtbar ist
+     * (sie haengt am Label-Ende und verschiebt es nicht).
+     *
+     * Verglichen wird gegen die **eigene Zelle**, nicht gegen ein anderes
+     * Label: die Zellen sind gleich breit (tabMode=fixed, tabGravity=fill), die
+     * Labels aber unterschiedlich breit („abc" gegen „EDITOR"), absolute
+     * X-Mitten waeren also nicht vergleichbar.
+     */
+    @Test fun `Editor-Label sitzt mittig in der Zelle wie die anderen Labels`() {
+        val root = root()
+        TabController(TestHost(app, TestEditorPanel(app, root))).setup(root)
+        val tabs = root.findViewById<TabLayout>(R.id.ime_tabs)
+        val width = app.resources.displayMetrics.widthPixels
+
+        // Layout-Pass von Hand: Robolectric legt keinen an (kein Fenster).
+        fun relayout() {
+            root.measure(
+                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            root.layout(0, 0, width, root.measuredHeight)
+        }
+        // Absolute X-Mitte: Label und Zelle liegen in verschiedenen Eltern,
+        // die linken Werte sind also erst nach Aufsummieren der Offsets
+        // vergleichbar.
+        fun absCenterX(v: View): Float {
+            var x = v.left.toFloat()
+            var p: View? = v.parent as? View
+            while (p != null) {
+                x += p.left
+                p = p.parent as? View
+            }
+            return x + v.width / 2f
+        }
+
+        relayout()
+        assertTrue("Tab-Zellen wurden nicht gelayoutet (Breite 0)",
+            tabs.getTabAt(0)!!.view.width > 0)
+
+        // Vorgabe der anderen Tabs: Material zentriert die Labels in der Zelle.
+        // (Beim Editor-Tab liefert `labelOf` das Label aus dem Custom-View; der
+        // ausgeblendete Material-TextView der Zelle wird uebersprungen.)
+        for (i in 0 until tabs.tabCount) {
+            assertEquals("Vorgabe: Label von Tab $i sitzt mittig in seiner Zelle",
+                absCenterX(tabs.getTabAt(i)!!.view), absCenterX(labelOf(tabs, i)), 1f)
+        }
+
+        val editor = tabs.getTabAt(1)!!.customView!!.findViewById<TextView>(R.id.editor_tab_label)
+        val badge = tabs.getTabAt(1)!!.customView!!.findViewById<TextView>(R.id.editor_tab_badge)
+        val cell = tabs.getTabAt(1)!!.view
+
+        // Standardfall (0 offene Dateien): Plakette aus, Label mittig wie die anderen.
+        assertEquals("Plakette ohne offene Datei aus", View.GONE, badge.visibility)
+        assertEquals("Editor-Label mittig in der Zelle", absCenterX(cell), absCenterX(editor), 1f)
+
+        // Mit Plakette: das Label bleibt mittig, die Plakette haengt rechts davon.
+        badge.visibility = View.VISIBLE
+        badge.text = "2"
+        relayout()
+        assertEquals("Label bleibt mittig, auch wenn die Plakette sichtbar ist",
+            absCenterX(cell), absCenterX(editor), 1f)
+        assertTrue("Plakette steht rechts neben dem Label",
+            absCenterX(badge) > absCenterX(editor))
+    }
+
+    /**
+     * Regression (Geraetebefund 2026-11-05): Bei hellem App-Theme in einem
+     * dunklen System war die Editor-Aufschrift unlesbar (weiss auf weisser
+     * Tab-Flaeche). Ursache: die Custom-View des Editor-Tabs wurde mit dem
+     * **Service**-Kontext inflatet, `@color/tab_text` loeste dort also als
+     * Nacht-Ressource (#FFFFFF) auf, waehrend die Tab-Flaeche hell war. Sie
+     * muss mit dem Theme-Kontext des Roots aufgebaut werden und danach
+     * dieselbe Farbe tragen wie die Labels der uebrigen Tabs — inklusive
+     * Auswahl-Zustand (die Farbe liegt als ColorStateList vor).
+     */
+    @Test fun `Editor-Tab-Label traegt die Theme-Farbe auch beim Theme-Override`() {
+        val tabs = tabsFor(systemNight = true, themeNight = false)
+        val editor = tabs.getTabAt(1)!!.customView!!.findViewById<TextView>(R.id.editor_tab_label)
+        val badge = tabs.getTabAt(1)!!.customView!!.findViewById<TextView>(R.id.editor_tab_badge)
+        badge.visibility = View.VISIBLE
+        badge.text = "2"
+        // Der Service-Kontext liefert die Nacht-Farbe — genau die Falle.
+        assertEquals("Nacht-Ressource im Service-Kontext", 0xFFFFFFFF.toInt(),
+            ContextCompat.getColor(cfgContext(true), R.color.tab_text))
+        // Der Theme-Kontext (hell) liefert Schwarz, unabhaengig vom System.
+        assertEquals(0xFF000000.toInt(), ContextCompat.getColor(editor.context, R.color.tab_text))
+
+        tabs.getTabAt(0)!!.select()   // abc aktiv -> Editor unselektiert
+        val selected = labelOf(tabs, 0).currentTextColor
+        val unselected = labelOf(tabs, 2).currentTextColor
+        assertEquals("Editor-Label (unselektiert) wie die anderen Tabs",
+            unselected, editor.currentTextColor)
+        assertFalse("Editor-Tab ist nicht aktiv", editor.isSelected)
+
+        tabs.getTabAt(1)!!.select()   // Editor aktiv
+        assertEquals("Editor-Label (selektiert) wie die anderen Tabs",
+            selected, editor.currentTextColor)
+        assertTrue("Editor-Label folgt der Auswahl", editor.isSelected)
+        assertFalse("abc-Label ist nicht mehr selektiert", labelOf(tabs, 0).isSelected)
+        // Die Plakette bleibt eine weisse Ziffer auf eigener Pille.
+        assertEquals(0xFFFFFFFF.toInt(), badge.currentTextColor)
     }
 }

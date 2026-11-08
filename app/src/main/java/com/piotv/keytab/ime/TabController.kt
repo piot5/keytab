@@ -1,8 +1,11 @@
 package com.piotv.keytab.ime
 
 import android.app.AlertDialog
+import android.content.Context
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -41,7 +44,18 @@ internal enum class SymbolPlane(val labelRes: Int, val panelId: Int) {
  */
 @Suppress("TooManyFunctions")
 internal class TabController(private val host: TabHost) {
-    private companion object { const val TAB_TEXT_SIZE_SP = 8f }
+    private companion object {
+        /**
+         * Schriftgröße **aller** Tab-Beschriftungen. Muss zu
+         * `KeyTabSmallTabText` (tabTextAppearance) passen — der Wert dort ist
+         * nur der Startwert, maßgeblich ist diese Konstante
+         * ([applyUniformTabLabelStyle] läuft bei jedem Tab-Wechsel erneut).
+         */
+        const val TAB_TEXT_SIZE_SP = 8f
+
+        /** Toleranz für den px-Vergleich vor `setTextSize` (spart Layout-Pässe). */
+        const val TEXT_SIZE_EPSILON_PX = 0.01f
+    }
 
     internal enum class TabKind { ABC, EDITOR, FILES, CLIP, SNIPPET }
     private var plane: SymbolPlane = SymbolPlane.LETTERS
@@ -74,15 +88,72 @@ internal class TabController(private val host: TabHost) {
         (root.findViewById<android.widget.TextView>(R.id.sug_hide))?.text = symbol
     }
 
-    private fun applyUniformTabTextSize(tabs: TabLayout) {
-        val group = tabs.getChildAt(0) as? android.view.ViewGroup ?: return
-        for (i in 0 until group.childCount) {
-            val cell = group.getChildAt(i) as? android.view.ViewGroup ?: continue
-            for (j in 0 until cell.childCount) {
-                val tv = cell.getChildAt(j) as? android.widget.TextView ?: continue
-                tv.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, TAB_TEXT_SIZE_SP)
+    /**
+     * Beschriftungen **aller** Tabs angleichen: Größe, einzeilig und die
+     * Theme-Textfarbe des Tabs (unselektiert gedimmt, selektiert voll).
+     *
+     * Warum das nötig ist (Geraetebefund 2026-11-05):
+     *
+     *  1. Material wendet seine Tab-TextAppearance nur auf den *eingebauten*
+     *     TextView eines Tabs an. Der Editor-Tab traegt aber ein Custom-View
+     *     (`tab_editor_badge.xml`: Label + Datei-Plakette) — dessen Label erbte
+     *     weder die einheitliche Groesse (9sp aus dem Layout gegen 8sp aus
+     *     `KeyTabSmallTabText`) noch die Theme-Farbe.
+     *  2. Die Custom-View wird mit dem **Service**-Kontext inflated
+     *     ([setupEditorTabView]), alle anderen Tabs dagegen mit dem
+     *     Theme-Kontext aus [KeyboardViewFactory]. Bei hellem Theme-Override in
+     *     einem dunklen System kam `@color/tab_text` deshalb als Nacht-Ressource
+     *     (#FFFFFF) an, waehrend die Tab-Flaeche hell war: weiss auf weiss —
+     *     die Editor-Aufschrift war unlesbar.
+     *  3. `TabLayout.setSelectedTabView` ruft bei jedem Tab-Wechsel
+     *     `TabView.updateTab()` → `setTextAppearance(...)` und setzt die Groesse
+     *     damit auf den Theme-Wert zurueck. Der einmalige Aufruf beim Aufbau
+     *     verpuffte also nach dem ersten Tab-Wechsel; deshalb laeuft die
+     *     Angleichung bei jedem Tab-Wechsel erneut ([applySelected]).
+     */
+    private fun applyUniformTabLabelStyle(tabs: TabLayout) {
+        val px = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_SP, TAB_TEXT_SIZE_SP, tabs.resources.displayMetrics
+        )
+        val colors = tabs.tabTextColors
+        for (i in 0 until tabs.tabCount) {
+            val cell = tabs.getTabAt(i)?.view as? ViewGroup ?: continue
+            forEachLabel(cell) { tv ->
+                if (kotlin.math.abs(tv.textSize - px) > TEXT_SIZE_EPSILON_PX) {
+                    tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, px)
+                }
                 tv.maxLines = 1
+                // Die Plakette des Editor-Tabs ist kein Label, sondern ein
+                // Zaehler: sie behaelt ihre eigene Farbe (weisse Ziffer auf
+                // farbiger Pille) und bekommt nur die einheitliche Groesse.
+                if (tv.id != R.id.editor_tab_badge && colors != null && tv.textColors != colors) {
+                    tv.setTextColor(colors)
+                }
             }
+        }
+    }
+
+    /** Alle TextViews einer Tab-Zelle — auch die in einer Custom-View. */
+    private fun forEachLabel(view: View, action: (TextView) -> Unit) {
+        if (view is TextView) action(view)
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) forEachLabel(view.getChildAt(i), action)
+        }
+    }
+
+    /**
+     * Selektions-Zustand an die Labels einer Custom-View weitergeben.
+     *
+     * `TabView.setSelected` setzt `selected` nur auf der Custom-View selbst,
+     * nicht auf deren Kinder. Ohne diese Weitergabe bliebe das Editor-Label
+     * immer in der Farbe fuer „unselektiert“ — die Labels der anderen Tabs
+     * dimmen beim Tab-Wechsel dagegen mit (ColorStateList aus
+     * [applyUniformTabLabelStyle]).
+     */
+    private fun syncCustomTabSelection(tab: TabLayout.Tab?, selected: Boolean) {
+        val custom = tab?.customView ?: return
+        forEachLabel(custom) { tv ->
+            if (tv.id != R.id.editor_tab_badge) tv.isSelected = selected
         }
     }
 
@@ -103,11 +174,15 @@ internal class TabController(private val host: TabHost) {
         tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_letters)))
         tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_editor)))
         editorTab = tabs.getTabAt(1)
-        setupEditorTabView(editorTab)
+        // Theme-Kontext des Roots (nicht der Service-Kontext): nur so loesen
+        // @color/tab_text & Co. im Custom-View die Ressourcen des *gewaehlten*
+        // Themes auf (Geraetebefund 2026-11-05, Details in
+        // [applyUniformTabLabelStyle]).
+        setupEditorTabView(editorTab, root.context)
         tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_files)))
         if (clipEnabled) tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_clip_short)))
         if (snipEnabled) tabs.addTab(tabs.newTab().setText(host.context.getString(R.string.ime_tab_snip_short)))
-        applyUniformTabTextSize(tabs)
+        applyUniformTabLabelStyle(tabs)
         kinds = buildList {
             add(TabKind.ABC); add(TabKind.EDITOR); add(TabKind.FILES)
             if (clipEnabled) add(TabKind.CLIP)
@@ -189,6 +264,15 @@ internal class TabController(private val host: TabHost) {
                 panel.layoutParams = panel.layoutParams.apply { height = h }
             }
         }
+        // Zuletzt die Beschriftungen angleichen: `setSelectedTabView` hat beim
+        // Wechsel gerade `TabView.updateTab()` → `setTextAppearance(...)`
+        // ausgeloest und damit Groesse/Farbe der Labels zurueckgesetzt. Das
+        // Editor-Label (Custom-View) und die Auswahl-Farbe der eigenen Labels
+        // brauchen die Angleichung nach jedem Wechsel erneut.
+        (tab.parent as? TabLayout)?.let { tabs ->
+            applyUniformTabLabelStyle(tabs)
+            syncCustomTabSelection(editorTab, editorTab === tab)
+        }
     }
 
     /** Aktiviert das zum Tab gehörige Panel und setzt den Eingabe-Router. */
@@ -228,8 +312,8 @@ internal class TabController(private val host: TabHost) {
      * soll. Der Long-Press-Handler hängt an der **Custom-View** — ein
      * `TabLayout.Tab` kennt keinen eigenen Long-Press-Listener.
      */
-    private fun setupEditorTabView(tab: TabLayout.Tab?) {
-        val custom = LayoutInflater.from(host.context)
+    private fun setupEditorTabView(tab: TabLayout.Tab?, themedContext: Context) {
+        val custom = LayoutInflater.from(themedContext)
             .inflate(R.layout.tab_editor_badge, null, false)
         custom.findViewById<TextView>(R.id.editor_tab_label)?.text =
             host.context.getString(R.string.ime_tab_editor)

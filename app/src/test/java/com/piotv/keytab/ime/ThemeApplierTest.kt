@@ -67,28 +67,39 @@ class ThemeApplierTest {
      * Nicht-StateList-Drawables werden unverändert zurückgegeben.
      */
     private fun defaultStateDrawable(d: android.graphics.drawable.Drawable?)
-        : android.graphics.drawable.Drawable? {
-        if (d == null) return null
-        val sld = d as? android.graphics.drawable.StateListDrawable ?: return d
-        fun fieldOf(obj: Any, name: String): Any? {
-            var c: Class<*>? = obj.javaClass
-            while (c != null) {
-                try {
-                    val f = c.getDeclaredField(name)
-                    f.isAccessible = true
-                    return f.get(obj)
-                } catch (_: NoSuchFieldException) {
-                    c = c.superclass
-                }
+        : android.graphics.drawable.Drawable? =
+        stateDrawableFor(d, intArrayOf()) ?: (d as? android.graphics.drawable.Drawable)
+            ?.takeUnless { it is android.graphics.drawable.StateListDrawable }
+
+    /** Feld über die Klassenhierarchie lesen (Reflexion, nur Test). */
+    private fun fieldOf(obj: Any, name: String): Any? {
+        var c: Class<*>? = obj.javaClass
+        while (c != null) {
+            try {
+                val f = c.getDeclaredField(name)
+                f.isAccessible = true
+                return f.get(obj)
+            } catch (_: NoSuchFieldException) {
+                c = c.superclass
             }
-            return null
         }
+        return null
+    }
+
+    /**
+     * Drawable eines StateListDrawable zu einem bestimmten State-Set (z. B.
+     * `state_selected`). Die States liegen in DrawableContainerState.mStateSets
+     * (Reflexion, nur Test). null = kein StateListDrawable / State nicht vorhanden.
+     */
+    private fun stateDrawableFor(d: android.graphics.drawable.Drawable?, stateSet: IntArray)
+        : android.graphics.drawable.Drawable? {
+        val sld = d as? android.graphics.drawable.StateListDrawable ?: return null
         val state = fieldOf(sld, "mDrawableContainerState") ?: return null
         val drawables = fieldOf(state, "mDrawables") as? Array<*> ?: return null
         val stateSets = fieldOf(state, "mStateSets") as? Array<*> ?: return null
         for (i in stateSets.indices) {
             val set = stateSets[i] as? IntArray ?: continue
-            if (set.isEmpty()) return drawables[i] as? android.graphics.drawable.Drawable
+            if (set.contentEquals(stateSet)) return drawables[i] as? android.graphics.drawable.Drawable
         }
         return null
     }
@@ -129,6 +140,29 @@ class ThemeApplierTest {
     }
 
     @Test
+    fun `Top-Vorschlag traegt keinen Akzentbalken mehr`() {
+        val cfg = nightContext()
+        val root = inflateRoot(cfg)
+        val prefs = app.getSharedPreferences(ThemePrefs.PREFS, android.content.Context.MODE_PRIVATE)
+        prefs.edit().clear().apply()
+        ThemePrefs.setColor(prefs, true, ThemePrefs.KIND_KEY, 0x80FF0000.toInt())
+
+        ThemeApplier.apply(prefs, true, root, cfg)
+
+        // sug_1 war der einzige Chip mit einem 3-dp-Balken in `primary` (gruen)
+        // am oberen Rand (LayerDrawable aus drawable/sug_top_bg.xml). Jetzt
+        // flach wie sug_2..sug_5: gleiche Fuellung, kein zweiter Layer.
+        val top = root.findViewById<View>(R.id.sug_1).background
+        assertTrue("Top-Vorschlag darf kein LayerDrawable (Akzentbalken) tragen",
+            top !is android.graphics.drawable.LayerDrawable)
+        assertEquals("Top-Vorschlag: Alpha-Tastenfarbe wie sug_2", 0x80FF0000.toInt(),
+            defaultStateColor(top) ?: -1)
+        assertEquals("Top-Vorschlag und sug_2 muessen gleich gefuellt sein",
+            defaultStateColor(root.findViewById<View>(R.id.sug_2).background),
+            defaultStateColor(top))
+    }
+
+    @Test
     fun `Export enthaelt alle Theme-Farben als JSON`() {
         val ctx = app
         val prefs = ctx.getSharedPreferences(ThemePrefs.PREFS, android.content.Context.MODE_PRIVATE)
@@ -146,6 +180,51 @@ class ThemeApplierTest {
             assertEquals(0xFFFF0000.toInt(), getJSONObject("dark").getInt(ThemePrefs.KIND_LIKELY))
             assertTrue(has("version"))
         }
+    }
+
+    @Test
+    fun `Aktiver Tab traegt gruenen Akzentbalken im Hintergrund`() {
+        val cfg = nightContext()
+        val root = inflateRoot(cfg)
+        val prefs = app.getSharedPreferences(ThemePrefs.PREFS, android.content.Context.MODE_PRIVATE)
+        prefs.edit().clear().apply()
+
+        ThemeApplier.apply(prefs, true, root, cfg)
+
+        val tabs = root.findViewById<com.google.android.material.tabs.TabLayout>(R.id.ime_tabs)
+        // 1) Der Material-Indikator ist abgeschaltet: er wird VOR den Tab-Zellen
+        //    gezeichnet und wäre hinter deren flacher Zellenfarbe unsichtbar.
+        assertEquals("SlidingTabIndicator muss aus sein (Höhe 0)",
+            0, tabs.tabSelectedIndicator.bounds.height())
+
+        // 2) Jede Zelle: selected → LayerDrawable (Tastenfarbe + grüner Balken oben),
+        //    Default-State → flache Tastenfarbe.
+        val accent = androidx.core.content.ContextCompat.getColor(cfg, R.color.primary)
+        val barPx = (3 * cfg.resources.displayMetrics.density).toInt()
+        var cells = 0
+        for (i in 0 until tabs.childCount) {
+            val c = tabs.getChildAt(i) as? ViewGroup ?: continue
+            for (j in 0 until c.childCount) {
+                val cell = c.getChildAt(j)
+                val bg = cell.background
+                assertTrue("Tab-Zelle $j: Hintergrund muss ein StateListDrawable sein",
+                    bg is android.graphics.drawable.StateListDrawable)
+                val sel = stateDrawableFor(bg, intArrayOf(android.R.attr.state_selected))
+                    as? android.graphics.drawable.LayerDrawable
+                assertTrue("Tab-Zelle $j: selected-State muss ein LayerDrawable sein", sel != null)
+                val bar = sel?.getDrawable(1) as? ThemeApplier.TabAccentBarDrawable
+                assertTrue("Tab-Zelle $j: Layer 1 muss der Akzentbalken sein", bar != null)
+                assertEquals("Tab-Zelle $j: Balkenfarbe ist primary (grün)",
+                    accent, bar?.color)
+                assertEquals("Tab-Zelle $j: Balkenhoehe ist 3 dp", barPx, bar?.heightPx)
+                // Default-State bleibt die flache Tastenfarbe (kein Balken).
+                assertEquals("Tab-Zelle $j: Default-State bleibt flache Tastenfarbe",
+                    defaultStateColor(sel?.getDrawable(0)),
+                    (defaultStateDrawable(bg) as? android.graphics.drawable.ColorDrawable)?.color)
+                cells++
+            }
+        }
+        assertTrue("keine Tab-Zellen gefunden", cells > 0)
     }
 
     @Test
@@ -315,7 +394,9 @@ class ThemeApplierTest {
                 cornerRadiusOf(cell.background) ?: -1f, 0.001f)
             assertEquals("Tab-Zelle $i: Alpha-Tastenfarbe im Default-State",
                 0x80FF0000.toInt(), defaultStateColor(cell.background) ?: -1)
-            assertNull("Tab-Zelle $i: kein Ripple-Foreground", cell.foreground)
+            // Das Ripple-Foreground von Material ist entfernt (der Akzentbalken
+            // liegt im Background); Foreground muss daher null sein.
+            assertNull("Tab-Zelle $i: kein Ripple-Foreground mehr", cell.foreground)
         }
         assertEquals("keine Insets in der Tab-Leiste nach apply", 0, insetBgViews(tabs).size)
     }

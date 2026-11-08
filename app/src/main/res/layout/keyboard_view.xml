@@ -60,7 +60,20 @@
                  Zellen-Farbe kommt ausschließlich vom ime_tabs-Block in
                  ThemeApplier.apply(): TabLayout + SlidingTabIndicator werden
                  TRANSPARENT, jeder TabView bekommt flatKeyState() (flach, eckig,
-                 Theme-Farbe inkl. Alpha), das Ripple-Foreground wird gelöscht. -->
+                 Theme-Farbe inkl. Alpha). -->
+            <!-- Akzentbalken des aktiven Tabs (3 dp, `primary`/grün, oberer Rand):
+                 Er kommt aus dem BACKGROUND der Tab-Zelle (StateListDrawable mit
+                 state_selected → LayerDrawable aus Tastenfarbe + grünem
+                 ThemeApplier.TabAccentBarDrawable), nicht aus dem Indikator des
+                 TabLayout. Grund: der SlidingTabIndicator wird VOR den Tab-Zellen
+                 gezeichnet (deren flache Zellenfarbe läge darüber und verdeckte
+                 ihn). Der Balken liegt im Background und NICHT im View.foreground,
+                 weil das Framework nur den Background-Zustand bei jedem
+                 Selektionswechsel nachführt — ein Foreground-Balken bliebe
+                 unsichtbar. Das Ripple-Foreground von Material wird entfernt.
+                 Deshalb steht der TabLayout-Indikator hier auf transparent/0dp;
+                 ThemeApplier.disableSlidingIndicator() setzt das nach jedem
+                 Theme-Wechsel erneut. -->
 
 
             <com.google.android.material.tabs.TabItem
@@ -416,6 +429,11 @@
             android:background="@color/key_bg" android:text="▦"
             android:contentDescription="@string/sug_grid_desc"
             android:visibility="gone" />
+        <!-- Top-Vorschlag: flach in der Tastenfarbe wie sug_2..sug_5. Frueher
+             trug genau dieser Chip einen 3dp-Akzentbalken in `primary` (gruen)
+             am oberen Rand (`@drawable/sug_top_bg`, zur Laufzeit von
+             ThemeApplier.sugLayer() nachgebaut) — die Leiste ist entfernt,
+             der Drawable mit ihr. -->
         <TextView
             android:id="@+id/sug_1"
             android:layout_width="0dp" android:layout_height="match_parent"
@@ -423,7 +441,7 @@
             android:singleLine="true" android:textSize="15sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary" android:clickable="true"
-            android:focusable="true" android:background="@drawable/sug_top_bg" />
+            android:focusable="true" android:background="@color/key_bg" />
         <TextView
             android:id="@+id/sug_2"
             android:layout_width="0dp" android:layout_height="match_parent"

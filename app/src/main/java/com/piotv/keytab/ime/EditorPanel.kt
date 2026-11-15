@@ -2,6 +2,7 @@ package com.piotv.keytab.ime
 
 import android.app.AlertDialog
 import android.content.Context
+import android.net.Uri
 import android.os.Environment
 import android.os.Handler
 import android.text.Spanned
@@ -25,8 +26,8 @@ import java.util.concurrent.Executor
  * Toolbar und Editor-Chrome siehe [setupToolbar] und [setupEditorChrome].
  *
  * `@Suppress("TooManyFunctions")` ist bewusst und begründet: das Panel bündelt
- * I/O, Gutter/Highlighting und Speichern/Laden.
- * detekts Schwelle liegt bei 20 Funktionen, hier sind es 21 (29.10.2026).
+ * I/O, Gutter/Highlighting und Speichern/Laden (jetzt im SAF- und File-Modus).
+ * detekts Schwelle liegt bei 20 Funktionen, hier sind es 25 (09.11.2026).
  * Die Baseline bleibt leer — die Ausnahme steht sichtbar im Code.
  */
 @Suppress("TooManyFunctions")
@@ -44,6 +45,10 @@ open class EditorPanel(
     private val gutter: TextView? = rootView.findViewById(R.id.editor_gutter)
     private val highlightSpans = mutableListOf<ForegroundColorSpan>()
     private var editorFile: File = defaultFile()
+    // SAF-Modus: als content:// geladenes Dokument — es überschreibt editorFile
+    // als Save-Ziel, solange gesetzt (wird beim Laden einer Datei zurückgesetzt).
+    private var editorDocUri: Uri? = null
+    private var editorDocName: String = ""
 
     /**
      * Im Editor während der Sitzung geöffnete Dateien (Plaketten-Zähler).
@@ -60,10 +65,13 @@ open class EditorPanel(
         internal set
 
     /** Inkrementiert den Zähler und informiert den Editor-Tab. */
-    private fun onFileOpened(file: File) {
+    private fun onFileOpened(file: File) = onFileOpenedKey(file.absolutePath)
+
+    /** Schlüsselbasierte Variante: File-Pfad oder content-URI (SAF-Modus). */
+    private fun onFileOpenedKey(key: String) {
         // Nur unterschiedliche Dateien zählen — ein Reload derselben Datei
         // (Toolbar-↻) soll die Plakette nicht hochzählen.
-        if (openedPaths.add(file.absolutePath)) {
+        if (openedPaths.add(key)) {
             openFiles = openedPaths.size
         }
         tabHost?.refreshEditorBadge()
@@ -82,11 +90,17 @@ open class EditorPanel(
         openedPaths.clear()
         openFiles = 0
         clearEditor()
+        // SAF-Save-Ziel ebenso lösen: nach „Alle schließen“ gilt wieder die
+        // Default-Datei, nicht ein unsichtbares Dokument.
+        editorDocUri = null
         tabHost?.refreshEditorBadge()
     }
 
     /** Lädt die aktuelle Datei neu (Toolbar-↻ und Kontextmenü). */
-    fun reloadCurrent() = loadFile(editorFile)
+    fun reloadCurrent() {
+        val doc = editorDocUri
+        if (doc != null) loadDocument(doc) else loadFile(editorFile)
+    }
 
     private companion object {
         /** Max. Zahl der Nachpost-Versuche fuer das Gutter (N7). */
@@ -186,11 +200,16 @@ open class EditorPanel(
                 toast(R.string.editor_copied)
             }
         }
-        onClick(root, R.id.btn_editor_reload) { loadFile(editorFile) }
+        onClick(root, R.id.btn_editor_reload) { reloadCurrent() }
     }
 
-    /** Ordneransicht zur Datei-Auswahl (Load): Dialog mit navigierbarer ListView. */
+    /** Ordneransicht zur Datei-Auswahl (Load): Dialog mit navigierbarer ListView.
+     *  Im SAF-Modus (Ordnerzugriff erteilt) wird der freigegebene Baum angeboten. */
     private fun showFilePicker() {
+        if (SafAccess.treeUri(context) != null) {
+            showSafPicker()
+            return
+        }
         var dir: File? = editorFile.takeIf { it.parentFile?.isDirectory == true }?.parentFile
             ?: Environment.getExternalStorageDirectory()
             ?: context.filesDir
@@ -253,18 +272,146 @@ open class EditorPanel(
         dir?.let { refreshList(it) }
     }
 
+    /**
+     * Öffnet ein Ziel aus dem Files-Tab: File-Pfad (File-Modus) oder
+     * content-URI (SAF-Modus). Andere Schemata werden ignoriert.
+     */
+    fun openTarget(target: String) {
+        if (target.startsWith("content://")) {
+            runCatching { Uri.parse(target) }.getOrNull()?.let { loadDocument(it) }
+        } else {
+            openFile(File(target))
+        }
+    }
+
+    /**
+     * SAF-Variante des Load-Pickers: navigiert im freigegebenen Baum
+     * (Dokument-IDs statt File-Pfaden, gleiche UI-Form wie der File-Modus).
+     */
+    private fun showSafPicker() {
+        val tree = SafAccess.treeUri(context) ?: return
+        var docId: String = SafFiles.treeId(tree)
+        var dialog: AlertDialog? = null
+        val listView = ListView(context)
+        listView.background = android.graphics.drawable.ColorDrawable(
+            androidx.core.content.ContextCompat.getColor(context, R.color.list_bg))
+        fun refresh(d: String) {
+            docId = d
+            ioExecutor.execute {
+                val items = SafFiles.listChildren(context, tree, d).orEmpty()
+                    .map { SafFiles.label(it) }
+                mainHandler.post {
+                    // Veraltetes Ergebnis verwerfen, falls weiter navigiert wurde
+                    if (docId != d) return@post
+                    val labels = EditorTextState.pickerItems(
+                        SafPaths.parentDocId(d) != null, items,
+                        context.getString(R.string.editor_pick_parent),
+                        context.getString(R.string.editor_pick_empty)
+                    )
+                    listView.adapter = themedAdapter(context, labels)
+                    dialog?.setTitle("${context.getString(R.string.editor_load_title)} · " +
+                        SafPaths.pseudoPath(SafFiles.treeId(tree), d))
+                }
+            }
+        }
+        listView.setOnItemClickListener { _, _, position, _ ->
+            val item = (listView.adapter?.getItem(position) as? String)
+                ?: return@setOnItemClickListener
+            if (item == context.getString(R.string.editor_pick_parent)) {
+                SafPaths.parentDocId(docId)?.let { refresh(it) }
+                return@setOnItemClickListener
+            }
+            // Verzeichnis-Listing nicht auf dem Main-Thread (N21).
+            val d = docId
+            ioExecutor.execute {
+                val target = SafFiles.listChildren(context, tree, d).orEmpty()
+                    .firstOrNull { SafFiles.label(it) == item }
+                mainHandler.post {
+                    if (target == null) return@post
+                    if (target.isDir) {
+                        refresh(target.docId)
+                    } else {
+                        dialog?.dismiss()
+                        loadDocument(target.docUri)
+                    }
+                }
+            }
+        }
+        val picker = AlertDialog.Builder(context)
+            .setTitle(context.getString(R.string.editor_load_title))
+            .setView(listView)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        dialog = picker
+        // WICHTIG (IME ohne Activity): Dialogfenster an das IME-Fenster anhängen,
+        // sonst BadTokenException ("token null is not valid") — [ImeDialog] macht
+        // das zentral und meldet statt eines Absturzes `false`.
+        if (!ImeDialog.show(picker, rootView.windowToken)) {
+            toast(R.string.dialog_unavailable)
+            return
+        }
+        refresh(docId)
+    }
+
     /** Lädt eine Datei in den Editor; der Tab bleibt beim Editor. */
     fun openFile(f: File) { loadFile(f) }
+
+    /** Lädt ein SAF-Dokument (content://) in den Editor und merkt es als Save-Ziel. */
+    private fun loadDocument(uri: Uri) {
+        ioExecutor.execute {
+            try {
+                val size = SafFiles.sizeOf(context, uri)
+                val name = SafFiles.displayName(context, uri).orEmpty()
+                if (size > EditorTextState.MAX_EDITOR_BYTES) {
+                    mainHandler.post {
+                        toast(R.string.editor_file_too_large, name.ifEmpty { uri.toString() })
+                    }
+                    return@execute
+                }
+                val content = SafFiles.readText(context, uri)
+                mainHandler.post {
+                    editorDocUri = uri
+                    editorDocName = name
+                    // File-Save-Ziel zurücksetzen: Solange ein Dokument offen ist,
+                    // geht Save in das Dokument (Modi werden nicht gemischt).
+                    editorFile = defaultFile()
+                    fileLabel?.text = name.ifEmpty { uri.lastPathSegment ?: "document" }
+                    input?.setText(content)
+                    toast(R.string.editor_loaded, fileLabel?.text?.toString().orEmpty())
+                    onFileOpenedKey(uri.toString())
+                }
+            } catch (e: Exception) {
+                mainHandler.post { toast(R.string.editor_load_failed, e.message.orEmpty()) }
+            }
+        }
+    }
 
     /** Editor-Inhalt leeren (für die Aktion 'Neue Datei'). */
     fun clearEditor() {
         input?.setText("")
     }
 
-    /** Aktuelle Datei speichern (Toolbar-⇨Save). */
+    /** Aktuelle Datei speichern (Toolbar-⇨Save): SAF-Dokument oder Datei. */
     fun saveCurrent() {
-        val f = editorFile
         val text = input?.text?.toString() ?: return
+        val doc = editorDocUri
+        if (doc != null) {
+            ioExecutor.execute {
+                val ok = SafFiles.writeText(context, doc, text)
+                mainHandler.post {
+                    if (ok) {
+                        toast(
+                            R.string.editor_saved,
+                            editorDocName.ifEmpty { doc.lastPathSegment ?: "document" }
+                        )
+                    } else {
+                        toast(R.string.editor_save_failed, doc.lastPathSegment ?: "document")
+                    }
+                }
+            }
+            return
+        }
+        val f = editorFile
         ioExecutor.execute {
             try {
                 EditorTextState.writeFile(f, text)
@@ -288,6 +435,9 @@ open class EditorPanel(
                 val content = EditorTextState.readFile(f)
                 mainHandler.post {
                     editorFile = f
+                    // File-Modus wieder aktiv: ein evtl. offenes SAF-Dokument lösen,
+                    // sonst würde Save ins Dokument statt in die geladene Datei gehen.
+                    editorDocUri = null
                     fileLabel?.text = f.name
                     input?.setText(content)
                     if (f.exists()) toast(R.string.editor_loaded, f.name)

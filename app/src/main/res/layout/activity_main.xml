@@ -144,8 +144,8 @@
             style="@style/SettingsKeyButton"
             android:layout_marginTop="8dp"
             android:text="@string/settings_storage_grant" />
-        <!-- All-files access (API 30+): optional, mit Begründungs-Dialog vor dem
-             System-Screen. Wird unter API 30 im Code ausgeblendet. -->
+        <!-- SAF-Ordnerzugriff (v0.24): optional, mit Begründungs-Dialog vor der
+             System-Ordnerwahl. Ersetzt „All-files access“ (v0.19–v0.23). -->
         <Button
             android:id="@+id/btn_grant_all_files"
             style="@style/SettingsKeyButton"

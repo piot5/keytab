@@ -42,12 +42,12 @@
          statt „kann Dateien auflisten“ zu versprechen (F-Droid-Testerbericht
          2026-10-13, junkerderprovinz: nur .png sichtbar, PDF/ZIP/XLSX fehlten). -->
     <string name="settings_storage_granted_media">Erteilt – der Dateien-Tab zeigt Ordner und Bilder.</string>
-    <!-- All-files access (ab v0.19): bewusst optional, nur über den System-Screen. -->
-    <string name="settings_storage_all_files">Alle Dateien – der Dateien-Tab kann jeden Dateityp auflisten.</string>
-    <string name="settings_storage_all_files_grant">🗂️ Zugriff auf alle Dateien erlauben</string>
-    <string name="settings_all_files_title">Zugriff auf alle Dateien</string>
-    <string name="settings_all_files_message">Ohne diesen Zugriff zeigt Android 13+ im Dateien-Tab nur Ordner und Bilder (PDF, ZIP, XLSX … bleiben verborgen). Mit dem Zugriff auf alle Dateien kann der Dateien-Tab jede Datei auflisten, öffnen und bearbeiten. KeyTab hat keine INTERNET-Berechtigung, daher kann keine Datei das Gerät verlassen. Der nächste Bildschirm ist eine Systemeinstellung – dort lässt sich der Zugriff jederzeit entziehen.</string>
-    <string name="settings_all_files_open">Systemeinstellungen öffnen</string>
+    <!-- Ordnerzugriff (SAF, ab v0.24): ersetzt „Zugriff auf alle Dateien“ (v0.19–v0.23). -->
+    <string name="settings_storage_all_files">Ordnerzugriff – der Dateien-Tab listet jeden Dateityp im gewählten Ordner.</string>
+    <string name="settings_storage_all_files_grant">📂 Ordner wählen (alle Dateitypen)</string>
+    <string name="settings_all_files_title">Ordnerzugriff</string>
+    <string name="settings_all_files_message">Ohne gewählten Ordner zeigt Android 13+ im Dateien-Tab nur Ordner und Bilder (PDF, ZIP, XLSX … bleiben verborgen). Wähle einen Ordner, und der Dateien-Tab kann darin jede Datei auflisten, öffnen und bearbeiten – inklusive echter Pfade für Termux. KeyTab hat keine INTERNET-Berechtigung, daher kann keine Datei das Gerät verlassen. Der nächste Bildschirm ist die System-Ordnerwahl – der Ordner lässt sich dort jederzeit ändern oder entziehen.</string>
+    <string name="settings_all_files_open">Ordner wählen</string>
     <string name="settings_storage_partial">Nur ausgewählte Fotos – Ordner außerhalb der Auswahl bleiben verborgen.</string>
     <string name="settings_storage_missing">Nicht erteilt – der Dateien-Tab zeigt nur Ordner.</string>
     <string name="settings_storage_denied">Nicht erteilt – Dateizugriff lässt sich jederzeit erteilen.</string>

@@ -1,0 +1,4 @@
+- Version 0.24: "All-files access" is replaced by folder access (SAF) — pick a folder in the system picker and the Files tab lists every file type inside it. MANAGE_EXTERNAL_STORAGE is gone entirely.
+- Real paths keep working for Termux: files in the primary storage still insert /storage/emulated/0/… paths.
+- The editor opens and saves documents inside the granted folder; the media fallback (folders + pictures) is unchanged.
+- No new permissions, no INTERNET, everything stays local as before.

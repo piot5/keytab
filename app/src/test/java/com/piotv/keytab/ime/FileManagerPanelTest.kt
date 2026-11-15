@@ -34,10 +34,10 @@ class FileManagerPanelTest {
 
     private lateinit var base: File
     private lateinit var sub: File
-    /** Testhaken für „Alle Dateien“ zurücksetzen (Robolectric hat keinen Shadow dafür). */
+    /** Testhaken für den SAF-Ordnerzugriff zurücksetzen (kein echter Provider in JVM-Tests). */
     @org.junit.After
     fun resetStorageAccessOverride() {
-        StorageAccess.resetForTests()
+        SafAccess.resetForTests()
     }
 
 
@@ -159,15 +159,27 @@ class FileManagerPanelTest {
     }
 
     /**
-     * „Alle Dateien“ (API 30+, ab v0.19) hebt die Medien-Einschränkung auf: der
-     * Hinweis nennt dann wieder nur Zahlen — der Bild-Zusatz wäre falsch.
+     * SAF-Modus (ab v0.24, Ersatz für „Alle Dateien“): bei freigegebenem Ordner
+     * sind alle Dateitypen sichtbar — der Hinweis nennt keine Bild-Einschränkung.
+     * In Robolectric gibt es keinen echten Dokument-Provider: das Listing liefert
+     * keinen Zugriff, der Hinweis fällt sauber auf „Kein Speicherzugriff“ zurück
+     * (der Zusatz „nur Bilder“ wäre hier falsch).
      */
     @Test
-    fun `Mit All-files access nennt der Hinweis keine Bild-Einschraenkung`() {
-        StorageAccess.allFilesOverride = true
-        val (root, _, _) = panelWithTree("allfiles")
+    fun `Im SAF-Modus bleibt der Hinweis ehrlich statt Bilder anzunehmen`() {
+        SafAccess.override = true
+        Prefs.of(app).edit()
+            .putString("fm_dir", "saf|" + SafAccess.TEST_URI + "|primary:Download")
+            .putString("fm_backstack", null)
+            .commit()
+        val root = inflateKeyboardRoot(app)
+        FileManagerPanel(
+            app, root, directExecutor, mainHandler,
+            FileManagerPanel.FileManagerCallbacks(onCommit = {})
+        )
+        shadowOf(Looper.getMainLooper()).idle()
         val hint = root.findViewById<TextView>(R.id.file_hint).text.toString()
-        assertEquals(app.getString(R.string.fm_dir_summary, 1, 1), hint)
+        assertEquals(app.getString(R.string.fm_no_storage_access), hint)
     }
 
     /**

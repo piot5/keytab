@@ -19,7 +19,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowAlertDialog
 import org.robolectric.shadows.ShadowLooper
-import com.piotv.keytab.ime.StorageAccess
+import com.piotv.keytab.ime.SafAccess
 
 /**
  * Robolectric-Tests für den Einstellungs-Screen (`MainActivity`).
@@ -41,10 +41,10 @@ class MainActivityTest {
     private fun status(activity: MainActivity): String =
         activity.findViewById<TextView>(R.id.text_file_access).text.toString()
 
-    /** Testhaken für „Alle Dateien“ zurücksetzen (Robolectric hat keinen Shadow dafür). */
+    /** Testhaken für den SAF-Ordnerzugriff zurücksetzen (kein echter Provider in JVM-Tests). */
     @After
     fun resetStorageAccessOverride() {
-        StorageAccess.resetForTests()
+        SafAccess.resetForTests()
     }
 
     private fun grantButton(activity: MainActivity): Button =
@@ -113,54 +113,52 @@ class MainActivityTest {
         assertTrue("Teilzugriff lässt sich aufweiten", grantButton(activity).isEnabled)
     }
 
-    // ---------- All-files access (API 30+), ab v0.19 ----------
+    // ---------- Ordnerzugriff (SAF), ab v0.24 Ersatz für „Alle Dateien“ ----------
     //
     // F-Droid-Konvention: kein Prompt beim Start, kein Hintergrundzugriff,
-    // Berechtigung nur im Kontext und mit Begründung anfragen, vollwertiger
-    // Fallback ohne sie. MANAGE_EXTERNAL_STORAGE lässt sich nur über den
-    // System-Screen erteilen — deshalb führt der Weg über einen Dialog dorthin.
+    // Freigabe nur im Kontext und mit Begründung anfragen, vollwertiger
+    // Fallback ohne sie. Der SAF-Picker ist ein System-Dialog — der Test prüft
+    // Begründungs-Dialog → Picker-Intent sowie die Status-Anzeige.
 
-    private fun allFilesButton(activity: MainActivity): Button =
+    private fun folderButton(activity: MainActivity): Button =
         activity.findViewById(R.id.btn_grant_all_files)
 
     @Test
-    fun `All-files access zeigt Vollzugriff und deaktiviert beide Buttons`() {
-        StorageAccess.allFilesOverride = true
+    fun `Ordnerzugriff zeigt Vollzugriff und deaktiviert den Medien-Button`() {
+        SafAccess.override = true
         val activity = start()
         assertEquals(activity.getString(R.string.settings_storage_all_files), status(activity))
         assertFalse("Vollzugriff braucht keinen Medien-Prompt", grantButton(activity).isEnabled)
-        assertFalse("Vollzugriff braucht keinen zweiten All-files-Prompt",
-            allFilesButton(activity).isEnabled)
     }
 
     @Test
-    fun `Ohne All-files bleibt der Button anfragbar und der Medienstatus stehen`() {
-        shadowOf(app).grantPermissions(Manifest.permission.READ_MEDIA_IMAGES)
+    fun `Klick auf Ordnerzugriff begruendet zuerst und startet dann die Ordnerwahl`() {
         val activity = start()
-        assertEquals(activity.getString(R.string.settings_storage_granted_media), status(activity))
-        assertTrue("All-files ist optional und muss anfragbar bleiben",
-            allFilesButton(activity).isEnabled)
-    }
-
-    @Test
-    fun `Klick auf All-files begruendet zuerst und oeffnet dann die System-Einstellungen`() {
-        val activity = start()
-        assertNull("Kein System-Screen ohne Klick", shadowOf(activity).nextStartedActivity)
-        allFilesButton(activity).performClick()
-        assertNull("Kein Runtime-Prompt für All-files", shadowOf(activity).lastRequestedPermission)
+        assertNull("Kein System-Dialog ohne Klick", shadowOf(activity).nextStartedActivity)
+        folderButton(activity).performClick()
+        assertNull("Kein Runtime-Prompt für den Ordnerzugriff",
+            shadowOf(activity).lastRequestedPermission)
         val dialog = ShadowAlertDialog.getLatestAlertDialog()
-        assertNotNull("Begründungs-Dialog vor dem System-Screen", dialog)
+        assertNotNull("Begründungs-Dialog vor der Ordnerwahl", dialog)
         dialog!!.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
         // AlertController verschickt den Button-Klick über einen Handler des
         // Main-Loopers — unter Robolectric (PAUSED) muss er erst laufen.
         ShadowLooper.runUiThreadTasks()
         val started = shadowOf(activity).nextStartedActivity
         assertEquals(
-            "Der paketbezogene System-Screen für „Alle Dateien“",
-            android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+            "Die System-Ordnerwahl (SAF)",
+            android.content.Intent.ACTION_OPEN_DOCUMENT_TREE,
             started?.action
         )
-        assertEquals("package:${activity.packageName}", started?.data?.toString())
+    }
+
+    @Test
+    fun `Ohne Ordnerzugriff bleibt der Medien-Status und der SAF-Button anfragbar`() {
+        shadowOf(app).grantPermissions(Manifest.permission.READ_MEDIA_IMAGES)
+        val activity = start()
+        assertEquals(activity.getString(R.string.settings_storage_granted_media), status(activity))
+        assertTrue("Ordnerzugriff ist optional und muss anfragbar bleiben",
+            folderButton(activity).isEnabled)
     }
 
 }

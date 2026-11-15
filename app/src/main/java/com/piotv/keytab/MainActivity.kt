@@ -21,7 +21,7 @@ import com.piotv.keytab.ime.KeyTabExecutors
 import com.piotv.keytab.ime.KeyboardLanguage
 import com.piotv.keytab.ime.Languages
 import com.piotv.keytab.ime.SettingsConfig
-import com.piotv.keytab.ime.StorageAccess
+import com.piotv.keytab.ime.SafAccess
 import com.piotv.keytab.ime.SuggestionEngine
 import com.piotv.keytab.ime.ThemePrefs
 import com.piotv.keytab.sections.TrailSection
@@ -30,10 +30,11 @@ import com.piotv.keytab.sections.TrailSection
  * KeyTab – Einstellungsbildschirm: Tastatur aktivieren/wechseln, Theme.
  *
  * Der Dateizugriff für den IME-Dateimanager (und damit die Datei-Liste des
- * Files-Tabs) wird **nicht** beim Start, sondern gezielt über den Button
- * „Grant file access“ erteilt — der IME kann den System-Dialog nicht selbst
- * zeigen, und Tippen funktioniert ohne Zugriff vollständig (F-Droid-Review
- * 2026-10-06, Punkt 1). Daneben steht der aktuelle Status.
+ * Files-Tabs) wird **nicht** beim Start, sondern gezielt über die Buttons
+ * „Grant file access“ (Medien) und „Ordner wählen“ (SAF-Baum, Ersatz für
+ * „Alle Dateien“) erteilt — der IME kann die System-Dialoge nicht selbst zeigen,
+ * und Tippen funktioniert ohne Zugriff vollständig (F-Droid-Review 2026-10-06,
+ * Punkt 1). Daneben steht der aktuelle Status.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -66,12 +67,27 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+    /**
+     * SAF-Ordnerwahl (Ersatz für „Alle Dateien“, v0.24): der gewählte Baum wird
+     * mit persistierbarer Erlaubnis übernommen ([SafAccess.grant]) — dadurch listet
+     * der Files-Tab **alle Dateitypen** im gewählten Ordner. `null` = abgebrochen,
+     * der bisherige Status bleibt unverändert.
+     */
+    private val folderPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            if (uri != null) {
+                // Speichert die Baum-URI (persistierbar, wenn der Provider es
+                // anbietet); der Status liest danach die geltende Erlaubnis.
+                SafAccess.grant(this, uri)
+                refreshFileAccess()
+                Toast.makeText(this, R.string.settings_storage_all_files,
+                    Toast.LENGTH_SHORT).show()
+            }
+        }
+
     companion object {
         private const val ANDROID_14 = 34
         private const val ANDROID_13 = 33
-
-        /** „Alle Dateien“ (MANAGE_EXTERNAL_STORAGE) gibt es ab API 30 (Android 11). */
-        private const val ANDROID_11 = 30
 
         /** Alias-Kompatibilität: `MainActivity.PREFS` == `Prefs.FILE` (alter Aufrufer). */
         const val PREFS = Prefs.FILE
@@ -218,8 +234,9 @@ class MainActivity : AppCompatActivity() {
                 permLauncher.launch(missing)
             }
         }
-        // All-files access (API 30+) — bewusst optional und nur hier, auf
-        setupAllFilesButton()
+        // Ordnerzugriff (SAF) — bewusst optional und nur hier, auf ausdrücklichen
+        // Wunsch (Ersatz für „Alle Dateien“, v0.24).
+        setupFolderButton()
         refreshFileAccess()
     }
 
@@ -227,7 +244,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         applyDarkModeOverride()
         SettingsConfig.importIfChanged(this)
-        // Zurück aus den System-Einstellungen (All-files access) → Status neu lesen.
+        // Zurück aus der System-Ordnerwahl (SAF) → Status neu lesen.
         refreshFileAccess()
         // Beschriftung/Farbe der Tippspur-Buttons aus den Prefs nachziehen
         // (z. B. wenn die Werte per keytab_config.txt importiert wurden).
@@ -282,9 +299,9 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    /** 0 = kein Zugriff, 1 = nur ausgewählte Bilder (Android 14+), 2 = Medien, 3 = alle Dateien. */
+    /** 0 = kein Zugriff, 1 = nur ausgewählte Bilder (Android 14+), 2 = Medien, 3 = SAF-Ordner. */
     private fun fileAccessLevel(): Int {
-        if (hasAllFilesAccess()) return 3
+        if (SafAccess.granted(this)) return 3
         val images = isGranted(Manifest.permission.READ_MEDIA_IMAGES)
         return when {
             Build.VERSION.SDK_INT >= ANDROID_14 -> when {
@@ -298,55 +315,31 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * „Alle Dateien“ (API 30+) — nur über den System-Screen zu erteilen, nie
-     * automatisch und nie im Hintergrund. Ohne diese Freigabe bleibt der
-     * Medien-Weg (Ordner + Bilder) der Standard; mit ihr listet der Files-Tab
-     * jeden Dateityp (siehe AndroidManifest-Begründung). Die Abfrage selbst liegt
-     * in [StorageAccess], damit Statuszeile und Files-Tab nie auseinanderlaufen.
+     * Button „Ordner wählen“ (SAF): erst der Begründungs-Dialog, dann die
+     * System-Ordnerwahl — nie beim Start, nie im Hintergrund. Der Button bleibt
+     * auch nach der Freigabe aktiv: ein erneutes Wählen wechselt den Ordner.
+     * Ausgelagert, damit `onCreate` unter der detekt-Komplexitätsgrenze bleibt.
      */
-    private fun hasAllFilesAccess(): Boolean = StorageAccess.allFilesGranted()
-
-    /**
-     * Button „Grant all-files access“ (API 30+): erst der Begründungs-Dialog, dann
-     * der System-Screen — nie beim Start, nie im Hintergrund. Unter API 30 gibt es
-     * die Berechtigung nicht, dort bleibt der Button ausgeblendet. Ausgelagert,
-     * damit `onCreate` unter der detekt-Komplexitätsgrenze bleibt.
-     */
-    private fun setupAllFilesButton() {
-        findViewById<Button>(R.id.btn_grant_all_files).apply {
-            visibility = if (Build.VERSION.SDK_INT >= ANDROID_11) View.VISIBLE else View.GONE
-            setOnClickListener { confirmAllFilesAccess() }
+    private fun setupFolderButton() {
+        findViewById<Button>(R.id.btn_grant_all_files).setOnClickListener {
+            confirmFolderAccess()
         }
     }
 
     /**
-     * Begründung **vor** dem System-Screen (F-Droid-Konvention: Berechtigungen
-     * erklären und im Kontext erfragen, nicht beim Start). MANAGE_EXTERNAL_STORAGE
-     * lässt sich nur dort erteilen — ein Dialog kann das nicht.
+     * Begründung **vor** der Ordnerwahl (F-Droid-Konvention: Berechtigungen
+     * erklären und im Kontext erfragen, nicht beim Start). Der SAF-Picker ist
+     * ein System-Dialog — die App entscheidet nicht, was freigegeben wird.
      */
-    private fun confirmAllFilesAccess() {
+    private fun confirmFolderAccess() {
         AlertDialog.Builder(this)
             .setTitle(R.string.settings_all_files_title)
             .setMessage(R.string.settings_all_files_message)
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.settings_all_files_open) { _, _ -> openAllFilesSettings() }
+            .setPositiveButton(R.string.settings_all_files_open) { _, _ ->
+                folderPicker.launch(null)
+            }
             .show()
-    }
-
-    /**
-     * System-Screen „Alle Dateien“ öffnen. Der paketbezogene Intent ist der
-     * direkteste Weg; kennt ein ROM ihn nicht, greift die allgemeine Variante.
-     */
-    private fun openAllFilesSettings() {
-        val appSpecific = Intent(
-            android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-            android.net.Uri.fromParts("package", packageName, null)
-        )
-        try {
-            startActivity(appSpecific)
-        } catch (_: Exception) {
-            startActivity(Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
-        }
     }
 
     private fun isGranted(permission: String): Boolean =
@@ -374,7 +367,8 @@ class MainActivity : AppCompatActivity() {
             }
         )
         findViewById<Button>(R.id.btn_grant_file_access).isEnabled = level < 2
-        findViewById<Button>(R.id.btn_grant_all_files).isEnabled = level < 3
+        // SAF-Ordnerwahl bleibt aktiv: erneutes Wählen wechselt den Ordner.
+        findViewById<Button>(R.id.btn_grant_all_files).isEnabled = true
     }
 
     /**
